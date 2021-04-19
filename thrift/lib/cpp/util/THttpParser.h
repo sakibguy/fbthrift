@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,9 @@
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp/transport/TBufferTransports.h>
 
-namespace apache { namespace thrift { namespace util {
+namespace apache {
+namespace thrift {
+namespace util {
 
 class THttpParser {
  protected:
@@ -36,7 +38,7 @@ class THttpParser {
 
   enum HttpParseResult {
     HTTP_PARSE_RESULT_CONTINUE,
-    HTTP_PARSE_RESULT_BLOCK
+    HTTP_PARSE_RESULT_BLOCK,
   };
 
  public:
@@ -46,27 +48,17 @@ class THttpParser {
   void getReadBuffer(void** bufReturn, size_t* lenReturn);
   bool readDataAvailable(size_t len);
   int getMinBytesRequired();
-  uint32_t getUnparsedDataLen() const {
-    return httpBufLen_ - httpPos_;
-  }
+  uint32_t getUnparsedDataLen() const { return httpBufLen_ - httpPos_; }
   void setDataBuffer(apache::thrift::transport::TMemoryBuffer* buffer) {
     dataBuf_ = buffer;
   }
-  void unsetDataBuffer() {
-    dataBuf_ = nullptr;
-  }
-  void setMaxSize(uint32_t size) {
-    maxSize_ = size;
-  }
-  uint32_t getMaxSize() {
-    return maxSize_;
-  }
+  void unsetDataBuffer() { dataBuf_ = nullptr; }
+  void setMaxSize(uint32_t size) { maxSize_ = size; }
+  uint32_t getMaxSize() { return maxSize_; }
   bool hasReadAheadData() {
     return (state_ == HTTP_PARSE_START) && (httpBufLen_ > httpPos_);
   }
-  bool hasPartialMessage() {
-    return partialMessageSize_ > 0;
-  }
+  bool hasPartialMessage() { return partialMessageSize_ > 0; }
   const std::map<std::string, std::string>& getReadHeaders() {
     return readHeaders_;
   }
@@ -74,12 +66,12 @@ class THttpParser {
     return std::move(readHeaders_);
   }
   virtual std::unique_ptr<folly::IOBuf> constructHeader(
-    std::unique_ptr<folly::IOBuf> buf) = 0;
+      std::unique_ptr<folly::IOBuf> buf) = 0;
   virtual std::unique_ptr<folly::IOBuf> constructHeader(
-    std::unique_ptr<folly::IOBuf> buf,
-    const std::map<std::string, std::string>& persistentWriteHeaders,
-    const std::map<std::string, std::string>& writeHeaders,
-    const std::map<std::string, std::string>* extraWriteHeaders) = 0;
+      std::unique_ptr<folly::IOBuf> buf,
+      const std::map<std::string, std::string>& persistentWriteHeaders,
+      const std::map<std::string, std::string>& writeHeaders,
+      const std::map<std::string, std::string>* extraWriteHeaders) = 0;
 
  protected:
   HttpParseResult parseStart();
@@ -133,9 +125,7 @@ class THttpClientParser : public THttpParser {
   void setPath(const std::string& path) { path_ = path; }
   void resetConnectClosedByServer();
   bool isConnectClosedByServer();
-  void setUserAgent(std::string userAgent) {
-    userAgent_ = userAgent;
-  }
+  void setUserAgent(std::string userAgent) { userAgent_ = userAgent; }
   std::unique_ptr<folly::IOBuf> constructHeader(
       std::unique_ptr<folly::IOBuf> buf) override;
   std::unique_ptr<folly::IOBuf> constructHeader(
@@ -159,7 +149,8 @@ class THttpClientParser : public THttpParser {
   std::string userAgent_;
 };
 
-
-}}} // apache::thrift::util
+} // namespace util
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef THRIFT_TRANSPORT_THTTPPARSER_H_

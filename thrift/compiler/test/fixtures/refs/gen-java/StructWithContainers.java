@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -45,11 +43,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
   public static final int LIST_REF_UNIQUE = 4;
   public static final int SET_REF_SHARED = 5;
   public static final int LIST_REF_SHARED_CONST = 6;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(LIST_REF, new FieldMetaData("list_ref", TFieldRequirementType.DEFAULT, 
@@ -82,13 +80,12 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
   }
 
   public StructWithContainers(
-    List<Integer> list_ref,
-    Set<Integer> set_ref,
-    Map<Integer,Integer> map_ref,
-    List<Integer> list_ref_unique,
-    Set<Integer> set_ref_shared,
-    List<Integer> list_ref_shared_const)
-  {
+      List<Integer> list_ref,
+      Set<Integer> set_ref,
+      Map<Integer,Integer> map_ref,
+      List<Integer> list_ref_unique,
+      Set<Integer> set_ref_shared,
+      List<Integer> list_ref_shared_const) {
     this();
     this.list_ref = list_ref;
     this.set_ref = set_ref;
@@ -96,6 +93,63 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     this.list_ref_unique = list_ref_unique;
     this.set_ref_shared = set_ref_shared;
     this.list_ref_shared_const = list_ref_shared_const;
+  }
+
+  public static class Builder {
+    private List<Integer> list_ref;
+    private Set<Integer> set_ref;
+    private Map<Integer,Integer> map_ref;
+    private List<Integer> list_ref_unique;
+    private Set<Integer> set_ref_shared;
+    private List<Integer> list_ref_shared_const;
+
+    public Builder() {
+    }
+
+    public Builder setList_ref(final List<Integer> list_ref) {
+      this.list_ref = list_ref;
+      return this;
+    }
+
+    public Builder setSet_ref(final Set<Integer> set_ref) {
+      this.set_ref = set_ref;
+      return this;
+    }
+
+    public Builder setMap_ref(final Map<Integer,Integer> map_ref) {
+      this.map_ref = map_ref;
+      return this;
+    }
+
+    public Builder setList_ref_unique(final List<Integer> list_ref_unique) {
+      this.list_ref_unique = list_ref_unique;
+      return this;
+    }
+
+    public Builder setSet_ref_shared(final Set<Integer> set_ref_shared) {
+      this.set_ref_shared = set_ref_shared;
+      return this;
+    }
+
+    public Builder setList_ref_shared_const(final List<Integer> list_ref_shared_const) {
+      this.list_ref_shared_const = list_ref_shared_const;
+      return this;
+    }
+
+    public StructWithContainers build() {
+      StructWithContainers result = new StructWithContainers();
+      result.setList_ref(this.list_ref);
+      result.setSet_ref(this.set_ref);
+      result.setMap_ref(this.map_ref);
+      result.setList_ref_unique(this.list_ref_unique);
+      result.setSet_ref_shared(this.set_ref_shared);
+      result.setList_ref_shared_const(this.list_ref_shared_const);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -126,12 +180,7 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return new StructWithContainers(this);
   }
 
-  @Deprecated
-  public StructWithContainers clone() {
-    return new StructWithContainers(this);
-  }
-
-  public List<Integer>  getList_ref() {
+  public List<Integer> getList_ref() {
     return this.list_ref;
   }
 
@@ -149,13 +198,13 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return this.list_ref != null;
   }
 
-  public void setList_refIsSet(boolean value) {
-    if (!value) {
+  public void setList_refIsSet(boolean __value) {
+    if (!__value) {
       this.list_ref = null;
     }
   }
 
-  public Set<Integer>  getSet_ref() {
+  public Set<Integer> getSet_ref() {
     return this.set_ref;
   }
 
@@ -173,13 +222,13 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return this.set_ref != null;
   }
 
-  public void setSet_refIsSet(boolean value) {
-    if (!value) {
+  public void setSet_refIsSet(boolean __value) {
+    if (!__value) {
       this.set_ref = null;
     }
   }
 
-  public Map<Integer,Integer>  getMap_ref() {
+  public Map<Integer,Integer> getMap_ref() {
     return this.map_ref;
   }
 
@@ -197,13 +246,13 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return this.map_ref != null;
   }
 
-  public void setMap_refIsSet(boolean value) {
-    if (!value) {
+  public void setMap_refIsSet(boolean __value) {
+    if (!__value) {
       this.map_ref = null;
     }
   }
 
-  public List<Integer>  getList_ref_unique() {
+  public List<Integer> getList_ref_unique() {
     return this.list_ref_unique;
   }
 
@@ -221,13 +270,13 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return this.list_ref_unique != null;
   }
 
-  public void setList_ref_uniqueIsSet(boolean value) {
-    if (!value) {
+  public void setList_ref_uniqueIsSet(boolean __value) {
+    if (!__value) {
       this.list_ref_unique = null;
     }
   }
 
-  public Set<Integer>  getSet_ref_shared() {
+  public Set<Integer> getSet_ref_shared() {
     return this.set_ref_shared;
   }
 
@@ -245,13 +294,13 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return this.set_ref_shared != null;
   }
 
-  public void setSet_ref_sharedIsSet(boolean value) {
-    if (!value) {
+  public void setSet_ref_sharedIsSet(boolean __value) {
+    if (!__value) {
       this.set_ref_shared = null;
     }
   }
 
-  public List<Integer>  getList_ref_shared_const() {
+  public List<Integer> getList_ref_shared_const() {
     return this.list_ref_shared_const;
   }
 
@@ -269,60 +318,60 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     return this.list_ref_shared_const != null;
   }
 
-  public void setList_ref_shared_constIsSet(boolean value) {
-    if (!value) {
+  public void setList_ref_shared_constIsSet(boolean __value) {
+    if (!__value) {
       this.list_ref_shared_const = null;
     }
   }
 
   @SuppressWarnings("unchecked")
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case LIST_REF:
-      if (value == null) {
+      if (__value == null) {
         unsetList_ref();
       } else {
-        setList_ref((List<Integer>)value);
+        setList_ref((List<Integer>)__value);
       }
       break;
 
     case SET_REF:
-      if (value == null) {
+      if (__value == null) {
         unsetSet_ref();
       } else {
-        setSet_ref((Set<Integer>)value);
+        setSet_ref((Set<Integer>)__value);
       }
       break;
 
     case MAP_REF:
-      if (value == null) {
+      if (__value == null) {
         unsetMap_ref();
       } else {
-        setMap_ref((Map<Integer,Integer>)value);
+        setMap_ref((Map<Integer,Integer>)__value);
       }
       break;
 
     case LIST_REF_UNIQUE:
-      if (value == null) {
+      if (__value == null) {
         unsetList_ref_unique();
       } else {
-        setList_ref_unique((List<Integer>)value);
+        setList_ref_unique((List<Integer>)__value);
       }
       break;
 
     case SET_REF_SHARED:
-      if (value == null) {
+      if (__value == null) {
         unsetSet_ref_shared();
       } else {
-        setSet_ref_shared((Set<Integer>)value);
+        setSet_ref_shared((Set<Integer>)__value);
       }
       break;
 
     case LIST_REF_SHARED_CONST:
-      if (value == null) {
+      if (__value == null) {
         unsetList_ref_shared_const();
       } else {
-        setList_ref_shared_const((List<Integer>)value);
+        setList_ref_shared_const((List<Integer>)__value);
       }
       break;
 
@@ -356,101 +405,34 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case LIST_REF:
-      return isSetList_ref();
-    case SET_REF:
-      return isSetSet_ref();
-    case MAP_REF:
-      return isSetMap_ref();
-    case LIST_REF_UNIQUE:
-      return isSetList_ref_unique();
-    case SET_REF_SHARED:
-      return isSetSet_ref_shared();
-    case LIST_REF_SHARED_CONST:
-      return isSetList_ref_shared_const();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof StructWithContainers)
-      return this.equals((StructWithContainers)that);
-    return false;
-  }
-
-  public boolean equals(StructWithContainers that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof StructWithContainers))
+      return false;
+    StructWithContainers that = (StructWithContainers)_that;
 
-    boolean this_present_list_ref = true && this.isSetList_ref();
-    boolean that_present_list_ref = true && that.isSetList_ref();
-    if (this_present_list_ref || that_present_list_ref) {
-      if (!(this_present_list_ref && that_present_list_ref))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.list_ref, that.list_ref))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetList_ref(), that.isSetList_ref(), this.list_ref, that.list_ref)) { return false; }
 
-    boolean this_present_set_ref = true && this.isSetSet_ref();
-    boolean that_present_set_ref = true && that.isSetSet_ref();
-    if (this_present_set_ref || that_present_set_ref) {
-      if (!(this_present_set_ref && that_present_set_ref))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.set_ref, that.set_ref))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetSet_ref(), that.isSetSet_ref(), this.set_ref, that.set_ref)) { return false; }
 
-    boolean this_present_map_ref = true && this.isSetMap_ref();
-    boolean that_present_map_ref = true && that.isSetMap_ref();
-    if (this_present_map_ref || that_present_map_ref) {
-      if (!(this_present_map_ref && that_present_map_ref))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.map_ref, that.map_ref))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetMap_ref(), that.isSetMap_ref(), this.map_ref, that.map_ref)) { return false; }
 
-    boolean this_present_list_ref_unique = true && this.isSetList_ref_unique();
-    boolean that_present_list_ref_unique = true && that.isSetList_ref_unique();
-    if (this_present_list_ref_unique || that_present_list_ref_unique) {
-      if (!(this_present_list_ref_unique && that_present_list_ref_unique))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.list_ref_unique, that.list_ref_unique))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetList_ref_unique(), that.isSetList_ref_unique(), this.list_ref_unique, that.list_ref_unique)) { return false; }
 
-    boolean this_present_set_ref_shared = true && this.isSetSet_ref_shared();
-    boolean that_present_set_ref_shared = true && that.isSetSet_ref_shared();
-    if (this_present_set_ref_shared || that_present_set_ref_shared) {
-      if (!(this_present_set_ref_shared && that_present_set_ref_shared))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.set_ref_shared, that.set_ref_shared))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetSet_ref_shared(), that.isSetSet_ref_shared(), this.set_ref_shared, that.set_ref_shared)) { return false; }
 
-    boolean this_present_list_ref_shared_const = true && this.isSetList_ref_shared_const();
-    boolean that_present_list_ref_shared_const = true && that.isSetList_ref_shared_const();
-    if (this_present_list_ref_shared_const || that_present_list_ref_shared_const) {
-      if (!(this_present_list_ref_shared_const && that_present_list_ref_shared_const))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.list_ref_shared_const, that.list_ref_shared_const))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetList_ref_shared_const(), that.isSetList_ref_shared_const(), this.list_ref_shared_const, that.list_ref_shared_const)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {list_ref, set_ref, map_ref, list_ref_unique, set_ref_shared, list_ref_shared_const});
   }
 
   @Override
@@ -470,7 +452,7 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(list_ref, other.list_ref);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetSet_ref()).compareTo(other.isSetSet_ref());
@@ -478,7 +460,7 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(set_ref, other.set_ref);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetMap_ref()).compareTo(other.isSetMap_ref());
@@ -486,7 +468,7 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(map_ref, other.map_ref);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetList_ref_unique()).compareTo(other.isSetList_ref_unique());
@@ -494,7 +476,7 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(list_ref_unique, other.list_ref_unique);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetSet_ref_shared()).compareTo(other.isSetSet_ref_shared());
@@ -502,7 +484,7 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(set_ref_shared, other.set_ref_shared);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetList_ref_shared_const()).compareTo(other.isSetList_ref_shared_const());
@@ -510,25 +492,25 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(list_ref_shared_const, other.list_ref_shared_const);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case LIST_REF:
-          if (field.type == TType.LIST) {
+          if (__field.type == TType.LIST) {
             {
               TList _list16 = iprot.readListBegin();
               this.list_ref = new ArrayList<Integer>(Math.max(0, _list16.size));
@@ -543,11 +525,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
               iprot.readListEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case SET_REF:
-          if (field.type == TType.SET) {
+          if (__field.type == TType.SET) {
             {
               TSet _set19 = iprot.readSetBegin();
               this.set_ref = new HashSet<Integer>(Math.max(0, 2*_set19.size));
@@ -562,11 +544,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
               iprot.readSetEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case MAP_REF:
-          if (field.type == TType.MAP) {
+          if (__field.type == TType.MAP) {
             {
               TMap _map22 = iprot.readMapBegin();
               this.map_ref = new HashMap<Integer,Integer>(Math.max(0, 2*_map22.size));
@@ -583,11 +565,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
               iprot.readMapEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case LIST_REF_UNIQUE:
-          if (field.type == TType.LIST) {
+          if (__field.type == TType.LIST) {
             {
               TList _list26 = iprot.readListBegin();
               this.list_ref_unique = new ArrayList<Integer>(Math.max(0, _list26.size));
@@ -602,11 +584,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
               iprot.readListEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case SET_REF_SHARED:
-          if (field.type == TType.SET) {
+          if (__field.type == TType.SET) {
             {
               TSet _set29 = iprot.readSetBegin();
               this.set_ref_shared = new HashSet<Integer>(Math.max(0, 2*_set29.size));
@@ -621,11 +603,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
               iprot.readSetEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case LIST_REF_SHARED_CONST:
-          if (field.type == TType.LIST) {
+          if (__field.type == TType.LIST) {
             {
               TList _list32 = iprot.readListBegin();
               this.list_ref_shared_const = new ArrayList<Integer>(Math.max(0, _list32.size));
@@ -640,11 +622,11 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
               iprot.readListEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -733,19 +715,14 @@ public class StructWithContainers implements TBase, java.io.Serializable, Clonea
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("StructWithContainers");
     sb.append(space);
     sb.append("(");
@@ -756,10 +733,10 @@ String space = prettyPrint ? " " : "";
     sb.append("list_ref");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getList_ref() == null) {
+    if (this.getList_ref() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getList_ref(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getList_ref(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -767,10 +744,10 @@ String space = prettyPrint ? " " : "";
     sb.append("set_ref");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getSet_ref() == null) {
+    if (this.getSet_ref() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getSet_ref(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getSet_ref(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -778,10 +755,10 @@ String space = prettyPrint ? " " : "";
     sb.append("map_ref");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getMap_ref() == null) {
+    if (this.getMap_ref() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getMap_ref(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getMap_ref(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -789,10 +766,10 @@ String space = prettyPrint ? " " : "";
     sb.append("list_ref_unique");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getList_ref_unique() == null) {
+    if (this.getList_ref_unique() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getList_ref_unique(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getList_ref_unique(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -800,10 +777,10 @@ String space = prettyPrint ? " " : "";
     sb.append("set_ref_shared");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getSet_ref_shared() == null) {
+    if (this.getSet_ref_shared() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getSet_ref_shared(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getSet_ref_shared(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -811,10 +788,10 @@ String space = prettyPrint ? " " : "";
     sb.append("list_ref_shared_const");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getList_ref_shared_const() == null) {
+    if (this.getList_ref_shared_const() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getList_ref_shared_const(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getList_ref_shared_const(), indent + 1, prettyPrint));
     }
     first = false;
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
@@ -824,7 +801,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
   }
 
 }

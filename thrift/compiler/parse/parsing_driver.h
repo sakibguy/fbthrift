@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,31 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <set>
+#include <stack>
 #include <string>
 #include <system_error>
+#include <unordered_set>
 
-#include "thrift/compiler/ast/t_program.h"
-#include "thrift/compiler/ast/t_scope.h"
+#include <boost/optional.hpp>
 
-#include "thrift/compiler/parse/yy_globals.h"
+#include <thrift/compiler/ast/t_exception.h>
+#include <thrift/compiler/ast/t_named.h>
+#include <thrift/compiler/ast/t_node.h>
+#include <thrift/compiler/ast/t_program.h>
+#include <thrift/compiler/ast/t_program_bundle.h>
+#include <thrift/compiler/ast/t_scope.h>
+#include <thrift/compiler/ast/t_union.h>
+#include <thrift/compiler/parse/yy_scanner.h>
 
 /**
- * Provide the custom yylex signature to flex.
+ * Provide the custom fbthrift_compiler_parse_lex signature to flex.
  */
-#define YY_DECL                                  \
-  apache::thrift::yy::parser::symbol_type yylex( \
-      apache::thrift::parsing_driver& driver)
+#define YY_DECL                                     \
+  apache::thrift::compiler::yy::parser::symbol_type \
+  fbthrift_compiler_parse_lex(                      \
+      apache::thrift::compiler::parsing_driver& driver, yyscan_t yyscanner)
 
 namespace apache {
 namespace thrift {
-
-// TODO: Parsing driver should itself be moved into apache::thrift::compiler
-using namespace compiler;
+namespace compiler {
 
 namespace yy {
 class parser;
@@ -48,7 +57,69 @@ enum class diagnostic_level {
   YY_ERROR = 1,
   WARNING = 2,
   VERBOSE = 3,
-  DEBUG = 4,
+  DBG = 4,
+};
+
+// Define an enum class for all types that have lineno embedded.
+enum class LineType {
+  Typedef,
+  Enum,
+  EnumValue,
+  Const,
+  Struct,
+  Service,
+  Function,
+  Field,
+  Xception,
+  Union,
+};
+
+// Parsing only representations.
+using t_struct_annotations = std::vector<std::unique_ptr<t_const>>;
+using t_field_list = std::vector<std::unique_ptr<t_field>>;
+struct t_annotations {
+  std::map<std::string, std::string> strings;
+  std::map<std::string, std::shared_ptr<const t_const>> objects;
+  int last_lineno;
+};
+using t_doc = boost::optional<std::string>;
+
+// A const pointer to an AST node.
+//
+// This is needed to avoid ambiguity in the parser code gen for const pointers.
+template <typename T>
+class t_ref {
+ public:
+  constexpr t_ref() = default;
+  constexpr t_ref(const t_ref&) noexcept = default;
+  constexpr t_ref(std::nullptr_t) noexcept {}
+
+  template <typename U>
+  constexpr /* implicit */ t_ref(const t_ref<U>& u) noexcept : ptr_(u.get()) {}
+
+  // Require an explicit cast for a non-const pointer, as non-const pointers
+  // likely need to be owned, so this is probably a bug.
+  template <typename U, std::enable_if_t<std::is_const<U>::value, int> = 0>
+  constexpr /* implicit */ t_ref(U* ptr) : ptr_(ptr) {}
+  template <typename U, std::enable_if_t<!std::is_const<U>::value, int> = 0>
+  constexpr explicit t_ref(U* ptr) : ptr_(ptr) {}
+
+  constexpr const T* get() const { return ptr_; }
+
+  constexpr const T* operator->() const {
+    assert(ptr_ != nullptr);
+    return ptr_;
+  }
+  constexpr const T& operator*() const {
+    assert(ptr_ != nullptr);
+    return *ptr_;
+  }
+
+  constexpr explicit operator bool() const { return bool(ptr_); }
+  constexpr /* implicit */ operator const T*() const { return ptr_; }
+
+ private:
+  const T* ptr_ = nullptr;
 };
 
 struct diagnostic_message {
@@ -78,6 +149,8 @@ enum class parsing_mode {
 
 struct parsing_params {
   // Default values are taken from the original global variables.
+
+  parsing_params() noexcept {} // Disable aggregate initialization
 
   bool debug = false;
   bool verbose = false;
@@ -118,6 +191,13 @@ struct parsing_params {
   bool allow_64bit_consts = false;
 
   /**
+   * Which experimental features should be allowed.
+   *
+   * 'all' can be used to enable all experimental featuers.
+   */
+  std::unordered_set<std::string> allow_experimental_features;
+
+  /**
    * Search path for inclusions
    */
   std::vector<std::string> incl_searchpath;
@@ -128,10 +208,7 @@ struct parsing_params {
 
 template <typename... Arg>
 int snprintf_with_param_pack(
-    char* str,
-    size_t size,
-    const char* fmt,
-    Arg&&... arg) {
+    char* str, size_t size, const char* fmt, Arg&&... arg) {
   return snprintf(str, size, fmt, std::forward<Arg>(arg)...);
 }
 
@@ -147,7 +224,7 @@ class parsing_driver {
   /**
    * The last parsed doctext comment.
    */
-  char* doctext;
+  t_doc doctext;
 
   /**
    * The location of the last parsed doctext comment.
@@ -165,6 +242,8 @@ class parsing_driver {
    */
   t_program* program;
 
+  std::unique_ptr<t_program_bundle> program_bundle;
+
   /**
    * Global scope cache for faster compilations
    */
@@ -175,15 +254,21 @@ class parsing_driver {
    */
   std::map<std::string, t_program*> program_cache;
 
+  /**
+   * The Flex lexer used by the parser.
+   */
+  std::unique_ptr<apache::thrift::yy_scanner> scanner;
+
   parsing_driver(std::string path, parsing_params parse_params);
   ~parsing_driver();
 
   /**
-   * Parses a program. The resulted AST is stored in the t_program object passed
-   * in via params.program. A vector containing diagnostic message (warnings,
-   * debug messages, etc.) is returned.
+   * Parses a program and returns the resulted AST.
+   * Diagnostic messages (warnings, debug messages, etc.) are stored in the
+   * vector passed in via params.messages.
    */
-  std::unique_ptr<t_program> parse(std::vector<diagnostic_message>& messages);
+  std::unique_ptr<t_program_bundle> parse(
+      std::vector<diagnostic_message>& messages);
 
   /**
    * Diagnostic message callbacks.
@@ -193,9 +278,8 @@ class parsing_driver {
     if (!params.debug) {
       return;
     }
-
     auto message = construct_diagnostic_message(
-        diagnostic_level::DEBUG, fmt, std::forward<Arg>(arg)...);
+        diagnostic_level::DBG, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
   }
 
@@ -204,7 +288,6 @@ class parsing_driver {
     if (!params.verbose) {
       return;
     }
-
     auto message = construct_diagnostic_message(
         diagnostic_level::VERBOSE, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
@@ -222,15 +305,11 @@ class parsing_driver {
     if (params.warn < level) {
       return;
     }
-
     auto message = construct_diagnostic_message(
         diagnostic_level::WARNING, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
   }
 
-  // clang-format off
-  // TODO: `clang-format` incorrectly indents the function after a [[noreturn]]
-  // function for 4 extra spaces.
   template <typename... Arg>
   [[noreturn]] void failure(const char* fmt, Arg&&... arg) {
     auto msg = construct_diagnostic_message(
@@ -240,7 +319,6 @@ class parsing_driver {
   }
 
   [[noreturn]] void end_parsing();
-  // clang-format on
 
   /**
    * Gets the directory path of a filename
@@ -260,7 +338,8 @@ class parsing_driver {
    * validation and inference, except the "runtime" is the code generator
    * runtime. Shit. I've been had.
    */
-  void validate_const_rec(std::string name, t_type* type, t_const_value* value);
+  void validate_const_rec(
+      std::string name, const t_type* type, t_const_value* value);
 
   /**
    * Check the type of the parsed const information against its declared type
@@ -271,6 +350,13 @@ class parsing_driver {
    * Check the type of a default value assigned to a field.
    */
   void validate_field_value(t_field* field, t_const_value* cv);
+
+  /**
+   * Check that the constant name does not refer to an ambiguous enum.
+   * An ambiguous enum is one that is redefined but not referred to by
+   * ENUM_NAME.ENUM_VALUE.
+   */
+  void validate_not_ambiguous_enum(const std::string& name);
 
   /**
    * Clears any previously stored doctext string.
@@ -284,14 +370,115 @@ class parsing_driver {
    * Warning: if you mix tabs and spaces in a non-uniform way,
    * you will get what you deserve.
    */
-  char* clean_up_doctext(char* doctext);
+  t_doc clean_up_doctext(std::string docstring);
+
+  // Checks if the given experimental features is enabled, and reports a failure
+  // and returns false iff not.
+  bool require_experimental_feature(const char* feature);
+
+  /**
+   * Hands a pointer to be deleted when the parsing driver itself destructs.
+   */
+  template <typename T>
+  void delete_at_the_end(T* ptr) {
+    deleters_.push_back(deleter{ptr});
+  }
+
+  // Record the line number for the start of the node.
+  void start_node(LineType lineType);
+
+  // Configures the node and set the starting line number.
+  void finish_node(
+      t_node* node,
+      LineType lineType,
+      std::unique_ptr<t_annotations> annotations);
+  void finish_node(
+      t_named* node,
+      LineType lineType,
+      std::unique_ptr<t_annotations> annotations,
+      std::unique_ptr<t_struct_annotations> struct_annotations);
+  void finish_node(
+      t_struct* node,
+      LineType lineType,
+      std::unique_ptr<t_field_list> fields,
+      std::unique_ptr<t_annotations> annotations,
+      std::unique_ptr<t_struct_annotations> struct_annotations);
+
+  // Populate the annotation on the given node.
+  static void set_annotations(
+      t_node* node, std::unique_ptr<t_annotations> annotations);
+  static void set_annotations(
+      t_named* node,
+      std::unique_ptr<t_annotations> annotations,
+      std::unique_ptr<t_struct_annotations> struct_annotations);
+
+  std::unique_ptr<t_const> new_struct_annotation(
+      std::unique_ptr<t_const_value> const_struct);
+
+  std::unique_ptr<t_struct> new_throws(
+      std::unique_ptr<t_field_list> exceptions = nullptr);
+
+  // Creates a reference to a known type.
+  std::unique_ptr<t_type_ref> new_type_ref(
+      const t_type* type, std::unique_ptr<t_annotations> annotations);
+  // Creates a reference to a newly created type.
+  std::unique_ptr<t_type_ref> new_type_ref(
+      std::unique_ptr<t_type> type, std::unique_ptr<t_annotations> annotations);
+  // Creates a reference to a named type.
+  std::unique_ptr<t_type_ref> new_type_ref(
+      std::string name,
+      std::unique_ptr<t_annotations> annotations,
+      bool is_const = false);
+
+  // Adds a declaration to the program.
+  t_ref<t_const> add_decl(std::unique_ptr<t_const>&& node, t_doc doc);
+  t_ref<t_service> add_decl(std::unique_ptr<t_service>&& node, t_doc doc);
+  t_ref<t_typedef> add_decl(std::unique_ptr<t_typedef>&& node, t_doc doc);
+  t_ref<t_struct> add_decl(std::unique_ptr<t_struct>&& node, t_doc doc);
+  t_ref<t_union> add_decl(std::unique_ptr<t_union>&& node, t_doc doc);
+  t_ref<t_exception> add_decl(std::unique_ptr<t_exception>&& node, t_doc doc);
+  t_ref<t_enum> add_decl(std::unique_ptr<t_enum>&& node, t_doc doc);
 
  private:
+  class deleter {
+   public:
+    template <typename T>
+    explicit deleter(T* ptr)
+        : ptr_(ptr),
+          delete_([](const void* ptr) { delete static_cast<const T*>(ptr); }) {}
+
+    deleter(const deleter&) = delete;
+    deleter& operator=(const deleter&) = delete;
+
+    deleter(deleter&& rhs) noexcept : ptr_{rhs.ptr_}, delete_{rhs.delete_} {
+      rhs.ptr_ = nullptr;
+      rhs.delete_ = nullptr;
+    }
+
+    deleter& operator=(deleter&& rhs) {
+      std::swap(ptr_, rhs.ptr_);
+      std::swap(delete_, rhs.delete_);
+      return *this;
+    }
+
+    ~deleter() {
+      if (!!ptr_) {
+        delete_(ptr_);
+      }
+    }
+
+   private:
+    const void* ptr_;
+    void (*delete_)(const void*);
+  };
+
   std::set<std::string> already_parsed_paths_;
   std::set<std::string> circular_deps_;
 
-  std::unique_ptr<apache::thrift::yy::parser> parser_;
+  std::unique_ptr<yy::parser> parser_;
 
+  std::vector<deleter> deleters_;
+  std::stack<std::pair<LineType, int>> lineno_stack_;
   std::vector<diagnostic_message> diagnostic_messages_;
 
   /**
@@ -299,11 +486,66 @@ class parsing_driver {
    */
   void parse_file();
 
+  // Returns the starting line number.
+  int pop_node(LineType lineType);
+
+  void append_fields(t_struct& tstruct, t_field_list&& fields);
+
+  // Sets the doc and returns true if the node should be
+  // added to the program. Otherwise, the driver itself
+  // takes ownership of node.
+  template <typename T>
+  bool should_add_node(std::unique_ptr<T>& node, t_doc&& doc) {
+    if (doc) {
+      node->set_doc(std::move(*doc));
+    }
+    if (mode != parsing_mode::PROGRAM) {
+      delete_at_the_end(node.release());
+      return false;
+    }
+    return true;
+  }
+
+  // Sets the doc and updates the scope cache and returns true
+  // if the node should be added to the program. Otherwise,
+  // the driver itself takes ownership of node.
+  template <typename T>
+  bool should_add_type(std::unique_ptr<T>& node, t_doc&& doc) {
+    if (should_add_node(node, std::move(doc))) {
+      scope_cache->add_type(scoped_name(*node), node.get());
+      return true;
+    }
+    return false;
+  }
+
+  // Add a type specialization.
+  //
+  // For example `map<int, int>` or `int (annotation="value")`
+  // TODO(afuller): Cache specializations.
+  const t_type* add_unnamed_type(
+      std::unique_ptr<t_type> node, std::unique_ptr<t_annotations> annotations);
+
+  // Adds an unnamed typedef to the program
+  // TODO(afuller): Remove the need for these by an explicit t_type_ref node
+  // that can annotatable.
+  const t_type* add_unnamed_typedef(
+      std::unique_ptr<t_typedef> node,
+      std::unique_ptr<t_annotations> annotations);
+
+  // Adds an placeholder typedef to the program
+  // TODO(afuller): Remove the need for these by adding a explicit t_type_ref
+  // node that can be resolved in a second passover the ast.
+  const t_type* add_placeholder_typedef(
+      std::unique_ptr<t_typedef> node,
+      std::unique_ptr<t_annotations> annotations);
+
+  std::string scoped_name(const t_named& node) {
+    return program->name() + "." + node.get_name();
+  }
+
   template <typename... Arg>
   diagnostic_message construct_diagnostic_message(
-      diagnostic_level level,
-      const char* fmt,
-      Arg&&... arg) {
+      diagnostic_level level, const char* fmt, Arg&&... arg) {
     const size_t buffer_size = 1024;
     std::array<char, buffer_size> buffer;
     std::string message;
@@ -340,9 +582,14 @@ class parsing_driver {
     }
 
     return diagnostic_message{
-        level, program->get_path(), yylineno, std::string{yytext}, message};
+        level,
+        program->path(),
+        scanner->get_lineno(),
+        scanner->get_text(),
+        message};
   }
 };
 
+} // namespace compiler
 } // namespace thrift
 } // namespace apache

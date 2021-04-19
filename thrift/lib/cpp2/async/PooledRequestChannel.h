@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
 #include <future>
@@ -37,93 +38,96 @@ class PooledRequestChannel : public RequestChannel {
   static std::
       unique_ptr<PooledRequestChannel, folly::DelayedDestruction::Destructor>
       newSyncChannel(
-          std::shared_ptr<folly::IOExecutor> executor,
-          ImplCreator implCreator) {
-    return {new PooledRequestChannel(
-                nullptr, std::move(executor), std::move(implCreator)),
-            {}};
+          std::weak_ptr<folly::IOExecutor> executor, ImplCreator implCreator) {
+    return {
+        new PooledRequestChannel(
+            nullptr, std::move(executor), std::move(implCreator)),
+        {}};
   }
 
   static std::
       unique_ptr<PooledRequestChannel, folly::DelayedDestruction::Destructor>
       newChannel(
           folly::Executor* callbackExecutor,
-          std::shared_ptr<folly::IOExecutor> executor,
+          std::weak_ptr<folly::IOExecutor> executor,
           ImplCreator implCreator) {
-    return {new PooledRequestChannel(
-                callbackExecutor, std::move(executor), std::move(implCreator)),
-            {}};
+    return {
+        new PooledRequestChannel(
+            callbackExecutor, std::move(executor), std::move(implCreator)),
+        {}};
   }
 
-  uint32_t sendRequest(
-      RpcOptions& options,
-      std::unique_ptr<RequestCallback> cob,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<transport::THeader> header) override;
+  void sendRequestResponse(
+      const RpcOptions& options,
+      ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<transport::THeader> header,
+      RequestClientCallback::Ptr cob) override;
 
-  uint32_t sendOnewayRequest(
-      RpcOptions& options,
-      std::unique_ptr<RequestCallback> cob,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<transport::THeader> header) override;
+  void sendRequestNoResponse(
+      const RpcOptions& options,
+      ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<transport::THeader> header,
+      RequestClientCallback::Ptr cob) override;
 
-  uint32_t sendStreamRequest(
-      RpcOptions& options,
-      std::unique_ptr<RequestCallback> cob,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<transport::THeader> header) override;
+  void sendRequestStream(
+      const RpcOptions& options,
+      ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<transport::THeader> header,
+      StreamClientCallback* cob) override;
 
-  uint32_t sendRequestSync(
-      RpcOptions& options,
-      std::unique_ptr<RequestCallback> cob,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<transport::THeader> header) override;
+  void sendRequestSink(
+      const RpcOptions& options,
+      ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<transport::THeader> header,
+      SinkClientCallback* cob) override;
+
+  using RequestChannel::sendRequestNoResponse;
+  using RequestChannel::sendRequestResponse;
+  using RequestChannel::sendRequestSink;
+  using RequestChannel::sendRequestStream;
 
   void setCloseCallback(CloseCallback*) override {
     LOG(FATAL) << "Not supported";
   }
 
-  folly::EventBase* getEventBase() const override {
-    return nullptr;
-  }
+  folly::EventBase* getEventBase() const override { return nullptr; }
 
   uint16_t getProtocolId() override;
 
- protected:
-  ~PooledRequestChannel() override = default;
+  // may be called from any thread
+  void terminateInteraction(InteractionId id) override;
 
-  uint32_t sendRequestImpl(
-      RpcKind rpcKind,
-      RpcOptions& options,
-      std::unique_ptr<RequestCallback> cob,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<transport::THeader> header);
+  // may be called from any thread
+  InteractionId createInteraction(ManagedStringView&& name) override;
+
+ protected:
+  template <typename SendFunc>
+  void sendRequestImpl(SendFunc&& sendFunc, folly::EventBase& eb);
 
  private:
-  std::shared_ptr<folly::EventBase> getNextEventBase();
-
   PooledRequestChannel(
       folly::Executor* callbackExecutor,
       std::weak_ptr<folly::IOExecutor> executor,
       ImplCreator implCreator)
       : implCreator_(std::move(implCreator)),
         callbackExecutor_(callbackExecutor),
-        executor_(std::move(executor)) {}
+        executor_(std::move(executor)),
+        impl_(std::make_shared<folly::EventBaseLocal<ImplPtr>>()) {}
 
   Impl& impl(folly::EventBase& evb);
+
+  folly::EventBase& getEvb(const RpcOptions& options);
 
   ImplCreator implCreator_;
 
   folly::Executor* callbackExecutor_{nullptr};
-  std::shared_ptr<folly::IOExecutor> executor_;
-  std::atomic<size_t> nextEvbId_{0};
+  std::weak_ptr<folly::IOExecutor> executor_;
 
-  folly::EventBaseLocal<Impl> impl_;
+  std::shared_ptr<folly::EventBaseLocal<ImplPtr>> impl_;
 
   folly::once_flag protocolIdInitFlag_;
   uint16_t protocolId_;

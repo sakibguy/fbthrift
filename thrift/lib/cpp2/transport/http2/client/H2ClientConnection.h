@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,13 +20,13 @@
 #include <string>
 #include <unordered_map>
 
+#include <folly/io/async/AsyncTransport.h>
 #include <proxygen/lib/http/codec/HTTPCodec.h>
 #include <proxygen/lib/http/codec/HTTPSettings.h>
 #include <proxygen/lib/http/session/HTTPUpstreamSession.h>
 #include <thrift/lib/cpp2/transport/core/ClientConnectionIf.h>
 #include <thrift/lib/cpp2/transport/core/ThriftClientCallback.h>
 #include <thrift/lib/cpp2/transport/http2/common/H2Channel.h>
-#include <thrift/lib/cpp2/transport/http2/common/H2ChannelFactory.h>
 
 namespace apache {
 namespace thrift {
@@ -53,16 +53,34 @@ namespace thrift {
 class H2ClientConnection : public ClientConnectionIf,
                            public proxygen::HTTPSession::InfoCallback {
  public:
+  struct FlowControlSettings {
+   private:
+    // Stream and initial receive control window are 10MB
+    static constexpr size_t kStreamWindow = 10 * (1 << 20);
+    // Session (i.e connection) window is larger at 15MB
+    static constexpr size_t kSessionWindow = 1.5 * 10 * (1 << 20);
+
+   public:
+    FlowControlSettings()
+        : initialReceiveWindow(kStreamWindow),
+          receiveStreamWindowSize(kStreamWindow),
+          receiveSessionWindowSize(kSessionWindow) {}
+
+    size_t initialReceiveWindow;
+    size_t receiveStreamWindowSize;
+    size_t receiveSessionWindowSize;
+  };
+
   static std::unique_ptr<ClientConnectionIf> newHTTP2Connection(
-      async::TAsyncTransport::UniquePtr transport);
+      folly::AsyncTransport::UniquePtr transport,
+      FlowControlSettings flowControlSettings = FlowControlSettings());
 
   virtual ~H2ClientConnection() override;
 
   H2ClientConnection(const H2ClientConnection&) = delete;
   H2ClientConnection& operator=(const H2ClientConnection&) = delete;
 
-  std::shared_ptr<ThriftChannelIf> getChannel(
-      RequestRpcMetadata* metadata) override;
+  std::shared_ptr<ThriftChannelIf> getChannel() override;
   void setMaxPendingRequests(uint32_t num) override;
   void setCloseCallback(ThriftClient* client, CloseCallback* cb) override;
   folly::EventBase* getEventBase() const override;
@@ -74,31 +92,25 @@ class H2ClientConnection : public ClientConnectionIf,
   bool isStable();
   void setIsStable();
 
-  apache::thrift::async::TAsyncTransport* getTransport() override;
+  folly::AsyncTransport* getTransport() override;
   bool good() override;
   ClientChannel::SaturationStatus getSaturationStatus() override;
   void attachEventBase(folly::EventBase* evb) override;
   void detachEventBase() override;
   bool isDetachable() override;
-  bool isSecurityActive() override;
   uint32_t getTimeout() override;
   void setTimeout(uint32_t ms) override;
   void closeNow() override;
   CLIENT_TYPE getClientType() override;
 
-  // begin HTTPSession::InfoCallback methods
-
+  // HTTPSession::InfoCallback method
   void onDestroy(const proxygen::HTTPSessionBase&) override;
-  void onSettings(
-      const proxygen::HTTPSessionBase&,
-      const proxygen::SettingsList& settings) override;
-
-  // end HTTPSession::InfoCallback methods
 
  private:
   H2ClientConnection(
-      async::TAsyncTransport::UniquePtr transport,
-      std::unique_ptr<proxygen::HTTPCodec> codec);
+      folly::AsyncTransport::UniquePtr transport,
+      std::unique_ptr<proxygen::HTTPCodec> codec,
+      FlowControlSettings flowControlSettings);
 
   proxygen::HTTPUpstreamSession* httpSession_;
   folly::EventBase* evb_{nullptr};
@@ -108,16 +120,6 @@ class H2ClientConnection : public ClientConnectionIf,
   // A map of all registered CloseCallback objects keyed by the
   // ThriftClient objects that registered the callback.
   std::unordered_map<ThriftClient*, CloseCallback*> closeCallbacks_;
-
-  // The negotiated channel version - 0 means settings frame has not
-  // yet arrived and negotiation has not taken place yet.
-  uint32_t negotiatedChannelVersion_;
-
-  // This is true once negotiation has completed and we no longer have
-  // to send the channel version in the HTTP2 header.
-  bool stable_;
-
-  H2ChannelFactory channelFactory_;
 };
 
 } // namespace thrift

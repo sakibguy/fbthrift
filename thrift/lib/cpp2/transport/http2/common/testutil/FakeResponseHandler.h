@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,8 +22,7 @@
 
 #include <folly/Executor.h>
 #include <folly/io/async/EventBase.h>
-#include <proxygen/httpserver/Mocks.h>
-#include <proxygen/httpserver/ResponseHandler.h>
+#include <proxygen/lib/http/session/test/HTTPTransactionMocks.h>
 
 namespace apache {
 namespace thrift {
@@ -32,69 +31,13 @@ namespace thrift {
  * A simple response handler that collects the response from the channel
  * and makes it available to the test code.
  */
-class FakeResponseHandler : public proxygen::ResponseHandler {
+class FakeResponseHandler {
  public:
-  explicit FakeResponseHandler(folly::EventBase* evb)
-      : proxygen::ResponseHandler(&dummyRequestHandler_),
-        evb_(getKeepAliveToken(evb)) {}
+  explicit FakeResponseHandler(folly::EventBase* evb);
 
-  ~FakeResponseHandler() override = default;
+  ~FakeResponseHandler() = default;
 
-  // proxygen::ResponseHandler methods
-
-  void sendHeaders(proxygen::HTTPMessage& msg) noexcept override;
-
-  void sendChunkHeader(size_t /*len*/) noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  void sendBody(std::unique_ptr<folly::IOBuf> body) noexcept override;
-
-  void sendChunkTerminator() noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  void sendEOM() noexcept override;
-
-  void sendAbort() noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  void refreshTimeout() noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  void pauseIngress() noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  void resumeIngress() noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  proxygen::ResponseHandler* newPushedResponse(
-      proxygen::PushHandler* /*ph*/) noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  const wangle::TransportInfo& getSetupTransportInfo() const noexcept override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  void getCurrentTransportInfo(wangle::TransportInfo* /*ti*/) const override {
-    // unimplemented
-    CHECK(false);
-  }
-
-  // end of proxygen::ResponseHandler methods
+  proxygen::MockHTTPTransaction* getTransaction() { return &txn_; }
 
   std::unordered_map<std::string, std::string>* getHeaders();
 
@@ -105,11 +48,10 @@ class FakeResponseHandler : public proxygen::ResponseHandler {
   bool eomReceived();
 
  private:
-  proxygen::MockRequestHandler dummyRequestHandler_;
-  wangle::TransportInfo dummyTransportInfo_;
-
   folly::Executor::KeepAlive<folly::EventBase> evb_;
 
+  proxygen::HTTP2PriorityQueue dummyEgressQueue_;
+  proxygen::MockHTTPTransaction txn_;
   std::unordered_map<std::string, std::string> headers_;
   std::unique_ptr<folly::IOBuf> body_;
   bool eomReceived_{false};

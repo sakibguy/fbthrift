@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef _THRIFT_TRANSPORT_TZLIBTRANSPORT_H_
@@ -26,15 +23,17 @@
 
 struct z_stream_s;
 
-namespace apache { namespace thrift { namespace transport {
+namespace apache {
+namespace thrift {
+namespace transport {
 
 class TZlibTransportException : public TTransportException {
  public:
-  TZlibTransportException(int status, const char* msg) :
-    TTransportException(TTransportException::INTERNAL_ERROR,
-                        errorMessage(status, msg)),
-    zlib_status_(status),
-    zlib_msg_(msg == nullptr ? "(null)" : msg) {}
+  TZlibTransportException(int status, const char* msg)
+      : TTransportException(
+            TTransportException::INTERNAL_ERROR, errorMessage(status, msg)),
+        zlib_status_(status),
+        zlib_msg_(msg == nullptr ? "(null)" : msg) {}
 
   ~TZlibTransportException() throw() override {}
 
@@ -72,7 +71,6 @@ class TZlibTransportException : public TTransportException {
  */
 class TZlibTransport : public TVirtualTransport<TZlibTransport> {
  public:
-
   /**
    * @param transport    The transport to read compressed data from
    *                     and write compressed data to.
@@ -83,34 +81,34 @@ class TZlibTransport : public TVirtualTransport<TZlibTransport> {
    *
    * TODO(dreiss): Write a constructor that isn't a pain.
    */
-  explicit TZlibTransport(std::shared_ptr<TTransport> transport,
-                          size_t urbuf_size = DEFAULT_URBUF_SIZE,
-                          size_t crbuf_size = DEFAULT_CRBUF_SIZE,
-                          size_t uwbuf_size = DEFAULT_UWBUF_SIZE,
-                          size_t cwbuf_size = DEFAULT_CWBUF_SIZE) :
-    transport_(transport),
-    urpos_(0),
-    uwpos_(0),
-    input_ended_(false),
-    output_finished_(false),
-    urbuf_size_(urbuf_size),
-    crbuf_size_(crbuf_size),
-    uwbuf_size_(uwbuf_size),
-    cwbuf_size_(cwbuf_size),
-    urbuf_(nullptr),
-    crbuf_(nullptr),
-    uwbuf_(nullptr),
-    cwbuf_(nullptr),
-    rstream_(nullptr),
-    wstream_(nullptr)
-  {
+  explicit TZlibTransport(
+      std::shared_ptr<TTransport> transport,
+      size_t urbuf_size = DEFAULT_URBUF_SIZE,
+      size_t crbuf_size = DEFAULT_CRBUF_SIZE,
+      size_t uwbuf_size = DEFAULT_UWBUF_SIZE,
+      size_t cwbuf_size = DEFAULT_CWBUF_SIZE)
+      : transport_(transport),
+        urpos_(0),
+        uwpos_(0),
+        input_ended_(false),
+        output_finished_(false),
+        urbuf_size_(urbuf_size),
+        crbuf_size_(crbuf_size),
+        uwbuf_size_(uwbuf_size),
+        cwbuf_size_(cwbuf_size),
+        urbuf_(nullptr),
+        crbuf_(nullptr),
+        uwbuf_(nullptr),
+        cwbuf_(nullptr),
+        rstream_(nullptr),
+        wstream_(nullptr) {
     if (uwbuf_size_ < MIN_DIRECT_DEFLATE_SIZE) {
       // Have to copy this into a local because of a linking issue.
       int minimum = MIN_DIRECT_DEFLATE_SIZE;
       throw TTransportException(
           TTransportException::BAD_ARGS,
-          "TZLibTransport: uncompressed write buffer must be at least"
-          + boost::lexical_cast<std::string>(minimum) + ".");
+          "TZLibTransport: uncompressed write buffer must be at least" +
+              boost::lexical_cast<std::string>(minimum) + ".");
     }
 
     try {
@@ -177,16 +175,15 @@ class TZlibTransport : public TVirtualTransport<TZlibTransport> {
    */
   void verifyChecksum();
 
-   /**
-    * TODO(someone_smart): Choose smart defaults.
-    */
+  /**
+   * TODO(someone_smart): Choose smart defaults.
+   */
   static const size_t DEFAULT_URBUF_SIZE = 128;
   static const size_t DEFAULT_CRBUF_SIZE = 1024;
   static const size_t DEFAULT_UWBUF_SIZE = 128;
   static const size_t DEFAULT_CWBUF_SIZE = 1024;
 
  protected:
-
   inline void checkZlibRv(int status, const char* msg);
   inline void checkZlibRvNothrow(int status, const char* msg);
   inline size_t readAvail();
@@ -223,7 +220,6 @@ class TZlibTransport : public TVirtualTransport<TZlibTransport> {
   struct z_stream_s* wstream_;
 };
 
-
 /**
  * Wraps a transport into a zlibbed one.
  *
@@ -256,7 +252,8 @@ class TFramedZlibTransportFactory : public TTransportFactory {
   }
 };
 
-
-}}} // apache::thrift::transport
+} // namespace transport
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef _THRIFT_TRANSPORT_TZLIBTRANSPORT_H_

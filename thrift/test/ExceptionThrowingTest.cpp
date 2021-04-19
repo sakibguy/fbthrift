@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <folly/ExceptionWrapper.h>
-#include <gtest/gtest.h>
-#include <thrift/lib/cpp/protocol/THeaderProtocol.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/portability/GTest.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
@@ -23,8 +24,6 @@
 #include <thrift/test/gen-cpp2/ExceptionThrowingService.h>
 
 using namespace apache::thrift;
-using namespace apache::thrift::async;
-using namespace apache::thrift::protocol;
 using namespace apache::thrift::util;
 using folly::EventBase;
 using thrift::test::cpp2::ExceptionThrowingServiceAsyncClient;
@@ -47,8 +46,8 @@ class ExceptionThrowingHandler : public ExceptionThrowingServiceSvIf {
 std::unique_ptr<ScopedServerThread> createThriftServer() {
   auto server = std::make_shared<ThriftServer>();
   server->setPort(0);
-  server->setInterface(std::unique_ptr<ExceptionThrowingHandler>(
-    new ExceptionThrowingHandler));
+  server->setInterface(
+      std::unique_ptr<ExceptionThrowingHandler>(new ExceptionThrowingHandler));
   return std::make_unique<ScopedServerThread>(server);
 }
 
@@ -56,9 +55,8 @@ TEST(ExceptionThrowingTest, Thrift2Client) {
   EventBase eb;
   auto serverThread = createThriftServer();
   auto* serverAddr = serverThread->getAddress();
-  std::shared_ptr<TAsyncSocket> socket(TAsyncSocket::newSocket(
-      &eb, *serverAddr));
-  auto channel = HeaderClientChannel::newChannel(socket);
+  auto socket = folly::AsyncSocket::newSocket(&eb, *serverAddr);
+  auto channel = HeaderClientChannel::newChannel(std::move(socket));
   ExceptionThrowingServiceAsyncClient client(std::move(channel));
 
   // Verify that recv_echo works
@@ -71,7 +69,7 @@ TEST(ExceptionThrowingTest, Thrift2Client) {
           ExceptionThrowingServiceAsyncClient::recv_echo(result, state);
           EXPECT_EQ(result, "Hello World");
           echoDone = true;
-        } catch (const std::exception& e) {
+        } catch (const std::exception&) {
         }
       },
       "Hello World");

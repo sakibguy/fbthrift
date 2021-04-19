@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -30,11 +28,11 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
 
   public List<RecursiveStruct> mes;
   public static final int MES = 1;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(MES, new FieldMetaData("mes", TFieldRequirementType.OPTIONAL, 
@@ -51,10 +49,31 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
   }
 
   public RecursiveStruct(
-    List<RecursiveStruct> mes)
-  {
+      List<RecursiveStruct> mes) {
     this();
     this.mes = mes;
+  }
+
+  public static class Builder {
+    private List<RecursiveStruct> mes;
+
+    public Builder() {
+    }
+
+    public Builder setMes(final List<RecursiveStruct> mes) {
+      this.mes = mes;
+      return this;
+    }
+
+    public RecursiveStruct build() {
+      RecursiveStruct result = new RecursiveStruct();
+      result.setMes(this.mes);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -70,12 +89,7 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
     return new RecursiveStruct(this);
   }
 
-  @Deprecated
-  public RecursiveStruct clone() {
-    return new RecursiveStruct(this);
-  }
-
-  public List<RecursiveStruct>  getMes() {
+  public List<RecursiveStruct> getMes() {
     return this.mes;
   }
 
@@ -93,20 +107,20 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
     return this.mes != null;
   }
 
-  public void setMesIsSet(boolean value) {
-    if (!value) {
+  public void setMesIsSet(boolean __value) {
+    if (!__value) {
       this.mes = null;
     }
   }
 
   @SuppressWarnings("unchecked")
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case MES:
-      if (value == null) {
+      if (__value == null) {
         unsetMes();
       } else {
-        setMes((List<RecursiveStruct>)value);
+        setMes((List<RecursiveStruct>)__value);
       }
       break;
 
@@ -125,61 +139,39 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case MES:
-      return isSetMes();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof RecursiveStruct)
-      return this.equals((RecursiveStruct)that);
-    return false;
-  }
-
-  public boolean equals(RecursiveStruct that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof RecursiveStruct))
+      return false;
+    RecursiveStruct that = (RecursiveStruct)_that;
 
-    boolean this_present_mes = true && this.isSetMes();
-    boolean that_present_mes = true && that.isSetMes();
-    if (this_present_mes || that_present_mes) {
-      if (!(this_present_mes && that_present_mes))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.mes, that.mes))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetMes(), that.isSetMes(), this.mes, that.mes)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {mes});
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case MES:
-          if (field.type == TType.LIST) {
+          if (__field.type == TType.LIST) {
             {
               TList _list12 = iprot.readListBegin();
               this.mes = new ArrayList<RecursiveStruct>(Math.max(0, _list12.size));
@@ -195,11 +187,11 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
               iprot.readListEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -234,19 +226,14 @@ public class RecursiveStruct implements TBase, java.io.Serializable, Cloneable {
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("RecursiveStruct");
     sb.append(space);
     sb.append("(");
@@ -259,10 +246,10 @@ String space = prettyPrint ? " " : "";
       sb.append("mes");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getMes() == null) {
+      if (this.getMes() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getMes(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getMes(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -273,7 +260,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
   }
 
 }

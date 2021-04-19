@@ -11,10 +11,9 @@ import com.facebook.swift.codec.*;
 import com.google.common.collect.*;
 import java.util.*;
 
-public final class Constants
-{
-    private Constants() {
-    }
+@SwiftGenerated
+public final class Constants {
+    private Constants() {}
 
-    public static final test.fixtures.includes.transitive.Foo ExampleFoo = ;
+    public static final test.fixtures.includes.transitive.Foo EXAMPLE_FOO = new test.fixtures.includes.transitive.Foo.Builder().setA(2L).build();
 }

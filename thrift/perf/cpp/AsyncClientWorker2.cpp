@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,10 +18,10 @@
 
 #include <thrift/perf/cpp/AsyncClientWorker2.h>
 
+#include <queue>
+#include <folly/io/async/AsyncSocket.h>
 #include <proxygen/lib/http/codec/HTTP2Codec.h>
 #include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
-#include <thrift/lib/cpp/protocol/THeaderProtocol.h>
 #include <thrift/lib/cpp/test/loadgen/RNG.h>
 #include <thrift/lib/cpp/test/loadgen/ScoreBoard.h>
 #include <thrift/lib/cpp2/async/HTTPClientChannel.h>
@@ -29,14 +29,8 @@
 #include <thrift/lib/cpp2/async/RequestChannel.h>
 #include <thrift/perf/cpp/ClientLoadConfig.h>
 
-#include <queue>
-
-using namespace boost;
-using namespace apache::thrift::protocol;
 using namespace apache::thrift::test;
-using namespace apache::thrift::transport;
 using namespace apache::thrift::async;
-using namespace apache::thrift;
 using apache::thrift::loadgen::ScoreBoard;
 
 namespace apache {
@@ -87,14 +81,16 @@ class AsyncRunner2 {
       const std::shared_ptr<ScoreBoard>& scoreboard,
       const LoadTestClientPtr& client,
       int n_ops,
-      int n_async)
+      int n_async,
+      AsyncIntervalTimer* atimer)
       : terminator_(terminator),
         config_(config),
         scoreboard_(scoreboard),
         client_(client),
         ctr_(n_ops),
         n_outstanding_(0),
-        n_async_(n_async) {}
+        n_async_(n_async),
+        asyncTimer_(atimer) {}
 
   ~AsyncRunner2() {}
 
@@ -108,9 +104,8 @@ class AsyncRunner2 {
   LoopTerminator& terminator_;
 
  private:
-  void genericCob(LoadTestAsyncClient* client,
-                  ClientReceiveState&& rstate,
-                  OpData* opData);
+  void genericCob(
+      LoadTestAsyncClient* client, ClientReceiveState&& rstate, OpData* opData);
 
   void performAsyncOperation();
 
@@ -121,6 +116,7 @@ class AsyncRunner2 {
   int ctr_;
   int n_outstanding_;
   int n_async_;
+  AsyncIntervalTimer* asyncTimer_;
 };
 
 class LoadCallback : public RequestCallback {
@@ -156,29 +152,31 @@ class LoadCallback : public RequestCallback {
 LoadTestClientPtr AsyncClientWorker2::createConnection() {
   const std::shared_ptr<apache::thrift::test::ClientLoadConfig>& config =
       getConfig();
-  std::shared_ptr<TAsyncSocket> socket;
+  folly::AsyncSocket::UniquePtr socket;
   if (config->useSSL()) {
     auto sslSocket = TAsyncSSLSocket::newSocket(sslContext_, &eb_);
     if (session_) {
-      sslSocket->setSSLSession(session_.get());
+      sslSocket->setSSLSession(session_);
     }
     sslSocket->connect(nullptr, *config->getAddress(), kTimeout);
     // Loop until connection is established and TLS handshake completes.
     // Unlike a regular AsyncSocket which is usable even before TCP handshke
     // completes, an SSL socket reports !good() until TLS handshake completes.
     eb_.loop();
-    if (config->useTickets() && sslSocket->getSSLSession()) {
-      session_.reset(sslSocket->getSSLSession());
+    auto session = sslSocket->getSSLSession();
+    if (config->useTickets() && session) {
+      session_ = session;
     }
     socket = std::move(sslSocket);
   } else {
-    socket = TAsyncSocket::newSocket(&eb_, *config->getAddress(), kTimeout);
+    socket =
+        folly::AsyncSocket::newSocket(&eb_, *config->getAddress(), kTimeout);
   }
 
   std::unique_ptr<
       apache::thrift::HeaderClientChannel,
       folly::DelayedDestruction::Destructor>
-      channel(HeaderClientChannel::newChannel(socket));
+      channel(HeaderClientChannel::newChannel(std::move(socket)));
   channel->setTimeout(kTimeout);
   // For testing equality, make sure to use binary
   if (!config->useHeaderProtocol()) {
@@ -197,6 +195,7 @@ void AsyncClientWorker2::run() {
   std::list<AsyncRunner2*> clients;
   std::list<AsyncRunner2*>::iterator it;
   LoopTerminator loopTerminator(&eb_);
+
   do {
     // Create a new connection
     int n_clients = getConfig()->getAsyncClients();
@@ -204,17 +203,21 @@ void AsyncClientWorker2::run() {
     uint32_t nops = getConfig()->pickOpsPerConnection();
     // How many outstanding ops at a time
     int n_async = getConfig()->getAsyncOpsPerClient();
+    asyncTimer_.setRatePerSec(
+        getConfig()->getDesiredQPS(), getConfig()->getNumWorkerThreads());
 
     for (int i = 0; i < n_clients; i++) {
       std::shared_ptr<LoadTestAsyncClient> client;
       try {
         client = createConnection();
-        AsyncRunner2* r = new AsyncRunner2(getConfig(),
-                                           loopTerminator,
-                                           getScoreBoard(),
-                                           client,
-                                           nops,
-                                           n_async);
+        AsyncRunner2* r = new AsyncRunner2(
+            getConfig(),
+            loopTerminator,
+            getScoreBoard(),
+            client,
+            nops,
+            n_async,
+            &asyncTimer_);
         clients.push_back(r);
       } catch (const std::exception& ex) {
         ErrorAction action = handleConnError(ex);
@@ -229,13 +232,15 @@ void AsyncClientWorker2::run() {
           T_ERROR("worker %d causing abort after connection error", getID());
           abort();
         } else {
-          T_ERROR("worker %d received unknown conn error action %d; aborting",
-                  getID(),
-                  action);
+          T_ERROR(
+              "worker %d received unknown conn error action %d; aborting",
+              getID(),
+              action);
           abort();
         }
       }
     }
+    asyncTimer_.start();
     for (auto r : clients) {
       r->startRun();
     }
@@ -253,11 +258,6 @@ void AsyncClientWorker2::run() {
 }
 
 void AsyncClientWorker2::setupSSLContext() {
-  // Sets some sane properties on the context for ticket caching.
-  SSL_CTX_set_session_cache_mode(sslContext_->getSSLCtx(),
-                                 SSL_SESS_CACHE_NO_INTERNAL |
-                                     SSL_SESS_CACHE_CLIENT);
-
   if (getConfig()->cert().empty() ^ getConfig()->key().empty()) {
     throw std::runtime_error("Must supply both key and cert or none");
   }
@@ -272,11 +272,12 @@ void AsyncClientWorker2::setupSSLContext() {
 }
 
 void AsyncRunner2::performAsyncOperation() {
-  // We don't support throttled QPS right now.  The right way to do
-  // this requires an AsyncIntervalTimer
-
   LoadCallback* cb = new LoadCallback(this, client_.get());
   std::unique_ptr<RequestCallback> recvCob(cb);
+
+  if (!asyncTimer_->sleep()) {
+    T_ERROR("can't keep up with requested QPS rate");
+  }
 
   uint32_t opType = config_->pickOpType();
   scoreboard_->opStarted(opType);
@@ -289,86 +290,88 @@ void AsyncRunner2::performAsyncOperation() {
 
   switch (static_cast<apache::thrift::test::ClientLoadConfig::OperationEnum>(
       opType)) {
-  case apache::thrift::test::ClientLoadConfig::OP_NOOP:
-    return client_->noop(std::move(recvCob));
-  case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_NOOP:
-    cb->setOneway();
-    return client_->onewayNoop(std::move(recvCob));
-  case apache::thrift::test::ClientLoadConfig::OP_ASYNC_NOOP:
-    return client_->asyncNoop(std::move(recvCob));
-  case apache::thrift::test::ClientLoadConfig::OP_SLEEP:
-    return client_->sleep(std::move(recvCob), config_->pickSleepUsec());
-  case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SLEEP:
-    cb->setOneway();
-    return client_->onewaySleep(std::move(recvCob), config_->pickSleepUsec());
-  case apache::thrift::test::ClientLoadConfig::OP_BURN:
-    return client_->burn(std::move(recvCob), config_->pickBurnUsec());
-  case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_BURN:
-    cb->setOneway();
-    return client_->onewayBurn(std::move(recvCob), config_->pickBurnUsec());
-  case apache::thrift::test::ClientLoadConfig::OP_BAD_SLEEP:
-    return client_->badSleep(std::move(recvCob), config_->pickSleepUsec());
-  case apache::thrift::test::ClientLoadConfig::OP_BAD_BURN:
-    return client_->badBurn(std::move(recvCob), config_->pickBurnUsec());
-  case apache::thrift::test::ClientLoadConfig::OP_THROW_ERROR:
-    d->code = loadgen::RNG::getU32();
-    return client_->throwError(std::move(recvCob), d->code);
-  case apache::thrift::test::ClientLoadConfig::OP_THROW_UNEXPECTED:
-    return client_->throwUnexpected(std::move(recvCob), loadgen::RNG::getU32());
-  case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_THROW:
-    cb->setOneway();
-    return client_->onewayThrow(std::move(recvCob), loadgen::RNG::getU32());
-  case apache::thrift::test::ClientLoadConfig::OP_SEND: {
-    std::string str(config_->pickSendSize(), 'a');
-    return client_->send(std::move(recvCob), str);
-  }
-  case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SEND: {
-    std::string str(config_->pickSendSize(), 'a');
-    cb->setOneway();
-    return client_->onewaySend(std::move(recvCob), str);
-  }
-  case apache::thrift::test::ClientLoadConfig::OP_RECV:
-    return client_->recv(std::move(recvCob), config_->pickRecvSize());
-  case apache::thrift::test::ClientLoadConfig::OP_SENDRECV: {
-    std::string str(config_->pickSendSize(), 'a');
-    return client_->sendrecv(std::move(recvCob), str, config_->pickRecvSize());
-  }
-  case apache::thrift::test::ClientLoadConfig::OP_ECHO: {
-    std::string str(config_->pickSendSize(), 'a');
-    return client_->echo(std::move(recvCob), str);
-  }
-  case apache::thrift::test::ClientLoadConfig::OP_ADD: {
-    boost::uniform_int<int64_t> distribution;
-    d->a = distribution(loadgen::RNG::getRNG());
-    d->b = distribution(loadgen::RNG::getRNG());
+    case apache::thrift::test::ClientLoadConfig::OP_NOOP:
+      return client_->noop(std::move(recvCob));
+    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_NOOP:
+      cb->setOneway();
+      return client_->onewayNoop(std::move(recvCob));
+    case apache::thrift::test::ClientLoadConfig::OP_ASYNC_NOOP:
+      return client_->asyncNoop(std::move(recvCob));
+    case apache::thrift::test::ClientLoadConfig::OP_SLEEP:
+      return client_->sleep(std::move(recvCob), config_->pickSleepUsec());
+    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SLEEP:
+      cb->setOneway();
+      return client_->onewaySleep(std::move(recvCob), config_->pickSleepUsec());
+    case apache::thrift::test::ClientLoadConfig::OP_BURN:
+      return client_->burn(std::move(recvCob), config_->pickBurnUsec());
+    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_BURN:
+      cb->setOneway();
+      return client_->onewayBurn(std::move(recvCob), config_->pickBurnUsec());
+    case apache::thrift::test::ClientLoadConfig::OP_BAD_SLEEP:
+      return client_->badSleep(std::move(recvCob), config_->pickSleepUsec());
+    case apache::thrift::test::ClientLoadConfig::OP_BAD_BURN:
+      return client_->badBurn(std::move(recvCob), config_->pickBurnUsec());
+    case apache::thrift::test::ClientLoadConfig::OP_THROW_ERROR:
+      d->code = loadgen::RNG::getU32();
+      return client_->throwError(std::move(recvCob), d->code);
+    case apache::thrift::test::ClientLoadConfig::OP_THROW_UNEXPECTED:
+      return client_->throwUnexpected(
+          std::move(recvCob), loadgen::RNG::getU32());
+    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_THROW:
+      cb->setOneway();
+      return client_->onewayThrow(std::move(recvCob), loadgen::RNG::getU32());
+    case apache::thrift::test::ClientLoadConfig::OP_SEND: {
+      std::string str(config_->pickSendSize(), 'a');
+      return client_->send(std::move(recvCob), str);
+    }
+    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SEND: {
+      std::string str(config_->pickSendSize(), 'a');
+      cb->setOneway();
+      return client_->onewaySend(std::move(recvCob), str);
+    }
+    case apache::thrift::test::ClientLoadConfig::OP_RECV:
+      return client_->recv(std::move(recvCob), config_->pickRecvSize());
+    case apache::thrift::test::ClientLoadConfig::OP_SENDRECV: {
+      std::string str(config_->pickSendSize(), 'a');
+      return client_->sendrecv(
+          std::move(recvCob), str, config_->pickRecvSize());
+    }
+    case apache::thrift::test::ClientLoadConfig::OP_ECHO: {
+      std::string str(config_->pickSendSize(), 'a');
+      return client_->echo(std::move(recvCob), str);
+    }
+    case apache::thrift::test::ClientLoadConfig::OP_ADD: {
+      boost::uniform_int<int64_t> distribution;
+      d->a = distribution(loadgen::RNG::getRNG());
+      d->b = distribution(loadgen::RNG::getRNG());
 
-    return client_->add(std::move(recvCob), d->a, d->b);
-  }
-  case apache::thrift::test::ClientLoadConfig::OP_LARGE_CONTAINER: {
-    std::vector<BigStruct> items;
-    config_->makeBigContainer<BigStruct>(items);
-    return client_->largeContainer(std::move(recvCob), items);
-  }
-  case apache::thrift::test::ClientLoadConfig::OP_ITER_ALL_FIELDS: {
-    std::vector<BigStruct> items;
-    config_->makeBigContainer<BigStruct>(items);
-    return client_->iterAllFields(std::move(recvCob), items);
-  }
-  case apache::thrift::test::ClientLoadConfig::NUM_OPS:
-    // fall through
-    break;
-    // no default case, so gcc will warn us if a new op is added
-    // and this switch statement is not updated
+      return client_->add(std::move(recvCob), d->a, d->b);
+    }
+    case apache::thrift::test::ClientLoadConfig::OP_LARGE_CONTAINER: {
+      std::vector<BigStruct> items;
+      config_->makeBigContainer<BigStruct>(items);
+      return client_->largeContainer(std::move(recvCob), items);
+    }
+    case apache::thrift::test::ClientLoadConfig::OP_ITER_ALL_FIELDS: {
+      std::vector<BigStruct> items;
+      config_->makeBigContainer<BigStruct>(items);
+      return client_->iterAllFields(std::move(recvCob), items);
+    }
+    case apache::thrift::test::ClientLoadConfig::NUM_OPS:
+      // fall through
+      break;
+      // no default case, so gcc will warn us if a new op is added
+      // and this switch statement is not updated
   }
 
-  T_ERROR("AsyncClientWorker2::performOperation() unknown operation %" PRIu32,
-          opType);
+  T_ERROR(
+      "AsyncClientWorker2::performOperation() unknown operation %" PRIu32,
+      opType);
   assert(false);
 }
 
-void AsyncRunner2::genericCob(LoadTestAsyncClient* client,
-                              ClientReceiveState&& rstate,
-                              OpData* opData) {
+void AsyncRunner2::genericCob(
+    LoadTestAsyncClient* client, ClientReceiveState&& rstate, OpData* opData) {
   int64_t int64_result;
   std::string string_result;
   std::vector<BigStruct> container_result;
@@ -378,85 +381,86 @@ void AsyncRunner2::genericCob(LoadTestAsyncClient* client,
   try {
     switch (static_cast<apache::thrift::test::ClientLoadConfig::OperationEnum>(
         opData->opType_)) {
-    case apache::thrift::test::ClientLoadConfig::OP_NOOP:
-      client->recv_noop(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_NOOP:
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ASYNC_NOOP:
-      client->recv_asyncNoop(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_SLEEP:
-      client->recv_sleep(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SLEEP:
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_BURN:
-      client->recv_burn(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_BURN:
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_BAD_SLEEP:
-      client->recv_badSleep(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_BAD_BURN:
-      client->recv_badBurn(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_THROW_ERROR:
-      try {
-        client->recv_throwError(rstate);
-        T_ERROR("throwError() didn't throw any exception");
-      } catch (const LoadError& error) {
-        assert(error.code == opData->code);
+      case apache::thrift::test::ClientLoadConfig::OP_NOOP:
+        client->recv_noop(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_NOOP:
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ASYNC_NOOP:
+        client->recv_asyncNoop(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_SLEEP:
+        client->recv_sleep(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SLEEP:
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_BURN:
+        client->recv_burn(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_BURN:
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_BAD_SLEEP:
+        client->recv_badSleep(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_BAD_BURN:
+        client->recv_badBurn(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_THROW_ERROR:
+        try {
+          client->recv_throwError(rstate);
+          T_ERROR("throwError() didn't throw any exception");
+        } catch (const LoadError& error) {
+          DCHECK_EQ(*error.code_ref(), opData->code);
+        }
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_THROW_UNEXPECTED:
+        try {
+          client->recv_throwUnexpected(rstate);
+        } catch (const TApplicationException&) {
+          // expected; do nothing
+        }
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_THROW:
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_SEND:
+        client->recv_send(rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SEND:
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_RECV:
+        client->recv_recv(string_result, rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_SENDRECV:
+        client->recv_sendrecv(string_result, rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ECHO:
+        client->recv_echo(string_result, rstate);
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_ADD:
+        int64_result = client->recv_add(rstate);
+        if (int64_result != opData->a + opData->b) {
+          T_ERROR(
+              "add(%" PRId64 ", %" PRId64 " gave wrong result %" PRId64
+              "(expected %" PRId64 ")",
+              opData->a,
+              opData->b,
+              int64_result,
+              opData->a + opData->b);
+        }
+        break;
+      case apache::thrift::test::ClientLoadConfig::OP_LARGE_CONTAINER: {
+        client->recv_largeContainer(rstate);
+        break;
       }
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_THROW_UNEXPECTED:
-      try {
-        client->recv_throwUnexpected(rstate);
-      } catch (const TApplicationException& error) {
-        // expected; do nothing
+      case apache::thrift::test::ClientLoadConfig::OP_ITER_ALL_FIELDS: {
+        client->recv_iterAllFields(container_result, rstate);
+        break;
       }
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_THROW:
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_SEND:
-      client->recv_send(rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ONEWAY_SEND:
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_RECV:
-      client->recv_recv(string_result, rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_SENDRECV:
-      client->recv_sendrecv(string_result, rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ECHO:
-      client->recv_echo(string_result, rstate);
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_ADD:
-      int64_result = client->recv_add(rstate);
-      if (int64_result != opData->a + opData->b) {
-        T_ERROR("add(%" PRId64 ", %" PRId64 " gave wrong result %" PRId64
-                "(expected %" PRId64 ")",
-                opData->a,
-                opData->b,
-                int64_result,
-                opData->a + opData->b);
-      }
-      break;
-    case apache::thrift::test::ClientLoadConfig::OP_LARGE_CONTAINER: {
-      client->recv_largeContainer(rstate);
-      break;
-    }
-    case apache::thrift::test::ClientLoadConfig::OP_ITER_ALL_FIELDS: {
-      client->recv_iterAllFields(container_result, rstate);
-      break;
-    }
-    case apache::thrift::test::ClientLoadConfig::NUM_OPS:
-      // fall through
-      break;
-      // no default case, so gcc will warn us if a new op is added
-      // and this switch statement is not updated
+      case apache::thrift::test::ClientLoadConfig::NUM_OPS:
+        // fall through
+        break;
+        // no default case, so gcc will warn us if a new op is added
+        // and this switch statement is not updated
     }
   } catch (const std::exception& ex) {
     terminator_.decr();
@@ -480,5 +484,5 @@ void AsyncRunner2::genericCob(LoadTestAsyncClient* client,
   }
   terminator_.decr();
 }
-}
-} // apache::thrift
+} // namespace thrift
+} // namespace apache

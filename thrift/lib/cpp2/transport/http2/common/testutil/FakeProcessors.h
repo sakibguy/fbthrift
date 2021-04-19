@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,7 +36,7 @@ class EchoProcessor : public ThriftProcessor {
   // payload data that is sent back, as well as the event base in
   // which to schedule the callbacks.
   EchoProcessor(
-      const apache::thrift::server::ServerConfigs& serverConfigs,
+      server::ServerConfigs& serverConfigs,
       const std::string& key,
       const std::string& value,
       const std::string& trailer,
@@ -50,7 +50,7 @@ class EchoProcessor : public ThriftProcessor {
   ~EchoProcessor() override = default;
 
   void onThriftRequest(
-      std::unique_ptr<RequestRpcMetadata> metadata,
+      RequestRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload,
       std::shared_ptr<ThriftChannelIf> channel,
       std::unique_ptr<Cpp2ConnContext> connContext = nullptr) noexcept override;
@@ -67,7 +67,7 @@ class EchoProcessor : public ThriftProcessor {
   folly::EventBase* evb_;
 
   void onThriftRequestHelper(
-      std::unique_ptr<RequestRpcMetadata> metadata,
+      RequestRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload,
       std::shared_ptr<ThriftChannelIf> channel) noexcept;
 };

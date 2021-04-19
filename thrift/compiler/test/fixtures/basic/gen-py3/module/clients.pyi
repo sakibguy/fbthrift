@@ -5,7 +5,7 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import thrift.py3.types
 import thrift.py3.client
 import thrift.py3.common
@@ -20,16 +20,6 @@ _MyServiceT = _typing.TypeVar('_MyServiceT', bound='MyService')
 
 class MyService(thrift.py3.client.Client):
 
-    async def __aenter__(self: _MyServiceT) -> _MyServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
-
     async def ping(
         self,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
@@ -39,6 +29,19 @@ class MyService(thrift.py3.client.Client):
         self,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> str: ...
+
+    async def sink(
+        self,
+        sink: int,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> None: ...
+
+    async def putDataById(
+        self,
+        id: int,
+        data: str,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> None: ...
 
     async def hasDataById(
         self,
@@ -52,10 +55,9 @@ class MyService(thrift.py3.client.Client):
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> str: ...
 
-    async def putDataById(
+    async def deleteDataById(
         self,
         id: int,
-        data: str,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> None: ...
 
@@ -68,120 +70,20 @@ class MyService(thrift.py3.client.Client):
 
 
 
-_MyServiceFastT = _typing.TypeVar('_MyServiceFastT', bound='MyServiceFast')
+_DbMixedStackArgumentsT = _typing.TypeVar('_DbMixedStackArgumentsT', bound='DbMixedStackArguments')
 
 
-class MyServiceFast(thrift.py3.client.Client):
+class DbMixedStackArguments(thrift.py3.client.Client):
 
-    async def __aenter__(self: _MyServiceFastT) -> _MyServiceFastT: ...
-    async def __aexit__(
+    async def getDataByKey0(
         self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
-
-    async def ping(
-        self,
+        key: str,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> None: ...
+    ) -> bytes: ...
 
-    async def getRandomData(
+    async def getDataByKey1(
         self,
+        key: str,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> str: ...
-
-    async def hasDataById(
-        self,
-        id: int,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> bool: ...
-
-    async def getDataById(
-        self,
-        id: int,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> str: ...
-
-    async def putDataById(
-        self,
-        id: int,
-        data: str,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> None: ...
-
-    async def lobDataById(
-        self,
-        id: int,
-        data: str,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> None: ...
-
-
-
-_MyServiceEmptyT = _typing.TypeVar('_MyServiceEmptyT', bound='MyServiceEmpty')
-
-
-class MyServiceEmpty(thrift.py3.client.Client):
-
-    async def __aenter__(self: _MyServiceEmptyT) -> _MyServiceEmptyT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
-
-
-
-_MyServicePrioParentT = _typing.TypeVar('_MyServicePrioParentT', bound='MyServicePrioParent')
-
-
-class MyServicePrioParent(thrift.py3.client.Client):
-
-    async def __aenter__(self: _MyServicePrioParentT) -> _MyServicePrioParentT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
-
-    async def ping(
-        self,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> None: ...
-
-    async def pong(
-        self,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> None: ...
-
-
-
-_MyServicePrioChildT = _typing.TypeVar('_MyServicePrioChildT', bound='MyServicePrioChild')
-
-
-class MyServicePrioChild(MyServicePrioParent):
-
-    async def __aenter__(self: _MyServicePrioChildT) -> _MyServicePrioChildT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
-
-    async def pang(
-        self,
-        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> None: ...
+    ) -> bytes: ...
 

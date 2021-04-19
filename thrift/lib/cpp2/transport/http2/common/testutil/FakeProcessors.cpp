@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,7 @@ using folly::EventBase;
 using folly::IOBuf;
 
 void EchoProcessor::onThriftRequest(
-    std::unique_ptr<RequestRpcMetadata> metadata,
+    RequestRpcMetadata&& metadata,
     std::unique_ptr<folly::IOBuf> payload,
     std::shared_ptr<ThriftChannelIf> channel,
     std::unique_ptr<Cpp2ConnContext> /* connContext */) noexcept {
@@ -39,22 +39,19 @@ void EchoProcessor::onThriftRequest(
 }
 
 void EchoProcessor::onThriftRequestHelper(
-    std::unique_ptr<RequestRpcMetadata> requestMetadata,
+    RequestRpcMetadata&& requestMetadata,
     std::unique_ptr<folly::IOBuf> payload,
     std::shared_ptr<ThriftChannelIf> channel) noexcept {
-  CHECK(requestMetadata);
   CHECK(payload);
   CHECK(channel);
-  auto responseMetadata = std::make_unique<ResponseRpcMetadata>();
-  if (requestMetadata->__isset.seqId) {
-    responseMetadata->seqId = requestMetadata->seqId;
-    responseMetadata->__isset.seqId = true;
+  ResponseRpcMetadata responseMetadata;
+  if (auto seqId = requestMetadata.seqId_ref()) {
+    responseMetadata.seqId_ref() = *seqId;
   }
-  if (requestMetadata->__isset.otherMetadata) {
-    responseMetadata->otherMetadata = std::move(requestMetadata->otherMetadata);
+  if (auto otherMetadata = requestMetadata.otherMetadata_ref()) {
+    responseMetadata.otherMetadata_ref() = std::move(*otherMetadata);
   }
-  (responseMetadata->otherMetadata)[key_] = value_;
-  responseMetadata->__isset.otherMetadata = true;
+  (*responseMetadata.otherMetadata_ref())[key_] = value_;
   auto iobuf = IOBuf::copyBuffer(trailer_);
   payload->prependChain(std::move(iobuf));
   channel->sendThriftResponse(std::move(responseMetadata), std::move(payload));

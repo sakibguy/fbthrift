@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import unittest
 
-from testing.types import (
-    Integers, ComplexUnion, easy, Color, ReservedUnion
-)
+from folly.iobuf import IOBuf
+from testing.types import Color, ComplexUnion, Integers, IOBufUnion, ReservedUnion, easy
+from thrift.py3.common import Protocol
+from thrift.py3.serializer import deserialize
 from thrift.py3.types import Union
-from thrift.py3 import deserialize, Protocol
 
 
 class UnionTests(unittest.TestCase):
-
     def test_hashability(self) -> None:
         hash(Integers())
 
@@ -32,18 +45,18 @@ class UnionTests(unittest.TestCase):
             self.assertIs(type, members[type.name])
 
     def test_deserialize_empty(self) -> None:
-        x = deserialize(Integers, b'{}', Protocol.JSON)
+        x = deserialize(Integers, b"{}", Protocol.JSON)
         self.assertEqual(x.type, Integers.Type.EMPTY)
 
     def test_union_usage(self) -> None:
-        value = hash('i64')
+        value = hash("i64")
         x = Integers(large=value)
         self.assertIsInstance(x, Union)
         self.assertEqual(x.type, x.get_type())
         self.assertEqual(x.type, Integers.Type.large)
         self.assertEqual(x.value, value)
         # Hashing Works
-        s = set([x])
+        s = {x}
         self.assertIn(x, s)
         # Repr is useful
         rx = repr(x)
@@ -99,6 +112,12 @@ class UnionTests(unittest.TestCase):
         self.assertEqual(union.type, ComplexUnion.Type.raw)
         union = ComplexUnion.fromValue(True)
         self.assertEqual(union.type, ComplexUnion.Type.truthy)
+
+    def test_iobuf_union(self) -> None:
+        abuf = IOBuf(b"3.141592025756836")
+        union = IOBufUnion.fromValue(abuf)
+        self.assertEqual(union.type, IOBufUnion.Type.buf)
+        self.assertEqual(bytes(union.buf), bytes(abuf))
 
     def test_reserved_union(self) -> None:
         x = ReservedUnion(from_="foo")

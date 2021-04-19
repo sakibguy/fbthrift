@@ -1,23 +1,17 @@
 #!/usr/bin/env python
-
+# Copyright (c) Facebook, Inc. and its affiliates.
 #
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements. See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership. The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from __future__ import absolute_import
 from __future__ import division
@@ -59,8 +53,6 @@ class EnumTest(unittest.TestCase):
         self.assertEquals(MyEnum3.ME3_1, 1)
         self.assertEquals(MyEnum3.ME3_N2, -2)
         self.assertEquals(MyEnum3.ME3_N1, -1)
-        self.assertEquals(MyEnum3.ME3_D0, 0)
-        self.assertEquals(MyEnum3.ME3_D1, 1)
         self.assertEquals(MyEnum3.ME3_9, 9)
         self.assertEquals(MyEnum3.ME3_10, 10)
         self.assertEquals(max(MyEnum3._VALUES_TO_NAMES), 10)
@@ -75,10 +67,8 @@ class EnumTest(unittest.TestCase):
         ms = MyStruct()
         self.assertEquals(ms.me2_2, 2)
         self.assertEquals(ms.me3_n2, -2)
-        self.assertEquals(ms.me3_d1, 1)
 
     def test_enum_names(self):
-        self.assertEquals(MyEnum3._VALUES_TO_NAMES[MyEnum3.ME3_1], "ME3_D1")  # dup
         self.assertEquals(MyEnum2._VALUES_TO_NAMES[MyEnum2.ME2_2], "ME2_2")
 
     def test_names_to_values(self):

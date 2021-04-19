@@ -1,123 +1,85 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-#ifndef T_STREAM_H
-#define T_STREAM_H
+
+#pragma once
+
+#include <memory>
+#include <string>
+#include <utility>
+
+#include <thrift/compiler/ast/t_struct.h>
+#include <thrift/compiler/ast/t_type.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
 
-/**
- * A stream is a lightweight object type that just wraps another data type.
- *
- */
-class t_stream : public t_type {
+class t_stream_response : public t_type {
  public:
-  explicit t_stream(t_type* elem_type) : elem_type_(elem_type) {}
+  explicit t_stream_response(t_type_ref elem_type, t_struct* throws = nullptr)
+      : elem_type_(std::move(elem_type)), throws_(throws) {}
 
-  t_type* get_elem_type() const {
-    return elem_type_;
+  const t_type* get_elem_type() const { return elem_type_.type(); }
+
+  void set_first_response_type(
+      std::unique_ptr<t_type_ref> first_response_type) {
+    first_response_type_ = std::move(first_response_type);
   }
 
-  bool is_stream() const override {
-    return true;
+  bool has_first_response() const { return first_response_type_ != nullptr; }
+
+  const t_type* get_first_response_type() const {
+    // TODO(afuller): Fix call sites that don't check has_first_response().
+    // assert(first_response_type_ != nullptr);
+    return has_first_response() ? first_response_type_->type() : nullptr;
   }
+
+  bool is_streamresponse() const override { return true; }
 
   std::string get_full_name() const override {
-    return "stream<" + elem_type_->get_full_name() + ">";
+    if (has_first_response()) {
+      return first_response_type_->type()->get_full_name() + ", stream<" +
+          elem_type_.type()->get_full_name() + ">";
+    }
+    return "stream<" + elem_type_.type()->get_full_name() + ">";
   }
 
-  std::string get_impl_full_name() const override {
-    return "stream<" + elem_type_->get_impl_full_name() + ">";
-  }
+  type get_type_value() const override { return type::t_stream; }
 
-  TypeValue get_type_value() const override {
-    return TypeValue::TYPE_STREAM;
-  }
+  t_struct* get_throws_struct() const { return throws_; }
+  bool has_throws_struct() const { return (bool)throws_; }
 
  private:
-  t_type* elem_type_;
-};
+  t_type_ref elem_type_;
+  t_struct* throws_;
+  std::unique_ptr<t_type_ref> first_response_type_;
 
-class t_pubsub_stream : public t_type {
  public:
-  explicit t_pubsub_stream(t_type* elem_type) : elem_type_(elem_type) {}
+  // TODO(afuller): Delete everything below here. It is only provided for
+  // backwards compatibility.
 
-  t_type* get_elem_type() const {
-    return elem_type_;
+  explicit t_stream_response(
+      const t_type* elem_type, t_struct* throws = nullptr)
+      : t_stream_response(t_type_ref(elem_type), throws) {}
+
+  void set_first_response_type(const t_type* first_response_type) {
+    first_response_type_ = std::make_unique<t_type_ref>(first_response_type);
   }
-
-  bool is_pubsub_stream() const override {
-    return true;
-  }
-
-  std::string get_full_name() const override {
-    return "stream " + elem_type_->get_full_name();
-  }
-
-  std::string get_impl_full_name() const override {
-    return "stream " + elem_type_->get_impl_full_name();
-  }
-
-  TypeValue get_type_value() const override {
-    return TypeValue::TYPE_I32;
-  }
-
- protected:
-  t_type* elem_type_;
-};
-
-class t_stream_response : public t_pubsub_stream {
- public:
-  explicit t_stream_response(t_type* elem_type, t_type* extra_type = nullptr)
-      : t_pubsub_stream(elem_type), extra_type_(extra_type) {}
-
-  t_type* get_extra_type() const {
-    return extra_type_;
-  }
-
-  bool is_streamresponse() const override {
-    return true;
-  }
-
-  bool has_extratype() const override {
-    return (bool)(extra_type_);
-  }
-
-  std::string get_full_name() const override {
-    return "streamresponse " + elem_type_->get_full_name() +
-        (has_extratype() ? (", " + extra_type_->get_full_name()) : "");
-  }
-
-  std::string get_impl_full_name() const override {
-    return "streamresponse " + elem_type_->get_impl_full_name() +
-        (has_extratype() ? (", " + extra_type_->get_impl_full_name()) : "");
-  }
-
- private:
-  t_type* extra_type_;
 };
 
 } // namespace compiler
 } // namespace thrift
 } // namespace apache
-
-#endif

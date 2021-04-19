@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <array>
 #include <memory>
 #include <vector>
@@ -21,13 +22,18 @@
 
 #include <thrift/compiler/generate/t_mstch_generator.h>
 #include <thrift/compiler/generate/t_mstch_objects.h>
+#include <thrift/compiler/util.h>
 
+namespace apache {
+namespace thrift {
+namespace compiler {
 namespace {
 
 class t_json_experimental_generator : public t_mstch_generator {
  public:
   t_json_experimental_generator(
       t_program* program,
+      t_generation_context context,
       const std::map<std::string, std::string>& parsed_options,
       const std::string& /*option_string*/);
 
@@ -39,9 +45,11 @@ class t_json_experimental_generator : public t_mstch_generator {
 
 t_json_experimental_generator::t_json_experimental_generator(
     t_program* program,
+    t_generation_context context,
     const std::map<std::string, std::string>& parsed_options,
     const std::string& /*option_string*/)
-    : t_mstch_generator(program, "json", parsed_options, true) {
+    : t_mstch_generator(
+          program, std::move(context), "json", parsed_options, true) {
   out_dir_base_ = "gen-json_experimental";
 }
 
@@ -58,22 +66,32 @@ class json_experimental_program : public mstch_program {
         {
             {"program:py_namespace",
              &json_experimental_program::get_py_namespace},
-            {"program:wiki_address",
-             &json_experimental_program::get_wiki_address},
+            {"program:namespaces", &json_experimental_program::namespaces},
+            {"program:namespaces?", &json_experimental_program::has_namespaces},
+            {"program:docstring?", &json_experimental_program::has_docstring},
+            {"program:docstring", &json_experimental_program::get_docstring},
             {"program:normalizedIncludePrefix",
              &json_experimental_program::include_prefix},
         });
   }
-  mstch::node get_py_namespace() {
-    return program_->get_namespace("py");
+  mstch::node get_py_namespace() { return program_->get_namespace("py"); }
+  mstch::node namespaces() {
+    mstch::array result;
+    auto last = program_->namespaces().size();
+    for (auto it : program_->namespaces()) {
+      result.push_back(mstch::map{
+          {"key", it.first}, {"value", it.second}, {"last?", (--last) == 0}});
+    }
+    return result;
   }
-  mstch::node get_wiki_address() {
-    return program_->get_namespace("wiki");
-  }
+  mstch::node has_namespaces() { return !program_->namespaces().empty(); }
+  mstch::node has_docstring() { return !program_->get_doc().empty(); }
+  mstch::node get_docstring() { return json_quote_ascii(program_->get_doc()); }
+
   mstch::node include_prefix() {
-    auto prefix = program_->get_include_prefix();
+    auto prefix = program_->include_prefix();
     if (!prefix.empty()) {
-      if (prefix[0] == '/') {
+      if (boost::filesystem::path(prefix).has_root_directory()) {
         return cache_->parsed_options_["include_prefix"];
       }
       return prefix;
@@ -85,8 +103,8 @@ class json_experimental_program : public mstch_program {
 class program_json_experimental_generator : public program_generator {
  public:
   program_json_experimental_generator() = default;
-  virtual ~program_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~program_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_program const* program,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -114,25 +132,17 @@ class json_experimental_enum : public mstch_enum {
             {"enum:docstring", &json_experimental_enum::get_docstring},
         });
   }
-  mstch::node is_empty() {
-    return enm_->get_constants().empty();
-  }
-  mstch::node get_lineno() {
-    return enm_->get_lineno();
-  }
-  mstch::node has_docstring() {
-    return enm_->has_doc();
-  }
-  mstch::node get_docstring() {
-    return enm_->get_doc();
-  }
+  mstch::node is_empty() { return enm_->get_enum_values().empty(); }
+  mstch::node get_lineno() { return enm_->get_lineno(); }
+  mstch::node has_docstring() { return enm_->has_doc(); }
+  mstch::node get_docstring() { return json_quote_ascii(enm_->get_doc()); }
 };
 
 class enum_json_experimental_generator : public enum_generator {
  public:
   enum_json_experimental_generator() = default;
-  virtual ~enum_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~enum_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_enum const* enm,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -161,22 +171,18 @@ class json_experimental_enum_value : public mstch_enum_value {
              &json_experimental_enum_value::get_docstring},
         });
   }
-  mstch::node get_lineno() {
-    return enm_value_->get_lineno();
-  }
-  mstch::node has_docstring() {
-    return enm_value_->has_doc();
-  }
+  mstch::node get_lineno() { return enm_value_->get_lineno(); }
+  mstch::node has_docstring() { return enm_value_->has_doc(); }
   mstch::node get_docstring() {
-    return enm_value_->get_doc();
+    return json_quote_ascii(enm_value_->get_doc());
   }
 };
 
 class enum_value_json_experimental_generator : public enum_value_generator {
  public:
   enum_value_json_experimental_generator() = default;
-  virtual ~enum_value_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~enum_value_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_enum_value const* enm_value,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -184,6 +190,118 @@ class enum_value_json_experimental_generator : public enum_value_generator {
       int32_t /*index*/ = 0) const override {
     return std::make_shared<json_experimental_enum_value>(
         enm_value, generators, cache, pos);
+  }
+};
+
+// trim all white spaces and commas from end (in place)
+static inline void rtrim(std::string& s) {
+  s.erase(
+      std::find_if(
+          s.rbegin(),
+          s.rend(),
+          [](int ch) { return !(ch == ' ' || ch == ','); })
+          .base(),
+      s.end());
+}
+
+static inline std::string to_string(t_const_value const* value) {
+  auto stringify_list = [](const auto& value) {
+    std::string result;
+    for (const auto& v : value) {
+      result += to_string(v) + ", ";
+    }
+    rtrim(result);
+    return "[" + result + "]";
+  };
+
+  auto stringify_map = [](const auto& value) {
+    std::string result;
+    for (const auto& v : value) {
+      result += to_string(v.first) + ": " + to_string(v.second) + ", ";
+    }
+    rtrim(result);
+    return "{" + result + "}";
+  };
+
+  switch (value->get_type()) {
+    case mstch_const_value::cv::CV_BOOL:
+      return value->get_bool() ? "true" : "false";
+    case mstch_const_value::cv::CV_INTEGER:
+      return std::to_string(value->get_integer());
+    case mstch_const_value::cv::CV_DOUBLE:
+      return std::to_string(value->get_double());
+    case mstch_const_value::cv::CV_STRING:
+      return json_quote_ascii(value->get_string());
+    case mstch_const_value::cv::CV_LIST:
+      return stringify_list(value->get_list());
+    case mstch_const_value::cv::CV_MAP:
+      return stringify_map(value->get_map());
+  }
+  return "";
+}
+
+class json_experimental_const_value : public mstch_const_value {
+ public:
+  json_experimental_const_value(
+      t_const_value const* const_value,
+      t_const const* current_const,
+      t_type const* expected_type,
+      std::shared_ptr<mstch_generators const> generators,
+      std::shared_ptr<mstch_cache> cache,
+      ELEMENT_POSITION pos,
+      int32_t index)
+      : mstch_const_value(
+            const_value,
+            current_const,
+            expected_type,
+            generators,
+            cache,
+            pos,
+            index) {
+    register_methods(
+        this,
+        {
+            {"value:lineno", &json_experimental_const_value::get_lineno},
+            {"value:typeName", &json_experimental_const_value::get_typename},
+            {"value:stringValueAny",
+             &json_experimental_const_value::string_value_any},
+            {"value:docstring?", &json_experimental_const_value::has_docstring},
+            {"value:docstring", &json_experimental_const_value::get_docstring},
+        });
+  }
+  mstch::node get_lineno() { return current_const_->get_lineno(); }
+  mstch::node has_docstring() { return current_const_->has_doc(); }
+  mstch::node get_docstring() {
+    return json_quote_ascii(current_const_->get_doc());
+  }
+
+  mstch::node get_typename() {
+    return current_const_->get_type()->get_true_type()->get_full_name();
+  }
+
+  mstch::node string_value_any() { return to_string(const_value_); }
+};
+
+class const_value_json_experimental_generator : public const_value_generator {
+ public:
+  const_value_json_experimental_generator() = default;
+  ~const_value_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
+      t_const_value const* const_value,
+      std::shared_ptr<mstch_generators const> generators,
+      std::shared_ptr<mstch_cache> cache,
+      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
+      int32_t index = 0,
+      t_const const* current_const = nullptr,
+      t_type const* expected_type = nullptr) const override {
+    return std::make_shared<json_experimental_const_value>(
+        const_value,
+        current_const,
+        expected_type,
+        generators,
+        cache,
+        pos,
+        index);
   }
 };
 
@@ -203,22 +321,16 @@ class json_experimental_struct : public mstch_struct {
             {"struct:docstring", &json_experimental_struct::get_docstring},
         });
   }
-  mstch::node get_lineno() {
-    return strct_->get_lineno();
-  }
-  mstch::node has_docstring() {
-    return strct_->has_doc();
-  }
-  mstch::node get_docstring() {
-    return strct_->get_doc();
-  }
+  mstch::node get_lineno() { return strct_->get_lineno(); }
+  mstch::node has_docstring() { return strct_->has_doc(); }
+  mstch::node get_docstring() { return json_quote_ascii(strct_->get_doc()); }
 };
 
 class struct_json_experimental_generator : public struct_generator {
  public:
   struct_json_experimental_generator() = default;
-  virtual ~struct_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~struct_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_struct const* strct,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -245,22 +357,16 @@ class json_experimental_service : public mstch_service {
             {"service:docstring", &json_experimental_service::get_docstring},
         });
   }
-  mstch::node get_lineno() {
-    return service_->get_lineno();
-  }
-  mstch::node has_docstring() {
-    return service_->has_doc();
-  }
-  mstch::node get_docstring() {
-    return service_->get_doc();
-  }
+  mstch::node get_lineno() { return service_->get_lineno(); }
+  mstch::node has_docstring() { return service_->has_doc(); }
+  mstch::node get_docstring() { return json_quote_ascii(service_->get_doc()); }
 };
 
 class service_json_experimental_generator : public service_generator {
  public:
   service_json_experimental_generator() = default;
-  virtual ~service_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~service_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_service const* srvc,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -288,25 +394,19 @@ class json_experimental_function : public mstch_function {
             {"function:args?", &json_experimental_function::has_args},
         });
   }
-  mstch::node get_lineno() {
-    return function_->get_lineno();
-  }
-  mstch::node has_docstring() {
-    return function_->has_doc();
-  }
-  mstch::node get_docstring() {
-    return function_->get_doc();
-  }
+  mstch::node get_lineno() { return function_->get_lineno(); }
+  mstch::node has_docstring() { return function_->has_doc(); }
+  mstch::node get_docstring() { return json_quote_ascii(function_->get_doc()); }
   mstch::node has_args() {
-    return !function_->get_arglist()->get_members().empty();
+    return !function_->get_paramlist()->get_members().empty();
   }
 };
 
 class function_json_experimental_generator : public function_generator {
  public:
   function_json_experimental_generator() = default;
-  virtual ~function_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~function_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_function const* func,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -334,22 +434,16 @@ class json_experimental_field : public mstch_field {
             {"field:docstring", &json_experimental_field::get_docstring},
         });
   }
-  mstch::node get_lineno() {
-    return field_->get_lineno();
-  }
-  mstch::node has_docstring() {
-    return field_->has_doc();
-  }
-  mstch::node get_docstring() {
-    return field_->get_doc();
-  }
+  mstch::node get_lineno() { return field_->get_lineno(); }
+  mstch::node has_docstring() { return field_->has_doc(); }
+  mstch::node get_docstring() { return json_quote_ascii(field_->get_doc()); }
 };
 
 class field_json_experimental_generator : public field_generator {
  public:
   field_json_experimental_generator() = default;
-  virtual ~field_json_experimental_generator() = default;
-  virtual std::shared_ptr<mstch_base> generate(
+  ~field_json_experimental_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
       t_field const* field,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
@@ -361,20 +455,9 @@ class field_json_experimental_generator : public field_generator {
 };
 
 void t_json_experimental_generator::generate_program() {
-  // disable mstch escaping
-  // TODO(T20509094): proper JSON escaping routine
-  mstch::config::escape = [](const std::string& str) -> std::string {
-    std::string str_copy = str;
-    boost::replace_all(str_copy, "\\", "\\\\");
-    boost::replace_all(str_copy, "\n", "\\n");
-    boost::replace_all(str_copy, "\"", "\\\"");
-
-    return str_copy;
-  };
-
   auto const* program = get_program();
   set_mstch_generators();
-  std::string fname = program->get_name();
+  std::string fname = program->name();
   fname += ".json";
   auto output =
       generators_->program_generator_->generate(program, generators_, cache_);
@@ -388,6 +471,8 @@ void t_json_experimental_generator::set_mstch_generators() {
       std::make_unique<enum_json_experimental_generator>());
   generators_->set_enum_value_generator(
       std::make_unique<enum_value_json_experimental_generator>());
+  generators_->set_const_value_generator(
+      std::make_unique<const_value_json_experimental_generator>());
   generators_->set_struct_generator(
       std::make_unique<struct_json_experimental_generator>());
   generators_->set_field_generator(
@@ -397,6 +482,11 @@ void t_json_experimental_generator::set_mstch_generators() {
   generators_->set_function_generator(
       std::make_unique<function_json_experimental_generator>());
 }
-} // anonymous namespace
+
+} // namespace
 
 THRIFT_REGISTER_GENERATOR(json_experimental, "JSON_EXPERIMENTAL", "");
+
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

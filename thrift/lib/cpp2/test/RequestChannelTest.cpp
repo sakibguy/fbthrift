@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,22 +18,22 @@
 
 #include <memory>
 #include <thread>
+
 #include <folly/Memory.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/test/ScopedBoundPort.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
-#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
-#include <thrift/lib/cpp2/util/ScopedServerInterfaceThread.h>
-#include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
+#include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
+#include <thrift/lib/cpp2/util/ScopedServerInterfaceThread.h>
 
 using namespace std;
 using namespace std::chrono;
 using namespace folly;
 using namespace apache::thrift;
-using namespace apache::thrift::async;
 using namespace apache::thrift::test;
 using namespace apache::thrift::transport;
 using namespace testing;
@@ -51,13 +51,12 @@ class FunctionSendRecvRequestCallbackTest : public Test {
   EventBase* eb{EventBaseManager::get()->getEventBase()};
   ScopedBoundPort bound;
   shared_ptr<TestServiceServerMock> handler{
-    make_shared<TestServiceServerMock>()};
+      make_shared<TestServiceServerMock>()};
   ScopedServerInterfaceThread runner{handler};
 
-  unique_ptr<TestServiceAsyncClient> newClient(
-      SocketAddress const& addr) {
+  unique_ptr<TestServiceAsyncClient> newClient(SocketAddress const& addr) {
     return make_unique<TestServiceAsyncClient>(
-      HeaderClientChannel::newChannel(TAsyncSocket::newSocket(eb, addr)));
+        HeaderClientChannel::newChannel(AsyncSocket::newSocket(eb, addr)));
   }
 
   exception_wrapper ew;
@@ -102,7 +101,7 @@ TEST_F(FunctionSendRecvRequestCallbackTest, 2w_send_failure) {
 TEST_F(FunctionSendRecvRequestCallbackTest, 2w_recv_failure) {
   auto client = newClient(runner.getAddress());
   RpcOptions opts;
-  opts.setTimeout(milliseconds(1));
+  opts.setTimeout(milliseconds(20));
   auto done = make_shared<Baton<>>();
   SCOPE_EXIT { done->post(); };
   EXPECT_CALL(*handler, voidResponse()).WillOnce(Invoke([done] {
@@ -121,7 +120,7 @@ TEST_F(FunctionSendRecvRequestCallbackTest, 2w_recv_failure) {
 TEST_F(FunctionSendRecvRequestCallbackTest, 2w_recv_success) {
   auto client = newClient(runner.getAddress());
   RpcOptions opts;
-  opts.setTimeout(milliseconds(1));
+  opts.setTimeout(milliseconds(20));
   EXPECT_CALL(*handler, voidResponse());
   client->voidResponse(opts, newCallback());
   eb->loop();
@@ -136,14 +135,15 @@ class FunctionSendCallbackTest : public Test {
   unique_ptr<TestServiceAsyncClient> getClient(
       const folly::SocketAddress& addr) {
     return make_unique<TestServiceAsyncClient>(
-      HeaderClientChannel::newChannel(TAsyncSocket::newSocket(&eb, addr)));
+        HeaderClientChannel::newChannel(AsyncSocket::newSocket(&eb, addr)));
   }
   void sendOnewayMessage(
       const folly::SocketAddress& addr,
       function<void(ClientReceiveState&&)> cb) {
     auto client = getClient(addr);
-    client->noResponse(make_unique<FunctionSendCallback>(move(cb)),
-                       68 /* without loss of generality */);
+    client->noResponse(
+        make_unique<FunctionSendCallback>(move(cb)),
+        68 /* without loss of generality */);
     eb.loop();
   }
   EventBase eb;

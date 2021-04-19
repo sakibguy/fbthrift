@@ -1,26 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
 
 import (
+	"context"
 	"fmt"
+	"strings"
 )
 
 // Processor exposes access to processor functions which
@@ -57,6 +56,56 @@ type ProcessorFunction interface {
 // A framework could be written outside of the thrift library but would need to
 // duplicate this logic.
 func Process(processor Processor, iprot, oprot Protocol) (keepOpen bool, exc Exception) {
+	return ProcessContext(context.Background(), NewProcessorContextAdapter(processor), iprot, oprot)
+}
+
+// ProcessorContext is a Processor that supports contexts.
+type ProcessorContext interface {
+	GetProcessorFunctionContext(name string) (ProcessorFunctionContext, error)
+}
+
+// NewProcessorContextAdapter creates a ProcessorContext from a regular Processor.
+func NewProcessorContextAdapter(p Processor) ProcessorContext {
+	return &ctxProcessorAdapter{p}
+}
+
+type ctxProcessorAdapter struct {
+	Processor
+}
+
+func (p ctxProcessorAdapter) GetProcessorFunctionContext(name string) (ProcessorFunctionContext, error) {
+	f, err := p.Processor.GetProcessorFunction(name)
+	if err != nil {
+		return nil, err
+	}
+	if f == nil {
+		return nil, nil
+	}
+	return NewProcessorFunctionContextAdapter(f), nil
+}
+
+// ProcessorFunctionContext is a ProcessorFunction that supports contexts.
+type ProcessorFunctionContext interface {
+	Read(iprot Protocol) (Struct, Exception)
+	RunContext(ctx context.Context, args Struct) (WritableStruct, ApplicationException)
+	Write(seqID int32, result WritableStruct, oprot Protocol) Exception
+}
+
+// NewProcessorFunctionContextAdapter creates a ProcessorFunctionContext from a regular ProcessorFunction.
+func NewProcessorFunctionContextAdapter(p ProcessorFunction) ProcessorFunctionContext {
+	return &ctxProcessorFunctionAdapter{p}
+}
+
+type ctxProcessorFunctionAdapter struct {
+	ProcessorFunction
+}
+
+func (p ctxProcessorFunctionAdapter) RunContext(ctx context.Context, args Struct) (WritableStruct, ApplicationException) {
+	return p.ProcessorFunction.Run(args)
+}
+
+// ProcessContext is a Process that supports contexts.
+func ProcessContext(ctx context.Context, processor ProcessorContext, iprot, oprot Protocol) (keepOpen bool, ext Exception) {
 	name, messageType, seqID, rerr := iprot.ReadMessageBegin()
 	if rerr != nil {
 		if err, ok := rerr.(TransportException); ok && err.TypeID() == END_OF_FILE {
@@ -66,14 +115,14 @@ func Process(processor Processor, iprot, oprot Protocol) (keepOpen bool, exc Exc
 		return false, rerr
 	}
 	var err ApplicationException
-	var pfunc ProcessorFunction
+	var pfunc ProcessorFunctionContext
 	if messageType != CALL && messageType != ONEWAY {
 		// case one: invalid message type
 		err = NewApplicationException(UNKNOWN_METHOD, fmt.Sprintf("unexpected message type: %d", messageType))
 		// error should be sent, connection should stay open if successful
 	}
 	if err == nil {
-		pf, e2 := processor.GetProcessorFunction(name)
+		pf, e2 := processor.GetProcessorFunctionContext(name)
 		if pf == nil {
 			if e2 == nil {
 				err = NewApplicationException(UNKNOWN_METHOD, fmt.Sprintf("no such function: %q", name))
@@ -95,13 +144,7 @@ func Process(processor Processor, iprot, oprot Protocol) (keepOpen bool, exc Exc
 		}
 		// for ONEWAY, we have no way to report that the processing failed.
 		if messageType != ONEWAY {
-			if e2 := oprot.WriteMessageBegin(name, EXCEPTION, seqID); e2 != nil {
-				return false, e2
-			} else if e2 := err.Write(oprot); e2 != nil {
-				return false, e2
-			} else if e2 := oprot.WriteMessageEnd(); e2 != nil {
-				return false, e2
-			} else if e2 := oprot.Flush(); e2 != nil {
+			if e2 := sendException(oprot, name, seqID, err); e2 != nil {
 				return false, e2
 			}
 		}
@@ -118,22 +161,36 @@ func Process(processor Processor, iprot, oprot Protocol) (keepOpen bool, exc Exc
 		return false, e2
 	}
 	var result WritableStruct
-	result, err = pfunc.Run(argStruct)
+	result, err = pfunc.RunContext(ctx, argStruct)
 
 	// for ONEWAY messages, never send a response
 	if messageType == CALL {
 		// protect message writing
-		if err != nil && result == nil {
-			// if the Run function generates an error, synthesize an application
-			// error
-			result = NewApplicationException(INTERNAL_ERROR, "Internal error: "+err.Error())
+		if err != nil {
+			switch oprotHeader := oprot.(type) {
+			case *HeaderProtocol:
+				// get type name without package or pointer information
+				fqet := strings.Replace(fmt.Sprintf("%T", err), "*", "", -1)
+				et := strings.Split(fqet, ".")
+				errorType := et[len(et)-1]
+
+				// set header for ServiceRouter
+				oprotHeader.SetHeader("uex", errorType)
+				oprotHeader.SetHeader("uexw", err.Error())
+			}
+			// it's an application generated error, so serialize it
+			// to the client
+			result = err
 		}
+
 		if e2 := pfunc.Write(seqID, result, oprot); e2 != nil {
 			// close connection on write failure
 			return false, err
 		}
 	}
 
-	// keep the connection open, but let the client know if an error occurred
-	return true, err
+	// keep the connection open and ignore errors
+	// if type was CALL, error has already been serialized to client
+	// if type was ONEWAY, no exception is to be thrown
+	return true, nil
 }

@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,16 +17,10 @@
 %><% > Autogen%>
 #pragma once
 
-#include <folly/futures/Future.h>
-#include <thrift/lib/cpp/TApplicationException.h>
-#include <thrift/lib/cpp2/ServiceIncludes.h>
-#include <thrift/lib/cpp2/async/FutureRequest.h>
-#include <thrift/lib/cpp2/async/HeaderChannel.h>
+#include <thrift/lib/cpp2/gen/service_h.h>
+
 #include "<%service:include_prefix%><%service:name%>AsyncClient.h"
 #include "<%service:include_prefix%><%service:program_name%>_types.h"
-<%#service:frozen2?%>
-#include "<%service:include_prefix%><%service:program_name%>_layouts.h"
-<%/service:frozen2?%>
 <%#service:extends%>
 #include "<%service:include_prefix%><%service:name%>.h"
 <%/service:extends%>
@@ -36,10 +30,18 @@
 <%#service:cpp_includes%>
 #include <%cpp_include%>
 <%/service:cpp_includes%>
-<%#service:any_streams?%>
-#include <thrift/lib/cpp2/async/StreamGenerator.h>
-#include <thrift/lib/cpp2/async/StreamPublisher.h>
-<%/service:any_streams?%>
+<%^service:interactions?%>
+<%#service:streams?%>
+#include <thrift/lib/cpp2/async/ServerStream.h>
+<%/service:streams?%>
+<%#service:sinks?%>
+#include <thrift/lib/cpp2/async/Sink.h>
+<%/service:sinks?%>
+<%/service:interactions?%>
+<%#service:interactions?%>
+#include <thrift/lib/cpp2/async/ServerStream.h>
+#include <thrift/lib/cpp2/async/Sink.h>
+<%/service:interactions?%>
 
 namespace folly {
   class IOBuf;
@@ -49,9 +51,6 @@ namespace apache { namespace thrift {
   class Cpp2RequestContext;
   class BinaryProtocolReader;
   class CompactProtocolReader;
-<%#service:frozen2?%>
-  class Frozen2ProtocolReader;
-<%/service:frozen2?%>
   namespace transport { class THeader; }
 }}
 
@@ -73,7 +72,3 @@ class <%service:name%>AsyncProcessor;
 
 
 <% > common/namespace_cpp2_end%>
-
-namespace apache { namespace thrift {
-
-}} // apache::thrift

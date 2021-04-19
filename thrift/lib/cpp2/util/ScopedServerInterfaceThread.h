@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef THRIFT_UTIL_SCOPEDSERVEREVENTBASETHREAD_H
-#define THRIFT_UTIL_SCOPEDSERVEREVENTBASETHREAD_H
+#pragma once
 
-#include <folly/Function.h>
-#include <folly/SocketAddress.h>
-#include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp2/util/ScopedServerThread.h>
 #include <memory>
 
-namespace apache { namespace thrift {
+#include <folly/Function.h>
+#include <folly/Random.h>
+#include <folly/SocketAddress.h>
+#include <folly/io/async/AsyncSocket.h>
+
+#include <thrift/lib/cpp2/async/ClientChannel.h>
+#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
+#include <thrift/lib/cpp2/async/RocketClientChannel.h>
+#include <thrift/lib/cpp2/util/ScopedServerThread.h>
+
+namespace apache {
+namespace thrift {
 
 class AsyncProcessorFactory;
 class BaseThriftServer;
@@ -37,6 +43,11 @@ class ThriftServer;
 class ScopedServerInterfaceThread {
  public:
   using ServerConfigCb = folly::Function<void(ThriftServer&)>;
+  using MakeChannelFunc =
+      folly::Function<RequestChannel::Ptr(folly::AsyncSocket::UniquePtr)>;
+  using FaultInjectionFunc =
+      folly::Function<folly::exception_wrapper(folly::StringPiece methodName)>;
+
   ScopedServerInterfaceThread(
       std::shared_ptr<AsyncProcessorFactory> apf,
       folly::SocketAddress const& addr,
@@ -54,19 +65,72 @@ class ScopedServerInterfaceThread {
   const folly::SocketAddress& getAddress() const;
   uint16_t getPort() const;
 
+  /**
+   * Creates and returns a new AsyncClientT. Uses the given channelFunc to
+   * create a channel for the client by passing it a connected, plaintext
+   * folly::AsyncSocket.
+   */
   template <class AsyncClientT>
-  std::unique_ptr<AsyncClientT> newClient(folly::EventBase* eb) const;
+  std::unique_ptr<AsyncClientT> newClient(
+      folly::Executor* callbackExecutor = nullptr,
+      MakeChannelFunc channelFunc = makeRocketOrHeaderChannel) const;
+
+  /**
+   * Like newClient but invokes injectFault before each request and
+   * short-circuits the request if it returns an exception.
+   * Useful for testing handling of e.g. TTransportException.
+   */
   template <class AsyncClientT>
-  std::unique_ptr<AsyncClientT> newClient(folly::EventBase& eb) const;
+  std::unique_ptr<AsyncClientT> newClientWithFaultInjection(
+      FaultInjectionFunc injectFault,
+      folly::Executor* callbackExecutor = nullptr,
+      MakeChannelFunc channelFunc = makeRocketOrHeaderChannel) const;
+
+  /**
+   * Like newClient but sends all requests over a single internal channel
+   */
+  template <class AsyncClientT>
+  std::unique_ptr<AsyncClientT> newStickyClient(
+      folly::Executor* callbackExecutor = nullptr,
+      MakeChannelFunc channelFunc = makeRocketOrHeaderChannel) const;
+
+  static std::shared_ptr<RequestChannel> makeTestClientChannel(
+      std::shared_ptr<AsyncProcessorFactory> apf,
+      ScopedServerInterfaceThread::FaultInjectionFunc injectFault);
 
  private:
   std::shared_ptr<BaseThriftServer> ts_;
   util::ScopedServerThread sst_;
 
+  RequestChannel::Ptr newChannel(
+      folly::Executor* callbackExecutor = nullptr,
+      MakeChannelFunc channelFunc = makeRocketOrHeaderChannel,
+      std::weak_ptr<folly::IOExecutor> executor = folly::getIOExecutor()) const;
+
+  static RequestChannel::Ptr makeRocketOrHeaderChannel(
+      folly::AsyncSocket::UniquePtr socket) {
+    if (folly::Random::oneIn(2)) {
+      return RocketClientChannel::newChannel(std::move(socket));
+    }
+    return HeaderClientChannel::newChannel(std::move(socket));
+  }
 };
 
-}}
+/**
+ * Creates a AsyncClientT for a given handler, backed by an internal
+ * ScopedServerInterfaceThread, with optional fault injection
+ * (if set, invokes injectFault before each request and
+ * short-circuits the request if it returns an exception.
+ * Useful for testing handling of e.g. TTransportException.)
+ *
+ * This is more convenient but offers less control than managing
+ * your own ScopedServerInterfaceThread.
+ */
+template <class AsyncClientT>
+std::unique_ptr<AsyncClientT> makeTestClient(
+    std::shared_ptr<AsyncProcessorFactory> apf,
+    ScopedServerInterfaceThread::FaultInjectionFunc injectFault = nullptr);
+} // namespace thrift
+} // namespace apache
 
 #include <thrift/lib/cpp2/util/ScopedServerInterfaceThread-inl.h>
-
-#endif

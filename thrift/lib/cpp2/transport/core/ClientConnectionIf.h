@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +20,8 @@
 
 #include <memory>
 
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp/async/TAsyncTransport.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/async/ClientChannel.h>
 #include <thrift/lib/cpp2/transport/core/ThriftChannelIf.h>
@@ -69,8 +69,7 @@ class ClientConnectionIf {
 
   // Returns a channel object for use on a single RPC.  Throws
   // TTransportException if a channel object cannot be returned.
-  virtual std::shared_ptr<ThriftChannelIf> getChannel(
-      RequestRpcMetadata* metadata) = 0;
+  virtual std::shared_ptr<ThriftChannelIf> getChannel() = 0;
 
   // Sets the maximum pending outgoing requests allowed on this
   // connection.  Subject to negotiation with the server, which may
@@ -90,13 +89,12 @@ class ClientConnectionIf {
   // They are called from corresponding "ThriftClient" methods, which
   // in turn can be used from any client side connection management
   // framework.
-  virtual apache::thrift::async::TAsyncTransport* getTransport() = 0;
+  virtual folly::AsyncTransport* getTransport() = 0;
   virtual bool good() = 0;
   virtual ClientChannel::SaturationStatus getSaturationStatus() = 0;
   virtual void attachEventBase(folly::EventBase* evb) = 0;
   virtual void detachEventBase() = 0;
   virtual bool isDetachable() = 0;
-  virtual bool isSecurityActive() = 0;
   virtual void closeNow() = 0;
   virtual CLIENT_TYPE getClientType() = 0;
 

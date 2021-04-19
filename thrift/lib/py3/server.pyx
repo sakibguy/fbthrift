@@ -1,3 +1,18 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from cpython.version cimport PY_VERSION_HEX
 from libcpp.memory cimport unique_ptr, shared_ptr, make_shared
 from libc.string cimport const_uchar
 from cython.operator cimport dereference as deref
@@ -6,9 +21,11 @@ from folly.iobuf cimport from_unique_ptr as create_IOBuf
 from cpython.ref cimport PyObject
 from folly.executor cimport get_executor
 from folly.range cimport StringPiece
+from libcpp.utility cimport move as cmove
 
 import asyncio
 import collections
+import functools
 import inspect
 import ipaddress
 from pathlib import Path
@@ -18,6 +35,15 @@ from enum import Enum
 from thrift.py3.common import Priority, Headers
 
 SocketAddress = collections.namedtuple('SocketAddress', 'ip port path')
+
+if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+    from contextvars import ContextVar
+    # don't include in the module dict, so only cython can set it
+    THRIFT_REQUEST_CONTEXT = ContextVar('ThriftRequestContext')
+    get_context = THRIFT_REQUEST_CONTEXT.get
+else:
+    def get_context(default=None):
+        raise RuntimeError('get_context requires python >= 3.7.2')
 
 
 cdef inline _get_SocketAddress(const cfollySocketAddress* sadr):
@@ -32,8 +58,18 @@ cdef inline _get_SocketAddress(const cfollySocketAddress* sadr):
 
 def pass_context(func):
     """Decorate a handler as wanting the Request Context"""
-    func.pass_context = True
-    return func
+    if PY_VERSION_HEX < 0x030702F0:  # 3.7.2 Final
+        func.pass_context = True
+        return func
+
+    @functools.wraps(func)
+    def decorated(self, *args, **kwargs):
+        ctx = get_context(None)
+        if ctx is None:
+            return func(self, *args, **kwargs)
+        return func(self, get_context(), *args, **kwargs)
+    return decorated
+
 
 
 class SSLPolicy(Enum):
@@ -42,8 +78,36 @@ class SSLPolicy(Enum):
     REQUIRED = <int> (SSLPolicy__REQUIRED)
 
 
-cdef class ServiceInterface:
+cdef class AsyncProcessorFactory:
     pass
+
+
+cdef class ServiceInterface(AsyncProcessorFactory):
+    async def __aenter__(self):
+        # Establish async context managers as a way for end users to async initalize
+        # internal structures used by Service Handlers.
+        return self
+
+    async def __aexit__(self, *exc_info):
+        # Same as above, but allow end users to define things to be cleaned up
+        pass
+
+    @staticmethod
+    def __get_metadata__():
+        raise NotImplementedError()
+
+    @staticmethod
+    def __get_thrift_name__():
+        raise NotImplementedError()
+
+
+def getServiceName(ServiceInterface svc not None):
+    processor = deref(svc._cpp_obj).getProcessor()
+    gen_proc = dynamic_cast_gen(processor.get())
+    if not gen_proc:
+        raise TypeError('processor was not a GeneratedAsyncProcessor')
+    cdef const char* name = gen_proc.getServiceName()
+    return (<bytes>name).decode('utf-8')
 
 
 cdef void handleAddressCallback(PyObject* future, cfollySocketAddress address):
@@ -54,17 +118,18 @@ cdef class ThriftServer:
     def __cinit__(self):
         self.server = make_shared[cThriftServer]()
 
-    def __init__(self, ServiceInterface handler, int port=0, ip=None, path=None):
+    def __init__(self, AsyncProcessorFactory handler, int port=0, ip=None, path=None):
         self.loop = asyncio.get_event_loop()
-        self.handler = handler
+        self.factory = handler
+        self.server.get().setThreadManagerFromExecutor(get_executor())
 
-        # Figure out which methods want context and mark them on the handler
-        for name, method in inspect.getmembers(handler,
-                                               inspect.iscoroutinefunction):
-            if hasattr(method, 'pass_context'):
-                setattr(handler, f'_pass_context_{name}', True)
-
-        self.server.get().setInterface(handler.interface_wrapper)
+        if handler._cpp_obj:
+            self.server.get().setProcessorFactory(handler._cpp_obj)
+        else:
+            raise RuntimeError(
+                'The handler is not valid, it has no C++ handler. Maybe its not a '
+                'generated ServiceInterface?'
+            )
         if path:
             fspath = os.fsencode(path)
             self.server.get().setAddress(
@@ -78,22 +143,27 @@ cdef class ThriftServer:
         else:
             self.server.get().setPort(port)
         self.address_future = self.loop.create_future()
-
-    async def serve(self):
-        if self.address_future.done():
-            self.address_future = self.loop.create_future()
         self.server.get().setServerEventHandler(
             make_shared[Py3ServerEventHandler](
                 get_executor(),
                 object_partial(handleAddressCallback, <PyObject*> self.address_future)
             )
         )
+        self.server.get().metadata().wrapper = b"ThriftServer-py3"
 
+    async def serve(self):
         def _serve():
             with nogil:
                 self.server.get().serve()
         try:
             await self.loop.run_in_executor(None, _serve)
+            self.address_future.cancel()
+        except asyncio.CancelledError:
+            try:
+                await self.get_address()
+            finally:
+                self.server.get().stop()
+            raise
         except Exception as e:
             self.server.get().stop()
             # If somebody is waiting on get_address and the server died
@@ -102,8 +172,8 @@ cdef class ThriftServer:
                 self.address_future.set_exception(e)
             raise
 
-    async def get_address(self):
-        return await self.address_future
+    def get_address(self):
+        return asyncio.shield(self.address_future)
 
     def get_active_requests(self):
         return self.server.get().getActiveRequests()
@@ -132,17 +202,28 @@ cdef class ThriftServer:
     def get_io_worker_threads(self):
         return self.server.get().getNumIOWorkerThreads()
 
-    def set_cpu_worker_threads(self, num):
-        self.server.get().setNumCPUWorkerThreads(num)
-
     def get_cpu_worker_threads(self):
         return self.server.get().getNumCPUWorkerThreads()
+
+    def set_workers_join_timeout(self, timeout):
+        self.server.get().setWorkersJoinTimeout(seconds(<int64_t>timeout))
 
     def set_ssl_handshake_worker_threads(self, num):
         self.server.get().setNumSSLHandshakeWorkerThreads(num)
 
     def get_ssl_handshake_worker_threads(self):
         return self.server.get().getNumSSLHandshakeWorkerThreads()
+
+    def get_ssl_policy(self):
+        cdef cSSLPolicy cPolicy = self.server.get().getSSLPolicy()
+        if cPolicy == SSLPolicy__DISABLED:
+            return SSLPolicy.DISABLED
+        elif cPolicy == SSLPolicy__PERMITTED:
+            return SSLPolicy.PERMITTED
+        elif cPolicy == SSLPolicy__REQUIRED:
+            return SSLPolicy.REQUIRED
+        else:
+            raise RuntimeError("Unknown SSLPolicy defined.")
 
     def set_ssl_policy(self, policy):
         cdef cSSLPolicy cPolicy
@@ -152,18 +233,58 @@ cdef class ThriftServer:
             cPolicy = SSLPolicy__PERMITTED
         elif policy == SSLPolicy.REQUIRED:
             cPolicy = SSLPolicy__REQUIRED
+        else:
+            raise RuntimeError("Unknown SSLPolicy defined.")
         self.server.get().setSSLPolicy(cPolicy)
+
+    def set_allow_plaintext_on_loopback(self, enabled):
+        self.server.get().setAllowPlaintextOnLoopback(enabled);
+
+    def is_plaintext_allowed_on_loopback(self):
+        return self.server.get().isPlaintextAllowedOnLoopback();
+
+    def set_idle_timeout(self, seconds):
+        self.server.get().setIdleTimeout(milliseconds(<int64_t>(seconds * 1000)))
+
+    def get_idle_timeout(self):
+        return self.server.get().getIdleTimeout().count() / 1000
+
+    def set_queue_timeout(self, seconds):
+        self.server.get().setQueueTimeout(milliseconds(<int64_t>(seconds * 1000)))
+
+    def get_queue_timeout(self):
+        return self.server.get().getQueueTimeout().count() / 1000
+
+    cdef void set_is_overloaded(self, cIsOverloadedFunc is_overloaded):
+        self.server.get().setIsOverloaded(cmove(is_overloaded))
+
+    def set_language_framework_name(self, name):
+        self.server.get().metadata().languageFramework = name.encode()
 
     def stop(self):
         self.server.get().stop()
+
+    def stop_listening(self):
+        self.server.get().stopListening()
+
+    def use_existing_socket(self, socket):
+        self.server.get().useExistingSocket(socket)
 
 
 cdef class ConnectionContext:
     @staticmethod
     cdef ConnectionContext create(Cpp2ConnContext* ctx):
+        cdef const cfollySocketAddress* peer_address
+        cdef const cfollySocketAddress* local_address
         inst = <ConnectionContext>ConnectionContext.__new__(ConnectionContext)
-        inst._ctx = ctx
-        inst._peer_address = _get_SocketAddress(ctx.getPeerAddress())
+        if ctx:
+            inst._ctx = ctx
+            peer_address = ctx.getPeerAddress()
+            if not peer_address.empty():
+                inst._peer_address = _get_SocketAddress(peer_address)
+            local_address = ctx.getLocalAddress()
+            if not local_address.empty():
+                inst._local_address = _get_SocketAddress(local_address)
         return inst
 
     @property
@@ -190,6 +311,10 @@ cdef class ConnectionContext:
                 return b''.join(iobuf)
             return bytes(iobuf)
         return None
+
+    @property
+    def local_address(ConnectionContext self):
+        return self._local_address
 
 
 cdef class ReadHeaders(Headers):
@@ -245,3 +370,7 @@ cdef class RequestContext:
 
     def set_header(self, str key not None, str value not None):
         self._ctx.getHeader().setHeader(key.encode('utf-8'), value.encode('utf-8'))
+
+    @property
+    def method_name(ConnectionContext self):
+        return self._ctx.getMethodName().decode('utf-8')

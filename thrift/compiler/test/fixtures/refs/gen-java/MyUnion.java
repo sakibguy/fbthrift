@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -25,7 +23,6 @@ import com.facebook.thrift.protocol.*;
 
 @SuppressWarnings({ "unused", "serial", "unchecked" })
 public class MyUnion extends TUnion<MyUnion> implements Comparable<MyUnion> {
-  public static boolean DEFAULT_PRETTY_PRINT = true;
   private static final TStruct STRUCT_DESC = new TStruct("MyUnion");
   private static final TField AN_INTEGER_FIELD_DESC = new TField("anInteger", TType.I32, (short)1);
   private static final TField A_STRING_FIELD_DESC = new TField("aString", TType.STRING, (short)2);
@@ -34,6 +31,7 @@ public class MyUnion extends TUnion<MyUnion> implements Comparable<MyUnion> {
   public static final int ASTRING = 2;
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(ANINTEGER, new FieldMetaData("anInteger", TFieldRequirementType.DEFAULT, 
@@ -47,43 +45,44 @@ public class MyUnion extends TUnion<MyUnion> implements Comparable<MyUnion> {
     super();
   }
 
-  public MyUnion(int setField, Object value) {
-    super(setField, value);
+  public MyUnion(int setField, Object __value) {
+    super(setField, __value);
   }
 
   public MyUnion(MyUnion other) {
     super(other);
   }
+
   public MyUnion deepCopy() {
     return new MyUnion(this);
   }
 
-  public static MyUnion anInteger(int value) {
+  public static MyUnion anInteger(int __value) {
     MyUnion x = new MyUnion();
-    x.setAnInteger(value);
+    x.setAnInteger(__value);
     return x;
   }
 
-  public static MyUnion aString(String value) {
+  public static MyUnion aString(String __value) {
     MyUnion x = new MyUnion();
-    x.setAString(value);
+    x.setAString(__value);
     return x;
   }
 
 
   @Override
-  protected void checkType(short setField, Object value) throws ClassCastException {
+  protected void checkType(short setField, Object __value) throws ClassCastException {
     switch (setField) {
       case ANINTEGER:
-        if (value instanceof Integer) {
+        if (__value instanceof Integer) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type Integer for field 'anInteger', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type Integer for field 'anInteger', but got " + __value.getClass().getSimpleName());
       case ASTRING:
-        if (value instanceof String) {
+        if (__value instanceof String) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type String for field 'aString', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type String for field 'aString', but got " + __value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -94,61 +93,58 @@ public class MyUnion extends TUnion<MyUnion> implements Comparable<MyUnion> {
     setField_ = 0;
     value_ = null;
     iprot.readStructBegin(metaDataMap);
-    TField field = iprot.readFieldBegin();
-    if (field.type != TType.STOP)
+    TField __field = iprot.readFieldBegin();
+    if (__field.type != TType.STOP)
     {
-      value_ = readValue(iprot, field);
+      value_ = readValue(iprot, __field);
       if (value_ != null)
       {
-        switch (field.id) {
+        switch (__field.id) {
           case ANINTEGER:
-            if (field.type == AN_INTEGER_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == AN_INTEGER_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case ASTRING:
-            if (field.type == A_STRING_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == A_STRING_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
         }
       }
       iprot.readFieldEnd();
-      iprot.readFieldBegin();
-      iprot.readFieldEnd();
+      TField __stopField = iprot.readFieldBegin();
+      if (__stopField.type != TType.STOP) {
+        throw new TProtocolException(TProtocolException.INVALID_DATA, "Union 'MyUnion' is missing a STOP byte");
+      }
     }
     iprot.readStructEnd();
   }
 
   @Override
-  protected Object readValue(TProtocol iprot, TField field) throws TException {
-    switch (field.id) {
+  protected Object readValue(TProtocol iprot, TField __field) throws TException {
+    switch (__field.id) {
       case ANINTEGER:
-        if (field.type == AN_INTEGER_FIELD_DESC.type) {
+        if (__field.type == AN_INTEGER_FIELD_DESC.type) {
           Integer anInteger;
           anInteger = iprot.readI32();
           return anInteger;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case ASTRING:
-        if (field.type == A_STRING_FIELD_DESC.type) {
+        if (__field.type == A_STRING_FIELD_DESC.type) {
           String aString;
           aString = iprot.readString();
           return aString;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
-      default:
-        TProtocolUtil.skip(iprot, field.type);
-        return null;
+        break;
     }
+    TProtocolUtil.skip(iprot, __field.type);
+    return null;
   }
 
   @Override
-  protected void writeValue(TProtocol oprot, short setField, Object value) throws TException {
+  protected void writeValue(TProtocol oprot, short setField, Object __value) throws TException {
     switch (setField) {
       case ANINTEGER:
         Integer anInteger = (Integer)getFieldValue();
@@ -180,31 +176,38 @@ public class MyUnion extends TUnion<MyUnion> implements Comparable<MyUnion> {
     return STRUCT_DESC;
   }
 
-  public int  getAnInteger() {
-    if (getSetField() == ANINTEGER) {
-      return (Integer)getFieldValue();
+  @Override
+  protected Map<Integer, FieldMetaData> getMetaDataMap() { return metaDataMap; }
+
+  private Object __getValue(int expectedFieldId) {
+    if (getSetField() == expectedFieldId) {
+      return getFieldValue();
     } else {
-      throw new RuntimeException("Cannot get field 'anInteger' because union is currently set to " + getFieldDesc(getSetField()).name);
+      throw new RuntimeException("Cannot get field '" + getFieldDesc(expectedFieldId).name + "' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void setAnInteger(int value) {
+  private void __setValue(int fieldId, Object __value) {
+    if (__value == null) throw new NullPointerException();
+    setField_ = fieldId;
+    value_ = __value;
+  }
+
+  public int getAnInteger() {
+    return (Integer) __getValue(ANINTEGER);
+  }
+
+  public void setAnInteger(int __value) {
     setField_ = ANINTEGER;
-    value_ = value;
+    value_ = __value;
   }
 
-  public String  getAString() {
-    if (getSetField() == ASTRING) {
-      return (String)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'aString' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public String getAString() {
+    return (String) __getValue(ASTRING);
   }
 
-  public void setAString(String value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = ASTRING;
-    value_ = value;
+  public void setAString(String __value) {
+    __setValue(ASTRING, __value);
   }
 
   public boolean equals(Object other) {
@@ -225,64 +228,9 @@ public class MyUnion extends TUnion<MyUnion> implements Comparable<MyUnion> {
   }
 
 
-  /**
-   * If you'd like this to perform more respectably, use the hashcode generator option.
-   */
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {getSetField(), getFieldValue()});
   }
-
-  @Override
-  public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
-  }
-
-  @Override
-  public String toString(int indent, boolean prettyPrint) {
-    String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
-    String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
-    StringBuilder sb = new StringBuilder("MyUnion");
-    sb.append(space);
-    sb.append("(");
-    sb.append(newLine);
-    boolean first = true;
-
-    // Only print this field if it is the set field
-    if (getSetField() == ANINTEGER)
-    {
-      sb.append(indentStr);
-      sb.append("anInteger");
-      sb.append(space);
-      sb.append(":").append(space);
-      sb.append(TBaseHelper.toString(this. getAnInteger(), indent + 1, prettyPrint));
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == ASTRING)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("aString");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getAString() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getAString(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
-    sb.append(")");
-    return sb.toString();
-  }
-
 
 }

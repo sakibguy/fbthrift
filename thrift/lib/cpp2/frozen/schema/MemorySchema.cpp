@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,9 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/lib/cpp2/frozen/schema/MemorySchema.h>
 
 #include <limits>
+#include <type_traits>
+
+#include <folly/Utility.h>
+#include <folly/container/Enumerate.h>
 
 THRIFT_IMPL_HASH(apache::thrift::frozen::schema::MemoryField)
 THRIFT_IMPL_HASH(apache::thrift::frozen::schema::MemoryLayoutBase)
@@ -30,15 +35,16 @@ namespace schema {
 int16_t MemorySchema::Helper::add(MemoryLayout&& layout) {
   // Add distinct layout, bounds check layoutId
   size_t layoutId = layoutTable_.add(std::move(layout));
-  CHECK_LE(layoutId, std::numeric_limits<int16_t>::max()) << "Layout overflow";
+  CHECK_LE(layoutId, folly::to_unsigned(std::numeric_limits<int16_t>::max()))
+      << "Layout overflow";
   return static_cast<int16_t>(layoutId);
 }
 
 void MemorySchema::initFromSchema(Schema&& schema) {
-  if (!schema.layouts.empty()) {
-    layouts.resize(schema.layouts.size());
+  if (!schema.layouts_ref()->empty()) {
+    layouts.resize(schema.layouts_ref()->size());
 
-    for (const auto& layoutKvp : schema.layouts) {
+    for (const auto& layoutKvp : *schema.layouts_ref()) {
       const auto id = layoutKvp.first;
       const auto& layout = layoutKvp.second;
 
@@ -46,22 +52,24 @@ void MemorySchema::initFromSchema(Schema&& schema) {
       // schema.layouts.size().
       auto& memLayout = layouts.at(id);
 
-      memLayout.setSize(layout.size);
-      memLayout.setBits(layout.bits);
+      memLayout.setSize(*layout.size_ref());
+      memLayout.setBits(*layout.bits_ref());
 
-      for (const auto& fieldKvp : layout.fields) {
-        MemoryField memField;
+      std::vector<MemoryField> fields;
+      fields.reserve(layout.fields_ref()->size());
+      for (const auto& fieldKvp : *layout.fields_ref()) {
+        MemoryField& memField = fields.emplace_back();
         const auto& fieldId = fieldKvp.first;
         const auto& field = fieldKvp.second;
 
         memField.setId(fieldId);
-        memField.setLayoutId(field.layoutId);
-        memField.setOffset(field.offset);
-        memLayout.addField(std::move(memField));
+        memField.setLayoutId(*field.layoutId_ref());
+        memField.setOffset(*field.offset_ref());
       }
+      memLayout.setFields(std::move(fields));
     }
   }
-  setRootLayoutId(schema.rootLayout);
+  setRootLayoutId(*schema.rootLayout_ref());
 }
 
 void convert(Schema&& schema, MemorySchema& memSchema) {
@@ -69,28 +77,33 @@ void convert(Schema&& schema, MemorySchema& memSchema) {
 }
 
 void convert(const MemorySchema& memSchema, Schema& schema) {
-  std::size_t i = 0;
-  for (const auto& memLayout : memSchema.getLayouts()) {
-    auto& newLayout = schema.layouts[i];
+  using LayoutsType = std::decay_t<decltype(*schema.layouts_ref())>;
+  LayoutsType::container_type layouts;
+  for (const auto&& memLayout : folly::enumerate(memSchema.getLayouts())) {
+    Layout newLayout;
+    newLayout.size_ref() = memLayout->getSize();
+    newLayout.bits_ref() = memLayout->getBits();
 
-    newLayout.size = memLayout.getSize();
-    newLayout.bits = memLayout.getBits();
-
-    for (const auto& field : memLayout.getFields()) {
-      auto& newField = newLayout.fields[field.getId()];
-
-      newField.layoutId = field.getLayoutId();
-      newField.offset = field.getOffset();
+    using FieldsType = std::decay_t<decltype(*newLayout.fields_ref())>;
+    FieldsType::container_type fields;
+    for (const auto& field : memLayout->getFields()) {
+      Field newField;
+      newField.layoutId_ref() = field.getLayoutId();
+      newField.offset_ref() = field.getOffset();
+      fields.emplace_back(field.getId(), std::move(newField));
     }
-    ++i;
+    newLayout.fields_ref() = FieldsType{std::move(fields)};
+
+    layouts.emplace_back(memLayout.index, std::move(newLayout));
   }
+  schema.layouts_ref() = LayoutsType{std::move(layouts)};
 
   //
   // Type information is discarded when transforming from memSchema to
   // schema, so force this bit to true.
   //
-  schema.relaxTypeChecks = true;
-  schema.rootLayout = memSchema.getRootLayoutId();
+  *schema.relaxTypeChecks_ref() = true;
+  *schema.rootLayout_ref() = memSchema.getRootLayoutId();
 }
 
 } // namespace schema

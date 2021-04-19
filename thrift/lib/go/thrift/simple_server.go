@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -38,13 +35,19 @@ var ErrServerClosed = errors.New("thrift: Server closed")
 // connection are not supported, as the per-connection gofunc reads
 // the request, processes it, and writes the response serially
 type SimpleServer struct {
-	processorFactory ProcessorFactory
+	processorFactoryContext      ProcessorFactoryContext
+	configurableRequestProcessor func(ctx context.Context, client Transport) error
 	*ServerOptions
 }
 
 // NewSimpleServer create a new server
 func NewSimpleServer(processor Processor, serverTransport ServerTransport, options ...func(*ServerOptions)) *SimpleServer {
-	return NewSimpleServerFactory(NewProcessorFactory(processor), serverTransport, options...)
+	return NewSimpleServerContext(NewProcessorContextAdapter(processor), serverTransport, options...)
+}
+
+// NewSimpleServerContext creates a new server that supports contexts
+func NewSimpleServerContext(processor ProcessorContext, serverTransport ServerTransport, options ...func(*ServerOptions)) *SimpleServer {
+	return NewSimpleServerFactoryContext(NewProcessorFactoryContext(processor), serverTransport, options...)
 }
 
 // NewSimpleServer2 is deprecated, used NewSimpleServer instead
@@ -76,13 +79,23 @@ func NewSimpleServer6(processor Processor, serverTransport ServerTransport, inpu
 
 // NewSimpleServerFactory create a new server factory
 func NewSimpleServerFactory(processorFactory ProcessorFactory, serverTransport ServerTransport, options ...func(*ServerOptions)) *SimpleServer {
-	serverOptions := defaultServerOptions(serverTransport)
+	return NewSimpleServerFactoryContext(NewProcessorFactoryContextAdapter(processorFactory), serverTransport, options...)
+}
 
-	for _, option := range options {
-		option(serverOptions)
+// NewSimpleServerFactoryContext creates a new server factory that supports contexts.
+func NewSimpleServerFactoryContext(processorFactoryContext ProcessorFactoryContext, serverTransport ServerTransport, options ...func(*ServerOptions)) *SimpleServer {
+	return &SimpleServer{
+		processorFactoryContext: processorFactoryContext,
+		ServerOptions:           simpleServerOptions(serverTransport, options...),
 	}
+}
 
-	return &SimpleServer{processorFactory, serverOptions}
+func simpleServerOptions(t ServerTransport, options ...func(*ServerOptions)) *ServerOptions {
+	opts := defaultServerOptions(t)
+	for _, option := range options {
+		option(opts)
+	}
+	return opts
 }
 
 // NewSimpleServerFactory2 is deprecated, used NewSimpleServerFactory instead
@@ -112,9 +125,9 @@ func NewSimpleServerFactory6(processorFactory ProcessorFactory, serverTransport 
 	)
 }
 
-// ProcessorFactory returns the processor factory
-func (p *SimpleServer) ProcessorFactory() ProcessorFactory {
-	return p.processorFactory
+// ProcessorFactoryContext returns the processor factory that supports contexts
+func (p *SimpleServer) ProcessorFactoryContext() ProcessorFactoryContext {
+	return p.processorFactoryContext
 }
 
 // ServerTransport returns the server transport
@@ -149,6 +162,12 @@ func (p *SimpleServer) Listen() error {
 
 // AcceptLoop runs the accept loop to handle requests
 func (p *SimpleServer) AcceptLoop() error {
+	return p.AcceptLoopContext(context.Background())
+}
+
+// AcceptLoopContext is an AcceptLoop that supports contexts.
+// The context is decorated with ConnInfo and passed down to new clients.
+func (p *SimpleServer) AcceptLoopContext(ctx context.Context) error {
 	for {
 		client, err := p.serverTransport.Accept()
 		if err != nil {
@@ -159,28 +178,44 @@ func (p *SimpleServer) AcceptLoop() error {
 			}
 			return err
 		}
-		if client != nil {
-			go p.processRequests(client)
+		if client == nil {
+			continue
 		}
+		go func(ctx context.Context, client Transport) {
+			ctx = p.addConnInfo(ctx, client)
+			if err := p.processRequests(ctx, client); err != nil {
+				p.log.Println("thrift: error processing request:", err)
+			}
+		}(ctx, client)
 	}
 }
 
-// Serve starts serving requests
+func (p *SimpleServer) addConnInfo(ctx context.Context, client Transport) context.Context {
+	if p.processorFactoryContext == nil {
+		return ctx
+	}
+	return WithConnInfo(ctx, client)
+}
+
+// Serve starts listening on the transport and accepting new connections
+// and blocks until Stop is called or an error occurs.
 func (p *SimpleServer) Serve() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	return p.ServeContext(ctx)
+}
+
+// ServeContext behaves like Serve but supports cancellation via context.
+func (p *SimpleServer) ServeContext(ctx context.Context) error {
 	err := p.Listen()
 	if err != nil {
 		return err
 	}
-	return p.AcceptLoop()
-}
-
-// ServeContext starts serving requests and uses a context to cancel
-func (p *SimpleServer) ServeContext(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		p.Stop()
 	}()
-	err := p.Serve()
+	err = p.AcceptLoopContext(ctx)
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -194,8 +229,12 @@ func (p *SimpleServer) Stop() error {
 	return nil
 }
 
-func (p *SimpleServer) processRequests(client Transport) error {
-	processor := p.processorFactory.Geprocessor(client)
+func (p *SimpleServer) processRequests(ctx context.Context, client Transport) error {
+	if p.configurableRequestProcessor != nil {
+		return p.configurableRequestProcessor(ctx, client)
+	}
+
+	processor := p.processorFactoryContext.GetProcessorContext(client)
 	var (
 		inputTransport, outputTransport Transport
 		inputProtocol, outputProtocol   Protocol
@@ -215,6 +254,10 @@ func (p *SimpleServer) processRequests(client Transport) error {
 		outputProtocol = p.outputProtocolFactory.GetProtocol(outputTransport)
 	}
 
+	// Store the input protocol on the context so handlers can query headers.
+	// See HeadersFromContext.
+	ctx = WithProtocol(ctx, inputProtocol)
+
 	defer func() {
 		if err := recover(); err != nil {
 			p.log.Printf("panic in processor: %v: %s", err, debug.Stack())
@@ -226,10 +269,11 @@ func (p *SimpleServer) processRequests(client Transport) error {
 	if outputTransport != nil {
 		defer outputTransport.Close()
 	}
+	intProcessor := WrapInterceptorContext(p.interceptor, processor)
 	for {
-		keepOpen, exc := Process(processor, inputProtocol, outputProtocol)
+		keepOpen, exc := ProcessContext(ctx, intProcessor, inputProtocol, outputProtocol)
 		if exc != nil {
-			p.log.Printf("processing failure: %s", exc)
+			outputProtocol.Flush()
 			return exc
 		}
 		if !keepOpen {

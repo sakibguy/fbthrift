@@ -6,9 +6,10 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 	module0 "module"
 	includes1 "includes"
 
@@ -19,6 +20,7 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var _ = module0.GoUnusedProtection__
 var _ = includes1.GoUnusedProtection__

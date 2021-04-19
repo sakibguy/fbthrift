@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -39,7 +37,6 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
   public static final int GREEN = 2;
   public static final int BLUE = 3;
   public static final int ALPHA = 4;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
   private static final int __RED_ISSET_ID = 0;
@@ -49,6 +46,7 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
   private BitSet __isset_bit_vector = new BitSet(4);
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(RED, new FieldMetaData("red", TFieldRequirementType.DEFAULT, 
@@ -70,11 +68,10 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
   }
 
   public Color(
-    double red,
-    double green,
-    double blue,
-    double alpha)
-  {
+      double red,
+      double green,
+      double blue,
+      double alpha) {
     this();
     this.red = red;
     setRedIsSet(true);
@@ -84,6 +81,63 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     setBlueIsSet(true);
     this.alpha = alpha;
     setAlphaIsSet(true);
+  }
+
+  public static class Builder {
+    private double red;
+    private double green;
+    private double blue;
+    private double alpha;
+
+    BitSet __optional_isset = new BitSet(4);
+
+    public Builder() {
+    }
+
+    public Builder setRed(final double red) {
+      this.red = red;
+      __optional_isset.set(__RED_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setGreen(final double green) {
+      this.green = green;
+      __optional_isset.set(__GREEN_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setBlue(final double blue) {
+      this.blue = blue;
+      __optional_isset.set(__BLUE_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setAlpha(final double alpha) {
+      this.alpha = alpha;
+      __optional_isset.set(__ALPHA_ISSET_ID, true);
+      return this;
+    }
+
+    public Color build() {
+      Color result = new Color();
+      if (__optional_isset.get(__RED_ISSET_ID)) {
+        result.setRed(this.red);
+      }
+      if (__optional_isset.get(__GREEN_ISSET_ID)) {
+        result.setGreen(this.green);
+      }
+      if (__optional_isset.get(__BLUE_ISSET_ID)) {
+        result.setBlue(this.blue);
+      }
+      if (__optional_isset.get(__ALPHA_ISSET_ID)) {
+        result.setAlpha(this.alpha);
+      }
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -102,12 +156,7 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     return new Color(this);
   }
 
-  @Deprecated
-  public Color clone() {
-    return new Color(this);
-  }
-
-  public double  getRed() {
+  public double getRed() {
     return this.red;
   }
 
@@ -126,11 +175,11 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     return __isset_bit_vector.get(__RED_ISSET_ID);
   }
 
-  public void setRedIsSet(boolean value) {
-    __isset_bit_vector.set(__RED_ISSET_ID, value);
+  public void setRedIsSet(boolean __value) {
+    __isset_bit_vector.set(__RED_ISSET_ID, __value);
   }
 
-  public double  getGreen() {
+  public double getGreen() {
     return this.green;
   }
 
@@ -149,11 +198,11 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     return __isset_bit_vector.get(__GREEN_ISSET_ID);
   }
 
-  public void setGreenIsSet(boolean value) {
-    __isset_bit_vector.set(__GREEN_ISSET_ID, value);
+  public void setGreenIsSet(boolean __value) {
+    __isset_bit_vector.set(__GREEN_ISSET_ID, __value);
   }
 
-  public double  getBlue() {
+  public double getBlue() {
     return this.blue;
   }
 
@@ -172,11 +221,11 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     return __isset_bit_vector.get(__BLUE_ISSET_ID);
   }
 
-  public void setBlueIsSet(boolean value) {
-    __isset_bit_vector.set(__BLUE_ISSET_ID, value);
+  public void setBlueIsSet(boolean __value) {
+    __isset_bit_vector.set(__BLUE_ISSET_ID, __value);
   }
 
-  public double  getAlpha() {
+  public double getAlpha() {
     return this.alpha;
   }
 
@@ -195,41 +244,41 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     return __isset_bit_vector.get(__ALPHA_ISSET_ID);
   }
 
-  public void setAlphaIsSet(boolean value) {
-    __isset_bit_vector.set(__ALPHA_ISSET_ID, value);
+  public void setAlphaIsSet(boolean __value) {
+    __isset_bit_vector.set(__ALPHA_ISSET_ID, __value);
   }
 
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case RED:
-      if (value == null) {
+      if (__value == null) {
         unsetRed();
       } else {
-        setRed((Double)value);
+        setRed((Double)__value);
       }
       break;
 
     case GREEN:
-      if (value == null) {
+      if (__value == null) {
         unsetGreen();
       } else {
-        setGreen((Double)value);
+        setGreen((Double)__value);
       }
       break;
 
     case BLUE:
-      if (value == null) {
+      if (__value == null) {
         unsetBlue();
       } else {
-        setBlue((Double)value);
+        setBlue((Double)__value);
       }
       break;
 
     case ALPHA:
-      if (value == null) {
+      if (__value == null) {
         unsetAlpha();
       } else {
-        setAlpha((Double)value);
+        setAlpha((Double)__value);
       }
       break;
 
@@ -257,79 +306,30 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case RED:
-      return isSetRed();
-    case GREEN:
-      return isSetGreen();
-    case BLUE:
-      return isSetBlue();
-    case ALPHA:
-      return isSetAlpha();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof Color)
-      return this.equals((Color)that);
-    return false;
-  }
-
-  public boolean equals(Color that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof Color))
+      return false;
+    Color that = (Color)_that;
 
-    boolean this_present_red = true;
-    boolean that_present_red = true;
-    if (this_present_red || that_present_red) {
-      if (!(this_present_red && that_present_red))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.red, that.red))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.red, that.red)) { return false; }
 
-    boolean this_present_green = true;
-    boolean that_present_green = true;
-    if (this_present_green || that_present_green) {
-      if (!(this_present_green && that_present_green))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.green, that.green))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.green, that.green)) { return false; }
 
-    boolean this_present_blue = true;
-    boolean that_present_blue = true;
-    if (this_present_blue || that_present_blue) {
-      if (!(this_present_blue && that_present_blue))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.blue, that.blue))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.blue, that.blue)) { return false; }
 
-    boolean this_present_alpha = true;
-    boolean that_present_alpha = true;
-    if (this_present_alpha || that_present_alpha) {
-      if (!(this_present_alpha && that_present_alpha))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.alpha, that.alpha))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.alpha, that.alpha)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {red, green, blue, alpha});
   }
 
   @Override
@@ -349,7 +349,7 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(red, other.red);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetGreen()).compareTo(other.isSetGreen());
@@ -357,7 +357,7 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(green, other.green);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetBlue()).compareTo(other.isSetBlue());
@@ -365,7 +365,7 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(blue, other.blue);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetAlpha()).compareTo(other.isSetAlpha());
@@ -373,57 +373,57 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(alpha, other.alpha);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case RED:
-          if (field.type == TType.DOUBLE) {
+          if (__field.type == TType.DOUBLE) {
             this.red = iprot.readDouble();
             setRedIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case GREEN:
-          if (field.type == TType.DOUBLE) {
+          if (__field.type == TType.DOUBLE) {
             this.green = iprot.readDouble();
             setGreenIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case BLUE:
-          if (field.type == TType.DOUBLE) {
+          if (__field.type == TType.DOUBLE) {
             this.blue = iprot.readDouble();
             setBlueIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case ALPHA:
-          if (field.type == TType.DOUBLE) {
+          if (__field.type == TType.DOUBLE) {
             this.alpha = iprot.readDouble();
             setAlphaIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -457,19 +457,14 @@ public class Color implements TBase, java.io.Serializable, Cloneable, Comparable
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("Color");
     sb.append(space);
     sb.append("(");
@@ -480,28 +475,28 @@ String space = prettyPrint ? " " : "";
     sb.append("red");
     sb.append(space);
     sb.append(":").append(space);
-    sb.append(TBaseHelper.toString(this. getRed(), indent + 1, prettyPrint));
+    sb.append(TBaseHelper.toString(this.getRed(), indent + 1, prettyPrint));
     first = false;
     if (!first) sb.append("," + newLine);
     sb.append(indentStr);
     sb.append("green");
     sb.append(space);
     sb.append(":").append(space);
-    sb.append(TBaseHelper.toString(this. getGreen(), indent + 1, prettyPrint));
+    sb.append(TBaseHelper.toString(this.getGreen(), indent + 1, prettyPrint));
     first = false;
     if (!first) sb.append("," + newLine);
     sb.append(indentStr);
     sb.append("blue");
     sb.append(space);
     sb.append(":").append(space);
-    sb.append(TBaseHelper.toString(this. getBlue(), indent + 1, prettyPrint));
+    sb.append(TBaseHelper.toString(this.getBlue(), indent + 1, prettyPrint));
     first = false;
     if (!first) sb.append("," + newLine);
     sb.append(indentStr);
     sb.append("alpha");
     sb.append(space);
     sb.append(":").append(space);
-    sb.append(TBaseHelper.toString(this. getAlpha(), indent + 1, prettyPrint));
+    sb.append(TBaseHelper.toString(this.getAlpha(), indent + 1, prettyPrint));
     first = false;
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
     sb.append(")");
@@ -510,7 +505,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
   }
 
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2008-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,12 +17,20 @@
 #ifndef _THRIFT_CONCURRENCY_FUNCTION_RUNNER_H
 #define _THRIFT_CONCURRENCY_FUNCTION_RUNNER_H 1
 
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+
 #include <folly/Function.h>
+#include <folly/ScopeGuard.h>
 #include <folly/portability/Unistd.h>
-#include <thrift/lib/cpp/concurrency/Monitor.h>
+#include <folly/synchronization/Baton.h>
+#include <thrift/lib/cpp/concurrency/Exception.h>
 #include <thrift/lib/cpp/concurrency/Thread.h>
 
-namespace apache { namespace thrift { namespace concurrency {
+namespace apache {
+namespace thrift {
+namespace concurrency {
 
 /**
  * Convenient implementation of Runnable that will execute arbitrary callbacks.
@@ -48,7 +56,7 @@ namespace apache { namespace thrift { namespace concurrency {
 class FunctionRunner : public virtual Runnable {
  public:
   // This is the type of callback 'pthread_create()' expects.
-  typedef void* (*PthreadFuncPtr)(void *arg);
+  typedef void* (*PthreadFuncPtr)(void* arg);
   // This a fully-generic void(void) callback for custom bindings.
   typedef folly::Function<void()> VoidFunc;
 
@@ -61,19 +69,18 @@ class FunctionRunner : public virtual Runnable {
   template <class F>
   static std::shared_ptr<FunctionRunner> create(F&& cob) {
     return std::shared_ptr<FunctionRunner>(
-      new FunctionRunner(std::forward<F>(cob)));
+        new FunctionRunner(std::forward<F>(cob)));
   }
 
-  static std::shared_ptr<FunctionRunner> create(const PthreadFuncPtr& func,
-                                                void* arg) {
+  static std::shared_ptr<FunctionRunner> create(
+      const PthreadFuncPtr& func, void* arg) {
     return std::shared_ptr<FunctionRunner>(new FunctionRunner(func, arg));
   }
 
   template <class F>
-  static std::shared_ptr<FunctionRunner> create(F&& cob,
-                                                int intervalMs) {
+  static std::shared_ptr<FunctionRunner> create(F&& cob, int intervalMs) {
     return std::shared_ptr<FunctionRunner>(
-      new FunctionRunner(std::forward<F>(cob), intervalMs));
+        new FunctionRunner(std::forward<F>(cob), intervalMs));
   }
 
   /**
@@ -81,16 +88,14 @@ class FunctionRunner : public virtual Runnable {
    * execute the given callback.  Note that the 'void*' return value is ignored.
    */
   FunctionRunner(PthreadFuncPtr func, void* arg)
-   : func_([=]{ func(arg); }), repFunc_(), initFunc_()
-  { }
+      : func_([=] { func(arg); }), repFunc_(), initFunc_() {}
 
   /**
    * Given a generic callback, this FunctionRunner will execute it.
    */
   template <class F>
   explicit FunctionRunner(F&& cob)
-   : func_(std::forward<F>(cob)), repFunc_(), initFunc_()
-  { }
+      : func_(std::forward<F>(cob)), repFunc_(), initFunc_() {}
 
   /**
    * Given a bool foo(...) type callback, FunctionRunner will execute
@@ -100,9 +105,10 @@ class FunctionRunner : public virtual Runnable {
    */
   template <class F>
   FunctionRunner(F&& cob, int intervalMs)
-   : func_(), repFunc_(std::forward<F>(cob)), intervalMs_(intervalMs),
-     initFunc_()
-  {
+      : func_(),
+        repFunc_(std::forward<F>(cob)),
+        intervalMs_(intervalMs),
+        initFunc_() {
     if (intervalMs_ < 0) {
       throw InvalidArgumentException();
     }
@@ -111,49 +117,58 @@ class FunctionRunner : public virtual Runnable {
   /**
    * Set a callback to be called when the thread is started.
    */
-  void setInitFunc(VoidFunc&& initFunc) {
-    initFunc_ = std::move(initFunc);
-  }
+  void setInitFunc(VoidFunc&& initFunc) { initFunc_ = std::move(initFunc); }
 
   void run() override {
     if (initFunc_) {
-      apache::thrift::concurrency::Synchronized s(monitor_);
+      std::unique_lock<std::mutex> l(mutex_);
       if (initFunc_) {
         initFunc_();
       }
     }
     if (intervalMs_ != -1) {
-      apache::thrift::concurrency::Synchronized s(monitor_);
+      auto g = folly::makeGuard([&] { repFinished_.post(); });
+      std::unique_lock<std::mutex> l(mutex_);
       while (repFunc_ && repFunc_()) {
-        try {
-          // this wait could time out (normal interval-"sleep" case),
-          // or the monitor_ could have been notify()'ed by stop method.
-          monitor_.waitForTimeRelative(intervalMs_);
-        } catch (const TimedOutException&) { /* restart loop */ }
+        // this wait could time out (normal interval-"sleep" case),
+        // or the monitor_ could have been notify()'ed by stop method.
+        cond_.wait_for(l, std::chrono::milliseconds(intervalMs_));
       }
     } else {
       func_();
     }
   }
 
-  void stop() {
-    apache::thrift::concurrency::Synchronized s(monitor_);
-    if (repFunc_) {
-      repFunc_ = nullptr;
-      monitor_.notify();
+  void stop() { stopRep(); }
+
+  ~FunctionRunner() override {
+    if (stopRep()) {
+      repFinished_.wait();
     }
   }
 
-  ~FunctionRunner() override { stop(); }
-
  private:
+  bool stopRep() {
+    std::lock_guard<std::mutex> g(mutex_);
+    if (!repFunc_) {
+      return false;
+    }
+    repFunc_ = nullptr;
+    cond_.notify_one();
+    return true;
+  }
+
   VoidFunc func_;
   BoolFunc repFunc_;
-  const int intervalMs_ {-1};  // -1 iff invalid (no periodic function)
+  const int intervalMs_{-1}; // -1 iff invalid (no periodic function)
   VoidFunc initFunc_;
-  Monitor monitor_;
+  std::mutex mutex_;
+  std::condition_variable cond_;
+  folly::Baton<> repFinished_;
 };
 
-}}} // apache::thrift::concurrency
+} // namespace concurrency
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef _THRIFT_CONCURRENCY_FUNCTION_RUNNER_H

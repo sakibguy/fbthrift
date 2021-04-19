@@ -6,9 +6,10 @@ package module
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -16,698 +17,347 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 type Raiser interface {
   DoBland() (err error)
   DoRaise() (err error)
-  Get200() (r string, err error)
-  Get500() (r string, err error)
+  Get200() (_r string, err error)
+  Get500() (_r string, err error)
+}
+
+type RaiserClientInterface interface {
+  thrift.ClientInterface
+  DoBland() (err error)
+  DoRaise() (err error)
+  Get200() (_r string, err error)
+  Get500() (_r string, err error)
 }
 
 type RaiserClient struct {
-  Transport thrift.Transport
-  ProtocolFactory thrift.ProtocolFactory
-  InputProtocol thrift.Protocol
-  OutputProtocol thrift.Protocol
-  SeqId int32
+  RaiserClientInterface
+  CC thrift.ClientConn
 }
 
-func (client *RaiserClient) Close() error {
-  return client.Transport.Close()
+func(client *RaiserClient) Open() error {
+  return client.CC.Open()
+}
+
+func(client *RaiserClient) Close() error {
+  return client.CC.Close()
+}
+
+func(client *RaiserClient) IsOpen() bool {
+  return client.CC.IsOpen()
 }
 
 func NewRaiserClientFactory(t thrift.Transport, f thrift.ProtocolFactory) *RaiserClient {
-  return &RaiserClient{Transport: t,
-    ProtocolFactory: f,
-    InputProtocol: f.GetProtocol(t),
-    OutputProtocol: f.GetProtocol(t),
-    SeqId: 0,
-  }
+  return &RaiserClient{ CC: thrift.NewClientConn(t, f) }
 }
 
 func NewRaiserClient(t thrift.Transport, iprot thrift.Protocol, oprot thrift.Protocol) *RaiserClient {
-  return &RaiserClient{Transport: t,
-    ProtocolFactory: nil,
-    InputProtocol: iprot,
-    OutputProtocol: oprot,
-    SeqId: 0,
-  }
+  return &RaiserClient{ CC: thrift.NewClientConnWithProtocols(t, iprot, oprot) }
+}
+
+func NewRaiserClientProtocol(prot thrift.Protocol) *RaiserClient {
+  return NewRaiserClient(prot.Transport(), prot, prot)
 }
 
 func (p *RaiserClient) DoBland() (err error) {
-  if err = p.sendDoBland(); err != nil { return }
+  var args RaiserDoBlandArgs
+  err = p.CC.SendMsg("doBland", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvDoBland()
-}
-
-func (p *RaiserClient) sendDoBland()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("doBland", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserDoBlandArgs{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserClient) recvDoBland() (err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "doBland" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "doBland failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "doBland failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error0 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error1 error
-    error1, err = error0.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error1
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "doBland failed: invalid message type")
-    return
-  }
-  result := RaiserDoBlandResult{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
-  return
+  var result RaiserDoBlandResult
+  return p.CC.RecvMsg("doBland", &result)
 }
 
 func (p *RaiserClient) DoRaise() (err error) {
-  if err = p.sendDoRaise(); err != nil { return }
+  var args RaiserDoRaiseArgs
+  err = p.CC.SendMsg("doRaise", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvDoRaise()
-}
-
-func (p *RaiserClient) sendDoRaise()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("doRaise", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserDoRaiseArgs{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserClient) recvDoRaise() (err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "doRaise" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "doRaise failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "doRaise failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error2 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error3 error
-    error3, err = error2.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error3
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "doRaise failed: invalid message type")
-    return
-  }
-  result := RaiserDoRaiseResult{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
+  var result RaiserDoRaiseResult
+  err = p.CC.RecvMsg("doRaise", &result)
+  if err != nil { return }
   if result.B != nil {
     err = result.B
     return 
-  } else   if result.F != nil {
+  } else if result.F != nil {
     err = result.F
     return 
+  } else if result.S != nil {
+    err = result.S
+    return 
   }
-  return
+  return nil
 }
 
-func (p *RaiserClient) Get200() (r string, err error) {
-  if err = p.sendGet200(); err != nil { return }
+func (p *RaiserClient) Get200() (_r string, err error) {
+  var args RaiserGet200Args
+  err = p.CC.SendMsg("get200", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvGet200()
-}
-
-func (p *RaiserClient) sendGet200()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("get200", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserGet200Args{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserClient) recvGet200() (value string, err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "get200" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "get200 failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "get200 failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error4 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error5 error
-    error5, err = error4.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error5
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "get200 failed: invalid message type")
-    return
-  }
-  result := RaiserGet200Result{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
-  value = result.GetSuccess()
-  return
+  var result RaiserGet200Result
+  err = p.CC.RecvMsg("get200", &result)
+  if err != nil { return }
+
+  return result.GetSuccess(), nil
 }
 
-func (p *RaiserClient) Get500() (r string, err error) {
-  if err = p.sendGet500(); err != nil { return }
+func (p *RaiserClient) Get500() (_r string, err error) {
+  var args RaiserGet500Args
+  err = p.CC.SendMsg("get500", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvGet500()
-}
-
-func (p *RaiserClient) sendGet500()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("get500", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserGet500Args{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserClient) recvGet500() (value string, err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "get500" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "get500 failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "get500 failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error6 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error7 error
-    error7, err = error6.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error7
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "get500 failed: invalid message type")
-    return
-  }
-  result := RaiserGet500Result{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
+  var result RaiserGet500Result
+  err = p.CC.RecvMsg("get500", &result)
+  if err != nil { return }
   if result.F != nil {
     err = result.F
     return 
-  } else   if result.B != nil {
+  } else if result.B != nil {
     err = result.B
     return 
+  } else if result.S != nil {
+    err = result.S
+    return 
   }
-  value = result.GetSuccess()
-  return
+  return result.GetSuccess(), nil
 }
 
 
 type RaiserThreadsafeClient struct {
-  Transport thrift.Transport
-  ProtocolFactory thrift.ProtocolFactory
-  InputProtocol thrift.Protocol
-  OutputProtocol thrift.Protocol
-  SeqId int32
+  RaiserClientInterface
+  CC thrift.ClientConn
   Mu sync.Mutex
 }
 
+func(client *RaiserThreadsafeClient) Open() error {
+  client.Mu.Lock()
+  defer client.Mu.Unlock()
+  return client.CC.Open()
+}
+
+func(client *RaiserThreadsafeClient) Close() error {
+  client.Mu.Lock()
+  defer client.Mu.Unlock()
+  return client.CC.Close()
+}
+
+func(client *RaiserThreadsafeClient) IsOpen() bool {
+  client.Mu.Lock()
+  defer client.Mu.Unlock()
+  return client.CC.IsOpen()
+}
+
 func NewRaiserThreadsafeClientFactory(t thrift.Transport, f thrift.ProtocolFactory) *RaiserThreadsafeClient {
-  return &RaiserThreadsafeClient{Transport: t,
-    ProtocolFactory: f,
-    InputProtocol: f.GetProtocol(t),
-    OutputProtocol: f.GetProtocol(t),
-    SeqId: 0,
-  }
+  return &RaiserThreadsafeClient{ CC: thrift.NewClientConn(t, f) }
 }
 
 func NewRaiserThreadsafeClient(t thrift.Transport, iprot thrift.Protocol, oprot thrift.Protocol) *RaiserThreadsafeClient {
-  return &RaiserThreadsafeClient{Transport: t,
-    ProtocolFactory: nil,
-    InputProtocol: iprot,
-    OutputProtocol: oprot,
-    SeqId: 0,
-  }
+  return &RaiserThreadsafeClient{ CC: thrift.NewClientConnWithProtocols(t, iprot, oprot) }
 }
 
-func (p *RaiserThreadsafeClient) Threadsafe() {}
+func NewRaiserThreadsafeClientProtocol(prot thrift.Protocol) *RaiserThreadsafeClient {
+  return NewRaiserThreadsafeClient(prot.Transport(), prot, prot)
+}
 
 func (p *RaiserThreadsafeClient) DoBland() (err error) {
   p.Mu.Lock()
   defer p.Mu.Unlock()
-  if err = p.sendDoBland(); err != nil { return }
+  var args RaiserDoBlandArgs
+  err = p.CC.SendMsg("doBland", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvDoBland()
-}
-
-func (p *RaiserThreadsafeClient) sendDoBland()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("doBland", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserDoBlandArgs{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserThreadsafeClient) recvDoBland() (err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "doBland" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "doBland failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "doBland failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error8 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error9 error
-    error9, err = error8.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error9
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "doBland failed: invalid message type")
-    return
-  }
-  result := RaiserDoBlandResult{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
-  return
+  var result RaiserDoBlandResult
+  return p.CC.RecvMsg("doBland", &result)
 }
 
 func (p *RaiserThreadsafeClient) DoRaise() (err error) {
   p.Mu.Lock()
   defer p.Mu.Unlock()
-  if err = p.sendDoRaise(); err != nil { return }
+  var args RaiserDoRaiseArgs
+  err = p.CC.SendMsg("doRaise", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvDoRaise()
-}
-
-func (p *RaiserThreadsafeClient) sendDoRaise()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("doRaise", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserDoRaiseArgs{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserThreadsafeClient) recvDoRaise() (err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "doRaise" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "doRaise failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "doRaise failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error10 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error11 error
-    error11, err = error10.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error11
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "doRaise failed: invalid message type")
-    return
-  }
-  result := RaiserDoRaiseResult{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
+  var result RaiserDoRaiseResult
+  err = p.CC.RecvMsg("doRaise", &result)
+  if err != nil { return }
   if result.B != nil {
     err = result.B
     return 
-  } else   if result.F != nil {
+  } else if result.F != nil {
     err = result.F
     return 
+  } else if result.S != nil {
+    err = result.S
+    return 
   }
-  return
+  return nil
 }
 
-func (p *RaiserThreadsafeClient) Get200() (r string, err error) {
+func (p *RaiserThreadsafeClient) Get200() (_r string, err error) {
   p.Mu.Lock()
   defer p.Mu.Unlock()
-  if err = p.sendGet200(); err != nil { return }
+  var args RaiserGet200Args
+  err = p.CC.SendMsg("get200", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvGet200()
-}
-
-func (p *RaiserThreadsafeClient) sendGet200()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("get200", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserGet200Args{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserThreadsafeClient) recvGet200() (value string, err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "get200" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "get200 failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "get200 failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error12 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error13 error
-    error13, err = error12.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error13
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "get200 failed: invalid message type")
-    return
-  }
-  result := RaiserGet200Result{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
-  value = result.GetSuccess()
-  return
+  var result RaiserGet200Result
+  err = p.CC.RecvMsg("get200", &result)
+  if err != nil { return }
+
+  return result.GetSuccess(), nil
 }
 
-func (p *RaiserThreadsafeClient) Get500() (r string, err error) {
+func (p *RaiserThreadsafeClient) Get500() (_r string, err error) {
   p.Mu.Lock()
   defer p.Mu.Unlock()
-  if err = p.sendGet500(); err != nil { return }
+  var args RaiserGet500Args
+  err = p.CC.SendMsg("get500", &args, thrift.CALL)
+  if err != nil { return }
   return p.recvGet500()
-}
-
-func (p *RaiserThreadsafeClient) sendGet500()(err error) {
-  oprot := p.OutputProtocol
-  if oprot == nil {
-    oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.OutputProtocol = oprot
-  }
-  p.SeqId++
-  if err = oprot.WriteMessageBegin("get500", thrift.CALL, p.SeqId); err != nil {
-      return
-  }
-  args := RaiserGet500Args{
-  }
-  if err = args.Write(oprot); err != nil {
-      return
-  }
-  if err = oprot.WriteMessageEnd(); err != nil {
-      return
-  }
-  return oprot.Flush()
 }
 
 
 func (p *RaiserThreadsafeClient) recvGet500() (value string, err error) {
-  iprot := p.InputProtocol
-  if iprot == nil {
-    iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-    p.InputProtocol = iprot
-  }
-  method, mTypeId, seqId, err := iprot.ReadMessageBegin()
-  if err != nil {
-    return
-  }
-  if method != "get500" {
-    err = thrift.NewApplicationException(thrift.WRONG_METHOD_NAME, "get500 failed: wrong method name")
-    return
-  }
-  if p.SeqId != seqId {
-    err = thrift.NewApplicationException(thrift.BAD_SEQUENCE_ID, "get500 failed: out of sequence response")
-    return
-  }
-  if mTypeId == thrift.EXCEPTION {
-    error14 := thrift.NewApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-    var error15 error
-    error15, err = error14.Read(iprot)
-    if err != nil {
-      return
-    }
-    if err = iprot.ReadMessageEnd(); err != nil {
-      return
-    }
-    err = error15
-    return
-  }
-  if mTypeId != thrift.REPLY {
-    err = thrift.NewApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "get500 failed: invalid message type")
-    return
-  }
-  result := RaiserGet500Result{}
-  if err = result.Read(iprot); err != nil {
-    return
-  }
-  if err = iprot.ReadMessageEnd(); err != nil {
-    return
-  }
+  var result RaiserGet500Result
+  err = p.CC.RecvMsg("get500", &result)
+  if err != nil { return }
   if result.F != nil {
     err = result.F
     return 
-  } else   if result.B != nil {
+  } else if result.B != nil {
     err = result.B
     return 
+  } else if result.S != nil {
+    err = result.S
+    return 
   }
-  value = result.GetSuccess()
-  return
+  return result.GetSuccess(), nil
+}
+
+
+type RaiserChannelClient struct {
+  RequestChannel thrift.RequestChannel
+}
+
+func (c *RaiserChannelClient) Close() error {
+  return c.RequestChannel.Close()
+}
+
+func (c *RaiserChannelClient) IsOpen() bool {
+  return c.RequestChannel.IsOpen()
+}
+
+func (c *RaiserChannelClient) Open() error {
+  return c.RequestChannel.Open()
+}
+
+func NewRaiserChannelClient(channel thrift.RequestChannel) *RaiserChannelClient {
+  return &RaiserChannelClient{RequestChannel: channel}
+}
+
+func (p *RaiserChannelClient) DoBland(ctx context.Context) (err error) {
+  args := RaiserDoBlandArgs{
+  }
+  var result RaiserDoBlandResult
+  err = p.RequestChannel.Call(ctx, "doBland", &args, &result)
+  if err != nil { return }
+
+  return nil
+}
+
+func (p *RaiserChannelClient) DoRaise(ctx context.Context) (err error) {
+  args := RaiserDoRaiseArgs{
+  }
+  var result RaiserDoRaiseResult
+  err = p.RequestChannel.Call(ctx, "doRaise", &args, &result)
+  if err != nil { return }
+  if result.B != nil {
+    err = result.B
+    return 
+  } else if result.F != nil {
+    err = result.F
+    return 
+  } else if result.S != nil {
+    err = result.S
+    return 
+  }
+  return nil
+}
+
+func (p *RaiserChannelClient) Get200(ctx context.Context) (_r string, err error) {
+  args := RaiserGet200Args{
+  }
+  var result RaiserGet200Result
+  err = p.RequestChannel.Call(ctx, "get200", &args, &result)
+  if err != nil { return }
+
+  return result.GetSuccess(), nil
+}
+
+func (p *RaiserChannelClient) Get500(ctx context.Context) (_r string, err error) {
+  args := RaiserGet500Args{
+  }
+  var result RaiserGet500Result
+  err = p.RequestChannel.Call(ctx, "get500", &args, &result)
+  if err != nil { return }
+  if result.F != nil {
+    err = result.F
+    return 
+  } else if result.B != nil {
+    err = result.B
+    return 
+  } else if result.S != nil {
+    err = result.S
+    return 
+  }
+  return result.GetSuccess(), nil
 }
 
 
 type RaiserProcessor struct {
   processorMap map[string]thrift.ProcessorFunction
+  functionServiceMap map[string]string
   handler Raiser
 }
 
 func (p *RaiserProcessor) AddToProcessorMap(key string, processor thrift.ProcessorFunction) {
   p.processorMap[key] = processor
+}
+
+func (p *RaiserProcessor) AddToFunctionServiceMap(key, service string) {
+  p.functionServiceMap[key] = service
 }
 
 func (p *RaiserProcessor) GetProcessorFunction(key string) (processor thrift.ProcessorFunction, err error) {
@@ -721,13 +371,21 @@ func (p *RaiserProcessor) ProcessorMap() map[string]thrift.ProcessorFunction {
   return p.processorMap
 }
 
+func (p *RaiserProcessor) FunctionServiceMap() map[string]string {
+  return p.functionServiceMap
+}
+
 func NewRaiserProcessor(handler Raiser) *RaiserProcessor {
-  self16 := &RaiserProcessor{handler:handler, processorMap:make(map[string]thrift.ProcessorFunction)}
-  self16.processorMap["doBland"] = &raiserProcessorDoBland{handler:handler}
-  self16.processorMap["doRaise"] = &raiserProcessorDoRaise{handler:handler}
-  self16.processorMap["get200"] = &raiserProcessorGet200{handler:handler}
-  self16.processorMap["get500"] = &raiserProcessorGet500{handler:handler}
-  return self16
+  self0 := &RaiserProcessor{handler:handler, processorMap:make(map[string]thrift.ProcessorFunction), functionServiceMap:make(map[string]string)}
+  self0.processorMap["doBland"] = &raiserProcessorDoBland{handler:handler}
+  self0.processorMap["doRaise"] = &raiserProcessorDoRaise{handler:handler}
+  self0.processorMap["get200"] = &raiserProcessorGet200{handler:handler}
+  self0.processorMap["get500"] = &raiserProcessorGet500{handler:handler}
+  self0.functionServiceMap["doBland"] = "Raiser"
+  self0.functionServiceMap["doRaise"] = "Raiser"
+  self0.functionServiceMap["get200"] = "Raiser"
+  self0.functionServiceMap["get500"] = "Raiser"
+  return self0
 }
 
 type raiserProcessorDoBland struct {
@@ -800,6 +458,9 @@ func (p *raiserProcessorDoRaise) Write(seqId int32, result thrift.WritableStruct
   case *Fiery:
     msg := RaiserDoRaiseResult{F: v}
     result = &msg
+  case *Serious:
+    msg := RaiserDoRaiseResult{S: v}
+    result = &msg
   case thrift.ApplicationException:
     messageType = thrift.EXCEPTION
   }
@@ -826,6 +487,8 @@ func (p *raiserProcessorDoRaise) Run(argStruct thrift.Struct) (thrift.WritableSt
       result.B = v
     case *Fiery:
       result.F = v
+    case *Serious:
+      result.S = v
     default:
       x := thrift.NewApplicationException(thrift.INTERNAL_ERROR, "Internal error processing doRaise: " + err.Error())
       return x, x
@@ -906,6 +569,9 @@ func (p *raiserProcessorGet500) Write(seqId int32, result thrift.WritableStruct,
   case *Banal:
     msg := RaiserGet500Result{B: v}
     result = &msg
+  case *Serious:
+    msg := RaiserGet500Result{S: v}
+    result = &msg
   case thrift.ApplicationException:
     messageType = thrift.EXCEPTION
   }
@@ -932,6 +598,8 @@ func (p *raiserProcessorGet500) Run(argStruct thrift.Struct) (thrift.WritableStr
       result.F = v
     case *Banal:
       result.B = v
+    case *Serious:
+      result.S = v
     default:
       x := thrift.NewApplicationException(thrift.INTERNAL_ERROR, "Internal error processing get500: " + err.Error())
       return x, x
@@ -946,10 +614,26 @@ func (p *raiserProcessorGet500) Run(argStruct thrift.Struct) (thrift.WritableStr
 // HELPER FUNCTIONS AND STRUCTURES
 
 type RaiserDoBlandArgs struct {
+  thrift.IRequest
 }
 
 func NewRaiserDoBlandArgs() *RaiserDoBlandArgs {
   return &RaiserDoBlandArgs{}
+}
+
+type RaiserDoBlandArgsBuilder struct {
+  obj *RaiserDoBlandArgs
+}
+
+func NewRaiserDoBlandArgsBuilder() *RaiserDoBlandArgsBuilder{
+  return &RaiserDoBlandArgsBuilder{
+    obj: NewRaiserDoBlandArgs(),
+  }
+}
+
+func (p RaiserDoBlandArgsBuilder) Emit() *RaiserDoBlandArgs{
+  return &RaiserDoBlandArgs{
+  }
 }
 
 func (p *RaiserDoBlandArgs) Read(iprot thrift.Protocol) error {
@@ -991,14 +675,31 @@ func (p *RaiserDoBlandArgs) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserDoBlandArgs(%+v)", *p)
+
+  return fmt.Sprintf("RaiserDoBlandArgs({})")
 }
 
 type RaiserDoBlandResult struct {
+  thrift.IResponse
 }
 
 func NewRaiserDoBlandResult() *RaiserDoBlandResult {
   return &RaiserDoBlandResult{}
+}
+
+type RaiserDoBlandResultBuilder struct {
+  obj *RaiserDoBlandResult
+}
+
+func NewRaiserDoBlandResultBuilder() *RaiserDoBlandResultBuilder{
+  return &RaiserDoBlandResultBuilder{
+    obj: NewRaiserDoBlandResult(),
+  }
+}
+
+func (p RaiserDoBlandResultBuilder) Emit() *RaiserDoBlandResult{
+  return &RaiserDoBlandResult{
+  }
 }
 
 func (p *RaiserDoBlandResult) Read(iprot thrift.Protocol) error {
@@ -1040,14 +741,31 @@ func (p *RaiserDoBlandResult) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserDoBlandResult(%+v)", *p)
+
+  return fmt.Sprintf("RaiserDoBlandResult({})")
 }
 
 type RaiserDoRaiseArgs struct {
+  thrift.IRequest
 }
 
 func NewRaiserDoRaiseArgs() *RaiserDoRaiseArgs {
   return &RaiserDoRaiseArgs{}
+}
+
+type RaiserDoRaiseArgsBuilder struct {
+  obj *RaiserDoRaiseArgs
+}
+
+func NewRaiserDoRaiseArgsBuilder() *RaiserDoRaiseArgsBuilder{
+  return &RaiserDoRaiseArgsBuilder{
+    obj: NewRaiserDoRaiseArgs(),
+  }
+}
+
+func (p RaiserDoRaiseArgsBuilder) Emit() *RaiserDoRaiseArgs{
+  return &RaiserDoRaiseArgs{
+  }
 }
 
 func (p *RaiserDoRaiseArgs) Read(iprot thrift.Protocol) error {
@@ -1089,15 +807,19 @@ func (p *RaiserDoRaiseArgs) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserDoRaiseArgs(%+v)", *p)
+
+  return fmt.Sprintf("RaiserDoRaiseArgs({})")
 }
 
 // Attributes:
 //  - B
 //  - F
+//  - S
 type RaiserDoRaiseResult struct {
+  thrift.IResponse
   B *Banal `thrift:"b,1" db:"b" json:"b,omitempty"`
   F *Fiery `thrift:"f,2" db:"f" json:"f,omitempty"`
+  S *Serious `thrift:"s,3" db:"s" json:"s,omitempty"`
 }
 
 func NewRaiserDoRaiseResult() *RaiserDoRaiseResult {
@@ -1118,12 +840,71 @@ func (p *RaiserDoRaiseResult) GetF() *Fiery {
   }
 return p.F
 }
+var RaiserDoRaiseResult_S_DEFAULT *Serious
+func (p *RaiserDoRaiseResult) GetS() *Serious {
+  if !p.IsSetS() {
+    return RaiserDoRaiseResult_S_DEFAULT
+  }
+return p.S
+}
 func (p *RaiserDoRaiseResult) IsSetB() bool {
-  return p.B != nil
+  return p != nil && p.B != nil
 }
 
 func (p *RaiserDoRaiseResult) IsSetF() bool {
-  return p.F != nil
+  return p != nil && p.F != nil
+}
+
+func (p *RaiserDoRaiseResult) IsSetS() bool {
+  return p != nil && p.S != nil
+}
+
+type RaiserDoRaiseResultBuilder struct {
+  obj *RaiserDoRaiseResult
+}
+
+func NewRaiserDoRaiseResultBuilder() *RaiserDoRaiseResultBuilder{
+  return &RaiserDoRaiseResultBuilder{
+    obj: NewRaiserDoRaiseResult(),
+  }
+}
+
+func (p RaiserDoRaiseResultBuilder) Emit() *RaiserDoRaiseResult{
+  return &RaiserDoRaiseResult{
+    B: p.obj.B,
+    F: p.obj.F,
+    S: p.obj.S,
+  }
+}
+
+func (r *RaiserDoRaiseResultBuilder) B(b *Banal) *RaiserDoRaiseResultBuilder {
+  r.obj.B = b
+  return r
+}
+
+func (r *RaiserDoRaiseResultBuilder) F(f *Fiery) *RaiserDoRaiseResultBuilder {
+  r.obj.F = f
+  return r
+}
+
+func (r *RaiserDoRaiseResultBuilder) S(s *Serious) *RaiserDoRaiseResultBuilder {
+  r.obj.S = s
+  return r
+}
+
+func (r *RaiserDoRaiseResult) SetB(b *Banal) *RaiserDoRaiseResult {
+  r.B = b
+  return r
+}
+
+func (r *RaiserDoRaiseResult) SetF(f *Fiery) *RaiserDoRaiseResult {
+  r.F = f
+  return r
+}
+
+func (r *RaiserDoRaiseResult) SetS(s *Serious) *RaiserDoRaiseResult {
+  r.S = s
+  return r
 }
 
 func (p *RaiserDoRaiseResult) Read(iprot thrift.Protocol) error {
@@ -1145,6 +926,10 @@ func (p *RaiserDoRaiseResult) Read(iprot thrift.Protocol) error {
       }
     case 2:
       if err := p.ReadField2(iprot); err != nil {
+        return err
+      }
+    case 3:
+      if err := p.ReadField3(iprot); err != nil {
         return err
       }
     default:
@@ -1178,11 +963,20 @@ func (p *RaiserDoRaiseResult)  ReadField2(iprot thrift.Protocol) error {
   return nil
 }
 
+func (p *RaiserDoRaiseResult)  ReadField3(iprot thrift.Protocol) error {
+  p.S = NewSerious()
+  if err := p.S.Read(iprot); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.S), err)
+  }
+  return nil
+}
+
 func (p *RaiserDoRaiseResult) Write(oprot thrift.Protocol) error {
   if err := oprot.WriteStructBegin("doRaise_result"); err != nil {
     return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err) }
   if err := p.writeField1(oprot); err != nil { return err }
   if err := p.writeField2(oprot); err != nil { return err }
+  if err := p.writeField3(oprot); err != nil { return err }
   if err := oprot.WriteFieldStop(); err != nil {
     return thrift.PrependError("write field stop error: ", err) }
   if err := oprot.WriteStructEnd(); err != nil {
@@ -1216,18 +1010,66 @@ func (p *RaiserDoRaiseResult) writeField2(oprot thrift.Protocol) (err error) {
   return err
 }
 
+func (p *RaiserDoRaiseResult) writeField3(oprot thrift.Protocol) (err error) {
+  if p.IsSetS() {
+    if err := oprot.WriteFieldBegin("s", thrift.STRUCT, 3); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T write field begin error 3:s: ", p), err) }
+    if err := p.S.Write(oprot); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.S), err)
+    }
+    if err := oprot.WriteFieldEnd(); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T write field end error 3:s: ", p), err) }
+  }
+  return err
+}
+
 func (p *RaiserDoRaiseResult) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserDoRaiseResult(%+v)", *p)
+
+  var bVal string
+  if p.B == nil {
+    bVal = "<nil>"
+  } else {
+    bVal = fmt.Sprintf("%v", p.B)
+  }
+  var fVal string
+  if p.F == nil {
+    fVal = "<nil>"
+  } else {
+    fVal = fmt.Sprintf("%v", p.F)
+  }
+  var sVal string
+  if p.S == nil {
+    sVal = "<nil>"
+  } else {
+    sVal = fmt.Sprintf("%v", p.S)
+  }
+  return fmt.Sprintf("RaiserDoRaiseResult({B:%s F:%s S:%s})", bVal, fVal, sVal)
 }
 
 type RaiserGet200Args struct {
+  thrift.IRequest
 }
 
 func NewRaiserGet200Args() *RaiserGet200Args {
   return &RaiserGet200Args{}
+}
+
+type RaiserGet200ArgsBuilder struct {
+  obj *RaiserGet200Args
+}
+
+func NewRaiserGet200ArgsBuilder() *RaiserGet200ArgsBuilder{
+  return &RaiserGet200ArgsBuilder{
+    obj: NewRaiserGet200Args(),
+  }
+}
+
+func (p RaiserGet200ArgsBuilder) Emit() *RaiserGet200Args{
+  return &RaiserGet200Args{
+  }
 }
 
 func (p *RaiserGet200Args) Read(iprot thrift.Protocol) error {
@@ -1269,12 +1111,14 @@ func (p *RaiserGet200Args) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserGet200Args(%+v)", *p)
+
+  return fmt.Sprintf("RaiserGet200Args({})")
 }
 
 // Attributes:
 //  - Success
 type RaiserGet200Result struct {
+  thrift.IResponse
   Success *string `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
 
@@ -1290,7 +1134,33 @@ func (p *RaiserGet200Result) GetSuccess() string {
 return *p.Success
 }
 func (p *RaiserGet200Result) IsSetSuccess() bool {
-  return p.Success != nil
+  return p != nil && p.Success != nil
+}
+
+type RaiserGet200ResultBuilder struct {
+  obj *RaiserGet200Result
+}
+
+func NewRaiserGet200ResultBuilder() *RaiserGet200ResultBuilder{
+  return &RaiserGet200ResultBuilder{
+    obj: NewRaiserGet200Result(),
+  }
+}
+
+func (p RaiserGet200ResultBuilder) Emit() *RaiserGet200Result{
+  return &RaiserGet200Result{
+    Success: p.obj.Success,
+  }
+}
+
+func (r *RaiserGet200ResultBuilder) Success(success *string) *RaiserGet200ResultBuilder {
+  r.obj.Success = success
+  return r
+}
+
+func (r *RaiserGet200Result) SetSuccess(success *string) *RaiserGet200Result {
+  r.Success = success
+  return r
 }
 
 func (p *RaiserGet200Result) Read(iprot thrift.Protocol) error {
@@ -1327,10 +1197,10 @@ func (p *RaiserGet200Result) Read(iprot thrift.Protocol) error {
 
 func (p *RaiserGet200Result)  ReadField0(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 0: ", err)
-} else {
-  p.Success = &v
-}
+    return thrift.PrependError("error reading field 0: ", err)
+  } else {
+    p.Success = &v
+  }
   return nil
 }
 
@@ -1361,14 +1231,37 @@ func (p *RaiserGet200Result) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserGet200Result(%+v)", *p)
+
+  var successVal string
+  if p.Success == nil {
+    successVal = "<nil>"
+  } else {
+    successVal = fmt.Sprintf("%v", *p.Success)
+  }
+  return fmt.Sprintf("RaiserGet200Result({Success:%s})", successVal)
 }
 
 type RaiserGet500Args struct {
+  thrift.IRequest
 }
 
 func NewRaiserGet500Args() *RaiserGet500Args {
   return &RaiserGet500Args{}
+}
+
+type RaiserGet500ArgsBuilder struct {
+  obj *RaiserGet500Args
+}
+
+func NewRaiserGet500ArgsBuilder() *RaiserGet500ArgsBuilder{
+  return &RaiserGet500ArgsBuilder{
+    obj: NewRaiserGet500Args(),
+  }
+}
+
+func (p RaiserGet500ArgsBuilder) Emit() *RaiserGet500Args{
+  return &RaiserGet500Args{
+  }
 }
 
 func (p *RaiserGet500Args) Read(iprot thrift.Protocol) error {
@@ -1410,17 +1303,21 @@ func (p *RaiserGet500Args) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserGet500Args(%+v)", *p)
+
+  return fmt.Sprintf("RaiserGet500Args({})")
 }
 
 // Attributes:
 //  - Success
 //  - F
 //  - B
+//  - S
 type RaiserGet500Result struct {
+  thrift.IResponse
   Success *string `thrift:"success,0" db:"success" json:"success,omitempty"`
   F *Fiery `thrift:"f,1" db:"f" json:"f,omitempty"`
   B *Banal `thrift:"b,2" db:"b" json:"b,omitempty"`
+  S *Serious `thrift:"s,3" db:"s" json:"s,omitempty"`
 }
 
 func NewRaiserGet500Result() *RaiserGet500Result {
@@ -1448,16 +1345,86 @@ func (p *RaiserGet500Result) GetB() *Banal {
   }
 return p.B
 }
+var RaiserGet500Result_S_DEFAULT *Serious
+func (p *RaiserGet500Result) GetS() *Serious {
+  if !p.IsSetS() {
+    return RaiserGet500Result_S_DEFAULT
+  }
+return p.S
+}
 func (p *RaiserGet500Result) IsSetSuccess() bool {
-  return p.Success != nil
+  return p != nil && p.Success != nil
 }
 
 func (p *RaiserGet500Result) IsSetF() bool {
-  return p.F != nil
+  return p != nil && p.F != nil
 }
 
 func (p *RaiserGet500Result) IsSetB() bool {
-  return p.B != nil
+  return p != nil && p.B != nil
+}
+
+func (p *RaiserGet500Result) IsSetS() bool {
+  return p != nil && p.S != nil
+}
+
+type RaiserGet500ResultBuilder struct {
+  obj *RaiserGet500Result
+}
+
+func NewRaiserGet500ResultBuilder() *RaiserGet500ResultBuilder{
+  return &RaiserGet500ResultBuilder{
+    obj: NewRaiserGet500Result(),
+  }
+}
+
+func (p RaiserGet500ResultBuilder) Emit() *RaiserGet500Result{
+  return &RaiserGet500Result{
+    Success: p.obj.Success,
+    F: p.obj.F,
+    B: p.obj.B,
+    S: p.obj.S,
+  }
+}
+
+func (r *RaiserGet500ResultBuilder) Success(success *string) *RaiserGet500ResultBuilder {
+  r.obj.Success = success
+  return r
+}
+
+func (r *RaiserGet500ResultBuilder) F(f *Fiery) *RaiserGet500ResultBuilder {
+  r.obj.F = f
+  return r
+}
+
+func (r *RaiserGet500ResultBuilder) B(b *Banal) *RaiserGet500ResultBuilder {
+  r.obj.B = b
+  return r
+}
+
+func (r *RaiserGet500ResultBuilder) S(s *Serious) *RaiserGet500ResultBuilder {
+  r.obj.S = s
+  return r
+}
+
+func (r *RaiserGet500Result) SetSuccess(success *string) *RaiserGet500Result {
+  r.Success = success
+  return r
+}
+
+func (r *RaiserGet500Result) SetF(f *Fiery) *RaiserGet500Result {
+  r.F = f
+  return r
+}
+
+func (r *RaiserGet500Result) SetB(b *Banal) *RaiserGet500Result {
+  r.B = b
+  return r
+}
+
+func (r *RaiserGet500Result) SetS(s *Serious) *RaiserGet500Result {
+  r.S = s
+  return r
 }
 
 func (p *RaiserGet500Result) Read(iprot thrift.Protocol) error {
@@ -1485,6 +1452,10 @@ func (p *RaiserGet500Result) Read(iprot thrift.Protocol) error {
       if err := p.ReadField2(iprot); err != nil {
         return err
       }
+    case 3:
+      if err := p.ReadField3(iprot); err != nil {
+        return err
+      }
     default:
       if err := iprot.Skip(fieldTypeId); err != nil {
         return err
@@ -1502,10 +1473,10 @@ func (p *RaiserGet500Result) Read(iprot thrift.Protocol) error {
 
 func (p *RaiserGet500Result)  ReadField0(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 0: ", err)
-} else {
-  p.Success = &v
-}
+    return thrift.PrependError("error reading field 0: ", err)
+  } else {
+    p.Success = &v
+  }
   return nil
 }
 
@@ -1525,12 +1496,21 @@ func (p *RaiserGet500Result)  ReadField2(iprot thrift.Protocol) error {
   return nil
 }
 
+func (p *RaiserGet500Result)  ReadField3(iprot thrift.Protocol) error {
+  p.S = NewSerious()
+  if err := p.S.Read(iprot); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.S), err)
+  }
+  return nil
+}
+
 func (p *RaiserGet500Result) Write(oprot thrift.Protocol) error {
   if err := oprot.WriteStructBegin("get500_result"); err != nil {
     return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err) }
   if err := p.writeField0(oprot); err != nil { return err }
   if err := p.writeField1(oprot); err != nil { return err }
   if err := p.writeField2(oprot); err != nil { return err }
+  if err := p.writeField3(oprot); err != nil { return err }
   if err := oprot.WriteFieldStop(); err != nil {
     return thrift.PrependError("write field stop error: ", err) }
   if err := oprot.WriteStructEnd(); err != nil {
@@ -1576,11 +1556,49 @@ func (p *RaiserGet500Result) writeField2(oprot thrift.Protocol) (err error) {
   return err
 }
 
+func (p *RaiserGet500Result) writeField3(oprot thrift.Protocol) (err error) {
+  if p.IsSetS() {
+    if err := oprot.WriteFieldBegin("s", thrift.STRUCT, 3); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T write field begin error 3:s: ", p), err) }
+    if err := p.S.Write(oprot); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.S), err)
+    }
+    if err := oprot.WriteFieldEnd(); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T write field end error 3:s: ", p), err) }
+  }
+  return err
+}
+
 func (p *RaiserGet500Result) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("RaiserGet500Result(%+v)", *p)
+
+  var successVal string
+  if p.Success == nil {
+    successVal = "<nil>"
+  } else {
+    successVal = fmt.Sprintf("%v", *p.Success)
+  }
+  var fVal string
+  if p.F == nil {
+    fVal = "<nil>"
+  } else {
+    fVal = fmt.Sprintf("%v", p.F)
+  }
+  var bVal string
+  if p.B == nil {
+    bVal = "<nil>"
+  } else {
+    bVal = fmt.Sprintf("%v", p.B)
+  }
+  var sVal string
+  if p.S == nil {
+    sVal = "<nil>"
+  } else {
+    sVal = fmt.Sprintf("%v", p.S)
+  }
+  return fmt.Sprintf("RaiserGet500Result({Success:%s F:%s B:%s S:%s})", successVal, fVal, bVal, sVal)
 }
 
 

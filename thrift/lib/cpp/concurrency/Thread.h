@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,10 +17,12 @@
 #ifndef _THRIFT_CONCURRENCY_THREAD_H_
 #define _THRIFT_CONCURRENCY_THREAD_H_ 1
 
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 
-namespace apache { namespace thrift { namespace concurrency {
+namespace apache {
+namespace thrift {
+namespace concurrency {
 
 class Thread;
 
@@ -30,7 +32,6 @@ class Thread;
  * @version $Id:$
  */
 class Runnable {
-
  public:
   virtual ~Runnable() {}
   virtual void run() = 0;
@@ -60,11 +61,6 @@ enum PRIORITY {
   N_PRIORITIES
 };
 
-class PriorityRunnable : public virtual Runnable {
- public:
-  virtual PRIORITY getPriority() const = 0;
-};
-
 /**
  * Minimal thread class. Returned by thread factory bound to a Runnable object
  * and ready to start execution.  More or less analogous to java.lang.Thread
@@ -75,9 +71,7 @@ class PriorityRunnable : public virtual Runnable {
  * @see apache::thrift::concurrency::ThreadFactory)
  */
 class Thread {
-
  public:
-
   typedef uint64_t id_t;
 
   virtual ~Thread() {}
@@ -116,7 +110,6 @@ class Thread {
 
  private:
   std::shared_ptr<Runnable> _runnable;
-
 };
 
 /**
@@ -124,11 +117,10 @@ class Thread {
  * object for execution
  */
 class ThreadFactory {
-
  public:
   enum DetachState {
     ATTACHED,
-    DETACHED
+    DETACHED,
   };
 
   virtual ~ThreadFactory() {}
@@ -139,13 +131,18 @@ class ThreadFactory {
       const std::shared_ptr<Runnable>& runnable,
       DetachState detachState) const = 0;
 
-  /** Gets the current thread id or unknown_thread_id if the current thread is not a thrift thread */
+  /**
+   * Gets the current thread id or unknown_thread_id if the current thread is
+   * not a thrift thread
+   */
 
   static const Thread::id_t unknown_thread_id;
 
   virtual Thread::id_t getCurrentThreadId() const = 0;
 };
 
-}}} // apache::thrift::concurrency
+} // namespace concurrency
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef _THRIFT_CONCURRENCY_THREAD_H_

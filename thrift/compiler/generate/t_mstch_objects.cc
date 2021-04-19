@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,28 @@
 
 #include <thrift/compiler/generate/t_mstch_objects.h>
 
-using namespace std;
+namespace apache {
+namespace thrift {
+namespace compiler {
+
+bool mstch_base::has_option(const std::string& option) const {
+  return cache_->parsed_options_.find(option) != cache_->parsed_options_.end();
+}
+
+std::string mstch_base::get_option(const std::string& option) const {
+  auto itr = cache_->parsed_options_.find(option);
+  if (itr != cache_->parsed_options_.end()) {
+    return itr->second;
+  }
+  return {};
+}
+
+void mstch_base::register_has_option(std::string key, std::string option) {
+  register_method(
+      std::move(key), [this, option = std::move(option)]() -> mstch::node {
+        return has_option(option);
+      });
+}
 
 std::shared_ptr<mstch_base> enum_value_generator::generate(
     t_enum_value const* enum_value,
@@ -55,7 +76,7 @@ std::shared_ptr<mstch_base> const_value_generator::generate(
     ELEMENT_POSITION pos,
     int32_t index,
     t_const const* current_const,
-    std::pair<t_type*, t_type*> const& expected_types) const {
+    std::pair<const t_type*, const t_type*> const& expected_types) const {
   return std::make_shared<mstch_const_value_key_mapped_pair>(
       value_pair, current_const, expected_types, generators, cache, pos, index);
 }
@@ -76,6 +97,26 @@ std::shared_ptr<mstch_base> field_generator::generate(
     ELEMENT_POSITION pos,
     int32_t index) const {
   return std::make_shared<mstch_field>(field, generators, cache, pos, index);
+}
+
+std::shared_ptr<mstch_base> annotation_generator::generate(
+    const t_annotation& annotation,
+    std::shared_ptr<mstch_generators const> generators,
+    std::shared_ptr<mstch_cache> cache,
+    ELEMENT_POSITION pos,
+    int32_t index) const {
+  return std::make_shared<mstch_annotation>(
+      annotation.first, annotation.second, generators, cache, pos, index);
+}
+
+std::shared_ptr<mstch_base> structured_annotation_generator::generate(
+    const t_const* annotValue,
+    std::shared_ptr<mstch_generators const> generators,
+    std::shared_ptr<mstch_cache> cache,
+    ELEMENT_POSITION pos,
+    int32_t index) const {
+  return std::make_shared<mstch_structured_annotation>(
+      *annotValue, generators, cache, pos, index);
 }
 
 std::shared_ptr<mstch_base> struct_generator::generate(
@@ -121,9 +162,17 @@ std::shared_ptr<mstch_base> const_generator::generate(
     ELEMENT_POSITION pos,
     int32_t index,
     t_const const* current_const,
-    t_type const* expected_type) const {
+    t_type const* expected_type,
+    const std::string& field_name) const {
   return std::make_shared<mstch_const>(
-      cnst, current_const, expected_type, generators, cache, pos, index);
+      cnst,
+      current_const,
+      expected_type,
+      generators,
+      cache,
+      pos,
+      index,
+      field_name);
 }
 
 std::shared_ptr<mstch_base> program_generator::generate(
@@ -136,39 +185,31 @@ std::shared_ptr<mstch_base> program_generator::generate(
 }
 
 mstch::node mstch_enum::values() {
-  return generate_elements(
-      enm_->get_constants(),
-      generators_->enum_value_generator_.get(),
-      generators_,
-      cache_);
+  return generate_enum_values(enm_->get_enum_values());
 }
 
 mstch::node mstch_type::get_struct() {
   if (type_->is_struct() || type_->is_xception()) {
-    std::string id = type_->get_program()->get_name() +
-        get_type_namespace(type_->get_program());
+    std::string id =
+        type_->program()->name() + get_type_namespace(type_->program());
     return generate_elements_cached(
         std::vector<t_struct const*>{dynamic_cast<t_struct const*>(type_)},
         generators_->struct_generator_.get(),
         cache_->structs_,
-        id,
-        generators_,
-        cache_);
+        id);
   }
   return mstch::node();
 }
 
 mstch::node mstch_type::get_enum() {
   if (resolved_type_->is_enum()) {
-    std::string id = type_->get_program()->get_name() +
-        get_type_namespace(type_->get_program());
+    std::string id =
+        type_->program()->name() + get_type_namespace(type_->program());
     return generate_elements_cached(
         std::vector<t_enum const*>{dynamic_cast<t_enum const*>(resolved_type_)},
         generators_->enum_generator_.get(),
         cache_->enums_,
-        id,
-        generators_,
-        cache_);
+        id);
   }
   return mstch::node();
 }
@@ -228,16 +269,10 @@ mstch::node mstch_type::get_typedef_type() {
   return mstch::node();
 }
 
-mstch::node mstch_type::get_stream_elem_type() {
-  if (type_->is_pubsub_stream()) {
+mstch::node mstch_type::get_sink_elem_type() {
+  if (type_->is_sink()) {
     return generators_->type_generator_->generate(
-        dynamic_cast<const t_pubsub_stream*>(type_)->get_elem_type(),
-        generators_,
-        cache_,
-        pos_);
-  } else if (type_->is_stream()) {
-    return generators_->type_generator_->generate(
-        dynamic_cast<const t_stream*>(type_)->get_elem_type(),
+        dynamic_cast<const t_sink*>(type_)->get_sink_type(),
         generators_,
         cache_,
         pos_);
@@ -245,11 +280,44 @@ mstch::node mstch_type::get_stream_elem_type() {
   return mstch::node();
 }
 
-mstch::node mstch_type::get_stream_response_type() {
+mstch::node mstch_type::get_sink_final_reponse_type() {
+  if (type_->is_sink()) {
+    return generators_->type_generator_->generate(
+        dynamic_cast<const t_sink*>(type_)->get_final_response_type(),
+        generators_,
+        cache_,
+        pos_);
+  }
+  return mstch::node();
+}
+
+mstch::node mstch_type::get_sink_first_response_type() {
+  if (type_->is_sink()) {
+    return generators_->type_generator_->generate(
+        dynamic_cast<const t_sink*>(type_)->get_first_response_type(),
+        generators_,
+        cache_,
+        pos_);
+  }
+  return mstch::node();
+}
+
+mstch::node mstch_type::get_stream_elem_type() {
+  if (type_->is_streamresponse()) {
+    return generators_->type_generator_->generate(
+        dynamic_cast<const t_stream_response*>(type_)->get_elem_type(),
+        generators_,
+        cache_,
+        pos_);
+  }
+  return mstch::node();
+}
+
+mstch::node mstch_type::get_stream_first_response_type() {
   if (resolved_type_->is_streamresponse()) {
     return generators_->type_generator_->generate(
         dynamic_cast<const t_stream_response*>(resolved_type_)
-            ->get_extra_type(),
+            ->get_first_response_type(),
         generators_,
         cache_,
         pos_);
@@ -366,7 +434,7 @@ mstch::node mstch_const_value::string_value() {
 
 mstch::node mstch_const_value::list_elems() {
   if (type_ == cv::CV_LIST) {
-    t_type* expected_type = nullptr;
+    const t_type* expected_type = nullptr;
     if (expected_type_) {
       if (expected_type_->is_list()) {
         expected_type =
@@ -376,53 +444,70 @@ mstch::node mstch_const_value::list_elems() {
             dynamic_cast<const t_set*>(expected_type_)->get_elem_type();
       }
     }
-    return generate_elements(
-        const_value_->get_list(),
-        generators_->const_value_generator_.get(),
-        generators_,
-        cache_,
-        current_const_,
-        expected_type);
+    return generate_consts(
+        const_value_->get_list(), current_const_, expected_type);
   }
   return mstch::node();
 }
 
 mstch::node mstch_const_value::map_elems() {
   if (type_ == cv::CV_MAP) {
-    std::pair<t_type*, t_type*> expected_types;
+    std::pair<const t_type*, const t_type*> expected_types;
     if (expected_type_ && expected_type_->is_map()) {
       const auto* m = dynamic_cast<const t_map*>(expected_type_);
       expected_types = {m->get_key_type(), m->get_val_type()};
     }
-    return generate_elements(
-        const_value_->get_map(),
-        generators_->const_value_generator_.get(),
-        generators_,
-        cache_,
-        current_const_,
-        expected_types);
+    return generate_consts(
+        const_value_->get_map(), current_const_, expected_types);
   }
   return mstch::node();
+}
+
+mstch::node mstch_const_value::is_const_struct() {
+  if (!const_value_->get_ttype()) {
+    return false;
+  }
+  return const_value_->get_ttype()->is_struct() ||
+      const_value_->get_ttype()->is_xception();
+}
+
+mstch::node mstch_const_value::const_struct_type() {
+  if (!const_value_->get_ttype()) {
+    return {};
+  }
+
+  if (const_value_->get_ttype()->is_struct() ||
+      const_value_->get_ttype()->is_xception()) {
+    return generators_->type_generator_->generate(
+        const_value_->get_ttype(), generators_, cache_);
+  }
+
+  return {};
 }
 
 mstch::node mstch_const_value::const_struct() {
   std::vector<t_const*> constants;
   std::vector<int32_t> idx;
+  std::vector<std::string> field_names;
+  mstch::array a;
+
   if (const_value_->get_ttype()->is_struct() ||
       const_value_->get_ttype()->is_xception()) {
     auto const* strct =
         dynamic_cast<t_struct const*>(const_value_->get_ttype());
     for (auto member : const_value_->get_map()) {
+      auto const* field = strct->get_field_by_name(member.first->get_string());
+      assert(field != nullptr);
       constants.push_back(new t_const(
           nullptr,
-          strct->get_member(member.first->get_string())->get_type(),
-          "",
-          member.second));
-      idx.push_back(strct->get_member(member.first->get_string())->get_key());
+          field->get_type(),
+          field->get_name(),
+          member.second->clone()));
+      idx.push_back(field->get_key());
+      field_names.push_back(field->get_name());
     }
   }
 
-  mstch::array a{};
   for (size_t i = 0; i < constants.size(); ++i) {
     auto pos = element_position(i, constants.size());
     a.push_back(generators_->const_generator_->generate(
@@ -432,7 +517,8 @@ mstch::node mstch_const_value::const_struct() {
         pos,
         idx[i],
         current_const_,
-        constants[i]->get_type()));
+        constants[i]->get_type(),
+        field_names[i]));
   }
   return a;
 }
@@ -447,19 +533,66 @@ mstch::node mstch_field::type() {
       field_->get_type(), generators_, cache_, pos_);
 }
 
-mstch::node mstch_field::next_field_type() {
-  return field_->get_next()
-      ? generators_->type_generator_->generate(
-            field_->get_next()->get_type(), generators_, cache_, pos_)
-      : mstch::node("");
+mstch::node mstch_struct::fields() {
+  return generate_fields(strct_->fields());
 }
 
-mstch::node mstch_struct::fields() {
-  return generate_elements(
-      strct_->get_members(),
-      generators_->field_generator_.get(),
-      generators_,
-      cache_);
+mstch::node mstch_struct::thrift_uri() {
+  return strct_->get_annotation("thrift.uri");
+}
+
+mstch::node mstch_struct::exception_safety() {
+  if (!strct_->is_xception()) {
+    return std::string("");
+  }
+
+  const auto* t_ex_ptr = dynamic_cast<const t_exception*>(strct_);
+  auto s = t_ex_ptr->safety();
+
+  switch (s) {
+    case t_error_safety::safe:
+      return std::string("SAFE");
+    default:
+      return std::string("UNSPECIFIED");
+  }
+}
+
+mstch::node mstch_struct::exception_blame() {
+  if (!strct_->is_xception()) {
+    return std::string("");
+  }
+
+  const auto* t_ex_ptr = dynamic_cast<const t_exception*>(strct_);
+  auto s = t_ex_ptr->blame();
+
+  switch (s) {
+    case t_error_blame::server:
+      return std::string("SERVER");
+    case t_error_blame::client:
+      return std::string("CLIENT");
+    default:
+      return std::string("UNSPECIFIED");
+  }
+}
+
+mstch::node mstch_struct::exception_kind() {
+  if (!strct_->is_xception()) {
+    return std::string("");
+  }
+
+  const auto* t_ex_ptr = dynamic_cast<const t_exception*>(strct_);
+  auto s = t_ex_ptr->kind();
+
+  switch (s) {
+    case t_error_kind::transient:
+      return std::string("TRANSIENT");
+    case t_error_kind::stateful:
+      return std::string("STATEFUL");
+    case t_error_kind::permanent:
+      return std::string("PERMANENT");
+    default:
+      return std::string("UNSPECIFIED");
+  }
 }
 
 mstch::node mstch_function::return_type() {
@@ -468,85 +601,55 @@ mstch::node mstch_function::return_type() {
 }
 
 mstch::node mstch_function::exceptions() {
-  return generate_elements(
-      function_->get_xceptions()->get_members(),
-      generators_->field_generator_.get(),
-      generators_,
-      cache_);
+  return generate_fields(function_->get_xceptions()->fields());
 }
 
 mstch::node mstch_function::stream_exceptions() {
-  return generate_elements(
-      function_->get_stream_xceptions()->get_members(),
-      generators_->field_generator_.get(),
-      generators_,
-      cache_);
+  return generate_fields(function_->get_stream_xceptions()->fields());
 }
 
-mstch::node mstch_function::arg_list_without_streams() {
-  auto args = function_->get_arglist();
-  auto members = args->get_members();
-  if (function_->any_stream_params()) {
-    members.erase(members.begin());
-  }
+mstch::node mstch_function::sink_exceptions() {
+  return generate_fields(function_->get_sink_xceptions()->fields());
+}
 
-  return generate_elements(
-      members, generators_->field_generator_.get(), generators_, cache_);
+mstch::node mstch_function::sink_final_response_exceptions() {
+  return generate_fields(
+      function_->get_sink_final_response_xceptions()->fields());
 }
 
 mstch::node mstch_function::arg_list() {
-  return generate_elements(
-      function_->get_arglist()->get_members(),
-      generators_->field_generator_.get(),
-      generators_,
-      cache_);
-}
-
-mstch::node mstch_function::any_streams() {
-  return function_->any_streams();
-}
-
-mstch::node mstch_function::takes_stream() {
-  return function_->any_stream_params();
-}
-
-mstch::node mstch_function::taken_stream_type() {
-  if (!function_->any_stream_params()) {
-    return false;
-  }
-  return generators_->type_generator_->generate(
-      function_->get_arglist()->get_members()[0]->get_type(),
-      generators_,
-      cache_,
-      pos_);
+  return generate_fields(function_->get_paramlist()->fields());
 }
 
 mstch::node mstch_function::returns_stream() {
-  return function_->get_returntype()->is_pubsub_stream();
+  return function_->returns_stream();
 }
 
 mstch::node mstch_service::functions() {
-  return generate_elements(
-      service_->get_functions(),
-      generators_->function_generator_.get(),
-      generators_,
-      cache_);
+  return generate_functions(service_->get_functions());
 }
 
 mstch::node mstch_service::extends() {
   auto const* extends = service_->get_extends();
   if (extends) {
-    std::string id = extends->get_program()->get_name() +
-        get_service_namespace(extends->get_program());
-    return generate_elements_cached(
-        std::vector<t_service const*>{extends},
-        generators_->service_generator_.get(),
-        cache_->services_,
-        id,
-        generators_,
-        cache_);
+    return generate_cached_extended_service(extends);
   }
   return mstch::node();
+}
+
+mstch::node mstch_service::generate_cached_extended_service(
+    const t_service* service) {
+  std::string id =
+      service->program()->name() + get_service_namespace(service->program());
+  size_t element_index = 0;
+  size_t element_count = 1;
+  return generate_element_cached(
+      service,
+      generators_->service_generator_.get(),
+      cache_->services_,
+      id,
+      element_index,
+      element_count);
 }
 
 mstch::node mstch_typedef::type() {
@@ -569,50 +672,49 @@ mstch::node mstch_const::program() {
       cnst_->get_program(), generators_, cache_, pos_);
 }
 
+mstch::node mstch_program::has_thrift_uris() {
+  for (const auto& strct : program_->structs()) {
+    if (strct->has_annotation("thrift.uri")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 mstch::node mstch_program::structs() {
-  std::string id = program_->get_name() + get_program_namespace(program_);
+  std::string id = program_->name() + get_program_namespace(program_);
   return generate_elements_cached(
-      program_->get_objects(),
+      get_program_objects(),
       generators_->struct_generator_.get(),
       cache_->structs_,
-      id,
-      generators_,
-      cache_);
+      id);
 }
 
 mstch::node mstch_program::enums() {
-  std::string id = program_->get_name() + get_program_namespace(program_);
+  std::string id = program_->name() + get_program_namespace(program_);
   return generate_elements_cached(
-      program_->get_enums(),
+      get_program_enums(),
       generators_->enum_generator_.get(),
       cache_->enums_,
-      id,
-      generators_,
-      cache_);
+      id);
 }
 
 mstch::node mstch_program::services() {
-  std::string id = program_->get_name() + get_program_namespace(program_);
+  std::string id = program_->name() + get_program_namespace(program_);
   return generate_elements_cached(
-      program_->get_services(),
+      program_->services(),
       generators_->service_generator_.get(),
       cache_->services_,
-      id,
-      generators_,
-      cache_);
+      id);
 }
 
 mstch::node mstch_program::typedefs() {
-  return generate_elements(
-      program_->get_typedefs(),
-      generators_->typedef_generator_.get(),
-      generators_,
-      cache_);
+  return generate_typedefs(program_->typedefs());
 }
 
 mstch::node mstch_program::constants() {
-  mstch::array a{};
-  const auto& container = program_->get_consts();
+  mstch::array a;
+  const auto& container = program_->consts();
   for (size_t i = 0; i < container.size(); ++i) {
     auto pos = element_position(i, container.size());
     a.push_back(generators_->const_generator_->generate(
@@ -626,3 +728,14 @@ mstch::node mstch_program::constants() {
   }
   return a;
 }
+
+const std::vector<t_struct*>& mstch_program::get_program_objects() {
+  return program_->objects();
+}
+const std::vector<t_enum*>& mstch_program::get_program_enums() {
+  return program_->enums();
+}
+
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
 #include <stdexcept>
@@ -25,6 +26,7 @@
 #include <thrift/lib/thrift/gen-cpp2/frozen_constants.h>
 
 DECLARE_bool(thrift_frozen_util_disable_mlock);
+DECLARE_bool(thrift_frozen_util_mlock_on_fault);
 
 namespace apache {
 namespace thrift {
@@ -34,9 +36,7 @@ class FrozenFileForwardIncompatible : public std::runtime_error {
  public:
   explicit FrozenFileForwardIncompatible(int fileVersion);
 
-  int fileVersion() const {
-    return fileVersion_;
-  }
+  int fileVersion() const { return fileVersion_; }
   int supportedVersion() const {
     return schema::frozen_constants::kCurrentFrozenFileVersion();
   }
@@ -128,7 +128,8 @@ void serializeRootLayout(const Layout<T>& layout, std::string& out) {
   saveRoot(layout, memSchema);
   schema::convert(memSchema, schema);
 
-  schema.fileVersion = schema::frozen_constants::kCurrentFrozenFileVersion();
+  *schema.fileVersion_ref() =
+      schema::frozen_constants::kCurrentFrozenFileVersion();
   out.clear();
   CompactSerializer::serialize(schema, &out);
 }
@@ -138,9 +139,9 @@ void deserializeRootLayout(folly::ByteRange& range, Layout<T>& layoutOut) {
   schema::Schema schema;
   size_t schemaSize = CompactSerializer::deserialize(range, schema);
 
-  if (schema.fileVersion >
+  if (*schema.fileVersion_ref() >
       schema::frozen_constants::kCurrentFrozenFileVersion()) {
-    throw FrozenFileForwardIncompatible(schema.fileVersion);
+    throw FrozenFileForwardIncompatible(*schema.fileVersion_ref());
   }
 
   schema::MemorySchema memSchema;
@@ -183,6 +184,13 @@ void freezeToString(const T& x, std::string& out) {
       reinterpret_cast<byte*>(&out[schemaSize]), contentSize);
   ByteRangeFreezer::freeze(layout, x, writeRange);
   out.resize(out.size() - writeRange.size());
+}
+
+template <class T>
+std::string freezeToString(const T& x) {
+  std::string result;
+  freezeToString(x, result);
+  return result;
 }
 
 template <class T>
@@ -278,21 +286,19 @@ template <class T>
 mapFrozen(const std::string& str) = delete;
 
 template <class T>
-MappedFrozen<T> mapFrozen(folly::File file) {
+MappedFrozen<T> mapFrozen(
+    folly::File file, folly::MemoryMapping::LockMode lockMode) {
   folly::MemoryMapping mapping(std::move(file), 0);
-  if (!FLAGS_thrift_frozen_util_disable_mlock) {
-    mapping.mlock(folly::MemoryMapping::LockMode::TRY_LOCK);
-  }
+  folly::MemoryMapping::LockFlags flags{};
+  flags.lockOnFault = FLAGS_thrift_frozen_util_mlock_on_fault;
+  mapping.mlock(lockMode, flags);
   return mapFrozen<T>(std::move(mapping));
 }
 
 template <class T>
-MappedFrozen<T> mapFrozen(
-    folly::File file,
-    folly::MemoryMapping::LockMode lockMode) {
-  folly::MemoryMapping mapping(std::move(file), 0);
-  mapping.mlock(lockMode);
-  return mapFrozen<T>(std::move(mapping));
+MappedFrozen<T> mapFrozen(folly::File file) {
+  return mapFrozen<T>(
+      std::move(file), folly::MemoryMapping::LockMode::TRY_LOCK);
 }
 
 } // namespace frozen

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/compiler/ast/visitor.h>
 
@@ -30,9 +30,7 @@ class InterleavedVisitorTest : public testing::Test {};
 TEST_F(InterleavedVisitorTest, mixed) {
   struct tracking_visitor : visitor {
     tracking_visitor(bool ret) : ret_(ret) {}
-    bool visit(t_program*) override {
-      return ret_;
-    }
+    bool visit(t_program*) override { return ret_; }
     bool visit(t_service* const service) override {
       visited_services.push_back(service);
       return true;
@@ -46,9 +44,10 @@ TEST_F(InterleavedVisitorTest, mixed) {
   auto vtor = interleaved_visitor({&tv_f, &tv_t});
 
   auto program = t_program("path/to/module.thrift");
-  auto service = t_service(&program);
-  program.add_service(&service);
+  auto service = std::make_unique<t_service>(&program);
+  auto service_ptr = service.get();
+  program.add_service(std::move(service));
   vtor.traverse(&program);
   EXPECT_THAT(tv_f.visited_services, testing::ElementsAre());
-  EXPECT_THAT(tv_t.visited_services, testing::ElementsAre(&service));
+  EXPECT_THAT(tv_t.visited_services, testing::ElementsAre(service_ptr));
 }

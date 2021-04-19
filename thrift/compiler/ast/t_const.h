@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,9 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
+#include <memory>
+
 #include <thrift/compiler/ast/t_const_value.h>
+#include <thrift/compiler/ast/t_named.h>
+#include <thrift/compiler/ast/t_type.h>
 
 namespace apache {
 namespace thrift {
@@ -32,7 +37,7 @@ class t_program;
  * whole thing out.
  *
  */
-class t_const : public t_doc {
+class t_const : public t_named {
  public:
   /**
    * Constructor for t_const
@@ -44,40 +49,43 @@ class t_const : public t_doc {
    */
   t_const(
       t_program* program,
-      t_type* type,
+      t_type_ref type,
       std::string name,
-      t_const_value* value)
-      : program_(program), type_(type), name_(name), value_(value) {
+      std::unique_ptr<t_const_value> value)
+      : t_named(std::move(name)),
+        program_(program),
+        type_(std::move(type)),
+        value_(std::move(value)) {
     // value->get_owner() is set when rhs is referencing another constant.
-    if (value && value->get_owner() == nullptr) {
-      value->set_owner(this);
+    if (value_ && value_->get_owner() == nullptr) {
+      value_->set_owner(this);
     }
   }
 
   /**
    * t_const getters
    */
-  t_program* get_program() const {
-    return program_;
-  }
+  t_program* get_program() const { return program_; }
 
-  t_type* get_type() const {
-    return type_;
-  }
+  const t_type* get_type() const { return type_.type(); }
 
-  std::string get_name() const {
-    return name_;
-  }
-
-  t_const_value* get_value() const {
-    return value_;
-  }
+  t_const_value* get_value() const { return value_.get(); }
 
  private:
   t_program* program_;
-  t_type* type_;
-  std::string name_;
-  t_const_value* value_;
+  t_type_ref type_;
+  std::unique_ptr<t_const_value> value_;
+
+ public:
+  // TODO(afuller): Delete everything below here. It is only provided for
+  // backwards compatibility.
+
+  t_const(
+      t_program* program,
+      const t_type* type,
+      std::string name,
+      std::unique_ptr<t_const_value> value)
+      : t_const(program, t_type_ref(type), std::move(name), std::move(value)) {}
 };
 
 } // namespace compiler

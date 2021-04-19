@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,191 +36,121 @@ class t_program;
 
 /**
  * A struct is a container for a set of member fields that has a name. Structs
- * are also used to implement exception types.
+ * are also used to implement exception and union types.
  *
  */
+// TODO(afuller): Split out a t_structured base class and have union,
+// exception, paramlist, etc. inheriting from that instead of t_struct
+// directly.
 class t_struct : public t_type {
  public:
-  typedef std::vector<t_field*> members_type;
-
-  explicit t_struct(t_program* program)
-      : t_type(program),
-        stream_field_(nullptr),
-        is_xception_(false),
-        is_union_(false),
-        view_parent_(nullptr) {}
-
   t_struct(t_program* program, const std::string& name)
-      : t_type(program, name),
-        stream_field_(nullptr),
-        is_xception_(false),
-        is_union_(false),
-        view_parent_(nullptr) {}
+      : t_type(program, name) {}
 
-  void set_name(const std::string& name) override {
-    name_ = name;
+  // Tries to append the given field, the argument is untouched on failure.
+  bool try_append_field(std::unique_ptr<t_field>&& elem);
+
+  // Get the fields, in the order they were added.
+  const std::vector<const t_field*>& fields() const {
+    return fields_ordinal_order_;
+  }
+  // Get the fields, ordered by id.
+  const std::vector<const t_field*>& fields_id_order() const {
+    return fields_id_order_;
   }
 
-  void set_xception(bool is_xception) {
-    is_xception_ = is_xception;
+  // If this struct has any fields.
+  bool has_fields() const { return !fields_.empty(); }
+
+  // Access the field by index, id, or name.
+  t_field* get_field(size_t index) { return fields_.at(index).get(); }
+  const t_field* get_field(size_t index) const {
+    return fields_.at(index).get();
+  }
+  const t_field* get_field_by_id(int32_t id) const;
+  const t_field* get_field_by_name(const std::string& name) const {
+    auto itr = fields_by_name_.find(name);
+    return itr == fields_by_name_.end() ? nullptr : itr->second;
   }
 
-  void set_union(bool is_union) {
-    is_union_ = is_union;
-  }
-
-  t_field* get_stream_field() {
-    return stream_field_;
-  }
-  void set_stream_field(t_field* stream_field) {
-    assert(is_paramlist_);
-    assert(!stream_field_);
-    assert(stream_field->get_type()->is_pubsub_stream());
-
-    stream_field_ = stream_field;
-    members_.insert(members_.begin(), stream_field_);
-    members_in_id_order_.insert(members_in_id_order_.begin(), stream_field_);
-  }
-
-  void set_paramlist(bool is_paramlist) {
-    is_paramlist_ = is_paramlist;
-    assert(!is_xception_);
-    assert(!is_union_);
-  }
-
-  bool append(t_field* elem) {
-    if (!members_.empty()) {
-      members_.back()->set_next(elem);
-    }
-    members_.push_back(elem);
-
-    typedef members_type::iterator iter_type;
-    std::pair<iter_type, iter_type> bounds = std::equal_range(
-        members_in_id_order_.begin(),
-        members_in_id_order_.end(),
-        elem,
-        // Comparator to sort fields in ascending order by key.
-        [](const t_field* a, const t_field* b) {
-          return a->get_key() < b->get_key();
-        });
-    if (bounds.first != bounds.second) {
-      return false;
-    }
-    members_in_id_order_.insert(bounds.second, elem);
-    return true;
-  }
-
-  const std::vector<t_field*>& get_members() const {
-    return members_;
-  }
-
-  const t_field* get_member(const std::string& name) const {
-    auto const result = std::find_if(
-        members_.begin(), members_.end(), [&name](const t_field* m) {
-          return m->get_name() == name;
-        });
-    return result == members_.end() ? nullptr : *result;
-  }
-
-  const members_type& get_sorted_members() const {
-    return members_in_id_order_;
-  }
-
-  bool is_union() const {
-    return is_union_;
-  }
-
-  const t_field* get_field_named(const char* name) const {
-    assert(has_field_named(name));
-    for (auto& member : members_) {
-      if (member->get_name() == name) {
-        return member;
-      }
-    }
-
-    assert(false);
-    return nullptr;
-  }
-
-  bool is_struct() const override {
-    return !is_xception_;
-  }
-
-  bool is_xception() const override {
-    return is_xception_;
-  }
-
-  void set_view_parent(const t_struct* p) {
-    view_parent_ = p;
-  }
-
-  const t_struct* get_view_parent() const {
-    if (view_parent_ != nullptr) {
-      return view_parent_->get_view_parent();
-    } else {
-      return this;
-    }
-  }
-
-  bool is_view() const {
-    return view_parent_ != nullptr;
-  }
-
-  bool has_field_named(const char* name) const {
-    std::vector<t_field*>::const_iterator m_iter;
-    for (m_iter = members_.begin(); m_iter != members_.end(); ++m_iter) {
-      if ((*m_iter)->get_name() == name) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  bool validate_field(t_field* field) {
-    int key = field->get_key();
-    std::vector<t_field*>::const_iterator m_iter;
-    for (m_iter = members_.begin(); m_iter != members_.end(); ++m_iter) {
-      if ((*m_iter)->get_key() == key) {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool is_struct() const override { return !is_exception(); }
 
   std::string get_full_name() const override {
     return make_full_name("struct");
   }
 
-  std::string get_impl_full_name() const override {
-    return get_view_parent()->get_full_name();
+  type get_type_value() const override { return type::t_struct; }
+
+  // Creates an empty struct to hold exceptions.
+  // TODO(afuller): Make this its own node.
+  static std::unique_ptr<t_struct> new_throws() {
+    return std::unique_ptr<t_struct>(new t_struct(nullptr));
   }
 
-  TypeValue get_type_value() const override {
-    return TypeValue::TYPE_STRUCT;
+ protected:
+  std::vector<std::unique_ptr<t_field>> fields_;
+  std::vector<const t_field*> fields_ordinal_order_;
+  std::vector<const t_field*> fields_id_order_;
+  std::map<std::string, const t_field*> fields_by_name_;
+
+  explicit t_struct(t_program* program) : t_type(program) {}
+
+  ////
+  // Everyting below here is for backwards compatiblity, and will be removed.
+  ////
+ public:
+  /**
+   * Thrift AST nodes are meant to be non-copyable and non-movable, and should
+   * never be cloned. This method exists to grand-father specific uses in the
+   * target language generators. Do NOT add any new usage of this method.
+   */
+  template <typename S>
+  static std::unique_ptr<S> clone_DO_NOT_USE(const S* sval) {
+    return std::unique_ptr<S>(sval->clone_DO_NOT_USE());
   }
 
- private:
-  members_type members_;
-  members_type members_in_id_order_;
-  // only if is_paramlist_
-  // not stored as a normal member, as it's not serialized like a normal
-  // field into the pargs struct
-  t_field* stream_field_;
+  // Tries to append the gieven field, throwing an exception on failure.
+  void append(std::unique_ptr<t_field> elem);
 
-  bool is_xception_;
-  bool is_union_;
-  bool is_paramlist_;
+  const t_field* get_field_named(const std::string& name) const {
+    const auto* result = get_field_by_name(name);
+    assert(result != nullptr);
+    return result;
+  }
 
-  const t_struct* view_parent_;
-};
+  const std::vector<t_field*>& get_members() const { return fields_raw_; }
 
-struct t_structpair {
-  t_struct* first;
-  t_struct* second;
+  const std::vector<t_field*>& get_sorted_members() const {
+    return fields_raw_id_order_;
+  }
 
-  t_structpair() = delete;
-  t_structpair(t_struct* f, t_struct* s) : first(f), second(s) {}
+  const t_field* get_member(const std::string& name) const {
+    return get_field_by_name(name);
+  }
+
+  bool has_field_named(const std::string& name) const {
+    return get_field_by_name(name) != nullptr;
+  }
+
+  bool validate_field(t_field* field) {
+    return get_field_by_id(field->get_key()) == nullptr;
+  }
+
+ protected:
+  std::vector<t_field*> fields_raw_;
+  std::vector<t_field*> fields_raw_id_order_;
+
+  virtual t_struct* clone_DO_NOT_USE() const {
+    auto clone = std::make_unique<t_struct>(program_, name_);
+    cloneStruct(clone.get());
+    return clone.release();
+  }
+
+  void cloneStruct(t_struct* clone) const {
+    for (auto const& field : fields_) {
+      clone->append(field->clone_DO_NOT_USE());
+    }
+  }
 };
 
 } // namespace compiler

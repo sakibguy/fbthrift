@@ -6,29 +6,49 @@
  *  @generated
  */
 
+namespace test\fixtures\lazy_constants;
+
 /**
  * Original thrift enum:-
  * City
  */
-enum City : int {
+enum City: int {
   NYC = 0;
   MPK = 1;
   SEA = 2;
   LON = 3;
 }
-type CityType = City;
+
+class City_TEnumStaticMetadata implements \IThriftEnumStaticMetadata {
+  public static function getAllStructuredAnnotations()[]: \TEnumAnnotations {
+    return shape(
+      'enum' => dict[],
+      'constants' => dict[
+      ],
+    );
+  }
+}
 
 /**
  * Original thrift enum:-
  * Company
  */
-enum Company : int {
+enum Company: int {
   FACEBOOK = 0;
   WHATSAPP = 1;
   OCULUS = 2;
   INSTAGRAM = 3;
 }
-type CompanyType = Company;
+
+class Company_TEnumStaticMetadata implements \IThriftEnumStaticMetadata {
+  public static function getAllStructuredAnnotations()[]: \TEnumAnnotations {
+    return shape(
+      'enum' => dict[],
+      'constants' => dict[
+      ],
+    );
+  }
+}
 
 /**
  * Original thrift struct:-
@@ -37,26 +57,33 @@ type CompanyType = Company;
 class Internship implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'weeks',
       'type' => \TType::I32,
-      ],
-    2 => dict[
+    ),
+    2 => shape(
       'var' => 'title',
       'type' => \TType::STRING,
-      ],
-    3 => dict[
+    ),
+    3 => shape(
       'var' => 'employer',
       'type' => \TType::I32,
-      'enum' => 'Company',
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+      'enum' => \test\fixtures\lazy_constants\Company::class,
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'weeks' => 1,
     'title' => 2,
     'employer' => 3,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'weeks' => ?int,
+    ?'title' => ?string,
+    ?'employer' => ?\test\fixtures\lazy_constants\Company,
+  );
+
   const int STRUCTURAL_ID = 749038867953722654;
   /**
    * Original thrift field:-
@@ -72,24 +99,36 @@ class Internship implements \IThriftStruct {
    * Original thrift field:-
    * 3: enum module.Company employer
    */
-  public ?Company $employer;
+  public ?\test\fixtures\lazy_constants\Company $employer;
 
-  public function __construct(?int $weeks = null, ?string $title = null, ?Company $employer = null  ) {
-    if ($weeks === null) {
-      $this->weeks = 0;
-    } else {
-      $this->weeks = $weeks;
-    }
-    if ($title === null) {
-      $this->title = '';
-    } else {
-      $this->title = $title;
-    }
+  public function __construct(?int $weeks = null, ?string $title = null, ?\test\fixtures\lazy_constants\Company $employer = null  )[] {
+    $this->weeks = $weeks ?? 0;
+    $this->title = $title ?? '';
     $this->employer = $employer;
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'weeks'),
+      Shapes::idx($shape, 'title'),
+      Shapes::idx($shape, 'employer'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'Internship';
+  }
+
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
 }
@@ -101,20 +140,26 @@ class Internship implements \IThriftStruct {
 class Range implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'min',
       'type' => \TType::I32,
-      ],
-    2 => dict[
+    ),
+    2 => shape(
       'var' => 'max',
       'type' => \TType::I32,
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'min' => 1,
     'max' => 2,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'min' => ?int,
+    ?'max' => ?int,
+  );
+
   const int STRUCTURAL_ID = 6850388386457434767;
   /**
    * Original thrift field:-
@@ -127,21 +172,32 @@ class Range implements \IThriftStruct {
    */
   public int $max;
 
-  public function __construct(?int $min = null, ?int $max = null  ) {
-    if ($min === null) {
-      $this->min = 0;
-    } else {
-      $this->min = $min;
-    }
-    if ($max === null) {
-      $this->max = 0;
-    } else {
-      $this->max = $max;
-    }
+  public function __construct(?int $min = null, ?int $max = null  )[] {
+    $this->min = $min ?? 0;
+    $this->max = $max ?? 0;
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'min'),
+      Shapes::idx($shape, 'max'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'Range';
+  }
+
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
 }

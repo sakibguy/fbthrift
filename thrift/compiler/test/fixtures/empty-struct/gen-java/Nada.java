@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -25,11 +23,11 @@ import com.facebook.thrift.protocol.*;
 
 @SuppressWarnings({ "unused", "serial", "unchecked" })
 public class Nada extends TUnion<Nada> implements Comparable<Nada> {
-  public static boolean DEFAULT_PRETTY_PRINT = true;
   private static final TStruct STRUCT_DESC = new TStruct("Nada");
 
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     metaDataMap = Collections.unmodifiableMap(tmpMetaDataMap);
@@ -39,20 +37,21 @@ public class Nada extends TUnion<Nada> implements Comparable<Nada> {
     super();
   }
 
-  public Nada(int setField, Object value) {
-    super(setField, value);
+  public Nada(int setField, Object __value) {
+    super(setField, __value);
   }
 
   public Nada(Nada other) {
     super(other);
   }
+
   public Nada deepCopy() {
     return new Nada(this);
   }
 
 
   @Override
-  protected void checkType(short setField, Object value) throws ClassCastException {
+  protected void checkType(short setField, Object __value) throws ClassCastException {
     switch (setField) {
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
@@ -64,33 +63,34 @@ public class Nada extends TUnion<Nada> implements Comparable<Nada> {
     setField_ = 0;
     value_ = null;
     iprot.readStructBegin(metaDataMap);
-    TField field = iprot.readFieldBegin();
-    if (field.type != TType.STOP)
+    TField __field = iprot.readFieldBegin();
+    if (__field.type != TType.STOP)
     {
-      value_ = readValue(iprot, field);
+      value_ = readValue(iprot, __field);
       if (value_ != null)
       {
-        switch (field.id) {
+        switch (__field.id) {
         }
       }
       iprot.readFieldEnd();
-      iprot.readFieldBegin();
-      iprot.readFieldEnd();
+      TField __stopField = iprot.readFieldBegin();
+      if (__stopField.type != TType.STOP) {
+        throw new TProtocolException(TProtocolException.INVALID_DATA, "Union 'Nada' is missing a STOP byte");
+      }
     }
     iprot.readStructEnd();
   }
 
   @Override
-  protected Object readValue(TProtocol iprot, TField field) throws TException {
-    switch (field.id) {
-      default:
-        TProtocolUtil.skip(iprot, field.type);
-        return null;
+  protected Object readValue(TProtocol iprot, TField __field) throws TException {
+    switch (__field.id) {
     }
+    TProtocolUtil.skip(iprot, __field.type);
+    return null;
   }
 
   @Override
-  protected void writeValue(TProtocol oprot, short setField, Object value) throws TException {
+  protected void writeValue(TProtocol oprot, short setField, Object __value) throws TException {
     switch (setField) {
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField);
@@ -108,6 +108,23 @@ public class Nada extends TUnion<Nada> implements Comparable<Nada> {
   @Override
   protected TStruct getStructDesc() {
     return STRUCT_DESC;
+  }
+
+  @Override
+  protected Map<Integer, FieldMetaData> getMetaDataMap() { return metaDataMap; }
+
+  private Object __getValue(int expectedFieldId) {
+    if (getSetField() == expectedFieldId) {
+      return getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field '" + getFieldDesc(expectedFieldId).name + "' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  private void __setValue(int fieldId, Object __value) {
+    if (__value == null) throw new NullPointerException();
+    setField_ = fieldId;
+    value_ = __value;
   }
 
 
@@ -129,39 +146,9 @@ public class Nada extends TUnion<Nada> implements Comparable<Nada> {
   }
 
 
-  /**
-   * If you'd like this to perform more respectably, use the hashcode generator option.
-   */
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {getSetField(), getFieldValue()});
   }
-
-  @Override
-  public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
-  }
-
-  @Override
-  public String toString(int indent, boolean prettyPrint) {
-    String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
-    String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
-    StringBuilder sb = new StringBuilder("Nada");
-    sb.append(space);
-    sb.append("(");
-    sb.append(newLine);
-    boolean first = true;
-
-    sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
-    sb.append(")");
-    return sb.toString();
-  }
-
 
 }

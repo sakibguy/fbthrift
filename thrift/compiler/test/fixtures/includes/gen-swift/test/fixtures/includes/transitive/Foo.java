@@ -10,54 +10,82 @@ package test.fixtures.includes.transitive;
 import com.facebook.swift.codec.*;
 import com.facebook.swift.codec.ThriftField.Requiredness;
 import com.facebook.swift.codec.ThriftField.Recursiveness;
+import com.google.common.collect.*;
 import java.util.*;
-
+import org.apache.thrift.*;
+import org.apache.thrift.async.*;
+import org.apache.thrift.meta_data.*;
+import org.apache.thrift.server.*;
+import org.apache.thrift.transport.*;
+import org.apache.thrift.protocol.*;
+import org.apache.thrift.meta_data.FieldValueMetaData;
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.google.common.base.MoreObjects.ToStringHelper;
 
-@ThriftStruct("Foo")
-public final class Foo
-{
+@SwiftGenerated
+@com.facebook.swift.codec.ThriftStruct(value="Foo", builder=Foo.Builder.class)
+public final class Foo {
+
     @ThriftConstructor
     public Foo(
-        @ThriftField(value=1, name="a", requiredness=Requiredness.NONE) final long a
+        @com.facebook.swift.codec.ThriftField(value=1, name="a", requiredness=Requiredness.NONE) final long a
     ) {
         this.a = a;
     }
-
+    
+    @ThriftConstructor
+    protected Foo() {
+      this.a = 2L;
+    }
+    
     public static class Builder {
-        private long a;
-
+    
+        private long a = 2L;
+    
+        @com.facebook.swift.codec.ThriftField(value=1, name="a", requiredness=Requiredness.NONE)
         public Builder setA(long a) {
             this.a = a;
             return this;
         }
-
+    
+        public long getA() { return a; }
+    
         public Builder() { }
         public Builder(Foo other) {
             this.a = other.a;
         }
-
+    
+        @ThriftConstructor
         public Foo build() {
-            return new Foo (
+            Foo result = new Foo (
                 this.a
             );
+            return result;
         }
     }
-
+    
+    public static final Map<String, Integer> NAMES_TO_IDS = new HashMap();
+    public static final Map<Integer, TField> FIELD_METADATA = new HashMap<>();
+    private static final TStruct STRUCT_DESC = new TStruct("Foo");
     private final long a;
-
-    @ThriftField(value=1, name="a", requiredness=Requiredness.NONE)
-    public long getA() { return a; }
-
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-            .add("a", a)
-            .toString();
+    public static final int _A = 1;
+    private static final TField A_FIELD_DESC = new TField("a", TType.I64, (short)1);
+    static {
+      NAMES_TO_IDS.put("a", 1);
+      FIELD_METADATA.put(1, A_FIELD_DESC);
     }
-
-    @Override
+    
+    @com.facebook.swift.codec.ThriftField(value=1, name="a", requiredness=Requiredness.NONE)
+    public long getA() { return a; }
+    
+    @java.lang.Override
+    public String toString() {
+        ToStringHelper helper = toStringHelper(this);
+        helper.add("a", a);
+        return helper.toString();
+    }
+    
+    @java.lang.Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -65,17 +93,62 @@ public final class Foo
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
+    
         Foo other = (Foo)o;
-
+    
         return
-            Objects.equals(a, other.a);
+            Objects.equals(a, other.a) &&
+            true;
     }
-
-    @Override
+    
+    @java.lang.Override
     public int hashCode() {
         return Arrays.deepHashCode(new Object[] {
             a
         });
+    }
+    
+    
+    public static Foo read0(TProtocol oprot) throws TException {
+      TField __field;
+      oprot.readStructBegin(Foo.NAMES_TO_IDS, Foo.FIELD_METADATA);
+      Foo.Builder builder = new Foo.Builder();
+      while (true) {
+        __field = oprot.readFieldBegin();
+        if (__field.type == TType.STOP) { break; }
+        switch (__field.id) {
+        case _A:
+          if (__field.type == TType.I64) {
+            long a = oprot.readI64();
+            builder.setA(a);
+          } else {
+            TProtocolUtil.skip(oprot, __field.type);
+          }
+          break;
+        default:
+          TProtocolUtil.skip(oprot, __field.type);
+          break;
+        }
+        oprot.readFieldEnd();
+      }
+      oprot.readStructEnd();
+      return builder.build();
+    }
+    
+    public void write0(TProtocol oprot) throws TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+      oprot.writeFieldBegin(A_FIELD_DESC);
+      oprot.writeI64(this.a);
+      oprot.writeFieldEnd();
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+    
+    private static class _FooLazy {
+        private static final Foo _DEFAULT = new Foo.Builder().build();
+    }
+    
+    public static Foo defaultInstance() {
+        return  _FooLazy._DEFAULT;
     }
 }

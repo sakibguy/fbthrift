@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,9 +31,7 @@ struct TrivialLayout : public LayoutBase {
   typedef LayoutBase Base;
   TrivialLayout() : LayoutBase(typeid(T)) {}
 
-  FieldPosition maximize() {
-    return FieldPosition(sizeof(T), 0);
-  }
+  FieldPosition maximize() { return FieldPosition(sizeof(T), 0); }
 
   FieldPosition layout(LayoutRoot&, const T&, LayoutPosition /* start */) {
     return maximize();
@@ -67,18 +65,15 @@ struct TrivialLayout : public LayoutBase {
     return v;
   }
 
-  static size_t hash(const T& value) {
-    return std::hash<T>()(value);
-  }
+  static size_t hash(const T& value) { return std::hash<T>()(value); }
 };
 
 template <class T>
 struct IsBlitType
     : std::integral_constant<
           bool,
-          (folly::is_trivially_copyable<T>::value &&
-           !std::is_pointer<T>::value && !std::is_enum<T>::value &&
-           !std::is_integral<T>::value)> {};
+          (std::is_trivially_copyable<T>::value && !std::is_pointer<T>::value &&
+           !std::is_enum<T>::value && !std::is_integral<T>::value)> {};
 
 // std::pair<trivially copyable T1, trivially copyable T2> became
 // trivially copyable too (first fixed in GCC 6.3) and conflicts with
@@ -95,8 +90,10 @@ template <class T>
 struct Layout<
     T,
     typename std::enable_if<
-        detail::IsBlitType<T>::value && !detail::IsStdPair<T>::value>::type>
-    : detail::TrivialLayout<T> {};
+        apache::thrift::frozen::detail::IsBlitType<T>::value &&
+        !apache::thrift::frozen::detail::IsStdPair<T>::value &&
+        !std::is_pointer<T>::value>::type>
+    : apache::thrift::frozen::detail::TrivialLayout<T> {};
 } // namespace frozen
 } // namespace thrift
 } // namespace apache

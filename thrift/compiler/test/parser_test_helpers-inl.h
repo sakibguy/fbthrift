@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,22 +33,16 @@ class func_signature_helper {
   }
 
  private:
-  static std::unique_ptr<t_type> get_base_type(
-      std::string name,
-      t_base_type::t_base type) {
-    return std::unique_ptr<t_base_type>(new t_base_type(std::move(name), type));
-  }
-
   template <typename>
   struct dummy {};
   static std::unique_ptr<t_type> get_type(dummy<void>) {
-    return get_base_type("void", t_base_type::TYPE_VOID);
+    return std::make_unique<t_base_type>(t_base_type::t_void());
   }
   static std::unique_ptr<t_type> get_type(dummy<int>) {
-    return get_base_type("i32", t_base_type::TYPE_I32);
+    return std::make_unique<t_base_type>(t_base_type::t_i32());
   }
   static std::unique_ptr<t_type> get_type(dummy<double>) {
-    return get_base_type("double", t_base_type::TYPE_DOUBLE);
+    return std::make_unique<t_base_type>(t_base_type::t_double());
   }
 };
 

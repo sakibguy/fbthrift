@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,9 +17,9 @@
 %><%struct:name%>()<%!
   %><%#struct:filtered_fields%><% > common/colon_newline%><%!
     %><%#field:type%><%!
-      %>      <%field:name%>(<%!
+      %>      <%field:cpp_name%>(<%!
       %><%#field:cpp_ref?%><% > module_types_h/smart_ptr_constructor%><%/field:cpp_ref?%><%!
-      %><%^field:cpp_ref?%><% > module_types_h/value_constructor%><%/field:cpp_ref?%><%!
+      %><%^field:cpp_ref?%><% > field/default%><%/field:cpp_ref?%><%!
       %>)<% > common/comma_newline%><%!
     %><%/field:type%><%!
   %><%/struct:filtered_fields%><%!

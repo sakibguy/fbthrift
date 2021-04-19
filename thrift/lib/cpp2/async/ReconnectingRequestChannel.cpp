@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,78 +13,143 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/lib/cpp2/async/ReconnectingRequestChannel.h>
 
-#include <folly/io/async/AsyncSocketException.h>
+#include <memory>
+#include <utility>
+
+#include <folly/ExceptionWrapper.h>
 
 namespace apache {
 namespace thrift {
 
-class ReconnectingRequestChannel::RequestCallback
-    : public apache::thrift::RequestCallback {
+namespace {
+class ChannelKeepAlive : public RequestClientCallback {
  public:
-  RequestCallback(
-      ReconnectingRequestChannel& channel,
-      std::unique_ptr<apache::thrift::RequestCallback> cob)
-      : channel_(channel), impl_(channel_.impl_), cob_(std::move(cob)) {}
+  ChannelKeepAlive(
+      ReconnectingRequestChannel::ImplPtr impl,
+      RequestClientCallback::Ptr cob,
+      bool oneWay)
+      : keepAlive_(std::move(impl)), cob_(std::move(cob)), oneWay_(oneWay) {}
 
-  void requestSent() override {
-    cob_->requestSent();
+  void onRequestSent() noexcept override {
+    if (!oneWay_) {
+      cob_->onRequestSent();
+    } else {
+      cob_.release()->onRequestSent();
+      delete this;
+    }
   }
 
-  void replyReceived(apache::thrift::ClientReceiveState&& state) override {
-    handleTransportException(state);
-    cob_->replyReceived(std::move(state));
+  void onResponse(ClientReceiveState&& state) noexcept override {
+    cob_.release()->onResponse(std::move(state));
+    delete this;
   }
 
-  void requestError(apache::thrift::ClientReceiveState&& state) override {
-    handleTransportException(state);
-    cob_->requestError(std::move(state));
+  void onResponseError(folly::exception_wrapper ex) noexcept override {
+    cob_.release()->onResponseError(std::move(ex));
+    delete this;
   }
 
  private:
-  void handleTransportException(apache::thrift::ClientReceiveState& state) {
-    if (!state.isException()) {
-      return;
-    }
-    if (!state.exception()
-             .is_compatible_with<
-                 apache::thrift::transport::TTransportException>()) {
-      return;
-    }
-    if (channel_.impl_ != impl_) {
-      return;
-    }
-    channel_.impl_.reset();
-  }
-
-  ReconnectingRequestChannel& channel_;
-  ReconnectingRequestChannel::ImplPtr impl_;
-  std::unique_ptr<apache::thrift::RequestCallback> cob_;
+  ReconnectingRequestChannel::ImplPtr keepAlive_;
+  RequestClientCallback::Ptr cob_;
+  const bool oneWay_;
 };
 
-uint32_t ReconnectingRequestChannel::sendRequest(
-    apache::thrift::RpcOptions& options,
-    std::unique_ptr<apache::thrift::RequestCallback> cob,
-    std::unique_ptr<apache::thrift::ContextStack> ctx,
-    std::unique_ptr<folly::IOBuf> buf,
-    std::shared_ptr<apache::thrift::transport::THeader> header) {
-  cob = std::make_unique<RequestCallback>(*this, std::move(cob));
+class ChannelKeepAliveStream : public StreamClientCallback {
+ public:
+  ChannelKeepAliveStream(
+      ReconnectingRequestChannel::ImplPtr impl,
+      StreamClientCallback& clientCallback)
+      : keepAlive_(std::move(impl)), clientCallback_(clientCallback) {}
 
-  return impl().sendRequest(
-      options,
-      std::move(cob),
-      std::move(ctx),
-      std::move(buf),
-      std::move(header));
-}
-
-ReconnectingRequestChannel::Impl& ReconnectingRequestChannel::impl() {
-  if (!impl_) {
-    impl_ = implCreator_(evb_);
+  bool onFirstResponse(
+      FirstResponsePayload&& firstResponsePayload,
+      folly::EventBase* evb,
+      StreamServerCallback* serverCallback) override {
+    SCOPE_EXIT { delete this; };
+    serverCallback->resetClientCallback(clientCallback_);
+    return clientCallback_.onFirstResponse(
+        std::move(firstResponsePayload), evb, serverCallback);
+  }
+  void onFirstResponseError(folly::exception_wrapper ew) override {
+    SCOPE_EXIT { delete this; };
+    return clientCallback_.onFirstResponseError(std::move(ew));
   }
 
-  return *impl_;
+  virtual bool onStreamNext(StreamPayload&&) override { std::terminate(); }
+  virtual void onStreamError(folly::exception_wrapper) override {
+    std::terminate();
+  }
+  virtual void onStreamComplete() override { std::terminate(); }
+  void resetServerCallback(StreamServerCallback&) override { std::terminate(); }
+
+ private:
+  ReconnectingRequestChannel::ImplPtr keepAlive_;
+  StreamClientCallback& clientCallback_;
+};
+} // namespace
+
+void ReconnectingRequestChannel::sendRequestResponse(
+    const RpcOptions& options,
+    ManagedStringView&& methodName,
+    SerializedRequest&& request,
+    std::shared_ptr<transport::THeader> header,
+    RequestClientCallback::Ptr cob) {
+  reconnectIfNeeded();
+  cob = RequestClientCallback::Ptr(
+      new ChannelKeepAlive(impl_, std::move(cob), false));
+
+  return impl_->sendRequestResponse(
+      options,
+      std::move(methodName),
+      std::move(request),
+      std::move(header),
+      std::move(cob));
 }
+
+void ReconnectingRequestChannel::sendRequestNoResponse(
+    const RpcOptions& options,
+    ManagedStringView&& methodName,
+    SerializedRequest&& request,
+    std::shared_ptr<transport::THeader> header,
+    RequestClientCallback::Ptr cob) {
+  reconnectIfNeeded();
+  cob = RequestClientCallback::Ptr(
+      new ChannelKeepAlive(impl_, std::move(cob), true));
+
+  return impl_->sendRequestNoResponse(
+      options,
+      std::move(methodName),
+      std::move(request),
+      std::move(header),
+      std::move(cob));
+}
+
+void ReconnectingRequestChannel::sendRequestStream(
+    const RpcOptions& options,
+    ManagedStringView&& methodName,
+    SerializedRequest&& request,
+    std::shared_ptr<transport::THeader> header,
+    StreamClientCallback* cob) {
+  reconnectIfNeeded();
+  cob = new ChannelKeepAliveStream(impl_, *cob);
+
+  return impl_->sendRequestStream(
+      options,
+      std::move(methodName),
+      std::move(request),
+      std::move(header),
+      cob);
+}
+
+void ReconnectingRequestChannel::reconnectIfNeeded() {
+  if (!impl_ || !impl_->good()) {
+    impl_ = implCreator_(evb_);
+  }
+}
+
 } // namespace thrift
 } // namespace apache

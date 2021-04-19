@@ -1,8 +1,9 @@
 {
+  "__fbthrift": {"@generated": 0},
   "thrift_module" : "transitive",
   "constants" : {
     "ExampleFoo" : {
-      "lineno" : 7,
+      "lineno" : 23,
       "value" : { "a" : 2 },
       "type_enum" : "STRUCT",
       "spec_args" : "Foo"
@@ -10,7 +11,7 @@
   },
   "structs" : {
     "Foo" : {
-      "lineno" : 3,
+      "lineno" : 19,
       "is_exception" : false,
       "is_union" : false,
       "fields" : {
@@ -20,7 +21,8 @@
           "required" : true,
           "default_value" : 2
         }
-      }
+      },
+      "annotation_last_lineno" : -1
     }
   }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@
 
 #include <memory>
 
+#include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/async/HeaderServerChannel.h>
 
@@ -30,9 +31,7 @@ class DuplexChannel {
    public:
     enum WhoEnum { UNKNOWN, CLIENT, SERVER };
     explicit Who(WhoEnum who = UNKNOWN) : who_(who) {}
-    void set(WhoEnum who) {
-      who_ = who;
-    }
+    void set(WhoEnum who) { who_ = who; }
     WhoEnum get() const {
       DCHECK(who_ != UNKNOWN);
       return who_;
@@ -48,7 +47,7 @@ class DuplexChannel {
 
   explicit DuplexChannel(
       Who::WhoEnum mainChannel,
-      const std::shared_ptr<async::TAsyncTransport>& transport);
+      const std::shared_ptr<folly::AsyncTransport>& transport);
 
   ~DuplexChannel() {
     clientChannel_->duplex_ = nullptr;
@@ -63,16 +62,13 @@ class DuplexChannel {
     return serverChannel_;
   }
 
-  std::shared_ptr<Cpp2Channel> getCpp2Channel() {
-    return cpp2Channel_;
-  }
+  std::shared_ptr<Cpp2Channel> getCpp2Channel() { return cpp2Channel_; }
 
  private:
   class DuplexClientChannel : public HeaderClientChannel {
    public:
     DuplexClientChannel(
-        DuplexChannel& duplex,
-        const std::shared_ptr<Cpp2Channel>& cpp2Channel)
+        DuplexChannel& duplex, const std::shared_ptr<Cpp2Channel>& cpp2Channel)
         : HeaderClientChannel(cpp2Channel), duplex_(&duplex) {}
     void sendMessage(
         Cpp2Channel::SendCallback* callback,
@@ -98,8 +94,7 @@ class DuplexChannel {
   class DuplexServerChannel : public HeaderServerChannel {
    public:
     DuplexServerChannel(
-        DuplexChannel& duplex,
-        const std::shared_ptr<Cpp2Channel>& cpp2Channel)
+        DuplexChannel& duplex, const std::shared_ptr<Cpp2Channel>& cpp2Channel)
         : HeaderServerChannel(cpp2Channel), duplex_(&duplex) {}
     void sendMessage(
         Cpp2Channel::SendCallback* callback,
@@ -126,15 +121,9 @@ class DuplexChannel {
    public:
     DuplexCpp2Channel(
         Who::WhoEnum duplex_main_channel,
-        const std::shared_ptr<async::TAsyncTransport>& transport,
-        std::unique_ptr<FramingHandler> framingHandler,
-        std::unique_ptr<ProtectionHandler> protectionHandler,
-        std::unique_ptr<SaslNegotiationHandler> saslNegotiationHandler)
-        : Cpp2Channel(
-              transport,
-              std::move(framingHandler),
-              std::move(protectionHandler),
-              std::move(saslNegotiationHandler)),
+        const std::shared_ptr<folly::AsyncTransport>& transport,
+        std::unique_ptr<FramingHandler> framingHandler)
+        : Cpp2Channel(transport, std::move(framingHandler)),
           duplexMainChannel_(duplex_main_channel),
           client_(nullptr),
           server_(nullptr) {}
@@ -202,96 +191,6 @@ class DuplexChannel {
     DuplexChannel& duplex_;
 
     FramingHandler& getHandler(DuplexChannel::Who::WhoEnum who);
-  };
-
-  class DuplexProtectionHandler : public ProtectionHandler {
-   public:
-    explicit DuplexProtectionHandler(DuplexChannel& duplex)
-        : ProtectionHandler(), duplex_(duplex) {}
-
-    void protectionStateChanged() override {
-      if (getProtectionState() != ProtectionState::VALID) {
-        return;
-      }
-
-      CLIENT_TYPE srcClientType;
-      std::bitset<CLIENT_TYPES_LEN> supportedClients;
-
-      switch (duplex_.mainChannel_.get()) {
-        case Who::CLIENT:
-          srcClientType = duplex_.clientChannel_->getClientType();
-          supportedClients[srcClientType] = true;
-          duplex_.serverChannel_->setSupportedClients(&supportedClients);
-          duplex_.serverChannel_->setClientType(srcClientType);
-          break;
-        case Who::SERVER:
-          srcClientType = duplex_.serverChannel_->getClientType();
-          supportedClients[srcClientType] = true;
-          duplex_.clientChannel_->setSupportedClients(&supportedClients);
-          duplex_.clientChannel_->setClientType(srcClientType);
-          break;
-        case Who::UNKNOWN:
-          CHECK(false);
-      }
-
-      if (getContext() && !inputQueue_.empty()) {
-        read(getContext(), inputQueue_);
-      }
-    }
-
-   private:
-    DuplexChannel& duplex_;
-  };
-
-  class DuplexSaslNegotiationHandler : public SaslNegotiationHandler {
-   public:
-    explicit DuplexSaslNegotiationHandler(DuplexChannel& duplex)
-        : SaslNegotiationHandler(), duplex_(duplex) {}
-
-    void read(
-        Context* ctx,
-        std::pair<
-            std::unique_ptr<folly::IOBuf>,
-            std::unique_ptr<apache::thrift::transport::THeader>> bufAndHeader)
-        override {
-      if (!serverHandler_) {
-        initializeHandlers(*(duplex_.getServerChannel()));
-      }
-
-      switch (duplex_.mainChannel_.get()) {
-        case Who::CLIENT:
-          clientHandler_->read(ctx, std::move(bufAndHeader));
-          break;
-        case Who::SERVER:
-          serverHandler_->read(ctx, std::move(bufAndHeader));
-          break;
-        case Who::UNKNOWN:
-          CHECK(false);
-      }
-    }
-
-    bool handleSecurityMessage(
-        std::unique_ptr<folly::IOBuf>&&,
-        std::unique_ptr<apache::thrift::transport::THeader>&&) override {
-      return false;
-    }
-
-    void initializeHandlers(HeaderServerChannel& serverChannel) {
-      serverHandler_ =
-          std::make_unique<HeaderServerChannel::ServerSaslNegotiationHandler>(
-              serverChannel);
-      serverHandler_->setProtectionHandler(
-          duplex_.getCpp2Channel()->getProtectionHandler());
-      clientHandler_ = std::make_unique<DummySaslNegotiationHandler>();
-      clientHandler_->setProtectionHandler(
-          duplex_.getCpp2Channel()->getProtectionHandler());
-    }
-
-   private:
-    DuplexChannel& duplex_;
-    std::unique_ptr<HeaderServerChannel::ServerSaslNegotiationHandler>
-        serverHandler_{nullptr};
-    std::unique_ptr<DummySaslNegotiationHandler> clientHandler_{nullptr};
   };
 };
 

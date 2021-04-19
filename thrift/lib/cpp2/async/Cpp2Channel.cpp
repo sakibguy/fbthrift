@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,6 @@
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp/concurrency/Util.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
-#include <thrift/lib/cpp2/async/PcapLoggingHandler.h>
 
 using folly::IOBuf;
 using folly::IOBufQueue;
@@ -33,44 +32,24 @@ using namespace folly::io;
 using namespace apache::thrift::transport;
 using folly::EventBase;
 using namespace apache::thrift::concurrency;
-using apache::thrift::async::TAsyncTransport;
 
 namespace apache {
 namespace thrift {
 
 Cpp2Channel::Cpp2Channel(
-    const std::shared_ptr<TAsyncTransport>& transport,
-    std::unique_ptr<FramingHandler> framingHandler,
-    std::unique_ptr<ProtectionHandler> protectionHandler,
-    std::unique_ptr<SaslNegotiationHandler> saslNegotiationHandler)
+    const std::shared_ptr<folly::AsyncTransport>& transport,
+    std::unique_ptr<FramingHandler> framingHandler)
     : transport_(transport),
+      evb_(transport->getEventBase()),
       recvCallback_(nullptr),
       eofInvoked_(false),
       outputBufferingHandler_(
           std::make_shared<wangle::OutputBufferingHandler>()),
-      protectionHandler_(std::move(protectionHandler)),
-      framingHandler_(std::move(framingHandler)),
-      saslNegotiationHandler_(std::move(saslNegotiationHandler)) {
-  if (!protectionHandler_) {
-    protectionHandler_.reset(new ProtectionHandler);
-  }
-  framingHandler_->setProtectionHandler(protectionHandler_.get());
-
-  if (!saslNegotiationHandler_) {
-    saslNegotiationHandler_ = std::make_unique<DummySaslNegotiationHandler>();
-  }
-  saslNegotiationHandler_->setProtectionHandler(protectionHandler_.get());
-  auto pcapLoggingHandler = std::make_shared<PcapLoggingHandler>([this] {
-    return protectionHandler_->getProtectionState() ==
-        ProtectionHandler::ProtectionState::VALID;
-  });
+      framingHandler_(std::move(framingHandler)) {
   pipeline_ = Pipeline::create(
       TAsyncTransportHandler(transport),
       outputBufferingHandler_,
-      protectionHandler_,
-      pcapLoggingHandler,
       framingHandler_,
-      saslNegotiationHandler_,
       this);
   // Let the pipeline know that this handler owns the pipeline itself.
   // The pipeline will then avoid destruction order issues.
@@ -112,17 +91,19 @@ void Cpp2Channel::destroy() {
 }
 
 void Cpp2Channel::attachEventBase(EventBase* eventBase) {
+  evb_ = eventBase;
   transportHandler_->attachEventBase(eventBase);
 }
 
 void Cpp2Channel::detachEventBase() {
   getEventBase()->dcheckIsInEventBaseThread();
+  evb_ = nullptr;
   outputBufferingHandler_->cleanUp();
   transportHandler_->detachEventBase();
 }
 
 EventBase* Cpp2Channel::getEventBase() {
-  return transport_->getEventBase();
+  return evb_;
 }
 
 void Cpp2Channel::read(
@@ -131,24 +112,13 @@ void Cpp2Channel::read(
         bufAndHeader) {
   DestructorGuard dg(this);
 
-  if (recvCallback_ && recvCallback_->shouldSample() && !sample_) {
-    sample_.reset(new RecvCallback::sample);
-    sample_->readBegin = Util::currentTimeUsec();
-  }
-
   if (!recvCallback_) {
     VLOG(5) << "Received a message, but no recvCallback_ installed!";
     return;
   }
 
-  if (sample_) {
-    sample_->readEnd = Util::currentTimeUsec();
-  }
-
   recvCallback_->messageReceived(
-      std::move(bufAndHeader.first),
-      std::move(bufAndHeader.second),
-      std::move(sample_));
+      std::move(bufAndHeader.first), std::move(bufAndHeader.second));
 }
 
 void Cpp2Channel::readEOF(Context*) {
@@ -169,15 +139,14 @@ void Cpp2Channel::writeSuccess() noexcept {
 
   DestructorGuard dg(this);
   auto* cb = sendCallbacks_.front();
+  sendCallbacks_.pop_front();
   if (cb) {
     cb->messageSent();
   }
-  sendCallbacks_.pop_front();
 }
 
 void Cpp2Channel::writeError(
-    size_t /* bytesWritten */,
-    const TTransportException& ex) noexcept {
+    size_t /* bytesWritten */, const TTransportException& ex) noexcept {
   assert(sendCallbacks_.size() > 0);
 
   // Pop last write request, call error callback
@@ -185,15 +154,15 @@ void Cpp2Channel::writeError(
   DestructorGuard dg(this);
   VLOG(5) << "Got a write error: " << folly::exceptionStr(ex);
   auto* cb = sendCallbacks_.front();
+  sendCallbacks_.pop_front();
   if (cb) {
     cb->messageSendError(
         folly::make_exception_wrapper<TTransportException>(ex));
   }
-  sendCallbacks_.pop_front();
 }
 
 void Cpp2Channel::processReadEOF() noexcept {
-  transport_->setReadCallback(nullptr);
+  transport_->setReadCB(nullptr);
 
   VLOG(5) << "Got an EOF on channel";
   if (recvCallback_ && !eofInvoked_) {
@@ -229,7 +198,7 @@ void Cpp2Channel::sendMessage(
   DestructorGuard dg(this);
 
   auto future = pipeline_->write(std::make_pair(std::move(buf), header));
-  future.then([this, dg](folly::Try<folly::Unit>&& t) {
+  std::move(future).thenTry([this, dg](folly::Try<folly::Unit>&& t) {
     if (t.withException<TTransportException>(
             [&](const TTransportException& ex) { writeError(0, ex); }) ||
         t.withException<std::exception>([&](const std::exception& ex) {
@@ -251,7 +220,7 @@ void Cpp2Channel::setReceiveCallback(RecvCallback* callback) {
   recvCallback_ = callback;
 
   if (!transport_->good()) {
-    transport_->setReadCallback(nullptr);
+    transport_->setReadCB(nullptr);
     return;
   }
 
@@ -259,6 +228,15 @@ void Cpp2Channel::setReceiveCallback(RecvCallback* callback) {
     transportHandler_->attachReadCallback();
   } else {
     transportHandler_->detachReadCallback();
+  }
+
+  // Transport might have gotten into a bad state (e.g., closed) while attaching
+  // the read callback, which itself may have tried immediately reading from the
+  // transport.
+  // Note also that the call to attachReadCallback() may have indirectly stolen
+  // transport_, which we must guard against.
+  if (transport_ && !transport_->good()) {
+    throw TTransportException("Channel is !good()");
   }
 }
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,8 +16,16 @@
 
 #include <thrift/compiler/generate/common.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
+#include <regex>
+#include <stdexcept>
 #include <string>
 #include <vector>
+
+namespace apache {
+namespace thrift {
+namespace compiler {
 
 std::vector<std::string> split_namespace(const std::string& s) {
   std::string token = ".";
@@ -37,20 +45,30 @@ std::vector<std::string> split_namespace(const std::string& s) {
   return output;
 }
 
-void escape_quotes_cpp(std::string& s) {
-  std::string token = "\"";
-  std::string::size_type last_match = 0;
-  std::string::size_type next_match = s.find(token);
-  while (next_match != std::string::npos) {
-    s.replace(next_match, token.length(), "\\\"");
-    last_match = next_match + 2;
-    next_match = s.find(token, last_match);
+void strip_cpp_comments_and_newlines(std::string& s) {
+  // strip c-style comments
+  auto fr = s.find("/*");
+  while (fr != std::string::npos) {
+    auto to = s.find("*/", fr + 2);
+    if (to == std::string::npos) {
+      throw std::runtime_error{"no matching */ for annotation comments"};
+    }
+    s.erase(fr, to - fr + 2);
+    fr = s.find("/*", fr);
   }
+  // strip cpp-style comments
+  s.replace(
+      s.begin(),
+      s.end(),
+      std::regex_replace(
+          s,
+          std::regex("//.*(?=$|\\n)"), /* simulate multiline regex */
+          ""));
+
+  // strip newlines
+  boost::algorithm::replace_all(s, "\n", " ");
 }
 
-void trim_whitespace(std::string& s) {
-  std::string token = " ";
-  s.erase(0, s.find_first_not_of(token));
-  s.erase(s.find_last_not_of(token) + 1);
-  return;
-}
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

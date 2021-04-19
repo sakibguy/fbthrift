@@ -12,6 +12,7 @@
 #include <folly/futures/Promise.h>
 #include <folly/Unit.h>
 #include <thrift/lib/py3/clientcallbacks.h>
+#include <thrift/lib/py3/client_wrapper.h>
 
 #include <cstdint>
 #include <functional>
@@ -22,28 +23,18 @@
 
 namespace cpp2 {
 
-class MyServiceClientWrapper {
-  protected:
-    std::shared_ptr<cpp2::MyServiceAsyncClient> async_client;
-    std::shared_ptr<apache::thrift::RequestChannel> channel_;
+class MyServiceClientWrapper : public ::thrift::py3::ClientWrapper {
   public:
-    explicit MyServiceClientWrapper(
-      std::shared_ptr<cpp2::MyServiceAsyncClient> async_client,
-      std::shared_ptr<apache::thrift::RequestChannel> channel);
-    virtual ~MyServiceClientWrapper();
-
-    folly::Future<folly::Unit> disconnect();
-    void disconnectInLoop();
-    void setPersistentHeader(const std::string& key, const std::string& value);
+    using ::thrift::py3::ClientWrapper::ClientWrapper;
 
     folly::Future<folly::Unit> query(
       apache::thrift::RpcOptions& rpcOptions,
-      cpp2::MyStruct arg_s,
-      cpp2::Included arg_i);
+      ::cpp2::MyStruct arg_s,
+      ::cpp2::Included arg_i);
     folly::Future<folly::Unit> has_arg_docs(
       apache::thrift::RpcOptions& rpcOptions,
-      cpp2::MyStruct arg_s,
-      cpp2::Included arg_i);
+      ::cpp2::MyStruct arg_s,
+      ::cpp2::Included arg_i);
 };
 
 

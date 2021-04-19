@@ -11,12 +11,11 @@ import com.facebook.swift.codec.*;
 import com.google.common.collect.*;
 import java.util.*;
 
-public final class Constants
-{
-    private Constants() {
-    }
+@SwiftGenerated
+public final class Constants {
+    private Constants() {}
 
-    public static final test.fixtures.includes.includes.Included ExampleIncluded = ;
+    public static final test.fixtures.includes.includes.Included EXAMPLE_INCLUDED = new test.fixtures.includes.includes.Included.Builder().setMyIntField(2L).setMyTransitiveField(test.fixtures.includes.transitive.Constants.EXAMPLE_FOO).build();
 
-    public static final long IncludedConstant = 42L;
+    public static final long INCLUDED_CONSTANT = 42L;
 }

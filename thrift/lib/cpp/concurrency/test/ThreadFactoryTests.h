@@ -1,38 +1,43 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+#include <cassert>
+#include <chrono>
+#include <condition_variable>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <set>
+
+#include <glog/logging.h>
+
 #include <folly/portability/Unistd.h>
+
+#include <thrift/lib/cpp/concurrency/Exception.h>
 #include <thrift/lib/cpp/concurrency/InitThreadFactory.h>
-#include <thrift/lib/cpp/concurrency/Monitor.h>
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
 #include <thrift/lib/cpp/concurrency/Thread.h>
 #include <thrift/lib/cpp/concurrency/Util.h>
 #include <thrift/lib/cpp/thrift_config.h>
 
-#include <assert.h>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <set>
-
-namespace apache { namespace thrift { namespace concurrency { namespace test {
+namespace apache {
+namespace thrift {
+namespace concurrency {
+namespace test {
 
 using std::shared_ptr;
 using namespace apache::thrift::concurrency;
@@ -43,27 +48,20 @@ using namespace apache::thrift::concurrency;
  * @version $Id:$
  */
 class ThreadFactoryTests {
-
-public:
-
+ public:
   static const double ERROR;
 
-  class Task: public Runnable {
-
-  public:
-
+  class Task : public Runnable {
+   public:
     Task() {}
 
     void run() override { std::cout << "\t\t\tHello World" << std::endl; }
-
   };
 
   class LambdaTask : public Runnable {
    public:
     LambdaTask(std::function<void()>&& lambda) : lambda_(std::move(lambda)) {}
-    void run() override {
-      lambda_();
-    }
+    void run() override { lambda_(); }
 
    private:
     std::function<void()> lambda_;
@@ -73,7 +71,6 @@ public:
    * Hello world test
    */
   bool helloWorldTest() {
-
     PosixThreadFactory threadFactory = PosixThreadFactory();
 
     shared_ptr<Task> task = shared_ptr<Task>(new ThreadFactoryTests::Task());
@@ -89,29 +86,25 @@ public:
     return true;
   }
 
-  class RecordIdTask: public Runnable {
-
-  public:
-
-    explicit RecordIdTask(ThreadFactory* factory): factory_(factory) {}
+  class RecordIdTask : public Runnable {
+   public:
+    explicit RecordIdTask(ThreadFactory* factory) : factory_(factory) {}
 
     void run() override { id = factory_->getCurrentThreadId(); }
 
     Thread::id_t id;
     ThreadFactory* factory_;
-
   };
 
   /**
    * getCurrentThreadId test
    */
   bool getCurrentThreadIdTest() {
-
     PosixThreadFactory threadFactory = PosixThreadFactory();
     threadFactory.setDetached(false);
 
-    shared_ptr<RecordIdTask> task = shared_ptr<RecordIdTask>(
-      new RecordIdTask(&threadFactory));
+    shared_ptr<RecordIdTask> task =
+        shared_ptr<RecordIdTask>(new RecordIdTask(&threadFactory));
 
     shared_ptr<Thread> thread = threadFactory.newThread(task);
 
@@ -121,7 +114,7 @@ public:
 
     thread->join();
 
-    assert(id == task->id);
+    DCHECK(id == task->id);
 
     std::cout << "\t\t\tSuccess!" << std::endl;
 
@@ -131,69 +124,72 @@ public:
   /**
    * Reap N threads
    */
-  class ReapNTask: public Runnable {
-
+  class ReapNTask : public Runnable {
    public:
-
-    ReapNTask(Monitor& monitor, int& activeCount) :
-      _monitor(monitor),
-      _count(activeCount) {}
+    ReapNTask(
+        std::mutex& mutex, std::condition_variable& cond, int& activeCount)
+        : _mutex(mutex), _cond(cond), _count(activeCount) {}
 
     void run() override {
-      Synchronized s(_monitor);
+      std::unique_lock<std::mutex> l(_mutex);
 
       _count--;
 
-      //std::cout << "\t\t\tthread count: " << _count << std::endl;
+      // std::cout << "\t\t\tthread count: " << _count << std::endl;
 
       if (_count == 0) {
-        _monitor.notify();
+        _cond.notify_one();
       }
     }
 
-    Monitor& _monitor;
+    std::mutex& _mutex;
+    std::condition_variable& _cond;
 
     int& _count;
   };
 
-  bool reapNThreads(int loop=1, int count=10) {
+  bool reapNThreads(int loop = 1, int count = 10) {
+    PosixThreadFactory threadFactory = PosixThreadFactory();
 
-    PosixThreadFactory threadFactory =  PosixThreadFactory();
+    std::mutex* mutex = new std::mutex();
+    std::condition_variable* cond = new std::condition_variable();
 
-    Monitor* monitor = new Monitor();
+    for (int lix = 0; lix < loop; lix++) {
+      int* activeCount = new int(count);
 
-    for(int lix = 0; lix < loop; lix++) {
-
-      int* activeCount  = new int(count);
-
-      std::set<shared_ptr<Thread> > threads;
+      std::set<shared_ptr<Thread>> threads;
 
       int tix;
 
       for (tix = 0; tix < count; tix++) {
         try {
-          threads.insert(threadFactory.newThread(shared_ptr<Runnable>(new ReapNTask(*monitor, *activeCount))));
-        } catch(SystemResourceException& e) {
-          std::cout << "\t\t\tfailed to create " << lix * count + tix << " thread " << e.what() << std::endl;
+          threads.insert(threadFactory.newThread(shared_ptr<Runnable>(
+              new ReapNTask(*mutex, *cond, *activeCount))));
+        } catch (SystemResourceException& e) {
+          std::cout << "\t\t\tfailed to create " << lix * count + tix
+                    << " thread " << e.what() << std::endl;
           throw e;
         }
       }
 
       tix = 0;
-      for (std::set<shared_ptr<Thread> >::const_iterator thread = threads.begin(); thread != threads.end(); tix++, ++thread) {
-
+      for (std::set<shared_ptr<Thread>>::const_iterator thread =
+               threads.begin();
+           thread != threads.end();
+           tix++, ++thread) {
         try {
           (*thread)->start();
-        } catch(SystemResourceException& e) {
-          std::cout << "\t\t\tfailed to start  " << lix * count + tix << " thread " << e.what() << std::endl;
+        } catch (SystemResourceException& e) {
+          std::cout << "\t\t\tfailed to start  " << lix * count + tix
+                    << " thread " << e.what() << std::endl;
           throw e;
         }
       }
 
       {
-        Synchronized s(*monitor);
+        std::unique_lock<std::mutex> l(*mutex);
         while (*activeCount > 0) {
-          monitor->wait(1000);
+          cond->wait_for(l, std::chrono::seconds(1));
         }
       }
 
@@ -205,94 +201,89 @@ public:
     return true;
   }
 
-  class SynchStartTask: public Runnable {
-
+  class SynchStartTask : public Runnable {
    public:
-
     enum STATE {
       UNINITIALIZED,
       STARTING,
       STARTED,
       STOPPING,
-      STOPPED
+      STOPPED,
     };
 
-    SynchStartTask(Monitor& monitor, volatile  STATE& state) :
-      _monitor(monitor),
-      _state(state) {}
+    SynchStartTask(
+        std::mutex& mutex, std::condition_variable& cond, volatile STATE& state)
+        : _mutex(mutex), _cond(cond), _state(state) {}
 
     void run() override {
       {
-        Synchronized s(_monitor);
+        std::unique_lock<std::mutex> l(_mutex);
         if (_state == SynchStartTask::STARTING) {
           _state = SynchStartTask::STARTED;
-          _monitor.notify();
+          _cond.notify_one();
         }
       }
 
       {
-        Synchronized s(_monitor);
+        std::unique_lock<std::mutex> l(_mutex);
         while (_state == SynchStartTask::STARTED) {
-          _monitor.wait();
+          _cond.wait(l);
         }
 
         if (_state == SynchStartTask::STOPPING) {
           _state = SynchStartTask::STOPPED;
-          _monitor.notifyAll();
+          _cond.notify_all();
         }
       }
     }
 
    private:
-    Monitor& _monitor;
-    volatile  STATE& _state;
+    std::mutex& _mutex;
+    std::condition_variable& _cond;
+    volatile STATE& _state;
   };
 
   bool synchStartTest() {
-
-    Monitor monitor;
+    std::mutex mutex;
+    std::condition_variable cond;
 
     SynchStartTask::STATE state = SynchStartTask::UNINITIALIZED;
 
-    shared_ptr<SynchStartTask> task = shared_ptr<SynchStartTask>(new SynchStartTask(monitor, state));
+    shared_ptr<SynchStartTask> task =
+        shared_ptr<SynchStartTask>(new SynchStartTask(mutex, cond, state));
 
-    PosixThreadFactory threadFactory =  PosixThreadFactory();
+    PosixThreadFactory threadFactory = PosixThreadFactory();
 
     shared_ptr<Thread> thread = threadFactory.newThread(task);
 
     if (state == SynchStartTask::UNINITIALIZED) {
-
       state = SynchStartTask::STARTING;
 
       thread->start();
     }
 
     {
-      Synchronized s(monitor);
+      std::unique_lock<std::mutex> l(mutex);
       while (state == SynchStartTask::STARTING) {
-        monitor.wait();
+        cond.wait(l);
       }
     }
 
     assert(state != SynchStartTask::STARTING);
 
     {
-      Synchronized s(monitor);
+      std::unique_lock<std::mutex> l(mutex);
 
-      try {
-          monitor.wait(100);
-      } catch(TimedOutException& e) {
-      }
+      cond.wait_for(l, std::chrono::milliseconds(100));
 
       if (state == SynchStartTask::STARTED) {
-
         state = SynchStartTask::STOPPING;
 
-        monitor.notify();
+        cond.notify_one();
       }
 
       while (state == SynchStartTask::STOPPING) {
-        monitor.wait();
+        cond.wait(l);
       }
     }
 
@@ -300,58 +291,57 @@ public:
 
     bool success = true;
 
-    std::cout << "\t\t\t" << (success ? "Success" : "Failure") << "!" << std::endl;
+    std::cout << "\t\t\t" << (success ? "Success" : "Failure") << "!"
+              << std::endl;
 
     return true;
   }
 
-  /** See how accurate monitor timeout is. */
+  /** See how accurate condition_variable timeout is. */
 
-  bool monitorTimeoutTest(size_t count=1000, int64_t timeout=10) {
-
-    Monitor monitor;
+  bool conditionVariableTimeoutTest(size_t count = 1000, int64_t timeout = 10) {
+    std::mutex mutex;
+    std::condition_variable cond;
 
     int64_t startTime = Util::currentTime();
 
     for (size_t ix = 0; ix < count; ix++) {
       {
-        Synchronized s(monitor);
-        try {
-            monitor.wait(timeout);
-        } catch(TimedOutException& e) {
-        }
+        std::unique_lock<std::mutex> l(mutex);
+        cond.wait_for(l, std::chrono::milliseconds(timeout));
       }
     }
 
     int64_t endTime = Util::currentTime();
 
-    double error = ((endTime - startTime) - (count * timeout)) / (double)(count * timeout);
+    double error =
+        ((endTime - startTime) - (count * timeout)) / (double)(count * timeout);
 
-    if (error < 0.0)  {
-
+    if (error < 0.0) {
       error *= 1.0;
     }
 
     bool success = error < ThreadFactoryTests::ERROR;
 
-    std::cout << "\t\t\t" << (success ? "Success" : "Failure") << "! expected time: " << count * timeout << "ms elapsed time: "<< endTime - startTime << "ms error%: " << error * 100.0 << std::endl;
+    std::cout << "\t\t\t" << (success ? "Success" : "Failure")
+              << "! expected time: " << count * timeout
+              << "ms elapsed time: " << endTime - startTime
+              << "ms error%: " << error * 100.0 << std::endl;
 
     return success;
   }
 
-
   class FloodTask : public Runnable {
-  public:
-
-    FloodTask(const size_t id) :_id(id) {}
+   public:
+    FloodTask(const size_t id) : _id(id) {}
     ~FloodTask() override {
-      if(_id % 1000 == 0) {
+      if (_id % 1000 == 0) {
         std::cout << "\t\tthread " << _id << " done" << std::endl;
       }
     }
 
     void run() override {
-      if(_id % 1000 == 0) {
+      if (_id % 1000 == 0) {
         std::cout << "\t\tthread " << _id << " started" << std::endl;
       }
 
@@ -360,41 +350,37 @@ public:
     const size_t _id;
   };
 
-  void foo(PosixThreadFactory* /*tf*/) {
-  }
+  void foo(PosixThreadFactory* /*tf*/) {}
 
-  bool floodNTest(size_t loop=1, size_t count=100000) {
-
+  bool floodNTest(size_t loop = 1, size_t count = 100000) {
     bool success = false;
 
-    for(size_t lix = 0; lix < loop; lix++) {
-
+    for (size_t lix = 0; lix < loop; lix++) {
       PosixThreadFactory threadFactory = PosixThreadFactory();
       threadFactory.setDetached(true);
 
-        for(size_t tix = 0; tix < count; tix++) {
+      for (size_t tix = 0; tix < count; tix++) {
+        try {
+          shared_ptr<FloodTask> task(new FloodTask(lix * count + tix));
 
-          try {
+          shared_ptr<Thread> thread = threadFactory.newThread(task);
 
-            shared_ptr<FloodTask> task(new FloodTask(lix * count + tix ));
+          thread->start();
 
-            shared_ptr<Thread> thread = threadFactory.newThread(task);
+          usleep(1);
 
-            thread->start();
+        } catch (TException& e) {
+          std::cout << "\t\t\tfailed to start  " << lix * count + tix
+                    << " thread " << e.what() << std::endl;
 
-            usleep(1);
-
-          } catch (TException& e) {
-
-            std::cout << "\t\t\tfailed to start  " << lix * count + tix << " thread " << e.what() << std::endl;
-
-            return success;
-          }
+          return success;
         }
+      }
 
-        std::cout << "\t\t\tflooded " << (lix + 1) * count << " threads" << std::endl;
+      std::cout << "\t\t\tflooded " << (lix + 1) * count << " threads"
+                << std::endl;
 
-        success = true;
+      success = true;
     }
 
     return success;
@@ -440,4 +426,7 @@ public:
 
 const double ThreadFactoryTests::ERROR = .20;
 
-}}}} // apache::thrift::concurrency::test
+} // namespace test
+} // namespace concurrency
+} // namespace thrift
+} // namespace apache

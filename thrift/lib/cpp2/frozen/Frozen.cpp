@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/lib/cpp2/frozen/Frozen.h>
 
 #include <folly/io/Cursor.h>
@@ -104,18 +105,18 @@ FieldPosition BlockLayout::maximize() {
   return pos;
 }
 
-FieldPosition
-BlockLayout::layout(LayoutRoot& root, const T& x, LayoutPosition self) {
+FieldPosition BlockLayout::layout(
+    LayoutRoot& root, const T& x, LayoutPosition self) {
   FieldPosition pos = startFieldPosition();
-  FROZEN_LAYOUT_FIELD(mask);
-  FROZEN_LAYOUT_FIELD(offset);
+  FROZEN_LAYOUT_FIELD_REQ(mask);
+  FROZEN_LAYOUT_FIELD_REQ(offset);
   return pos;
 }
 
-void BlockLayout::freeze(FreezeRoot& root, const T& x, FreezePosition self)
-    const {
-  FROZEN_FREEZE_FIELD(mask);
-  FROZEN_FREEZE_FIELD(offset);
+void BlockLayout::freeze(
+    FreezeRoot& root, const T& x, FreezePosition self) const {
+  FROZEN_FREEZE_FIELD_REQ(mask);
+  FROZEN_FREEZE_FIELD_REQ(offset);
 }
 
 void BlockLayout::print(std::ostream& os, int level) const {
@@ -132,19 +133,33 @@ void BlockLayout::clear() {
 
 size_t BufferHelpers<std::unique_ptr<folly::IOBuf>>::size(
     const std::unique_ptr<folly::IOBuf>& src) {
-  return src->computeChainDataLength();
+  return src != nullptr ? src->computeChainDataLength() : 0;
 }
 
 void BufferHelpers<std::unique_ptr<folly::IOBuf>>::copyTo(
-    const std::unique_ptr<folly::IOBuf>& src,
-    folly::MutableByteRange dst) {
-  folly::io::Cursor(src.get()).pull(dst.begin(), dst.size());
+    const std::unique_ptr<folly::IOBuf>& src, folly::MutableByteRange dst) {
+  if (src != nullptr) {
+    folly::io::Cursor(src.get()).pull(dst.begin(), dst.size());
+  }
 }
 
 void BufferHelpers<std::unique_ptr<folly::IOBuf>>::thawTo(
-    folly::ByteRange src,
-    std::unique_ptr<folly::IOBuf>& dst) {
+    folly::ByteRange src, std::unique_ptr<folly::IOBuf>& dst) {
   dst = folly::IOBuf::copyBuffer(src.begin(), src.size());
+}
+
+size_t BufferHelpers<folly::IOBuf>::size(const folly::IOBuf& src) {
+  return src.computeChainDataLength();
+}
+
+void BufferHelpers<folly::IOBuf>::copyTo(
+    const folly::IOBuf& src, folly::MutableByteRange dst) {
+  folly::io::Cursor(&src).pull(dst.begin(), dst.size());
+}
+
+void BufferHelpers<folly::IOBuf>::thawTo(
+    folly::ByteRange src, folly::IOBuf& dst) {
+  dst = folly::IOBuf(folly::IOBuf::COPY_BUFFER, src);
 }
 
 } // namespace detail

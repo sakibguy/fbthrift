@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,76 +13,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef THRIFT_EVENTHANDLERBASE_H_
 #define THRIFT_EVENTHANDLERBASE_H_ 1
 
 #include <memory>
 #include <vector>
 
+#include <folly/Range.h>
+#include <folly/SharedMutex.h>
+
 #include <thrift/lib/cpp/ContextStack.h>
-#include <thrift/lib/cpp/concurrency/Mutex.h>
 
 namespace apache {
 namespace thrift {
 
 class EventHandlerBase {
  public:
-  EventHandlerBase()
-      : handlers_(std::make_shared<
-                  std::vector<std::shared_ptr<TProcessorEventHandler>>>()),
-        setEventHandlerPos_(-1) {}
+  void addEventHandler(const std::shared_ptr<TProcessorEventHandler>& handler);
 
-  void addEventHandler(const std::shared_ptr<TProcessorEventHandler>& handler) {
-    handlers_->push_back(handler);
-  }
+  void clearEventHandlers() { handlers_.reset(); }
 
-  void clearEventHandlers() {
-    handlers_->clear();
-    setEventHandlerPos_ = -1;
-    if (eventHandler_) {
-      setEventHandler(eventHandler_);
-    }
-  }
+  folly::Range<std::shared_ptr<TProcessorEventHandler>*> getEventHandlers()
+      const;
 
-  std::shared_ptr<TProcessorEventHandler> getEventHandler() {
-    return eventHandler_;
-  }
-
-  std::vector<std::shared_ptr<TProcessorEventHandler>>& getEventHandlers() {
-    return *handlers_;
-  }
-
-  void setEventHandler(std::shared_ptr<TProcessorEventHandler> eventHandler) {
-    eventHandler_ = eventHandler;
-    if (setEventHandlerPos_ > 0) {
-      handlers_->erase(handlers_->begin() + setEventHandlerPos_);
-    }
-    setEventHandlerPos_ = handlers_->size();
-    handlers_->push_back(eventHandler);
-  }
-
- protected:
   std::unique_ptr<ContextStack> getContextStack(
       const char* service_name,
       const char* fn_name,
       server::TConnectionContext* connectionContext) {
-    std::unique_ptr<ContextStack> ctx(
-        new ContextStack(handlers_, service_name, fn_name, connectionContext));
-    return ctx;
+    return std::make_unique<ContextStack>(
+        handlers_, service_name, fn_name, connectionContext);
   }
 
- public:
+ protected:
+  ~EventHandlerBase() = default;
+
   std::shared_ptr<std::vector<std::shared_ptr<TProcessorEventHandler>>>
       handlers_;
-  std::shared_ptr<TProcessorEventHandler> eventHandler_;
-
- private:
-  int setEventHandlerPos_;
 };
 
 class TProcessorEventHandlerFactory {
  public:
-  virtual ~TProcessorEventHandlerFactory() {}
+  virtual ~TProcessorEventHandlerFactory() = default;
   virtual std::shared_ptr<TProcessorEventHandler> getEventHandler() = 0;
 };
 
@@ -100,8 +72,11 @@ class TProcessorBase : public EventHandlerBase {
   static void removeProcessorEventHandlerFactory(
       std::shared_ptr<TProcessorEventHandlerFactory> factory);
 
+ protected:
+  ~TProcessorBase() = default;
+
  private:
-  static concurrency::ReadWriteMutex& getRWMutex();
+  static folly::SharedMutex& getRWMutex();
 
   static std::vector<std::shared_ptr<TProcessorEventHandlerFactory>>&
   getFactories();
@@ -114,8 +89,7 @@ class TProcessorBase : public EventHandlerBase {
 class TClientBase : public EventHandlerBase {
  public:
   TClientBase();
-
-  virtual ~TClientBase() {}
+  virtual ~TClientBase() = default;
 
   static void addClientEventHandlerFactory(
       std::shared_ptr<TProcessorEventHandlerFactory> factory);
@@ -124,7 +98,7 @@ class TClientBase : public EventHandlerBase {
       std::shared_ptr<TProcessorEventHandlerFactory> factory);
 
  private:
-  static concurrency::ReadWriteMutex& getRWMutex();
+  static folly::SharedMutex& getRWMutex();
 
   static std::vector<std::shared_ptr<TProcessorEventHandlerFactory>>&
   getFactories();

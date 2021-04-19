@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 
 #include <proxygen/httpserver/HTTPServerOptions.h>
 #include <thrift/lib/cpp2/transport/core/testutil/TransportCompatibilityTest.h>
 #include <thrift/lib/cpp2/transport/http2/common/HTTP2RoutingHandler.h>
-
-DECLARE_uint32(force_channel_version);
-DECLARE_string(transport);
+#include <thrift/lib/cpp2/transport/util/ConnectionThread.h>
 
 namespace apache {
 namespace thrift {
-
-using proxygen::RequestHandlerChain;
 
 std::unique_ptr<HTTP2RoutingHandler> createHTTP2RoutingHandler(
     ThriftServer* server) {
@@ -39,27 +35,10 @@ std::unique_ptr<HTTP2RoutingHandler> createHTTP2RoutingHandler(
       std::move(h2_options), server->getThriftProcessor(), *server);
 }
 
-// Only these two channel types are compatible with legacy.
-enum ChannelType {
-  Default,
-  SingleRPC,
-};
-
-class LegacyCompatibilityTest
-    : public testing::Test,
-      public testing::WithParamInterface<ChannelType> {
+class LegacyCompatibilityTest : public testing::Test {
  public:
   LegacyCompatibilityTest() {
     FLAGS_transport = "legacy-http2"; // client's transport
-    switch (GetParam()) {
-      case Default:
-        // Default behavior is to let the negotiation happen as normal.
-        FLAGS_force_channel_version = 0;
-        break;
-      case SingleRPC:
-        FLAGS_force_channel_version = 1;
-        break;
-    }
 
     compatibilityTest_ = std::make_unique<TransportCompatibilityTest>();
     compatibilityTest_->addRoutingHandler(
@@ -71,18 +50,13 @@ class LegacyCompatibilityTest
   std::unique_ptr<TransportCompatibilityTest> compatibilityTest_;
 };
 
-TEST_P(LegacyCompatibilityTest, RequestResponse_Sync) {
+TEST_F(LegacyCompatibilityTest, RequestResponse_Sync) {
   compatibilityTest_->TestRequestResponse_Sync();
 }
 
-TEST_P(LegacyCompatibilityTest, RequestResponse_ResponseSizeTooBig) {
+TEST_F(LegacyCompatibilityTest, RequestResponse_ResponseSizeTooBig) {
   compatibilityTest_->TestRequestResponse_ResponseSizeTooBig();
 }
-
-INSTANTIATE_TEST_CASE_P(
-    WithAndWithoutMetadataInBody,
-    LegacyCompatibilityTest,
-    testing::Values(ChannelType::Default, ChannelType::SingleRPC));
 
 } // namespace thrift
 } // namespace apache

@@ -1,36 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_TEST_LOADGEN_WORKER_H_
 #define THRIFT_TEST_LOADGEN_WORKER_H_ 1
 
 #include <thrift/lib/cpp/test/loadgen/WorkerIf.h>
 
+#include <thrift/lib/cpp/TLogging.h>
+#include <thrift/lib/cpp/concurrency/Util.h>
 #include <thrift/lib/cpp/test/loadgen/IntervalTimer.h>
 #include <thrift/lib/cpp/test/loadgen/LoadConfig.h>
 #include <thrift/lib/cpp/test/loadgen/ScoreBoard.h>
-#include <thrift/lib/cpp/concurrency/Util.h>
-#include <thrift/lib/cpp/TLogging.h>
 
-#include <boost/noncopyable.hpp>
 #include <memory>
 
-namespace apache { namespace thrift { namespace loadgen {
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
 /**
  * Main Worker implementation
@@ -46,7 +45,7 @@ namespace apache { namespace thrift { namespace loadgen {
  * from LoadConfig.
  */
 template <typename ClientT, typename ConfigT = LoadConfig>
-class Worker : public WorkerIf, public boost::noncopyable {
+class Worker : public WorkerIf {
  public:
   typedef ClientT ClientType;
   typedef ConfigT ConfigType;
@@ -59,11 +58,14 @@ class Worker : public WorkerIf, public boost::noncopyable {
   };
 
   Worker()
-    : id_(-1)
-    , alive_(false)
-    , intervalTimer_(nullptr)
-    , config_()
-    , scoreboard_() {}
+      : id_(-1),
+        alive_(false),
+        intervalTimer_(nullptr),
+        config_(),
+        scoreboard_() {}
+
+  Worker(const Worker&) = delete;
+  Worker& operator=(const Worker&) = delete;
 
   /**
    * Initialize the Worker.
@@ -77,10 +79,11 @@ class Worker : public WorkerIf, public boost::noncopyable {
    * specific initialization after the config object has been set, it can
    * override init().
    */
-  void init(int id,
-            const std::shared_ptr<ConfigT>& config,
-            const std::shared_ptr<ScoreBoard>& scoreboard,
-            IntervalTimer* itimer) {
+  void init(
+      int id,
+      const std::shared_ptr<ConfigT>& config,
+      const std::shared_ptr<ScoreBoard>& scoreboard,
+      IntervalTimer* itimer) {
     assert(id_ == -1);
     assert(!config_);
     id_ = id;
@@ -92,9 +95,7 @@ class Worker : public WorkerIf, public boost::noncopyable {
 
   ~Worker() override {}
 
-  int getID() const {
-    return id_;
-  }
+  int getID() const { return id_; }
 
   /**
    * Create a new connection to the server.
@@ -108,8 +109,8 @@ class Worker : public WorkerIf, public boost::noncopyable {
    *
    * Subclasses must implement this method.
    */
-  virtual void performOperation(const std::shared_ptr<ClientT>& client,
-                                uint32_t opType) = 0;
+  virtual void performOperation(
+      const std::shared_ptr<ClientT>& client, uint32_t opType) = 0;
 
   /**
    * Determine how to handle an exception raised by createConnection().
@@ -118,8 +119,11 @@ class Worker : public WorkerIf, public boost::noncopyable {
    * Subclasses may override this function to provide alternate behavior.
    */
   virtual ErrorAction handleConnError(const std::exception& ex) {
-    T_ERROR("worker %d caught %s exception while connecting: %s",
-            id_, typeid(ex).name(), ex.what());
+    T_ERROR(
+        "worker %d caught %s exception while connecting: %s",
+        id_,
+        typeid(ex).name(),
+        ex.what());
     return EA_ABORT;
   }
 
@@ -131,9 +135,12 @@ class Worker : public WorkerIf, public boost::noncopyable {
    * alternate behavior.
    */
   virtual ErrorAction handleOpError(uint32_t opType, const std::exception& ex) {
-    T_ERROR("worker %d caught %s exception performing operation %s: %s",
-            id_, typeid(ex).name(), config_->getOpName(opType).c_str(),
-            ex.what());
+    T_ERROR(
+        "worker %d caught %s exception performing operation %s: %s",
+        id_,
+        typeid(ex).name(),
+        config_->getOpName(opType).c_str(),
+        ex.what());
     return EA_NEXT_CONNECTION;
   }
 
@@ -144,9 +151,7 @@ class Worker : public WorkerIf, public boost::noncopyable {
    * store a subclass of LoadConfig, and retrieve it without having to cast it
    * back to the subclass type.)
    */
-  const std::shared_ptr<ConfigT>& getConfig() const {
-    return config_;
-  }
+  const std::shared_ptr<ConfigT>& getConfig() const { return config_; }
 
   /**
    * The main worker method.
@@ -174,8 +179,10 @@ class Worker : public WorkerIf, public boost::noncopyable {
           T_ERROR("worker %d causing abort after connection error", id_);
           abort();
         } else {
-          T_ERROR("worker %d received unknown conn error action %d; aborting",
-                  id_, action);
+          T_ERROR(
+              "worker %d received unknown conn error action %d; aborting",
+              id_,
+              action);
           abort();
         }
       }
@@ -185,7 +192,7 @@ class Worker : public WorkerIf, public boost::noncopyable {
 
       // Perform operations on the connection
       for (uint32_t n = 0; n < nops; ++n) {
-       // Only send as fast as requested
+        // Only send as fast as requested
         if (!intervalTimer_->sleep()) {
           T_ERROR("can't keep up with requested QPS rate");
         }
@@ -212,8 +219,10 @@ class Worker : public WorkerIf, public boost::noncopyable {
             T_ERROR("worker %d causing abort after op %d error", id_, opType);
             abort();
           } else {
-            T_ERROR("worker %d received unknown op error action %d; aborting",
-                    id_, action);
+            T_ERROR(
+                "worker %d received unknown op error action %d; aborting",
+                id_,
+                action);
             abort();
           }
         }
@@ -232,9 +241,7 @@ class Worker : public WorkerIf, public boost::noncopyable {
     return scoreboard_;
   }
 
-  void stopWorker() {
-    alive_ = false;
-  }
+  void stopWorker() { alive_ = false; }
 
  private:
   int id_;
@@ -244,22 +251,22 @@ class Worker : public WorkerIf, public boost::noncopyable {
   std::shared_ptr<ScoreBoard> scoreboard_;
 };
 
-
 /**
  * Default WorkerFactory implementation.
  *
  * This factory creates Worker objects using the default constructor,
  * then calls init(id, config, scoreboard) on each worker before returning it.
  */
-template<typename WorkerT, typename ConfigT = LoadConfig>
+template <typename WorkerT, typename ConfigT = LoadConfig>
 class SimpleWorkerFactory : public WorkerFactory {
  public:
   explicit SimpleWorkerFactory(const std::shared_ptr<ConfigT>& config)
-    : config_(config) {}
+      : config_(config) {}
 
-  WorkerT* newWorker(int id,
-                     const std::shared_ptr<ScoreBoard>& scoreboard,
-                     IntervalTimer* itimer) override {
+  WorkerT* newWorker(
+      int id,
+      const std::shared_ptr<ScoreBoard>& scoreboard,
+      IntervalTimer* itimer) override {
     std::unique_ptr<WorkerT> worker(new WorkerT);
     worker->init(id, config_, scoreboard, itimer);
     return worker.release();
@@ -268,6 +275,8 @@ class SimpleWorkerFactory : public WorkerFactory {
   std::shared_ptr<ConfigT> config_;
 };
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_TEST_LOADGEN_WORKER_H_

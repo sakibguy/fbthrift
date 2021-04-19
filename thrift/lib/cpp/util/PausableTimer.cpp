@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,9 @@
 
 #include <folly/portability/SysTime.h>
 
-namespace apache { namespace thrift { namespace util {
+namespace apache {
+namespace thrift {
+namespace util {
 
 PausableTimer::PausableTimer(int timeLimit) {
   isTimeLimitFinite_ = timeLimit > 0;
@@ -66,18 +68,17 @@ bool PausableTimer::hasExceededTimeLimit() {
   return false;
 }
 
-
 bool PausableTimer::didLastRunningTimeExceedLimit(
-  uint64_t limit_in_microseconds)
-{
+    uint64_t limit_in_microseconds) {
   if (limit_in_microseconds == 0) {
     return false;
   }
 
-  return
-    1000 * 1000 * lastRunningTime_.tv_sec +
-    (uint64_t) lastRunningTime_.tv_usec >
-    limit_in_microseconds;
+  return 1000 * 1000 * lastRunningTime_.tv_sec +
+      (uint64_t)lastRunningTime_.tv_usec >
+      limit_in_microseconds;
 }
 
-}}}
+} // namespace util
+} // namespace thrift
+} // namespace apache

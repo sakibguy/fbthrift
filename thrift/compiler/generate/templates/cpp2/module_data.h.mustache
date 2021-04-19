@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,40 +17,39 @@
 %><% > Autogen%>
 #pragma once
 
-#include <array>
-#include <cstddef>
-#include <thrift/lib/cpp/Thrift.h>
+#include <thrift/lib/cpp2/gen/module_data_h.h>
 
 #include "<%program:include_prefix%><%program:name%>_types.h"
 
-<%#program:enums%>
-<% > common/namespace_cpp2_begin%>
-
-
-struct _<%enum:name%>EnumDataStorage {
-  using type = <%enum:name%>;
-  static constexpr const std::size_t size = <%enum:size%>;
-  static constexpr const std::array<<%enum:name%>, <%enum:size%>> values = {{
-<%#enum:values%><%!
-%>    <%enum:name%>::<%enumValue:name%>,
-<%/enum:values%>
-  }};
-  static constexpr const std::array<folly::StringPiece, <%enum:size%>> names = {{
-<%#enum:values%><%!
-%>    "<%enumValue:name%>",
-<%/enum:values%>
-  }};
-};
-
-<% > common/namespace_cpp2_end%>
-
 namespace apache { namespace thrift {
+<%#program:enums%>
 
 template <> struct TEnumDataStorage<<% > common/namespace_cpp2%><%enum:name%>> {
-  using storage_type = <% > common/namespace_cpp2%>_<%enum:name%>EnumDataStorage;
+  using type = <% > common/namespace_cpp2%><%enum:name%>;
+  static constexpr const std::size_t size = <%enum:size%>;
+  static const std::array<type, size> values;
+  static const std::array<folly::StringPiece, size> names;
 };
+<%/program:enums%>
+<%#program:structs%>
+<%#struct:union?%>
+
+template <> struct TEnumDataStorage<<% > common/namespace_cpp2%><%struct:name%>::Type> {
+  using type = <% > common/namespace_cpp2%><%struct:name%>::Type;
+  static constexpr const std::size_t size = <%struct:num_union_members%>;
+  static const std::array<type, size> values;
+  static const std::array<folly::StringPiece, size> names;
+};
+<%/struct:union?%>
+<%/program:structs%>
+<%#program:structs%>
+
+template <> struct TStructDataStorage<<% > common/namespace_cpp2%><%struct:name%>> {
+  static constexpr const std::size_t fields_size = <%struct:fields_size%>;
+  static const std::array<folly::StringPiece, fields_size> fields_names;
+  static const std::array<int16_t, fields_size> fields_ids;
+  static const std::array<protocol::TType, fields_size> fields_types;
+};
+<%/program:structs%>
 
 }} // apache::thrift
-<%/program:enums%>
-
-

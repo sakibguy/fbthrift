@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/test/gen-cpp2/Recursive_types.h>
@@ -23,9 +23,9 @@ using namespace apache::thrift::test;
 
 TEST(Recursive, copy) {
   RecList list1;
-  list1.item = 10;
+  *list1.item_ref() = 10;
   list1.next.reset(new RecList);
-  list1.next->item = 20;
+  *list1.next->item_ref() = 20;
   RecList list2{list1};
   EXPECT_EQ(list2, list1);
 
@@ -37,9 +37,9 @@ TEST(Recursive, copy) {
 
 TEST(Recursive, assign) {
   RecList list1, list2;
-  list1.item = 11;
+  *list1.item_ref() = 11;
   list2.next.reset(new RecList);
-  list2.next->item = 22;
+  *list2.next->item_ref() = 22;
   list2 = list1;
   EXPECT_EQ(list1, list2);
 }
@@ -47,7 +47,7 @@ TEST(Recursive, assign) {
 TEST(Recursive, Tree) {
   RecTree tree;
   RecTree child;
-  tree.children.push_back(child);
+  tree.children_ref()->push_back(child);
 
   auto serializer = apache::thrift::CompactSerializer();
   folly::IOBufQueue bufq;
@@ -87,7 +87,7 @@ TEST(Recursive, CoRec) {
   CoRec result;
   serializer.deserialize(bufq.front(), result);
   EXPECT_TRUE(result.other != nullptr);
-  EXPECT_TRUE(result.other->other.other == nullptr);
+  EXPECT_TRUE(result.other->other_ref()->other == nullptr);
 }
 
 TEST(Recursive, Roundtrip) {
@@ -116,5 +116,5 @@ TEST(Recursive, CoRecJson) {
   RecList result;
   serializer.deserialize(bufq.front(), result);
   EXPECT_TRUE(c.other != nullptr);
-  EXPECT_TRUE(c.other->other.other == nullptr);
+  EXPECT_TRUE(c.other->other_ref()->other == nullptr);
 }

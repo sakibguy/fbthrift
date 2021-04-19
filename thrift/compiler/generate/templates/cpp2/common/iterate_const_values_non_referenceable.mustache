@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016-present Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,55 +20,60 @@ Containers:
 
 List:
 %><%^type:struct?%><%!
-%><%#value:list?%><%#type:listElemType%><%!
+%><%#value:list?%><%#type:list_elem_type%><%!
   %>std::initializer_list<<%!
-    %><% > types/type%><%!
+    %><%type:cpp_type%><%!
   %>>{<%!
-  %><%#value:listElements%><%!
+  %><%#value:list_elements%><%!
     %><% > common/iterate_const_values%><%!
     %><%^last?%>,
   <%/last?%><%!
-  %><%/value:listElements%><%!
+  %><%/value:list_elements%><%!
   %>}<%!
-%><%/type:listElemType%><%/value:list?%><%!
+%><%/type:list_elem_type%><%/value:list?%><%!
 
 Set:
-%><%#value:list?%><%#type:setElemType%><%!
+%><%#value:list?%><%#type:set_elem_type%><%!
   %>std::initializer_list<<%!
-    %><% > types/type%><%!
+    %><%type:cpp_type%><%!
   %>>{<%!
-  %><%#value:listElements%><%!
+  %><%#value:list_elements%><%!
     %><% > common/iterate_const_values%><%!
     %><%^last?%>,
   <%/last?%><%!
-  %><%/value:listElements%><%!
+  %><%/value:list_elements%><%!
   %>}<%!
-%><%/type:setElemType%><%/value:list?%><%!
+%><%/type:set_elem_type%><%/value:list?%><%!
 
 Map:
 %><%#value:map?%><%!
   %>std::initializer_list<std::pair<<%!
-    %><%#type:keyType%>const <% > types/type%><%/type:keyType%>, <%!
-    %><%#type:valueType%><% > types/type%><%/type:valueType%><%!
+    %><%#type:key_type%>const <%type:cpp_type%><%/type:key_type%>, <%!
+    %><%#type:value_type%><%type:cpp_type%><%/type:value_type%><%!
   %>>>{<%!
-  %><%#value:mapElements%><%!
+  %><%#value:map_elements%><%!
     %>{<%!
-      %><%#element:key%><%#type:keyType%><%!
+      %><%#element:key%><%#type:key_type%><%!
         %><% > common/iterate_const_values%><%!
-      %><%/type:keyType%><%/element:key%><%!
+      %><%/type:key_type%><%/element:key%><%!
       %>, <%!
-      %><%#element:value%><%#type:valueType%><%!
+      %><%#element:value%><%#type:value_type%><%!
         %><% > common/iterate_const_values%><%!
-      %><%/type:valueType%><%/element:value%><%!
+      %><%/type:value_type%><%/element:value%><%!
     %>}<%!
     %><%^last?%>,
   <%/last?%><%!
-  %><%/value:mapElements%><%!
+  %><%/value:map_elements%><%!
   %>}<%!
 %><%/value:map?%><%!
 %><%/type:struct?%><%!
 
 Struct:
 %><%#type:struct?%><%!
-    %>::apache::thrift::detail::make_constant<<% > common/type_namespace_cpp2%><%type:name%>>(<%#value:const_struct%><%#constant:type%><%#constant:value%>::apache::thrift::detail::wrap_argument<<%constant:index%>>(<% > common/cxx_value_prefix%><% > common/iterate_const_values%><% > common/cxx_value_suffix%>)<%^last?%>, <%/last?%><%/constant:value%><%/constant:type%><%/value:const_struct%>)<%!
+    %>::apache::thrift::detail::make_constant<<% > common/type_namespace_cpp2%><%type:name%>>(<%!
+        %><% > common/type_class%>{}<%!
+        %><%#value:const_struct%><%#constant:type%><%#constant:value%>, <%!
+        %>::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::<%constant:name%>>(<%!
+            %><% > common/cxx_value_prefix%><% > common/iterate_const_values%><% > common/cxx_value_suffix%>)<%!
+        %><%/constant:value%><%/constant:type%><%/value:const_struct%>)<%!
 %><%/type:struct?%>

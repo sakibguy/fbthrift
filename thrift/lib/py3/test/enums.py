@@ -1,16 +1,32 @@
 #!/usr/bin/env python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import pickle
 import unittest
+from typing import Type, TypeVar, cast
 
-from thrift.py3 import serialize, deserialize, Protocol, BadEnum, Enum, Flag
-from testing.types import Color, ColorGroups, Kind, Perm, File, Shape, BadMembers
-from typing import cast, Type, TypeVar
+from testing.types import BadMembers, Color, ColorGroups, File, Kind, Perm
+from thrift.py3.common import Protocol
+from thrift.py3.serializer import deserialize, serialize
+from thrift.py3.types import BadEnum, Enum, Flag
+
 
 _E = TypeVar("_E", bound=Enum)
 
 
 class EnumTests(unittest.TestCase):
-
     def test_bad_member_names(self) -> None:
         self.assertIsInstance(BadMembers.name_, BadMembers)
         self.assertIsInstance(BadMembers.value_, BadMembers)
@@ -20,8 +36,9 @@ class EnumTests(unittest.TestCase):
     def test_normal_enum(self) -> None:
         with self.assertRaises(TypeError):
             # Enums are not ints
-            File(name='/etc/motd', type=8)  # type: ignore
-        x = File(name='/etc', type=Kind.DIR)
+            # pyre-fixme[6]: Expected `Optional[Kind]` for 2nd param but got `int`.
+            File(name="/etc/motd", type=8)
+        x = File(name="/etc", type=Kind.DIR)
         self.assertIsInstance(x.type, Kind)
         self.assertEqual(x.type, Kind.DIR)
         self.assertNotEqual(x.type, Kind.SOCK)
@@ -34,6 +51,15 @@ class EnumTests(unittest.TestCase):
         """The value name is None but we auto rename it to None_"""
         x = deserialize(File, b'{"name":"blah", "type":0}', Protocol.JSON)
         self.assertEqual(x.type, Kind.None_)
+
+    def test_bad_enum_hash_same(self) -> None:
+        x = deserialize(File, b'{"name": "something", "type": 64}', Protocol.JSON)
+        y = deserialize(File, b'{"name": "something", "type": 64}', Protocol.JSON)
+        self.assertEqual(hash(x), hash(y))
+        self.assertEqual(hash(x.type), hash(y.type))
+        self.assertFalse(x.type is y.type)
+        self.assertEqual(x.type, y.type)
+        self.assertFalse(x.type != y.type)
 
     def test_bad_enum_in_struct(self) -> None:
         x = deserialize(File, b'{"name": "something", "type": 64}', Protocol.JSON)
@@ -132,7 +158,8 @@ class EnumTests(unittest.TestCase):
 
     def test_adding_member(self) -> None:
         with self.assertRaises(TypeError):
-            Color.black = 3  # type: ignore
+            # pyre-fixme[16]: `Type` has no attribute `black`.
+            Color.black = 3
 
     def test_delete(self) -> None:
         with self.assertRaises(TypeError):
@@ -146,11 +173,12 @@ class EnumTests(unittest.TestCase):
 
     def test_changing_member(self) -> None:
         with self.assertRaises(TypeError):
-            Color.red = "lol"  # type: ignore
+            # pyre-fixme[8]: Attribute has type `Color`; used as `str`.
+            Color.red = "lol"
 
     def test_contains(self) -> None:
         self.assertIn(Color.blue, Color)
-        self.assertNotIn(1, Color)  # type: ignore
+        self.assertNotIn(1, Color)
 
     def test_hash(self) -> None:
         colors = {}
@@ -170,7 +198,7 @@ class EnumTests(unittest.TestCase):
         self.assertEqual(len(lst), len(Color))
         self.assertEqual(len(Color), 3)
         self.assertEqual([Color.red, Color.blue, Color.green], lst)
-        for i, color in enumerate('red blue green'.split(), 0):
+        for i, color in enumerate("red blue green".split(), 0):
             e = Color(i)
             self.assertEqual(e, getattr(Color, color))
             self.assertEqual(e.value, i)
@@ -179,37 +207,32 @@ class EnumTests(unittest.TestCase):
             self.assertIn(e, Color)
             self.assertIs(type(e), Color)
             self.assertIsInstance(e, Color)
-            self.assertEqual(str(e), 'Color.' + color)
+            self.assertEqual(str(e), "Color." + color)
             self.assertEqual(int(e), i)
-            self.assertEqual(repr(e), f'<Color.{color}: {i}>')
+            self.assertEqual(repr(e), f"<Color.{color}: {i}>")
 
     def test_insinstance_Enum(self) -> None:
         self.assertIsInstance(Color.red, Enum)
         self.assertTrue(issubclass(Color, Enum))
 
-    def test_aliases(self) -> None:
-        self.assertIs(Shape.ROUND, Shape.CIRCLE)
-        self.assertIn("CIRCLE", Shape.__members__)
-        self.assertIs(Shape(1), Shape.ROUND)
-        self.assertIs(Shape["CIRCLE"], Shape.ROUND)
 
 class FlagTests(unittest.TestCase):
-
     def test_flag_enum(self) -> None:
         with self.assertRaises(TypeError):
             # flags are not ints
-            File(name='/etc/motd', permissions=4)  # type: ignore
-        x = File(name='/bin/sh', permissions=Perm.read | Perm.execute)
+            # pyre-fixme[6]: Expected `Optional[Perm]` for 2nd param but got `int`.
+            File(name="/etc/motd", permissions=4)
+        x = File(name="/bin/sh", permissions=Perm.read | Perm.execute)
         self.assertIsInstance(x.permissions, Perm)
         self.assertEqual(x.permissions, Perm.read | Perm.execute)
         self.assertNotIsInstance(2, Perm, "Flags are not ints")
         self.assertEqual(int(x.permissions), 5)
-        x = File(name='')
+        x = File(name="")
         self.assertFalse(x.permissions)
         self.assertIsInstance(x.permissions, Perm)
 
     def test_flag_enum_serialization_roundtrip(self) -> None:
-        x = File(name='/dev/null', type=Kind.CHAR, permissions=Perm.read | Perm.write)
+        x = File(name="/dev/null", type=Kind.CHAR, permissions=Perm.read | Perm.write)
 
         y = deserialize(File, serialize(x))
         self.assertEqual(x, y)
@@ -226,6 +249,10 @@ class FlagTests(unittest.TestCase):
         self.assertNotIn(combo, Perm)
         self.assertIsInstance(combo, Perm)
         self.assertIs(combo, Perm.read | Perm.execute)
+
+    def test_is(self) -> None:
+        allp = Perm(7)
+        self.assertIs(allp, Perm(7))
 
     def test_invert(self) -> None:
         x = Perm(-2)

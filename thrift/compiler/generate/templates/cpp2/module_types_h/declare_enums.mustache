@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,16 +20,11 @@
 
 <%#program:enums%>
 
-enum <%^enum:cpp_is_unscoped%>class <%/enum:cpp_is_unscoped%><%enum:name%><%#enum:cpp_enum_type%> : <%enum:cpp_enum_type%><%/enum:cpp_enum_type%> {<%!
-  %><%#enum:values%><%#first?%>
-<%/first?%><%!
-    %>  <%enumValue:name%> = <%enumValue:value%><% > common/comma_newline%><%#last?%>
-<%/last?%><%!
-  %><%/enum:values%><%!
-%>}<% > common/semicolon_newline%>
-using _<%enum:name%>_EnumMapFactory = apache::thrift::detail::TEnumMapFactory<<%enum:name%>, <%enum:name%>>;
-extern const _<%enum:name%>_EnumMapFactory::ValuesToNamesMapType _<%enum:name%>_VALUES_TO_NAMES;
-extern const _<%enum:name%>_EnumMapFactory::NamesToValuesMapType _<%enum:name%>_NAMES_TO_VALUES;
+enum <%^enum:cpp_is_unscoped%>class <%/enum:cpp_is_unscoped%><%enum:name%><%#enum:cpp_enum_type%> : <%enum:cpp_enum_type%><%/enum:cpp_enum_type%> {
+<%#enum:values%>
+  <%enumValue:cpp_name%> = <%enumValue:value%>,
+<%/enum:values%>
+}<% > common/semicolon_newline%>
 
 <%#enum:cpp_declare_bitwise_ops%>
 <% > module_types_h/enum_bitwise_ops%>
@@ -39,15 +34,12 @@ extern const _<%enum:name%>_EnumMapFactory::NamesToValuesMapType _<%enum:name%>_
 
 <% > common/namespace_cpp2_end%>
 
+
 namespace std {
-
 <%#program:enums%>
-
-template<> struct hash<typename <% > common/namespace_cpp2%><%enum:name%>> : public apache::thrift::detail::enum_hash<typename <% > common/namespace_cpp2%><%enum:name%>> {};
-template<> struct equal_to<typename <% > common/namespace_cpp2%><%enum:name%>> : public apache::thrift::detail::enum_equal_to<typename <% > common/namespace_cpp2%><%enum:name%>> {};
-
+template<> struct hash<<% > common/namespace_cpp2%><%enum:name%>> :
+  ::apache::thrift::detail::enum_hash<<% > common/namespace_cpp2%><%enum:name%>> {};
 <%/program:enums%>
-
 } // std
 
 namespace apache { namespace thrift {
@@ -55,27 +47,39 @@ namespace apache { namespace thrift {
 <%#program:enums%>
 
 template <> struct TEnumDataStorage<<% > common/namespace_cpp2%><%enum:name%>>;
-#ifndef _MSC_VER
-template <> const std::size_t TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::size;
-template <> const folly::Range<const <% > common/namespace_cpp2%><%enum:name%>*> TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::values;
-template <> const folly::Range<const folly::StringPiece*> TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::names;
-#endif
-template <> const char* TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::findName(<% > common/namespace_cpp2%><%enum:name%> value);
-template <> bool TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::findValue(const char* name, <% > common/namespace_cpp2%><%enum:name%>* outValue);
 
-<%^enum:empty?%>
-template <> inline constexpr <% > common/namespace_cpp2%><%enum:name%> TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::min() {
-  return <% > common/namespace_cpp2%><%enum:name%>::<%enum:min%>;
-}
+template <> struct TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>> {
+  using type = <% > common/namespace_cpp2%><%enum:name%>;
 
-template <> inline constexpr <% > common/namespace_cpp2%><%enum:name%> TEnumTraits<<% > common/namespace_cpp2%><%enum:name%>>::max() {
-  return <% > common/namespace_cpp2%><%enum:name%>::<%enum:max%>;
-}
-<%/enum:empty?%>
+  static constexpr std::size_t const size = <%enum:size%>;
+  static folly::Range<type const*> const values;
+  static folly::Range<folly::StringPiece const*> const names;
+
+  static char const* findName(type value);
+  static bool findValue(char const* name, type* out);
+
+  <%^enum:empty?%>
+  static constexpr type min() { return type::<%enum:min%>; }
+  static constexpr type max() { return type::<%enum:max%>; }
+  <%/enum:empty?%>
+};
 
 <%/program:enums%>
 
 }} // apache::thrift
+
+<% > common/namespace_cpp2_begin%>
+
+
+<%#program:enums%>
+using _<%enum:name%>_EnumMapFactory = apache::thrift::detail::TEnumMapFactory<<%enum:name%>>;
+[[deprecated("use apache::thrift::util::enumNameSafe, apache::thrift::util::enumName, or apache::thrift::TEnumTraits")]]
+extern const _<%enum:name%>_EnumMapFactory::ValuesToNamesMapType _<%enum:name%>_VALUES_TO_NAMES;
+[[deprecated("use apache::thrift::TEnumTraits")]]
+extern const _<%enum:name%>_EnumMapFactory::NamesToValuesMapType _<%enum:name%>_NAMES_TO_VALUES;
+
+<%/program:enums%>
+<% > common/namespace_cpp2_end%>
 
 <%/program:enums?%>
 

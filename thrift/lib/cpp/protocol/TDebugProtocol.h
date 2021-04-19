@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_PROTOCOL_TDEBUGPROTOCOL_H
@@ -25,7 +22,11 @@
 #include <memory>
 #include <type_traits>
 
-namespace apache { namespace thrift { namespace protocol {
+#include <folly/Utility.h>
+
+namespace apache {
+namespace thrift {
+namespace protocol {
 
 /*
 
@@ -40,7 +41,6 @@ Complaints are not. :R
 
 */
 
-
 /**
  * Protocol that prints the payload in a nice human-readable format.
  * Reading from this protocol is not supported.
@@ -48,22 +48,14 @@ Complaints are not. :R
  */
 class TDebugProtocol : public TVirtualProtocol<TDebugProtocol> {
  private:
-  enum write_state_t
-  { UNINIT
-  , STRUCT
-  , LIST
-  , SET
-  , MAP_KEY
-  , MAP_VALUE
-  };
+  enum write_state_t { UNINIT, STRUCT, LIST, SET, MAP_KEY, MAP_VALUE };
 
  public:
   explicit TDebugProtocol(std::shared_ptr<TTransport> trans)
-    : TVirtualProtocol<TDebugProtocol>(trans)
-    , trans_(trans.get())
-    , string_limit_(DEFAULT_STRING_LIMIT)
-    , string_prefix_size_(DEFAULT_STRING_PREFIX_SIZE)
-  {
+      : TVirtualProtocol<TDebugProtocol>(trans),
+        trans_(trans.get()),
+        string_limit_(DEFAULT_STRING_LIMIT),
+        string_prefix_size_(DEFAULT_STRING_PREFIX_SIZE) {
     write_state_.push_back(UNINIT);
   }
 
@@ -78,39 +70,34 @@ class TDebugProtocol : public TVirtualProtocol<TDebugProtocol> {
     string_prefix_size_ = string_prefix_size;
   }
 
-
-  uint32_t writeMessageBegin(const std::string& name,
-                             const TMessageType messageType,
-                             const int32_t seqid);
+  uint32_t writeMessageBegin(
+      const std::string& name,
+      const TMessageType messageType,
+      const int32_t seqid);
 
   uint32_t writeMessageEnd();
-
 
   uint32_t writeStructBegin(const char* name);
 
   uint32_t writeStructEnd();
 
-  uint32_t writeFieldBegin(const char* name,
-                           const TType fieldType,
-                           const int16_t fieldId);
+  uint32_t writeFieldBegin(
+      const char* name, const TType fieldType, const int16_t fieldId);
 
   uint32_t writeFieldEnd();
 
   uint32_t writeFieldStop();
 
-  uint32_t writeMapBegin(const TType keyType,
-                         const TType valType,
-                         const uint32_t size);
+  uint32_t writeMapBegin(
+      const TType keyType, const TType valType, const uint32_t size);
 
   uint32_t writeMapEnd();
 
-  uint32_t writeListBegin(const TType elemType,
-                          const uint32_t size);
+  uint32_t writeListBegin(const TType elemType, const uint32_t size);
 
   uint32_t writeListEnd();
 
-  uint32_t writeSetBegin(const TType elemType,
-                         const uint32_t size);
+  uint32_t writeSetBegin(const TType elemType, const uint32_t size);
 
   uint32_t writeSetEnd();
 
@@ -136,7 +123,6 @@ class TDebugProtocol : public TVirtualProtocol<TDebugProtocol> {
   }
 
   uint32_t writeBinary(const std::string& str);
-
 
  private:
   void indentUp();
@@ -173,96 +159,92 @@ class TDebugProtocolFactory : public TProtocolFactory {
       std::shared_ptr<TTransport> trans) override {
     return std::shared_ptr<TProtocol>(new TDebugProtocol(trans));
   }
-
 };
 
-}}} // apache::thrift::protocol
+} // namespace protocol
+} // namespace thrift
+} // namespace apache
 
-
-// TODO(dreiss): Move (part of) ThriftDebugString into a .cpp file and remove this.
+// TODO(dreiss): Move (part of) ThriftDebugString into a .cpp file and remove
+// this.
 #include <thrift/lib/cpp/transport/TBufferTransports.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 template <typename T>
 struct ThriftTypeTraits {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::TType(99);
+      apache::thrift::protocol::TType(99);
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<bool> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_BOOL;
+      apache::thrift::protocol::T_BOOL;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<int8_t> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_I08;
+      apache::thrift::protocol::T_I08;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<int16_t> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_I16;
+      apache::thrift::protocol::T_I16;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<int32_t> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_I32;
+      apache::thrift::protocol::T_I32;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<int64_t> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_I64;
+      apache::thrift::protocol::T_I64;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<double> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_DOUBLE;
+      apache::thrift::protocol::T_DOUBLE;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<float> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_FLOAT;
+      apache::thrift::protocol::T_FLOAT;
 };
 
-template<>
+template <>
 struct ThriftTypeTraits<std::string> {
   static const apache::thrift::protocol::TType fieldType_ =
-    apache::thrift::protocol::T_STRING;
+      apache::thrift::protocol::T_STRING;
 };
 
 class TDebugProtocolEx : public apache::thrift::protocol::TDebugProtocol {
-public:
+ public:
   explicit TDebugProtocolEx(
-    std::shared_ptr<apache::thrift::protocol::TTransport> trans
-  )
-      : TDebugProtocol(trans) {
-  }
+      std::shared_ptr<apache::thrift::protocol::TTransport> trans)
+      : TDebugProtocol(trans) {}
 
-  template<typename T>
-  typename std::enable_if<!std::is_enum<T>::value, void>::type
-  write(const T& t) {
+  template <typename T>
+  typename std::enable_if<!std::is_enum<T>::value, void>::type write(
+      const T& t) {
     t.write(this);
   }
 
-  template<typename T>
-  typename std::enable_if<std::is_enum<T>::value, void>::type
-  write(const T value) {
-    // TODO: change the following to underlying_type when everyone
-    // upgraded to gcc-4.7
-    // write(static_cast<typename std::underlying_type<T>::type>(value));
-    write(static_cast<int64_t>(value));
+  template <typename T>
+  typename std::enable_if<std::is_enum<T>::value, void>::type write(
+      const T value) {
+    write(folly::to_underlying(value));
   }
 
-
-  template<typename T>
+  template <typename T>
   void write(const std::vector<T>& c) {
     writeListBegin(ThriftTypeTraits<T>::fieldType_, c.size());
     auto it = c.begin();
@@ -272,28 +254,27 @@ public:
     writeListEnd();
   }
 
-  template<typename K, typename V>
+  template <typename K, typename V>
   void write(const std::map<K, V>& c) {
     writeMap(c);
   }
 
-  template<typename K, typename V>
+  template <typename K, typename V>
   void write(const std::unordered_map<K, V>& c) {
     writeMap(c);
   }
 
-  template<typename K, typename V>
+  template <typename K, typename V>
   void write(const std::multimap<K, V>& c) {
     writeMap(c);
   }
 
-  template<typename M>
+  template <typename M>
   void writeMap(const M& c) {
     writeMapBegin(
-      ThriftTypeTraits<typename M::key_type>::fieldType_,
-      ThriftTypeTraits<typename M::value_type>::fieldType_,
-      c.size()
-    );
+        ThriftTypeTraits<typename M::key_type>::fieldType_,
+        ThriftTypeTraits<typename M::value_type>::fieldType_,
+        c.size());
     auto it = c.begin();
     for (; it != c.end(); it++) {
       write(it->first);
@@ -302,13 +283,9 @@ public:
     writeMapEnd();
   }
 
-
-  template<typename T>
+  template <typename T>
   void write(const std::set<T>& c) {
-    writeSetBegin(
-      ThriftTypeTraits<T>::fieldType_,
-      c.size()
-    );
+    writeSetBegin(ThriftTypeTraits<T>::fieldType_, c.size());
     auto it = c.begin();
     for (; it != c.end(); it++) {
       write(*it);
@@ -316,39 +293,23 @@ public:
     writeSetEnd();
   }
 
-  void write(const bool value) {
-    writeBool(value);
-  }
+  void write(const bool value) { writeBool(value); }
 
-  void write(const int8_t byte) {
-    writeByte(byte);
-  }
+  void write(const int8_t byte) { writeByte(byte); }
 
-  void write(const int16_t i16) {
-    writeI16(i16);
-  }
+  void write(const int16_t i16) { writeI16(i16); }
 
-  void write(const int32_t i32) {
-    writeI32(i32);
-  }
+  void write(const int32_t i32) { writeI32(i32); }
 
-  void write(const int64_t i64) {
-    writeI64(i64);
-  }
+  void write(const int64_t i64) { writeI64(i64); }
 
-  void write(const double dub) {
-    writeDouble(dub);
-  }
+  void write(const double dub) { writeDouble(dub); }
 
-  void write(const float flt) {
-    writeFloat(flt);
-  }
+  void write(const float flt) { writeFloat(flt); }
 
-  void write(const std::string& str) {
-    writeString(str);
-  }
+  void write(const std::string& str) { writeString(str); }
 
-  template<typename K, typename V>
+  template <typename K, typename V>
   void write(const std::pair<K, V>& p) {
     writeStructBegin("pair");
     writeFieldBegin("first", ThriftTypeTraits<K>::fieldType_, 1);
@@ -361,8 +322,8 @@ public:
   }
 };
 
-template<typename T>
-std::string ThriftDebugString(const T& ts, int32_t string_limit=0) {
+template <typename T>
+std::string ThriftDebugString(const T& ts, int32_t string_limit = 0) {
   using namespace apache::thrift::transport;
   using namespace apache::thrift::protocol;
   TMemoryBuffer* buffer = new TMemoryBuffer;
@@ -381,6 +342,7 @@ std::string ThriftDebugString(const T& ts, int32_t string_limit=0) {
   return std::string((char*)buf, (unsigned int)size);
 }
 
-}} // apache::thrift
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef _THRIFT_PROTOCOL_TDEBUGPROTOCOL_H_

@@ -5,10 +5,10 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import typing as _typing
 from thrift.py3.server import RequestContext, ServiceInterface
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 
 import module.types as _module_types
 
@@ -16,18 +16,19 @@ _MyRootInterfaceT = _typing.TypeVar('_MyRootInterfaceT', bound='MyRootInterface'
 
 
 class MyRootInterface(
-    ServiceInterface
+    ServiceInterface,
+    metaclass=ABCMeta,
 ):
 
     @staticmethod
     def pass_context_do_root(
         fn: _typing.Callable[
                 [_MyRootInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_MyRootInterfaceT],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
@@ -41,18 +42,19 @@ _MyNodeInterfaceT = _typing.TypeVar('_MyNodeInterfaceT', bound='MyNodeInterface'
 
 
 class MyNodeInterface(
-MyRootInterface
+MyRootInterface,
+    metaclass=ABCMeta,
 ):
 
     @staticmethod
     def pass_context_do_mid(
         fn: _typing.Callable[
                 [_MyNodeInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_MyNodeInterfaceT],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
@@ -66,18 +68,19 @@ _MyLeafInterfaceT = _typing.TypeVar('_MyLeafInterfaceT', bound='MyLeafInterface'
 
 
 class MyLeafInterface(
-MyNodeInterface
+MyNodeInterface,
+    metaclass=ABCMeta,
 ):
 
     @staticmethod
     def pass_context_do_leaf(
         fn: _typing.Callable[
                 [_MyLeafInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_MyLeafInterfaceT],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod

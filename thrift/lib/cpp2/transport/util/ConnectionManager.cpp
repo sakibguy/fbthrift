@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,7 @@
 
 #include <unistd.h>
 
-#include <gflags/gflags.h>
+#include <folly/portability/GFlags.h>
 
 #include <folly/Singleton.h>
 
@@ -52,8 +52,7 @@ ConnectionManager::ConnectionManager() {
 }
 
 std::shared_ptr<ClientConnectionIf> ConnectionManager::getConnection(
-    const string& addr,
-    uint16_t port) {
+    const string& addr, uint16_t port) {
   ConnectionThread* thread = threads_[nextThreadToUse_].get();
   // The update of nextThreadToUse_ has race conditions, but regardless
   // its value will always be in the correct range.  The race condition

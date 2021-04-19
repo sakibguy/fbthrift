@@ -6,9 +6,10 @@ package matching_names
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 	IncludesAlso0 "IncludesAlso"
 
 )
@@ -18,6 +19,7 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var _ = IncludesAlso0.GoUnusedProtection__
 var GoUnusedProtection__ int;
@@ -29,7 +31,9 @@ type IncludesAlso struct {
 }
 
 func NewIncludesAlso() *IncludesAlso {
-  return &IncludesAlso{}
+  return &IncludesAlso{
+    Also: IncludesAlso0.NewAlso(),
+  }
 }
 
 var IncludesAlso_Also_DEFAULT *IncludesAlso0.Also
@@ -40,7 +44,33 @@ func (p *IncludesAlso) GetAlso() *IncludesAlso0.Also {
 return p.Also
 }
 func (p *IncludesAlso) IsSetAlso() bool {
-  return p.Also != nil
+  return p != nil && p.Also != nil
+}
+
+type IncludesAlsoBuilder struct {
+  obj *IncludesAlso
+}
+
+func NewIncludesAlsoBuilder() *IncludesAlsoBuilder{
+  return &IncludesAlsoBuilder{
+    obj: NewIncludesAlso(),
+  }
+}
+
+func (p IncludesAlsoBuilder) Emit() *IncludesAlso{
+  return &IncludesAlso{
+    Also: p.obj.Also,
+  }
+}
+
+func (i *IncludesAlsoBuilder) Also(also *IncludesAlso0.Also) *IncludesAlsoBuilder {
+  i.obj.Also = also
+  return i
+}
+
+func (i *IncludesAlso) SetAlso(also *IncludesAlso0.Also) *IncludesAlso {
+  i.Also = also
+  return i
 }
 
 func (p *IncludesAlso) Read(iprot thrift.Protocol) error {
@@ -109,6 +139,13 @@ func (p *IncludesAlso) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("IncludesAlso(%+v)", *p)
+
+  var alsoVal string
+  if p.Also == nil {
+    alsoVal = "<nil>"
+  } else {
+    alsoVal = fmt.Sprintf("%v", p.Also)
+  }
+  return fmt.Sprintf("IncludesAlso({Also:%s})", alsoVal)
 }
 

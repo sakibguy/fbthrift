@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,22 +14,32 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-%><%#type:stream?%><%!
-  %><%#type:streamresponse?%><%!
-    %><%#type:extratype?%>apache::thrift::ResponseAndSemiStream<<%!
-    %><%#type:streamResponseType%><% >types/type%><%/type:streamResponseType%>,<%!
-    %><%#type:streamElemType%><% >types/type%><%/type:streamElemType%>><%!
-    %><%/type:extratype?%><%!
-    %><%^type:extratype?%>apache::thrift::SemiStream<<%!
-    %><%#type:streamElemType%><% >types/type%><%/type:streamElemType%>><%!
-    %><%/type:extratype?%><%!
-    %><%/type:streamresponse?%><%!
+%><%#type:streamresponse?%><%!
+  %><%#type:stream_has_first_response?%>apache::thrift::ResponseAndClientBufferedStream<<%!
+  %><%#type:stream_first_response_type%><%type:cpp_type%><%/type:stream_first_response_type%>,<%!
+  %><%#type:stream_elem_type%><%type:cpp_type%><%/type:stream_elem_type%>><%!
+  %><%/type:stream_has_first_response?%><%!
+  %><%^type:stream_has_first_response?%>apache::thrift::ClientBufferedStream<<%!
+  %><%#type:stream_elem_type%><%type:cpp_type%><%/type:stream_elem_type%>><%!
+  %><%/type:stream_has_first_response?%><%!
+%><%/type:streamresponse?%><%!
 
-  %><%^type:streamresponse?%><%!
-    %>apache::thrift::SemiStream<<%#type:streamElemType%><% >types/type%><%/type:streamElemType%>><%!
-  %><%/type:streamresponse?%><%!
-%><%/type:stream?%><%!
+%><%^type:streamresponse?%><%!
+  %><%#type:sink?%><%!
+    %><%#type:sink_has_first_response?%><%!
+      %>apache::thrift::ResponseAndClientSink<<%!
+      %><%#type:sink_first_response_type%><%type:cpp_type%><%/type:sink_first_response_type%>, <%!
+      %><%#type:sink_elem_type%><%type:cpp_type%><%/type:sink_elem_type%>, <%!
+      %><%#type:sink_final_response_type%><%type:cpp_type%><%/type:sink_final_response_type%>><%!
+    %><%/type:sink_has_first_response?%><%!
 
-%><%^type:stream?%><%!
-%><% > types/type%><%!
-%><%/type:stream?%>
+    %><%^type:sink_has_first_response?%><%!
+      %>apache::thrift::ClientSink<<%!
+      %><%#type:sink_elem_type%><%type:cpp_type%><%/type:sink_elem_type%>, <%!
+      %><%#type:sink_final_response_type%><%type:cpp_type%><%/type:sink_final_response_type%>><%!
+    %><%/type:sink_has_first_response?%><%!
+  %><%/type:sink?%><%!
+  %><%^type:sink?%><%!
+    %><%type:cpp_type%><%!
+  %><%/type:sink?%><%!
+%><%/type:streamresponse?%>

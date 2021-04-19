@@ -6,7 +6,12 @@
 #
 
 from cpython.ref cimport PyObject
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
+from libc.stdint cimport (
+    int8_t as cint8_t,
+    int16_t as cint16_t,
+    int32_t as cint32_t,
+    int64_t as cint64_t,
+)
 from libcpp cimport bool as cbool
 from libcpp.map cimport map as cmap, pair as cpair
 from libcpp.memory cimport shared_ptr, unique_ptr
@@ -15,99 +20,60 @@ from libcpp.string cimport string
 from libcpp.vector cimport vector
 
 from folly cimport cFollyFuture, cFollyTry, cFollyUnit
-cimport folly.iobuf as __iobuf
+cimport folly.iobuf as _fbthrift_iobuf
 from thrift.py3.common cimport cRpcOptions
+from thrift.py3.client cimport cClientWrapper
 
 cimport module.types as _module_types
 
 
-cdef extern from "src/gen-cpp2/MyService.h" namespace "cpp2":
-  cdef cppclass cMyServiceAsyncClient "cpp2::MyServiceAsyncClient":
+cdef extern from "src/gen-cpp2/MyService.h" namespace "::cpp2":
+  cdef cppclass cMyServiceAsyncClient "::cpp2::MyServiceAsyncClient":
       pass
 
 cdef extern from "<utility>" namespace "std":
   cdef unique_ptr[cMyServiceClientWrapper] move(unique_ptr[cMyServiceClientWrapper])
 
-cdef extern from "src/gen-cpp2/MyServiceFast.h" namespace "cpp2":
-  cdef cppclass cMyServiceFastAsyncClient "cpp2::MyServiceFastAsyncClient":
+cdef extern from "src/gen-cpp2/DbMixedStackArguments.h" namespace "::cpp2":
+  cdef cppclass cDbMixedStackArgumentsAsyncClient "::cpp2::DbMixedStackArgumentsAsyncClient":
       pass
 
 cdef extern from "<utility>" namespace "std":
-  cdef unique_ptr[cMyServiceFastClientWrapper] move(unique_ptr[cMyServiceFastClientWrapper])
+  cdef unique_ptr[cDbMixedStackArgumentsClientWrapper] move(unique_ptr[cDbMixedStackArgumentsClientWrapper])
 
-cdef extern from "src/gen-cpp2/MyServiceEmpty.h" namespace "cpp2":
-  cdef cppclass cMyServiceEmptyAsyncClient "cpp2::MyServiceEmptyAsyncClient":
-      pass
+cdef extern from "thrift/lib/cpp/TProcessorEventHandler.h" namespace "::apache::thrift":
+  cdef cppclass cTProcessorEventHandler "apache::thrift::TProcessorEventHandler":
+    pass
 
-cdef extern from "<utility>" namespace "std":
-  cdef unique_ptr[cMyServiceEmptyClientWrapper] move(unique_ptr[cMyServiceEmptyClientWrapper])
-
-cdef extern from "src/gen-cpp2/MyServicePrioParent.h" namespace "cpp2":
-  cdef cppclass cMyServicePrioParentAsyncClient "cpp2::MyServicePrioParentAsyncClient":
-      pass
-
-cdef extern from "<utility>" namespace "std":
-  cdef unique_ptr[cMyServicePrioParentClientWrapper] move(unique_ptr[cMyServicePrioParentClientWrapper])
-
-cdef extern from "src/gen-cpp2/MyServicePrioChild.h" namespace "cpp2":
-  cdef cppclass cMyServicePrioChildAsyncClient "cpp2::MyServicePrioChildAsyncClient":
-      pass
-
-cdef extern from "<utility>" namespace "std":
-  cdef unique_ptr[cMyServicePrioChildClientWrapper] move(unique_ptr[cMyServicePrioChildClientWrapper])
-
-cdef extern from "src/gen-py3/module/clients_wrapper.h" namespace "cpp2":
-  cdef cppclass cMyServiceClientWrapper "cpp2::MyServiceClientWrapper":
-    cFollyFuture[cFollyUnit] disconnect()
+cdef extern from "src/gen-py3/module/clients_wrapper.h" namespace "::cpp2":
+  cdef cppclass cMyServiceClientWrapper "::cpp2::MyServiceClientWrapper":
     void setPersistentHeader(const string& key, const string& value)
+    void addEventHandler(const shared_ptr[cTProcessorEventHandler]& handler)
 
     cFollyFuture[cFollyUnit] ping(cRpcOptions, )
     cFollyFuture[string] getRandomData(cRpcOptions, )
-    cFollyFuture[cbool] hasDataById(cRpcOptions, 
-      int64_t arg_id,)
-    cFollyFuture[string] getDataById(cRpcOptions, 
-      int64_t arg_id,)
+    cFollyFuture[cFollyUnit] sink(cRpcOptions, 
+      cint64_t arg_sink,)
     cFollyFuture[cFollyUnit] putDataById(cRpcOptions, 
-      int64_t arg_id,
+      cint64_t arg_id,
       string arg_data,)
-    cFollyFuture[cFollyUnit] lobDataById(cRpcOptions, 
-      int64_t arg_id,
-      string arg_data,)
-
-
-  cdef cppclass cMyServiceFastClientWrapper "cpp2::MyServiceFastClientWrapper":
-    cFollyFuture[cFollyUnit] disconnect()
-    void setPersistentHeader(const string& key, const string& value)
-
-    cFollyFuture[cFollyUnit] ping(cRpcOptions, )
-    cFollyFuture[string] getRandomData(cRpcOptions, )
     cFollyFuture[cbool] hasDataById(cRpcOptions, 
-      int64_t arg_id,)
+      cint64_t arg_id,)
     cFollyFuture[string] getDataById(cRpcOptions, 
-      int64_t arg_id,)
-    cFollyFuture[cFollyUnit] putDataById(cRpcOptions, 
-      int64_t arg_id,
-      string arg_data,)
+      cint64_t arg_id,)
+    cFollyFuture[cFollyUnit] deleteDataById(cRpcOptions, 
+      cint64_t arg_id,)
     cFollyFuture[cFollyUnit] lobDataById(cRpcOptions, 
-      int64_t arg_id,
+      cint64_t arg_id,
       string arg_data,)
 
 
-  cdef cppclass cMyServiceEmptyClientWrapper "cpp2::MyServiceEmptyClientWrapper":
-    cFollyFuture[cFollyUnit] disconnect()
+  cdef cppclass cDbMixedStackArgumentsClientWrapper "::cpp2::DbMixedStackArgumentsClientWrapper":
     void setPersistentHeader(const string& key, const string& value)
+    void addEventHandler(const shared_ptr[cTProcessorEventHandler]& handler)
 
-
-
-  cdef cppclass cMyServicePrioParentClientWrapper "cpp2::MyServicePrioParentClientWrapper":
-    cFollyFuture[cFollyUnit] disconnect()
-    void setPersistentHeader(const string& key, const string& value)
-
-    cFollyFuture[cFollyUnit] ping(cRpcOptions, )
-    cFollyFuture[cFollyUnit] pong(cRpcOptions, )
-
-
-  cdef cppclass cMyServicePrioChildClientWrapper "cpp2::MyServicePrioChildClientWrapper"(cMyServicePrioParentClientWrapper):
-
-    cFollyFuture[cFollyUnit] pang(cRpcOptions, )
+    cFollyFuture[string] getDataByKey0(cRpcOptions, 
+      string arg_key,)
+    cFollyFuture[string] getDataByKey1(cRpcOptions, 
+      string arg_key,)
 

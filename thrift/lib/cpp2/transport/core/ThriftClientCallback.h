@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,7 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp/EventHandlerBase.h>
-#include <thrift/lib/cpp2/async/RequestChannel.h>
+#include <thrift/lib/cpp2/async/RequestCallback.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache {
@@ -35,10 +35,8 @@ class ThriftClientCallback final : public folly::HHWheelTimer::Callback {
  public:
   ThriftClientCallback(
       folly::EventBase* evb,
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<ContextStack> ctx,
-      bool isSecurityActive,
-      uint16_t protoId,
+      bool oneWay,
+      RequestClientCallback::Ptr cb,
       std::chrono::milliseconds timeout);
 
   virtual ~ThriftClientCallback();
@@ -57,13 +55,8 @@ class ThriftClientCallback final : public folly::HHWheelTimer::Callback {
   // Calls must be scheduled on the event base obtained from
   // "getEventBase()".
   void onThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
+      ResponseRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload) noexcept;
-
-  void onThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
-      std::unique_ptr<folly::IOBuf> payload,
-      Stream<std::unique_ptr<folly::IOBuf>> stream) noexcept;
 
   // Called from the channel in case of an error RPC (instead of
   // calling "onThriftResponse()").
@@ -75,10 +68,6 @@ class ThriftClientCallback final : public folly::HHWheelTimer::Callback {
   // Returns the event base on which calls to "onThriftRequestSent()",
   // "onThriftResponse()", and "onError()" must be scheduled.
   folly::EventBase* getEventBase() const;
-
-  RequestCallback* inner() const {
-    return cb_.get();
-  }
 
   void setTimedOut(folly::Function<void()> onTimedout);
 
@@ -92,10 +81,8 @@ class ThriftClientCallback final : public folly::HHWheelTimer::Callback {
 
  protected:
   folly::EventBase* evb_;
-  std::unique_ptr<RequestCallback> cb_;
-  std::unique_ptr<ContextStack> ctx_;
-  bool isSecurityActive_;
-  uint16_t protoId_;
+  bool oneWay_;
+  RequestClientCallback::Ptr cb_;
 
   bool active_;
   std::chrono::milliseconds timeout_;

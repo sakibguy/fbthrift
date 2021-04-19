@@ -1,21 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #include <thrift/lib/cpp/test/loadgen/RNG.h>
 
 #include <boost/random/lognormal_distribution.hpp>
@@ -25,7 +23,9 @@
 
 #include <folly/ThreadLocal.h>
 
-namespace apache { namespace thrift { namespace loadgen {
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
 const bool RNG::has_fixed_range;
 
@@ -35,9 +35,7 @@ namespace {
 boost::mt19937 seedRNG;
 
 struct RNGImpl {
-  RNGImpl()
-    : rng()
-    , rngWrapper(&rng) {
+  RNGImpl() : rng(), rngWrapper(&rng) {
     // Pick a value from seedRNG to seed this new rng
     rng.seed(seedRNG());
   }
@@ -101,9 +99,11 @@ double RNG::getLogNormal(double mean, double sigma) {
     sigma = mean / 2;
   }
   boost::lognormal_distribution<double> dist(mean, sigma);
-  boost::variate_generator< RNG, boost::lognormal_distribution<double> >
-    gen(getRNG(), dist);
+  boost::variate_generator<RNG, boost::lognormal_distribution<double>> gen(
+      getRNG(), dist);
   return gen();
 }
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache

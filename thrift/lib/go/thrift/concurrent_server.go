@@ -1,25 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -39,58 +37,25 @@ func NewConcurrentServer(processor Processor, serverTransport ServerTransport, o
 
 // NewConcurrentServerFactory create a new server factory
 func NewConcurrentServerFactory(processorFactory ProcessorFactory, serverTransport ServerTransport, options ...func(*ServerOptions)) *ConcurrentServer {
-	serverOptions := defaultServerOptions(serverTransport)
+	return NewConcurrentServerFactoryContext(NewProcessorFactoryContextAdapter(processorFactory), serverTransport, options...)
+}
 
-	for _, option := range options {
-		option(serverOptions)
+// NewConcurrentServerContext is a version of the ConcurrentServer that supports contexts.
+func NewConcurrentServerContext(processor ProcessorContext, serverTransport ServerTransport, options ...func(*ServerOptions)) *ConcurrentServer {
+	return NewConcurrentServerFactoryContext(NewProcessorFactoryContext(processor), serverTransport, options...)
+}
+
+// NewConcurrentServerFactoryContext is a version of the ConcurrentServerFactory that supports contexts.
+func NewConcurrentServerFactoryContext(processorFactory ProcessorFactoryContext, serverTransport ServerTransport, options ...func(*ServerOptions)) *ConcurrentServer {
+	srv := &ConcurrentServer{
+		SimpleServer: NewSimpleServerFactoryContext(processorFactory, serverTransport, options...),
 	}
-
-	return &ConcurrentServer{&SimpleServer{processorFactory, serverOptions}}
+	srv.SimpleServer.configurableRequestProcessor = srv.processRequests
+	return srv
 }
 
-// AcceptLoop starts accepting connections from the transport
-// This loops forever until Stop() is called or on error
-func (p *ConcurrentServer) AcceptLoop() error {
-	for {
-		client, err := p.serverTransport.Accept()
-		if err != nil {
-			select {
-			case <-p.quit:
-				return ErrServerClosed
-			default:
-			}
-			return err
-		}
-		if client != nil {
-			go func() {
-				if err := p.processRequests(client); err != nil {
-					log.Println("error processing request:", err)
-				}
-			}()
-		}
-	}
-}
-
-// Serve starts listening on the transport and accepting new connections
-// This loops forever until Stop() is called or on error
-func (p *ConcurrentServer) Serve() error {
-	err := p.Listen()
-	if err != nil {
-		return err
-	}
-	return p.AcceptLoop()
-}
-
-// Stop stops the accept loop
-// This will block if the accept loop is not yet started
-func (p *ConcurrentServer) Stop() error {
-	p.quit <- struct{}{}
-	p.serverTransport.Interrupt()
-	return nil
-}
-
-func (p *ConcurrentServer) processRequests(client Transport) error {
-	processor := p.processorFactory.Geprocessor(client)
+func (p *ConcurrentServer) processRequests(ctx context.Context, client Transport) error {
+	processor := p.processorFactoryContext.GetProcessorContext(client)
 	var (
 		inputTransport, outputTransport Transport
 		inputProtocol, outputProtocol   Protocol
@@ -110,6 +75,10 @@ func (p *ConcurrentServer) processRequests(client Transport) error {
 		outputProtocol = p.outputProtocolFactory.GetProtocol(outputTransport)
 	}
 
+	// Store the input protocol on the context so handlers can query headers.
+	// See HeadersFromContext.
+	ctx = context.WithValue(ctx, protocolKey, inputProtocol)
+
 	// recover from any panic in the processor, so it doesn't crash the
 	// thrift server
 	defer func() {
@@ -123,6 +92,7 @@ func (p *ConcurrentServer) processRequests(client Transport) error {
 	if outputTransport != nil {
 		defer outputTransport.Close()
 	}
+	intProcessor := WrapInterceptorContext(p.interceptor, processor)
 
 	// WARNING: This server implementation has a host of problems, and is included
 	// to preserve previous behavior.  If you really want a production quality thrift
@@ -146,7 +116,7 @@ func (p *ConcurrentServer) processRequests(client Transport) error {
 			}
 			return err
 		}
-		pfunc, err := processor.GetProcessorFunction(name)
+		pfunc, err := intProcessor.GetProcessorFunctionContext(name)
 		if pfunc == nil || err != nil {
 			if err == nil {
 				err = fmt.Errorf("no such function: %q", name)
@@ -171,7 +141,7 @@ func (p *ConcurrentServer) processRequests(client Transport) error {
 		}
 		go func() {
 			var result WritableStruct
-			result, err = pfunc.Run(argStruct)
+			result, err = pfunc.RunContext(ctx, argStruct)
 			// protect message writing
 			writeLock.Lock()
 			defer writeLock.Unlock()

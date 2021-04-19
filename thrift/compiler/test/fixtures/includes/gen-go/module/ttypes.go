@@ -6,9 +6,10 @@ package module
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 	includes0 "includes"
 
 )
@@ -18,6 +19,7 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var _ = includes0.GoUnusedProtection__
 var GoUnusedProtection__ int;
@@ -34,8 +36,10 @@ type MyStruct struct {
 
 func NewMyStruct() *MyStruct {
   return &MyStruct{
-MyIncludedInt: 42,
-}
+    MyIncludedField: includes0.NewIncluded(),
+    MyOtherIncludedField: includes0.NewIncluded(),
+    MyIncludedInt: 42,
+  }
 }
 
 var MyStruct_MyIncludedField_DEFAULT *includes0.Included = &includes0.Included{
@@ -62,11 +66,59 @@ func (p *MyStruct) GetMyIncludedInt() includes0.IncludedInt64 {
   return p.MyIncludedInt
 }
 func (p *MyStruct) IsSetMyIncludedField() bool {
-  return p.MyIncludedField != nil
+  return p != nil && p.MyIncludedField != nil
 }
 
 func (p *MyStruct) IsSetMyOtherIncludedField() bool {
-  return p.MyOtherIncludedField != nil
+  return p != nil && p.MyOtherIncludedField != nil
+}
+
+type MyStructBuilder struct {
+  obj *MyStruct
+}
+
+func NewMyStructBuilder() *MyStructBuilder{
+  return &MyStructBuilder{
+    obj: NewMyStruct(),
+  }
+}
+
+func (p MyStructBuilder) Emit() *MyStruct{
+  return &MyStruct{
+    MyIncludedField: p.obj.MyIncludedField,
+    MyOtherIncludedField: p.obj.MyOtherIncludedField,
+    MyIncludedInt: p.obj.MyIncludedInt,
+  }
+}
+
+func (m *MyStructBuilder) MyIncludedField(myIncludedField *includes0.Included) *MyStructBuilder {
+  m.obj.MyIncludedField = myIncludedField
+  return m
+}
+
+func (m *MyStructBuilder) MyOtherIncludedField(myOtherIncludedField *includes0.Included) *MyStructBuilder {
+  m.obj.MyOtherIncludedField = myOtherIncludedField
+  return m
+}
+
+func (m *MyStructBuilder) MyIncludedInt(myIncludedInt includes0.IncludedInt64) *MyStructBuilder {
+  m.obj.MyIncludedInt = myIncludedInt
+  return m
+}
+
+func (m *MyStruct) SetMyIncludedField(myIncludedField *includes0.Included) *MyStruct {
+  m.MyIncludedField = myIncludedField
+  return m
+}
+
+func (m *MyStruct) SetMyOtherIncludedField(myOtherIncludedField *includes0.Included) *MyStruct {
+  m.MyOtherIncludedField = myOtherIncludedField
+  return m
+}
+
+func (m *MyStruct) SetMyIncludedInt(myIncludedInt includes0.IncludedInt64) *MyStruct {
+  m.MyIncludedInt = myIncludedInt
+  return m
 }
 
 func (p *MyStruct) Read(iprot thrift.Protocol) error {
@@ -127,11 +179,11 @@ func (p *MyStruct)  ReadField2(iprot thrift.Protocol) error {
 
 func (p *MyStruct)  ReadField3(iprot thrift.Protocol) error {
   if v, err := iprot.ReadI64(); err != nil {
-  return thrift.PrependError("error reading field 3: ", err)
-} else {
-  temp := includes0.IncludedInt64(v)
-  p.MyIncludedInt = temp
-}
+    return thrift.PrependError("error reading field 3: ", err)
+  } else {
+    temp := includes0.IncludedInt64(v)
+    p.MyIncludedInt = temp
+  }
   return nil
 }
 
@@ -184,6 +236,20 @@ func (p *MyStruct) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("MyStruct(%+v)", *p)
+
+  var myIncludedFieldVal string
+  if p.MyIncludedField == nil {
+    myIncludedFieldVal = "<nil>"
+  } else {
+    myIncludedFieldVal = fmt.Sprintf("%v", p.MyIncludedField)
+  }
+  var myOtherIncludedFieldVal string
+  if p.MyOtherIncludedField == nil {
+    myOtherIncludedFieldVal = "<nil>"
+  } else {
+    myOtherIncludedFieldVal = fmt.Sprintf("%v", p.MyOtherIncludedField)
+  }
+  myIncludedIntVal := fmt.Sprintf("%v", p.MyIncludedInt)
+  return fmt.Sprintf("MyStruct({MyIncludedField:%s MyOtherIncludedField:%s MyIncludedInt:%s})", myIncludedFieldVal, myOtherIncludedFieldVal, myIncludedIntVal)
 }
 

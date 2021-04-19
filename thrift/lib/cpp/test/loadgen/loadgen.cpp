@@ -1,32 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #include <thrift/lib/cpp/test/loadgen/loadgen.h>
 
+#include <boost/scoped_ptr.hpp>
 #include <thrift/lib/cpp/test/loadgen/Controller.h>
 #include <thrift/lib/cpp/test/loadgen/LatencyMonitor.h>
-#include <boost/scoped_ptr.hpp>
 
 using namespace boost;
 
-namespace apache { namespace thrift { namespace loadgen {
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
-void runLoadGen(WorkerFactory* factory,
+void runLoadGen(
+    WorkerFactory* factory,
     const std::shared_ptr<LoadConfig>& config,
     double interval,
     Monitor* monitor,
@@ -38,9 +39,10 @@ void runLoadGen(WorkerFactory* factory,
   }
 
   Controller controller(factory, monitor, config, threadFactory);
-  controller.run(config->getNumWorkerThreads(),
-                 config->getMaxWorkerThreads(),
-                 interval);
+  controller.run(
+      config->getNumWorkerThreads(), config->getMaxWorkerThreads(), interval);
 }
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache

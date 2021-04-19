@@ -6,9 +6,10 @@ package module
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -16,6 +17,7 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var GoUnusedProtection__ int;
 
@@ -24,6 +26,21 @@ type Empty struct {
 
 func NewEmpty() *Empty {
   return &Empty{}
+}
+
+type EmptyBuilder struct {
+  obj *Empty
+}
+
+func NewEmptyBuilder() *EmptyBuilder{
+  return &EmptyBuilder{
+    obj: NewEmpty(),
+  }
+}
+
+func (p EmptyBuilder) Emit() *Empty{
+  return &Empty{
+  }
 }
 
 func (p *Empty) Read(iprot thrift.Protocol) error {
@@ -65,7 +82,8 @@ func (p *Empty) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Empty(%+v)", *p)
+
+  return fmt.Sprintf("Empty({})")
 }
 
 type Nada struct {
@@ -73,6 +91,21 @@ type Nada struct {
 
 func NewNada() *Nada {
   return &Nada{}
+}
+
+type NadaBuilder struct {
+  obj *Nada
+}
+
+func NewNadaBuilder() *NadaBuilder{
+  return &NadaBuilder{
+    obj: NewNada(),
+  }
+}
+
+func (p NadaBuilder) Emit() *Nada{
+  return &Nada{
+  }
 }
 
 func (p *Nada) Read(iprot thrift.Protocol) error {
@@ -114,6 +147,7 @@ func (p *Nada) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Nada(%+v)", *p)
+
+  return fmt.Sprintf("Nada({})")
 }
 

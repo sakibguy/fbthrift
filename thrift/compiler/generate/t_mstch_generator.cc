@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/compiler/generate/t_mstch_generator.h>
 
 #include <algorithm>
@@ -22,14 +23,31 @@
 #include <stdexcept>
 #include <string>
 
-#include <mstch/mstch.hpp>
+#include <thrift/compiler/detail/mustache/mstch.h>
 
 #include <thrift/compiler/common.h>
+#include <thrift/compiler/filesystem.h>
 #include <thrift/compiler/generate/t_generator.h>
+#include <thrift/compiler/generate/templates.h>
+
+using namespace std;
+
+namespace fs = boost::filesystem;
+
+namespace apache {
+namespace thrift {
+namespace compiler {
 
 namespace {
 
-using namespace std;
+fs::path from_components(
+    fs::path::const_iterator begin, fs::path::const_iterator end) {
+  fs::path tmp;
+  while (begin != end) {
+    tmp /= *begin++;
+  }
+  return tmp;
+}
 
 bool is_last_char(const string& data, char c) {
   return !data.empty() && data.back() == c;
@@ -45,36 +63,30 @@ void chomp_last_char(string* data, char c) {
 
 t_mstch_generator::t_mstch_generator(
     t_program* program,
+    t_generation_context context,
     boost::filesystem::path template_prefix,
     std::map<std::string, std::string> parsed_options,
     bool convert_delimiter)
-    : t_generator(program),
-      template_dir_(g_template_dir),
+    : t_generator(program, std::move(context)),
       parsed_options_(std::move(parsed_options)),
       convert_delimiter_(convert_delimiter),
       generators_(std::make_shared<mstch_generators>()),
       cache_(std::make_shared<mstch_cache>()) {
   cache_->parsed_options_ = parsed_options_;
-  if (template_dir_ == "") {
-    std::string s = "Must set template directory when using mstch generator";
-    throw std::runtime_error{s};
-  }
-
-  gen_template_map(template_dir_ / template_prefix, "");
+  gen_template_map(template_prefix);
 }
 
 mstch::map t_mstch_generator::dump(const t_program& program) {
   mstch::map result{
-      {"name", program.get_name()},
-      {"path", program.get_path()},
-      {"outPath", program.get_out_path()},
-      {"namespace", program.get_namespace()},
-      {"includePrefix", program.get_include_prefix()},
-      {"structs", dump_elems(program.get_objects())},
-      {"enums", dump_elems(program.get_enums())},
-      {"services", dump_elems(program.get_services())},
-      {"typedefs", dump_elems(program.get_typedefs())},
-      {"constants", dump_elems(program.get_consts())},
+      {"name", program.name()},
+      {"path", program.path()},
+      {"outPath", context_.get_out_path()},
+      {"includePrefix", program.include_prefix()},
+      {"structs", dump_elems(program.objects())},
+      {"enums", dump_elems(program.enums())},
+      {"services", dump_elems(program.services())},
+      {"typedefs", dump_elems(program.typedefs())},
+      {"constants", dump_elems(program.consts())},
   };
 
   mstch::map extension = extend_program(program);
@@ -85,14 +97,13 @@ mstch::map t_mstch_generator::dump(const t_program& program) {
 mstch::map t_mstch_generator::dump(const t_struct& strct, bool shallow) {
   mstch::map result{
       {"name", strct.get_name()},
-      {"fields?", !strct.get_members().empty()},
+      {"fields?", strct.has_fields()},
       {"fields",
-       shallow ? static_cast<mstch::node>(false)
-               : dump_elems(strct.get_members())},
+       shallow ? static_cast<mstch::node>(false) : dump_elems(strct.fields())},
       {"exception?", strct.is_xception()},
       {"union?", strct.is_union()},
       {"plain?", !strct.is_xception() && !strct.is_union()},
-      {"annotations", dump_elems(strct.annotations_)},
+      {"annotations", dump_elems(strct.annotations())},
   };
 
   mstch::map extension = extend_struct(strct);
@@ -108,10 +119,10 @@ mstch::map t_mstch_generator::dump(const t_field& field, int32_t index) {
       {"type", dump(*field.get_type())},
       {"index", std::to_string(index)},
       {"index_plus_one", std::to_string(index + 1)},
-      {"required?", req == t_field::e_req::T_REQUIRED},
-      {"optional?", req == t_field::e_req::T_OPTIONAL},
-      {"optInReqOut?", req == t_field::e_req::T_OPT_IN_REQ_OUT},
-      {"annotations", dump_elems(field.annotations_)},
+      {"required?", req == t_field::e_req::required},
+      {"optional?", req == t_field::e_req::optional},
+      {"opt_in_req_out?", req == t_field::e_req::opt_in_req_out},
+      {"annotations", dump_elems(field.annotations())},
   };
 
   if (field.get_value() != nullptr) {
@@ -125,15 +136,15 @@ mstch::map t_mstch_generator::dump(const t_field& field, int32_t index) {
 
 mstch::map t_mstch_generator::dump(const t_type& orig_type) {
   const t_type& type =
-      should_resolve_typedefs() ? resolve_typedef(orig_type) : orig_type;
+      should_resolve_typedefs() ? *orig_type.get_true_type() : orig_type;
 
   mstch::map result{
       {"name", type.get_name()},
-      {"annotations", dump_elems(type.annotations_)},
+      {"annotations", dump_elems(type.annotations())},
 
       {"void?", type.is_void()},
-      {"string?", type.is_string() && !type.is_binary()},
-      {"binary?", type.is_string() && type.is_binary()},
+      {"string?", type.is_string()},
+      {"binary?", type.is_binary()},
       {"bool?", type.is_bool()},
       {"byte?", type.is_byte()},
       {"i16?", type.is_i16()},
@@ -143,8 +154,9 @@ mstch::map t_mstch_generator::dump(const t_type& orig_type) {
       {"float?", type.is_float()},
       {"floating_point?", type.is_floating_point()},
       {"struct?", type.is_struct() || type.is_xception()},
+      {"union?", type.is_union()},
       {"enum?", type.is_enum()},
-      {"stream?", type.is_stream()},
+      {"stream?", type.is_streamresponse()},
       {"service?", type.is_service()},
       {"base?", type.is_base_type()},
       {"container?", type.is_container()},
@@ -163,27 +175,20 @@ mstch::map t_mstch_generator::dump(const t_type& orig_type) {
     result.emplace("service", dump(dynamic_cast<const t_service&>(type)));
   } else if (type.is_list()) {
     result.emplace(
-        "listElemType",
+        "list_elem_type",
         dump(*dynamic_cast<const t_list&>(type).get_elem_type()));
-  } else if (type.is_stream()) {
-    result.emplace(
-        "streamElemType",
-        dump(*dynamic_cast<const t_stream&>(type).get_elem_type()));
   } else if (type.is_set()) {
     result.emplace(
-        "setElemType", dump(*dynamic_cast<const t_set&>(type).get_elem_type()));
-    result.emplace(
-        "unordered?", dynamic_cast<const t_set&>(type).is_unordered());
+        "set_elem_type",
+        dump(*dynamic_cast<const t_set&>(type).get_elem_type()));
   } else if (type.is_map()) {
     result.emplace(
-        "unordered?", dynamic_cast<const t_map&>(type).is_unordered());
+        "key_type", dump(*dynamic_cast<const t_map&>(type).get_key_type()));
     result.emplace(
-        "keyType", dump(*dynamic_cast<const t_map&>(type).get_key_type()));
-    result.emplace(
-        "valueType", dump(*dynamic_cast<const t_map&>(type).get_val_type()));
+        "value_type", dump(*dynamic_cast<const t_map&>(type).get_val_type()));
   } else if (type.is_typedef()) {
     result.emplace(
-        "typedefType", dump(*dynamic_cast<const t_typedef&>(type).get_type()));
+        "typedef_type", dump(*dynamic_cast<const t_typedef&>(type).get_type()));
   }
 
   mstch::map extension = extend_type(type);
@@ -194,8 +199,8 @@ mstch::map t_mstch_generator::dump(const t_type& orig_type) {
 mstch::map t_mstch_generator::dump(const t_enum& enm) {
   mstch::map result{
       {"name", enm.get_name()},
-      {"values", dump_elems(enm.get_constants())},
-      {"annotations", dump_elems(enm.annotations_)},
+      {"values", dump_elems(enm.get_enum_values())},
+      {"annotations", dump_elems(enm.annotations())},
   };
 
   mstch::map extension = extend_enum(enm);
@@ -218,7 +223,7 @@ mstch::map t_mstch_generator::dump(const t_service& service) {
   t_service* extends = service.get_extends();
   mstch::map result{
       {"name", service.get_name()},
-      {"annotations", dump_elems(service.annotations_)},
+      {"annotations", dump_elems(service.annotations())},
       {"functions", dump_elems(service.get_functions())},
       {"functions?", !service.get_functions().empty()},
       {"extends?", extends != nullptr},
@@ -234,14 +239,11 @@ mstch::map t_mstch_generator::dump(const t_function& function) {
   mstch::map result{
       {"name", function.get_name()},
       {"oneway?", function.is_oneway()},
-      {"returnType", dump(*function.get_returntype())},
-      {"exceptions", dump_elems(function.get_xceptions()->get_members())},
-      {"exceptions?", !function.get_xceptions()->get_members().empty()},
-      {"annotations",
-       function.get_annotations()
-           ? dump_elems(function.get_annotations()->annotations_)
-           : static_cast<mstch::node>(false)},
-      {"args", dump_elems(function.get_arglist()->get_members())},
+      {"return_type", dump(*function.get_returntype())},
+      {"exceptions", dump_elems(function.get_xceptions()->fields())},
+      {"exceptions?", function.get_xceptions()->has_fields()},
+      {"annotations", dump_elems(function.annotations())},
+      {"args", dump_elems(function.get_paramlist()->fields())},
   };
 
   mstch::map extension = extend_function(function);
@@ -279,22 +281,20 @@ mstch::map t_mstch_generator::dump(const t_const_value& value) {
   };
 
   auto const format_double_string = [](const double d) {
-    std::string d_str = std::to_string(d);
-    d_str.erase(d_str.find_last_not_of('0') + 1);
-    if (d_str.back() == '.')
-      d_str.push_back('0');
-    return d_str;
+    std::ostringstream oss;
+    oss << std::setprecision(std::numeric_limits<double>::digits10) << d;
+    return oss.str();
   };
 
   switch (type) {
     case cv::CV_DOUBLE:
       result.emplace("value", format_double_string(value.get_double()));
-      result.emplace("doubleValue", format_double_string(value.get_double()));
+      result.emplace("double_value", format_double_string(value.get_double()));
       result.emplace("nonzero?", value.get_double() != 0.0);
       break;
     case cv::CV_BOOL:
       result.emplace("value", std::to_string(value.get_bool()));
-      result.emplace("boolValue", value.get_bool() == true);
+      result.emplace("bool_value", value.get_bool() == true);
       result.emplace("nonzero?", value.get_bool() == true);
       break;
     case cv::CV_INTEGER:
@@ -303,18 +303,18 @@ mstch::map t_mstch_generator::dump(const t_const_value& value) {
         result.emplace("enum_value_name", value.get_enum_value()->get_name());
       }
       result.emplace("value", std::to_string(value.get_integer()));
-      result.emplace("integerValue", std::to_string(value.get_integer()));
+      result.emplace("integer_value", std::to_string(value.get_integer()));
       result.emplace("nonzero?", value.get_integer() != 0);
       break;
     case cv::CV_STRING:
       result.emplace("value", value.get_string());
-      result.emplace("stringValue", value.get_string());
+      result.emplace("string_value", value.get_string());
       break;
     case cv::CV_MAP:
-      result.emplace("mapElements", dump_elems(value.get_map()));
+      result.emplace("map_elements", dump_elems(value.get_map()));
       break;
     case cv::CV_LIST:
-      result.emplace("listElements", dump_elems(value.get_list()));
+      result.emplace("list_elements", dump_elems(value.get_list()));
       break;
     default:
       std::ostringstream err;
@@ -427,17 +427,19 @@ mstch::map t_mstch_generator::extend_annotation(const annotation&) {
   return {};
 }
 
-void t_mstch_generator::gen_template_map(
-    const boost::filesystem::path& root,
-    const std::string& sub_directory) {
-  for (auto itr = boost::filesystem::directory_iterator{root};
-       itr != boost::filesystem::directory_iterator{};
-       ++itr) {
-    if (boost::filesystem::is_regular_file(itr->path()) &&
-        boost::filesystem::extension(itr->path()) == ".mustache") {
-      std::ifstream ifs{itr->path().string()};
-      auto tpl = std::string{std::istreambuf_iterator<char>(ifs),
-                             std::istreambuf_iterator<char>()};
+void t_mstch_generator::gen_template_map(const boost::filesystem::path& root) {
+  for (size_t i = 0; i < templates_size; ++i) {
+    auto name = boost::filesystem::path(
+        templates_name_datas[i],
+        templates_name_datas[i] + templates_name_sizes[i]);
+    auto mm = std::mismatch(name.begin(), name.end(), root.begin(), root.end());
+    if (mm.second == root.end()) {
+      name = from_components(mm.first, name.end());
+      name = name.parent_path() / name.stem();
+
+      auto tpl = std::string(
+          templates_content_datas[i],
+          templates_content_datas[i] + templates_content_sizes[i]);
       // Remove a single '\n' or '\r\n' or '\r' at end, if present.
       chomp_last_char(&tpl, '\n');
       chomp_last_char(&tpl, '\r');
@@ -445,10 +447,7 @@ void t_mstch_generator::gen_template_map(
         tpl = "{{=<% %>=}}\n" + tpl;
       }
 
-      template_map_.emplace(
-          sub_directory + itr->path().stem().string(), std::move(tpl));
-    } else if (boost::filesystem::is_directory(itr->path())) {
-      gen_template_map(itr->path(), itr->path().filename().string() + "/");
+      template_map_.emplace(name.generic_string(), std::move(tpl));
     }
   }
 }
@@ -465,11 +464,16 @@ const std::string& t_mstch_generator::get_template(
 }
 
 void t_mstch_generator::write_output(
-    const boost::filesystem::path& path,
-    const std::string& data) {
-  auto abs_path = boost::filesystem::path{get_out_dir()} / path;
+    const boost::filesystem::path& path, const std::string& data) {
+  auto base_path = boost::filesystem::path{get_out_dir()};
+  auto abs_path = make_abs_path(base_path, path);
   boost::filesystem::create_directories(abs_path.parent_path());
   std::ofstream ofs{abs_path.string()};
+  if (!ofs) {
+    std::ostringstream err;
+    err << "Couldn't open \"" << abs_path.string() << "\" for writing.";
+    throw std::runtime_error{err.str()};
+  }
   ofs << data;
   if (!is_last_char(data, '\n')) {
     // Terminate with newline.
@@ -478,27 +482,21 @@ void t_mstch_generator::write_output(
   record_genfile(abs_path.string());
 }
 
-std::unique_ptr<std::string> t_mstch_generator::get_option(
-    const std::string& key) {
-  auto itr = parsed_options_.find(key);
-  if (itr == parsed_options_.end()) {
-    return nullptr;
-  }
-  return std::unique_ptr<std::string>(new std::string(itr->second));
+bool t_mstch_generator::has_option(const std::string& option) const {
+  return parsed_options_.find(option) != parsed_options_.end();
 }
 
-const t_type& t_mstch_generator::resolve_typedef(const t_type& type) const {
-  auto t = &type;
-  while (t->is_typedef()) {
-    t = dynamic_cast<const t_typedef*>(t)->get_type();
+std::string t_mstch_generator::get_option(const std::string& option) {
+  auto itr = parsed_options_.find(option);
+  if (itr != parsed_options_.end()) {
+    return itr->second;
   }
-  return *t;
+  return {};
 }
 
 mstch::map t_mstch_generator::prepend_prefix(
-    const std::string& prefix,
-    mstch::map map) {
-  mstch::map res{};
+    const std::string& prefix, mstch::map map) {
+  mstch::map res;
   for (auto& pair : map) {
     res.emplace(prefix + ":" + pair.first, std::move(pair.second));
   }
@@ -506,8 +504,7 @@ mstch::map t_mstch_generator::prepend_prefix(
 }
 
 std::string t_mstch_generator::render(
-    const std::string& template_name,
-    const mstch::node& context) {
+    const std::string& template_name, const mstch::node& context) {
   return mstch::render(
       get_template(template_name), context, get_template_map());
 }
@@ -518,3 +515,22 @@ void t_mstch_generator::render_to_file(
     const boost::filesystem::path& path) {
   write_output(path, render(template_name, context));
 }
+
+const std::shared_ptr<mstch_base>& t_mstch_generator::cached_program(
+    t_program const* program) {
+  const auto& id = program->path();
+  auto itr = cache_->programs_.find(id);
+  if (itr == cache_->programs_.end()) {
+    itr = cache_->programs_
+              .emplace(
+                  id,
+                  generators_->program_generator_->generate(
+                      program, generators_, cache_))
+              .first;
+  }
+  return itr->second;
+}
+
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

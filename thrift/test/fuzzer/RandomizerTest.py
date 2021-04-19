@@ -1,3 +1,17 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -20,7 +34,7 @@ class TestRandomizer(object):
     iterations = 1024
 
     def get_randomizer(self, ttypes, spec_args, constraints):
-        state = randomizer.RandomizerState()
+        state = randomizer.RandomizerState({"global_constraint" : 100})
         return state.get_randomizer(ttypes, spec_args, constraints)
 
 class TestBoolRandomizer(unittest.TestCase, TestRandomizer):
@@ -509,6 +523,22 @@ class TestListRandomizer(TestRandomizer, unittest.TestCase):
             val = gen.generate()
             self.assertEquals(len(val), 0)
 
+    def testMaxLength(self):
+        cls = self.__class__
+
+        ttype = Thrift.TType.LIST
+        spec_args = (Thrift.TType.I32, None)  # Elements are i32
+        constraints = {'mean_length': 100, 'max_length': 99}
+
+        gen = self.get_randomizer(ttype, spec_args, constraints)
+
+        # Test to make sure that max length is enforced.
+        #
+        # Generate a lot of lists that should never be over 99 long
+        for _ in sm.xrange(cls.iterations):
+            val = gen.generate()
+            self.assertLessEqual(len(val), 99)
+
     def testElementConstraints(self):
         cls = self.__class__
 
@@ -743,6 +773,21 @@ class TestStructRandomizer(TestRandomizer, unittest.TestCase):
             self.assertTrue(val.a)
             self.assertIsNone(val.b)
 
+    def testStructSeed(self):
+        cls = self.__class__
+        constraints = {
+            '|Rainbow': {
+                "seeds": [ttypes.Rainbow(colors=[ttypes.Color.RED])],
+            },
+            '|NestedStructs': {
+                'seeds': [ttypes.NestedStructs(rainbow=ttypes.Rainbow(colors=[ttypes.Color.ORANGE]))],
+            },
+        }
+        gen = self.struct_randomizer(ttypes.NestedStructs, constraints)
+        for _ in sm.xrange(cls.iterations):
+            val = gen.generate()
+            self.assertIsNotNone(val)
+
     def testNestedConstraints(self):
         cls = self.__class__
 
@@ -770,6 +815,45 @@ class TestStructRandomizer(TestRandomizer, unittest.TestCase):
             self.assertIsNotNone(val.c.a)
             self.assertIsNone(val.c.b)
 
+    def testEmptyUnion(self):
+        cls = self.__class__
+        constraints = {}
+        gen = self.struct_randomizer(ttypes.EmptyUnion, constraints)
+        for _ in sm.xrange(cls.iterations):
+            val = gen.generate()
+            # Because the enum has no valid fields it's hard to generate
+            # a reasonable value. So returning None from the
+            # randomizer is reasonable.
+            self.assertIsNone(val)
+
+    def testStructContainingDefaultUnion(self):
+        cls = self.__class__
+        constraints = {}
+        gen = self.struct_randomizer(ttypes.NumberUnionStruct, constraints)
+        for _ in sm.xrange(cls.iterations):
+            val = gen.generate()
+            self.assertIsNotNone(val)
+
+    def testSubRanomizersHaveDefaults(self):
+
+        # Have constraints with a field that is never
+        # used and won't come from the existing defaults.
+        # Then make sure that constraint for StructWithOptionals
+        # doesn't go everywhere.
+        targeted_key = "targeted_constraint"
+        constraints = {targeted_key: 100}
+        gen = self.struct_randomizer(ttypes.StructWithOptionals, constraints)
+
+        # Yes this is pretty ugly as we have
+        # to reach into a undercode field, but it
+        # does show what constraints get propagated and what don't
+        for _field_name, data in gen._field_rules.items():
+            # The targeted key will only apply to the first randomizer
+            self.assertNotIn(targeted_key, data["randomizer"].constraints.keys())
+
+            # The global one is propagated to everything.
+            self.assertIn("global_constraint", data["randomizer"].constraints)
+
 
 class TestUnionRandomizer(TestStructRandomizer, unittest.TestCase):
     ttype = ttypes.IntUnion
@@ -794,14 +878,39 @@ class TestUnionRandomizer(TestStructRandomizer, unittest.TestCase):
         for _ in sm.xrange(cls.iterations):
             val = gen.generate()
             # Check that field is zero, indicating no fields are set
-            self.assertEqual(val.field, 0)
+            self.assertIsNone(
+                val,
+                (
+                    "Because there's no way to add fields of a "
+                    "union there should be no way to create the union."
+                ),
+            )
+
+    def testSeededFuzz(self):
+        cls = self.__class__
+        seeds = [ttypes.IntUnion(a=20), ttypes.IntUnion(b=40)]
+        constraints = {"seeds": seeds, "p_random": 0}
+        gen = self.struct_randomizer(constraints=constraints)
+        for _ in sm.xrange(cls.iterations):
+            val = gen.generate()
+            self.assertIsNotNone(
+                val,
+                (
+                    "The union should always be created. "
+                    "We don't know the expected values, "
+                    "just that they exist"
+                ),
+            )
+
 
     def testSeeded(self):
         cls = self.__class__
 
         seeds = [
             {'a': 2},
-            {'b': 4}
+            {'b': 4},
+            ttypes.IntUnion(a=2),
+            ttypes.IntUnion(b=4),
         ]
 
         constraints = {

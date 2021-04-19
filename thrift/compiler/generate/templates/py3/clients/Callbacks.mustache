@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,27 +26,24 @@ executed in the asyncio loop.
 }}
 
 {{#program:services}}
-{{#service:functions}}
+{{#service:supportedFunctions}}
 cdef void {{service:name}}_{{function:name}}_callback(
-    cFollyTry[{{#function:returnType}}{{> types/CythonCppType}}{{/function:returnType}}]&& result,
+    cFollyTry[{{#function:return_type}}{{> clients/CythonReturnTypeCppType}}{{/function:return_type}}]&& result,
     PyObject* userdata
 ):
-    client, pyfuture, options = <object> userdata  {{! so client lives on until we exit }}
-    if {{#function:exceptions}}{{!
-    }}result.hasException[{{#field:type}}{{> types/CythonCppType}}{{/field:type}}]():
-        {{#field:type}}pyfuture.set_exception({{!
-        }}{{> types/CythonPythonType}}.create({{!
-        }}try_make_shared_exception[{{> types/CythonCppType}}](result.exception()){{!
-        }})){{/field:type}}
-    elif {{/function:exceptions}}{{!
-    }}result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result({{#function:returnType}}{{> clients/CythonCppValueToReturnValue}}{{/function:returnType}})
-        except Exception as ex:
-            {{! Most likely this is only ever unicode decode errors }}
-            pyfuture.set_exception(ex.with_traceback(None))
+    {{> clients/CallbackBody}}
 
-{{/service:functions}}
+
+{{/service:supportedFunctions}}
+{{#service:interactions}}
+{{#service:supportedFunctions}}
+cdef void {{service:parent_service_name}}_{{service:name}}_{{function:name}}_callback(
+    cFollyTry[{{#function:return_type}}{{> clients/CythonReturnTypeCppType}}{{/function:return_type}}]&& result,
+    PyObject* userdata
+):
+    {{> clients/CallbackBody}}
+
+
+{{/service:supportedFunctions}}
+{{/service:interactions}}
 {{/program:services}}

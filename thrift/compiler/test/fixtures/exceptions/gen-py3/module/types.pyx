@@ -4,174 +4,424 @@
 # DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
 #  @generated
 #
-
 cimport cython as __cython
-from cpython.object cimport PyTypeObject
+from cpython.object cimport PyTypeObject, Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from libcpp.memory cimport shared_ptr, make_shared, unique_ptr, make_unique
 from libcpp.string cimport string
 from libcpp cimport bool as cbool
 from libcpp.iterator cimport inserter as cinserter
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t, uint32_t
 from cython.operator cimport dereference as deref, preincrement as inc, address as ptr_address
 import thrift.py3.types
 cimport thrift.py3.types
 cimport thrift.py3.exceptions
-from thrift.py3.types import NOTSET as __NOTSET
-from thrift.py3.types cimport translate_cpp_enum_to_python, SetMetaClass as __SetMetaClass
+from thrift.py3.std_libcpp cimport sv_to_str as __sv_to_str, string_view as __cstring_view
+from thrift.py3.types cimport (
+    cSetOp as __cSetOp,
+    richcmp as __richcmp,
+    set_op as __set_op,
+    setcmp as __setcmp,
+    list_index as __list_index,
+    list_count as __list_count,
+    list_slice as __list_slice,
+    list_getitem as __list_getitem,
+    set_iter as __set_iter,
+    map_iter as __map_iter,
+    map_contains as __map_contains,
+    map_getitem as __map_getitem,
+    reference_shared_ptr as __reference_shared_ptr,
+    get_field_name_by_index as __get_field_name_by_index,
+    reset_field as __reset_field,
+    translate_cpp_enum_to_python,
+    SetMetaClass as __SetMetaClass,
+    const_pointer_cast,
+    constant_shared_ptr,
+    NOTSET as __NOTSET,
+    EnumData as __EnumData,
+    EnumFlagsData as __EnumFlagsData,
+    UnionTypeEnumData as __UnionTypeEnumData,
+    createEnumDataForUnionType as __createEnumDataForUnionType,
+)
 cimport thrift.py3.std_libcpp as std_libcpp
-from thrift.py3.serializer import Protocol as __Protocol
 cimport thrift.py3.serializer as serializer
-from thrift.py3.serializer import deserialize, serialize
-import folly.iobuf as __iobuf
+import folly.iobuf as _fbthrift_iobuf
 from folly.optional cimport cOptional
+from folly.memory cimport to_shared_ptr as __to_shared_ptr
+from folly.range cimport Range as __cRange
 
 import sys
-import itertools
-from collections import Sequence, Set, Mapping, Iterable
-import warnings
+from collections.abc import Sequence, Set, Mapping, Iterable
+import weakref as __weakref
 import builtins as _builtins
 
-
-cdef class Banal(thrift.py3.exceptions.Error):
-
-    def __init__(
-        Banal self
-    ):
-        self._cpp_obj = move(Banal._make_instance(
-          NULL,
-        ))
-        _builtins.Exception.__init__(self, )
+cimport module.types_reflection as _types_reflection
 
 
-    @staticmethod
-    cdef unique_ptr[cBanal] _make_instance(
-        cBanal* base_instance
-    ) except *:
-        cdef unique_ptr[cBanal] c_inst
-        if base_instance:
-            c_inst = make_unique[cBanal](deref(base_instance))
-        else:
-            c_inst = make_unique[cBanal]()
 
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
+@__cython.auto_pickle(False)
+cdef class Banal(thrift.py3.exceptions.GeneratedError):
+    def __init__(Banal self, *args, **kwargs):
+        self._cpp_obj = make_shared[cBanal]()
+        self._fields_setter = _fbthrift_types_fields.__Banal_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__( *args, **kwargs)
 
-    def __iter__(self):
-        return iter(())
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
 
-    def __bool__(self):
-        return True
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("Banal", {
+        })
 
     @staticmethod
     cdef create(shared_ptr[cBanal] cpp_obj):
-        inst = <Banal>Banal.__new__(Banal, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
-        inst._cpp_obj = cpp_obj
-        _builtins.Exception.__init__(inst, )
-        return inst
+        __fbthrift_inst = <Banal>Banal.__new__(Banal, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        _builtins.Exception.__init__(__fbthrift_inst, *(v for _, v in __fbthrift_inst))
+        return __fbthrift_inst
 
 
     def __hash__(Banal self):
-        return super().__hash__()
+        return  super().__hash__()
 
-    def __repr__(Banal self):
-        return f'Banal()'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, Banal) and
-                isinstance(other, Banal)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __copy__(Banal self):
+        cdef shared_ptr[cBanal] cpp_obj = make_shared[cBanal](
+            deref(self._cpp_obj)
+        )
+        return Banal.create(cmove(cpp_obj))
 
-        cdef cBanal cself = deref((<Banal>self)._cpp_obj)
-        cdef cBanal cother = deref((<Banal>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
-
-
-
-cdef class Fiery(thrift.py3.exceptions.Error):
-
-    def __init__(
-        Fiery self,
-        str message=None
-    ):
-        if message is None:
-            raise TypeError("__init__() needs required argument 'message'")
-        self._cpp_obj = move(Fiery._make_instance(
-          NULL,
-          message,
-        ))
-        _builtins.Exception.__init__(self, self.message)
-
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cBanal](
+            self._cpp_obj,
+            (<Banal>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
     @staticmethod
-    cdef unique_ptr[cFiery] _make_instance(
-        cFiery* base_instance,
-        object message
-    ) except *:
-        cdef unique_ptr[cFiery] c_inst
-        if base_instance:
-            c_inst = make_unique[cFiery](deref(base_instance))
-        else:
-            c_inst = make_unique[cFiery]()
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Banal()
 
-        if message is not None:
-            deref(c_inst).message = message.encode('UTF-8')
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        ExceptionMetadata[cBanal].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-    def __iter__(self):
-        yield 'message', self.message
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Banal"
 
-    def __bool__(self):
-        return True
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cBanal](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 0
+
+
+
+@__cython.auto_pickle(False)
+cdef class Fiery(thrift.py3.exceptions.GeneratedError):
+    def __init__(Fiery self, *args, **kwargs):
+        self._cpp_obj = make_shared[cFiery]()
+        self._fields_setter = _fbthrift_types_fields.__Fiery_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__( *args, **kwargs)
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("Fiery", {
+          "message": deref(self._cpp_obj).message_ref().has_value(),
+        })
 
     @staticmethod
     cdef create(shared_ptr[cFiery] cpp_obj):
-        inst = <Fiery>Fiery.__new__(Fiery, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
-        inst._cpp_obj = cpp_obj
-        _builtins.Exception.__init__(inst, inst.message)
-        return inst
+        __fbthrift_inst = <Fiery>Fiery.__new__(Fiery, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        _builtins.Exception.__init__(__fbthrift_inst, *(v for _, v in __fbthrift_inst))
+        return __fbthrift_inst
 
     @property
     def message(self):
 
-        return (<bytes>self._cpp_obj.get().message).decode('UTF-8')
+        return (<bytes>deref(self._cpp_obj).message_ref().value()).decode('UTF-8')
 
 
     def __hash__(Fiery self):
-        return super().__hash__()
+        return  super().__hash__()
 
-    def __repr__(Fiery self):
-        return f'Fiery(message={repr(self.message)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, Fiery) and
-                isinstance(other, Fiery)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __str__(Fiery self):
+        field = self.message
+        if field is None:
+            return str(field)
+        return field
 
-        cdef cFiery cself = deref((<Fiery>self)._cpp_obj)
-        cdef cFiery cother = deref((<Fiery>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
+    def __copy__(Fiery self):
+        cdef shared_ptr[cFiery] cpp_obj = make_shared[cFiery](
+            deref(self._cpp_obj)
+        )
+        return Fiery.create(cmove(cpp_obj))
+
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cFiery](
+            self._cpp_obj,
+            (<Fiery>other)._cpp_obj,
+            op,
+        ) if r is None else r
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Fiery()
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        ExceptionMetadata[cFiery].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Fiery"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cFiery](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 1
+
+
+
+@__cython.auto_pickle(False)
+cdef class Serious(thrift.py3.exceptions.GeneratedError):
+    def __init__(Serious self, *args, **kwargs):
+        self._cpp_obj = make_shared[cSerious]()
+        self._fields_setter = _fbthrift_types_fields.__Serious_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__( *args, **kwargs)
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("Serious", {
+          "sonnet": deref(self._cpp_obj).sonnet_ref().has_value(),
+        })
+
+    @staticmethod
+    cdef create(shared_ptr[cSerious] cpp_obj):
+        __fbthrift_inst = <Serious>Serious.__new__(Serious, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        _builtins.Exception.__init__(__fbthrift_inst, *(v for _, v in __fbthrift_inst))
+        return __fbthrift_inst
+
+    @property
+    def sonnet(self):
+        if not deref(self._cpp_obj).sonnet_ref().has_value():
+            return None
+
+        return (<bytes>deref(self._cpp_obj).sonnet_ref().value_unchecked()).decode('UTF-8')
+
+
+    def __hash__(Serious self):
+        return  super().__hash__()
+
+    def __str__(Serious self):
+        field = self.sonnet
+        if field is None:
+            return str(field)
+        return field
+
+    def __copy__(Serious self):
+        cdef shared_ptr[cSerious] cpp_obj = make_shared[cSerious](
+            deref(self._cpp_obj)
+        )
+        return Serious.create(cmove(cpp_obj))
+
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cSerious](
+            self._cpp_obj,
+            (<Serious>other)._cpp_obj,
+            op,
+        ) if r is None else r
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Serious()
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        ExceptionMetadata[cSerious].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Serious"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cSerious](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 1
+
+
+
+@__cython.auto_pickle(False)
+cdef class ComplexFieldNames(thrift.py3.exceptions.GeneratedError):
+    def __init__(ComplexFieldNames self, *args, **kwargs):
+        self._cpp_obj = make_shared[cComplexFieldNames]()
+        self._fields_setter = _fbthrift_types_fields.__ComplexFieldNames_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__( *args, **kwargs)
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("ComplexFieldNames", {
+          "error_message": deref(self._cpp_obj).error_message_ref().has_value(),
+          "internal_error_message": deref(self._cpp_obj).internal_error_message_ref().has_value(),
+        })
+
+    @staticmethod
+    cdef create(shared_ptr[cComplexFieldNames] cpp_obj):
+        __fbthrift_inst = <ComplexFieldNames>ComplexFieldNames.__new__(ComplexFieldNames, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        _builtins.Exception.__init__(__fbthrift_inst, *(v for _, v in __fbthrift_inst))
+        return __fbthrift_inst
+
+    @property
+    def error_message(self):
+
+        return (<bytes>deref(self._cpp_obj).error_message_ref().value()).decode('UTF-8')
+
+    @property
+    def internal_error_message(self):
+
+        return (<bytes>deref(self._cpp_obj).internal_error_message_ref().value()).decode('UTF-8')
+
+
+    def __hash__(ComplexFieldNames self):
+        return  super().__hash__()
+
+    def __str__(ComplexFieldNames self):
+        field = self.internal_error_message
+        if field is None:
+            return str(field)
+        return field
+
+    def __copy__(ComplexFieldNames self):
+        cdef shared_ptr[cComplexFieldNames] cpp_obj = make_shared[cComplexFieldNames](
+            deref(self._cpp_obj)
+        )
+        return ComplexFieldNames.create(cmove(cpp_obj))
+
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cComplexFieldNames](
+            self._cpp_obj,
+            (<ComplexFieldNames>other)._cpp_obj,
+            op,
+        ) if r is None else r
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__ComplexFieldNames()
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        ExceptionMetadata[cComplexFieldNames].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.ComplexFieldNames"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cComplexFieldNames](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 2
+
+
+
+@__cython.auto_pickle(False)
+cdef class CustomFieldNames(thrift.py3.exceptions.GeneratedError):
+    def __init__(CustomFieldNames self, *args, **kwargs):
+        self._cpp_obj = make_shared[cCustomFieldNames]()
+        self._fields_setter = _fbthrift_types_fields.__CustomFieldNames_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__( *args, **kwargs)
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("CustomFieldNames", {
+          "error_message": deref(self._cpp_obj).error_message_ref().has_value(),
+          "internal_error_message": deref(self._cpp_obj).internal_error_message_ref().has_value(),
+        })
+
+    @staticmethod
+    cdef create(shared_ptr[cCustomFieldNames] cpp_obj):
+        __fbthrift_inst = <CustomFieldNames>CustomFieldNames.__new__(CustomFieldNames, (<bytes>deref(cpp_obj).what()).decode('utf-8'))
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        _builtins.Exception.__init__(__fbthrift_inst, *(v for _, v in __fbthrift_inst))
+        return __fbthrift_inst
+
+    @property
+    def error_message(self):
+
+        return (<bytes>deref(self._cpp_obj).error_message_ref().value()).decode('UTF-8')
+
+    @property
+    def internal_error_message(self):
+
+        return (<bytes>deref(self._cpp_obj).internal_error_message_ref().value()).decode('UTF-8')
+
+
+    def __hash__(CustomFieldNames self):
+        return  super().__hash__()
+
+    def __str__(CustomFieldNames self):
+        field = self.internal_error_message
+        if field is None:
+            return str(field)
+        return field
+
+    def __copy__(CustomFieldNames self):
+        cdef shared_ptr[cCustomFieldNames] cpp_obj = make_shared[cCustomFieldNames](
+            deref(self._cpp_obj)
+        )
+        return CustomFieldNames.create(cmove(cpp_obj))
+
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cCustomFieldNames](
+            self._cpp_obj,
+            (<CustomFieldNames>other)._cpp_obj,
+            op,
+        ) if r is None else r
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__CustomFieldNames()
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        ExceptionMetadata[cCustomFieldNames].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.CustomFieldNames"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cCustomFieldNames](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 2
 
 
 

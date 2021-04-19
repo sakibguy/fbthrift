@@ -5,15 +5,18 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import thrift.py3.types
 import thrift.py3.exceptions
-from thrift.py3.types import NOTSET, NOTSETTYPE
-from thrift.py3.serializer import Protocol
+from thrift.py3.types import __NotSet, NOTSET
 import typing as _typing
+from typing_extensions import Final
 
 import sys
 import itertools
+
+
+__property__ = property
 
 
 class AnEnum(thrift.py3.types.Enum):
@@ -22,6 +25,12 @@ class AnEnum(thrift.py3.types.Enum):
 
 
 class AStruct(thrift.py3.types.Struct, _typing.Hashable, _typing.Iterable[_typing.Tuple[str, _typing.Any]]):
+    class __fbthrift_IsSet:
+        FieldA: bool
+        pass
+
+    FieldA: Final[int] = ...
+
     def __init__(
         self, *,
         FieldA: _typing.Optional[int]=None
@@ -29,21 +38,24 @@ class AStruct(thrift.py3.types.Struct, _typing.Hashable, _typing.Iterable[_typin
 
     def __call__(
         self, *,
-        FieldA: _typing.Union[int, NOTSETTYPE, None]=NOTSET
+        FieldA: _typing.Union[int, __NotSet, None]=NOTSET
     ) -> AStruct: ...
 
     def __reduce__(self) -> _typing.Tuple[_typing.Callable, _typing.Tuple[_typing.Type['AStruct'], bytes]]: ...
     def __iter__(self) -> _typing.Iterator[_typing.Tuple[str, _typing.Any]]: ...
-    def __bool__(self) -> bool: ...
     def __hash__(self) -> int: ...
-    def __repr__(self) -> str: ...
     def __lt__(self, other: 'AStruct') -> bool: ...
-
-    @property
-    def FieldA(self) -> int: ...
+    def __gt__(self, other: 'AStruct') -> bool: ...
+    def __le__(self, other: 'AStruct') -> bool: ...
+    def __ge__(self, other: 'AStruct') -> bool: ...
 
 
 class AStructB(thrift.py3.types.Struct, _typing.Hashable, _typing.Iterable[_typing.Tuple[str, _typing.Any]]):
+    class __fbthrift_IsSet:
+        pass
+
+    FieldA: Final[_typing.Optional['AStruct']] = ...
+
     def __init__(
         self, *,
         FieldA: _typing.Optional['AStruct']=None
@@ -51,18 +63,16 @@ class AStructB(thrift.py3.types.Struct, _typing.Hashable, _typing.Iterable[_typi
 
     def __call__(
         self, *,
-        FieldA: _typing.Union['AStruct', NOTSETTYPE, None]=NOTSET
+        FieldA: _typing.Union['AStruct', __NotSet, None]=NOTSET
     ) -> AStructB: ...
 
     def __reduce__(self) -> _typing.Tuple[_typing.Callable, _typing.Tuple[_typing.Type['AStructB'], bytes]]: ...
     def __iter__(self) -> _typing.Iterator[_typing.Tuple[str, _typing.Any]]: ...
-    def __bool__(self) -> bool: ...
     def __hash__(self) -> int: ...
-    def __repr__(self) -> str: ...
     def __lt__(self, other: 'AStructB') -> bool: ...
-
-    @property
-    def FieldA(self) -> _typing.Optional['AStruct']: ...
+    def __gt__(self, other: 'AStructB') -> bool: ...
+    def __le__(self, other: 'AStructB') -> bool: ...
+    def __ge__(self, other: 'AStructB') -> bool: ...
 
 
 IncludedConstant: int = ...

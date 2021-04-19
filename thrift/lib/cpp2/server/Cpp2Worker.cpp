@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,24 +14,27 @@
  * limitations under the License.
  */
 
+#include <vector>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
 
 #include <glog/logging.h>
 
 #include <folly/String.h>
 #include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/EventBaseLocal.h>
 #include <folly/portability/Sockets.h>
 #include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
 #include <thrift/lib/cpp/concurrency/Util.h>
+#include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/server/Cpp2Connection.h>
+#include <thrift/lib/cpp2/server/LoggingEvent.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/server/peeking/PeekingManager.h>
+#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 #include <wangle/acceptor/EvbHandshakeHelper.h>
 #include <wangle/acceptor/SSLAcceptorHandshakeHelper.h>
 #include <wangle/acceptor/UnencryptedAcceptorHandshakeHelper.h>
-
-DEFINE_int32(pending_interval, 0, "Pending count interval in ms");
 
 namespace apache {
 namespace thrift {
@@ -42,13 +45,37 @@ using namespace apache::thrift::async;
 using apache::thrift::concurrency::Util;
 using std::shared_ptr;
 
+namespace {
+folly::LeakySingleton<folly::EventBaseLocal<RequestsRegistry>> registry;
+} // namespace
+
+void Cpp2Worker::initRequestsRegistry() {
+  auto* evb = getEventBase();
+  auto memPerReq = server_->getMaxDebugPayloadMemoryPerRequest();
+  auto memPerWorker = server_->getMaxDebugPayloadMemoryPerWorker();
+  auto maxFinished = server_->getMaxFinishedDebugPayloadsPerWorker();
+  std::weak_ptr<Cpp2Worker> self_weak = shared_from_this();
+  evb->runInEventBaseThread([=, self_weak = std::move(self_weak)]() {
+    if (auto self = self_weak.lock()) {
+      self->requestsRegistry_ = &registry.get().try_emplace(
+          *evb, memPerReq, memPerWorker, maxFinished);
+    }
+  });
+}
+
 void Cpp2Worker::onNewConnection(
-    folly::AsyncTransportWrapper::UniquePtr sock,
+    folly::AsyncTransport::UniquePtr sock,
     const folly::SocketAddress* addr,
     const std::string& nextProtocolName,
     wangle::SecureTransportType secureTransportType,
     const wangle::TransportInfo& tinfo) {
-  auto observer = server_->getObserver();
+  // This is possible if the connection was accepted before stopListening()
+  // call, but handshake was finished after stopCPUWorkers() call.
+  if (stopping_) {
+    return;
+  }
+
+  auto* observer = server_->getObserver();
   uint32_t maxConnection = server_->getMaxConnections();
   if (maxConnection > 0 &&
       (getConnectionManager()->getNumConnections() >=
@@ -60,19 +87,20 @@ void Cpp2Worker::onNewConnection(
     return;
   }
 
+  const auto& func = server_->getZeroCopyEnableFunc();
+  if (func && sock) {
+    sock->setZeroCopy(true);
+    sock->setZeroCopyEnableFunc(func);
+  }
+
   // Check the security protocol
   switch (secureTransportType) {
     // If no security, peek into the socket to determine type
     case wangle::SecureTransportType::NONE: {
-      auto peekingManager = new PeekingManager(
-          shared_from_this(),
-          *addr,
-          nextProtocolName,
-          secureTransportType,
-          tinfo,
-          server_);
-      peekingManager->start(std::move(sock), server_->getObserver());
-    } break;
+      new TransportPeekingManager(
+          shared_from_this(), *addr, tinfo, server_, std::move(sock));
+      break;
+    }
     case wangle::SecureTransportType::TLS:
       // Use the announced protocol to determine the correct handler
       if (!nextProtocolName.empty()) {
@@ -90,11 +118,12 @@ void Cpp2Worker::onNewConnection(
           }
         }
       }
-      // Default to header
-      handleHeader(std::move(sock), addr);
-      break;
-    case wangle::SecureTransportType::ZERO:
-      LOG(ERROR) << "Unsupported Secure Transport Type: ZERO";
+      if (!getServer()->isDuplex()) {
+        new TransportPeekingManager(
+            shared_from_this(), *addr, tinfo, server_, std::move(sock));
+      } else {
+        handleHeader(std::move(sock), addr);
+      }
       break;
     default:
       LOG(ERROR) << "Unsupported Secure Transport Type";
@@ -103,16 +132,23 @@ void Cpp2Worker::onNewConnection(
 }
 
 void Cpp2Worker::handleHeader(
-    folly::AsyncTransportWrapper::UniquePtr sock,
-    const folly::SocketAddress* addr) {
-  auto fd = sock->getUnderlyingTransport<folly::AsyncSocket>()->getFd();
+    folly::AsyncTransport::UniquePtr sock, const folly::SocketAddress* addr) {
+  auto fd = sock->getUnderlyingTransport<folly::AsyncSocket>()
+                ->getNetworkSocket()
+                .toFd();
   VLOG(4) << "Cpp2Worker: Creating connection for socket " << fd;
 
   auto thriftTransport = createThriftTransport(std::move(sock));
   auto connection = std::make_shared<Cpp2Connection>(
-      std::move(thriftTransport), addr, shared_from_this());
+      std::move(thriftTransport), addr, shared_from_this(), nullptr);
   Acceptor::addConnection(connection.get());
   connection->addConnection(connection);
+  // set compression algorithm to be used on this connection
+  auto compression = fizzPeeker_.getNegotiatedParameters().compression;
+  if (compression != CompressionAlgorithm::NONE) {
+    connection->setNegotiatedCompressionAlgorithm(compression);
+  }
+
   connection->start();
 
   VLOG(4) << "Cpp2Worker: created connection for socket " << fd;
@@ -126,39 +162,45 @@ void Cpp2Worker::handleHeader(
   }
 }
 
-std::shared_ptr<async::TAsyncTransport> Cpp2Worker::createThriftTransport(
-    folly::AsyncTransportWrapper::UniquePtr sock) {
-  TAsyncSocket* tsock = dynamic_cast<TAsyncSocket*>(sock.release());
+std::shared_ptr<folly::AsyncTransport> Cpp2Worker::createThriftTransport(
+    folly::AsyncTransport::UniquePtr sock) {
+  auto fizzServer = dynamic_cast<fizz::server::AsyncFizzServer*>(sock.get());
+  if (fizzServer) {
+    auto asyncSock = sock->getUnderlyingTransport<folly::AsyncSocket>();
+    if (asyncSock) {
+      markSocketAccepted(asyncSock);
+    }
+    // give up ownership
+    sock.release();
+    return std::shared_ptr<fizz::server::AsyncFizzServer>(
+        fizzServer, fizz::server::AsyncFizzServer::Destructor());
+  }
+
+  folly::AsyncSocket* tsock =
+      sock->getUnderlyingTransport<folly::AsyncSocket>();
   CHECK(tsock);
-  auto asyncSocket =
-      std::shared_ptr<TAsyncSocket>(tsock, TAsyncSocket::Destructor());
-  markSocketAccepted(asyncSocket.get());
-  return asyncSocket;
+  markSocketAccepted(tsock);
+  // use custom deleter for std::shared_ptr<folly::AsyncTransport> to allow
+  // socket transfer from header to rocket (if enabled by ThriftFlags)
+  return apache::thrift::transport::detail::convertToShared(std::move(sock));
 }
 
-void Cpp2Worker::markSocketAccepted(TAsyncSocket* sock) {
-  sock->setIsAccepted(true);
+void Cpp2Worker::markSocketAccepted(folly::AsyncSocket* sock) {
   sock->setShutdownSocketSet(server_->wShutdownSocketSet_);
 }
 
 void Cpp2Worker::plaintextConnectionReady(
-    folly::AsyncTransportWrapper::UniquePtr sock,
+    folly::AsyncSocket::UniquePtr sock,
     const folly::SocketAddress& clientAddr,
-    const std::string& nextProtocolName,
-    wangle::SecureTransportType secureTransportType,
     wangle::TransportInfo& tinfo) {
-  auto asyncSocket = sock->getUnderlyingTransport<folly::AsyncSocket>();
-  CHECK(asyncSocket) << "Underlying socket is not a AsyncSocket type";
-  asyncSocket->setShutdownSocketSet(server_->wShutdownSocketSet_);
-  auto peekingManager = new PeekingManager(
+  sock->setShutdownSocketSet(server_->wShutdownSocketSet_);
+  new CheckTLSPeekingManager(
       shared_from_this(),
       clientAddr,
-      nextProtocolName,
-      secureTransportType,
       tinfo,
       server_,
-      /* checkTLS */ true);
-  peekingManager->start(std::move(sock), server_->getObserver());
+      std::move(sock),
+      server_->getObserverShared());
 }
 
 void Cpp2Worker::useExistingChannel(
@@ -186,62 +228,102 @@ void Cpp2Worker::stopDuplex(std::shared_ptr<ThriftServer> myServer) {
   duplexServer_ = myServer;
 }
 
-int Cpp2Worker::computePendingCount() {
-  // Only recalculate once every pending_interval
-  if (FLAGS_pending_interval > 0) {
-    auto now = std::chrono::steady_clock::now();
-    if (pendingTime_ < now) {
-      pendingTime_ = now + std::chrono::milliseconds(FLAGS_pending_interval);
-      pendingCount_ = 0;
-      Acceptor::getConnectionManager()->iterateConns(
-          [&](wangle::ManagedConnection* connection) {
-            if ((static_cast<Cpp2Connection*>(connection))->pending()) {
-              pendingCount_++;
-            }
-          });
-    }
-  }
-
-  return pendingCount_;
-}
-
-int Cpp2Worker::getPendingCount() const {
-  return pendingCount_;
-}
-
 void Cpp2Worker::updateSSLStats(
-    const folly::AsyncTransportWrapper* sock,
+    const folly::AsyncTransport* sock,
     std::chrono::milliseconds /* acceptLatency */,
-    wangle::SSLErrorEnum error) noexcept {
+    wangle::SSLErrorEnum error,
+    const folly::exception_wrapper& /*ex*/) noexcept {
   if (!sock) {
     return;
   }
 
-  auto socket = sock->getUnderlyingTransport<folly::AsyncSSLSocket>();
-  if (!socket) {
-    return;
-  }
-  auto observer = server_->getObserver();
+  auto observer = getServer()->getObserver();
   if (!observer) {
     return;
   }
-  if (socket->good() && error == wangle::SSLErrorEnum::NO_ERROR) {
-    observer->tlsComplete();
-    if (socket->getSSLSessionReused()) {
-      observer->tlsResumption();
+
+  auto fizz = sock->getUnderlyingTransport<fizz::server::AsyncFizzServer>();
+  if (fizz) {
+    if (sock->good() && error == wangle::SSLErrorEnum::NO_ERROR) {
+      observer->tlsComplete();
+      auto pskType = fizz->getState().pskType();
+      if (pskType && *pskType == fizz::PskType::Resumption) {
+        observer->tlsResumption();
+      }
+      if (fizz->getPeerCertificate()) {
+        observer->tlsWithClientCert();
+      }
+    } else {
+      observer->tlsError();
     }
   } else {
-    observer->tlsError();
+    auto socket = sock->getUnderlyingTransport<folly::AsyncSSLSocket>();
+    if (!socket) {
+      return;
+    }
+    if (socket->good() && error == wangle::SSLErrorEnum::NO_ERROR) {
+      observer->tlsComplete();
+      if (socket->getSSLSessionReused()) {
+        observer->tlsResumption();
+      }
+      if (socket->getPeerCertificate()) {
+        observer->tlsWithClientCert();
+      }
+    } else {
+      observer->tlsError();
+    }
   }
 }
 
 wangle::AcceptorHandshakeHelper::UniquePtr Cpp2Worker::createSSLHelper(
-    const std::vector<uint8_t>& /* bytes */,
+    const std::vector<uint8_t>& bytes,
     const folly::SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
-    wangle::TransportInfo& tinfo) {
-  return wangle::AcceptorHandshakeHelper::UniquePtr(
-      new wangle::SSLAcceptorHandshakeHelper(clientAddr, acceptTime, tinfo));
+    wangle::TransportInfo& tInfo) {
+  if (accConfig_.fizzConfig.enableFizz) {
+    if (auto parametersContext = getThriftParametersContext()) {
+      fizzPeeker_.setThriftParametersContext(
+          folly::copy_to_shared_ptr(*parametersContext));
+    }
+    return getFizzPeeker()->getHelper(bytes, clientAddr, acceptTime, tInfo);
+  }
+  return defaultPeekingCallback_.getHelper(
+      bytes, clientAddr, acceptTime, tInfo);
+}
+
+bool Cpp2Worker::shouldPerformSSL(
+    const std::vector<uint8_t>& bytes, const folly::SocketAddress& clientAddr) {
+  auto sslPolicy = getSSLPolicy();
+  if (sslPolicy == SSLPolicy::REQUIRED) {
+    if (isPlaintextAllowedOnLoopback()) {
+      // loopback clients may still be sending TLS so we need to ensure that
+      // it doesn't appear that way in addition to verifying it's loopback.
+      return !(
+          clientAddr.isLoopbackAddress() && !TLSHelper::looksLikeTLS(bytes));
+    }
+    return true;
+  } else {
+    return sslPolicy != SSLPolicy::DISABLED && TLSHelper::looksLikeTLS(bytes);
+  }
+}
+
+std::optional<ThriftParametersContext>
+Cpp2Worker::getThriftParametersContext() {
+  auto thriftConfigBase =
+      folly::get_ptr(accConfig_.customConfigMap, "thrift_tls_config");
+  if (!thriftConfigBase) {
+    return std::nullopt;
+  }
+  assert(static_cast<ThriftTlsConfig*>((*thriftConfigBase).get()));
+  auto thriftConfig = static_cast<ThriftTlsConfig*>((*thriftConfigBase).get());
+  if (!thriftConfig->enableThriftParamsNegotiation) {
+    return std::nullopt;
+  }
+
+  auto thriftParametersContext = ThriftParametersContext();
+  thriftParametersContext.setUseStopTLS(
+      thriftConfig->enableStopTLS || **ThriftServer::enableStopTLS());
+  return thriftParametersContext;
 }
 
 wangle::AcceptorHandshakeHelper::UniquePtr Cpp2Worker::getHelper(
@@ -249,11 +331,7 @@ wangle::AcceptorHandshakeHelper::UniquePtr Cpp2Worker::getHelper(
     const folly::SocketAddress& clientAddr,
     std::chrono::steady_clock::time_point acceptTime,
     wangle::TransportInfo& ti) {
-  auto sslPolicy = getSSLPolicy();
-  auto performSSL = (sslPolicy == SSLPolicy::REQUIRED) ||
-      (sslPolicy != SSLPolicy::DISABLED && TLSHelper::looksLikeTLS(bytes));
-
-  if (!performSSL) {
+  if (!shouldPerformSSL(bytes, clientAddr)) {
     return wangle::AcceptorHandshakeHelper::UniquePtr(
         new wangle::UnencryptedAcceptorHandshakeHelper());
   }
@@ -272,21 +350,40 @@ wangle::AcceptorHandshakeHelper::UniquePtr Cpp2Worker::getHelper(
 
 void Cpp2Worker::requestStop() {
   getEventBase()->runInEventBaseThreadAndWait([&] {
-    if (stopping_) {
+    if (isStopping()) {
       return;
     }
-    stopping_ = true;
+    cancelQueuedRequests();
+    stopping_.store(true, std::memory_order_relaxed);
     if (activeRequests_ == 0) {
       stopBaton_.post();
     }
   });
 }
 
-void Cpp2Worker::waitForStop(std::chrono::system_clock::time_point deadline) {
+bool Cpp2Worker::waitForStop(std::chrono::system_clock::time_point deadline) {
   if (!stopBaton_.try_wait_until(deadline)) {
     LOG(ERROR) << "Failed to join outstanding requests.";
+    return false;
+  }
+  return true;
+}
+
+void Cpp2Worker::cancelQueuedRequests() {
+  auto eb = getEventBase();
+  eb->dcheckIsInEventBaseThread();
+  for (auto& stub : requestsRegistry_->getActive()) {
+    if (stub.stateMachine_.isActive() &&
+        stub.stateMachine_.tryStopProcessing()) {
+      stub.req_->sendQueueTimeoutResponse();
+    }
   }
 }
 
+Cpp2Worker::ActiveRequestsGuard Cpp2Worker::getActiveRequestsGuard() {
+  DCHECK(!isStopping() || activeRequests_);
+  ++activeRequests_;
+  return Cpp2Worker::ActiveRequestsGuard(this);
+}
 } // namespace thrift
 } // namespace apache

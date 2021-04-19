@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,7 @@ thrift-py3 specific container types.
 }}{{#type:float?}}float{{/type:float?}}{{!
 }}{{#type:string?}}str{{/type:string?}}{{!
 }}{{#type:binary?}}{{!
-  }}{{#type:iobufWrapper?}}__IOBuf{{/type:iobufWrapper?}}{{!
+}}{{#type:iobufWrapper?}}_fbthrift_iobuf.IOBuf{{/type:iobufWrapper?}}{{!
   }}{{^type:iobufWrapper?}}bytes{{/type:iobufWrapper?}}{{!
 }}{{/type:binary?}}{{!
 }}{{#type:struct}}{{!

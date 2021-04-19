@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef THRIFT_ASYNC_REQUESTCHANNEL_H_
 #define THRIFT_ASYNC_REQUESTCHANNEL_H_ 1
 
@@ -25,18 +26,24 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/Function.h>
 #include <folly/String.h>
+#include <folly/Utility.h>
+#include <folly/fibers/FiberManager.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/Request.h>
 #include <thrift/lib/cpp/EventHandlerBase.h>
 #include <thrift/lib/cpp/Thrift.h>
 #include <thrift/lib/cpp/concurrency/Thread.h>
+#include <thrift/lib/cpp2/async/Interaction.h>
 #include <thrift/lib/cpp2/async/MessageChannel.h>
-#include <thrift/lib/cpp2/async/SemiStream.h>
-#include <thrift/lib/cpp2/async/Stream.h>
+#include <thrift/lib/cpp2/async/RequestCallback.h>
+#include <thrift/lib/cpp2/async/RpcTypes.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
+#include <thrift/lib/cpp2/transport/core/EnvelopeUtil.h>
+#include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
+#include <thrift/lib/cpp2/util/Checksum.h>
+#include <thrift/lib/cpp2/util/ManagedStringView.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
-#include <wangle/deprecated/rx/Subject.h>
 
 namespace folly {
 class IOBuf;
@@ -45,325 +52,23 @@ class IOBuf;
 namespace apache {
 namespace thrift {
 
-class ClientReceiveState {
- public:
-  ClientReceiveState()
-      : protocolId_(-1), isSecurityActive_(false), isStreamEnd_(false) {}
+class StreamClientCallback;
+class SinkClientCallback;
 
-  ClientReceiveState(
-      uint16_t _protocolId,
-      std::unique_ptr<folly::IOBuf> _buf,
-      std::unique_ptr<apache::thrift::transport::THeader> _header,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx,
-      bool _isSecurityActive,
-      bool _isStreamEnd = false)
-      : protocolId_(_protocolId),
-        ctx_(std::move(_ctx)),
-        buf_(std::move(_buf)),
-        header_(std::move(_header)),
-        isSecurityActive_(_isSecurityActive),
-        isStreamEnd_(_isStreamEnd) {}
-  ClientReceiveState(
-      uint16_t _protocolId,
-      ResponseAndSemiStream<
-          std::unique_ptr<folly::IOBuf>,
-          std::unique_ptr<folly::IOBuf>> bufAndStream,
-      std::unique_ptr<apache::thrift::transport::THeader> _header,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx,
-      bool _isSecurityActive,
-      bool _isStreamEnd = false)
-      : protocolId_(_protocolId),
-        ctx_(std::move(_ctx)),
-        buf_(std::move(bufAndStream.response)),
-        header_(std::move(_header)),
-        isSecurityActive_(_isSecurityActive),
-        isStreamEnd_(_isStreamEnd),
-        stream_(std::move(bufAndStream.stream)) {}
-  ClientReceiveState(
-      folly::exception_wrapper _excw,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx,
-      bool _isSecurityActive)
-      : protocolId_(-1),
-        ctx_(std::move(_ctx)),
-        header_(std::make_unique<apache::thrift::transport::THeader>()),
-        excw_(std::move(_excw)),
-        isSecurityActive_(_isSecurityActive),
-        isStreamEnd_(false) {}
-
-  bool isException() const {
-    return excw_ ? true : false;
-  }
-
-  folly::exception_wrapper const& exception() const {
-    return excw_;
-  }
-
-  folly::exception_wrapper& exception() {
-    return excw_;
-  }
-
-  uint16_t protocolId() const {
-    return protocolId_;
-  }
-
-  folly::IOBuf* buf() const {
-    return buf_.get();
-  }
-
-  std::unique_ptr<folly::IOBuf> extractBuf() {
-    return std::move(buf_);
-  }
-
-  SemiStream<std::unique_ptr<folly::IOBuf>> extractStream() {
-    return std::move(stream_);
-  }
-
-  apache::thrift::transport::THeader* header() const {
-    return header_.get();
-  }
-
-  std::unique_ptr<apache::thrift::transport::THeader> extractHeader() {
-    return std::move(header_);
-  }
-
-  void resetHeader(std::unique_ptr<apache::thrift::transport::THeader> h) {
-    header_ = std::move(h);
-  }
-
-  apache::thrift::ContextStack* ctx() const {
-    return ctx_.get();
-  }
-
-  bool isSecurityActive() const {
-    return isSecurityActive_;
-  }
-
-  void resetCtx(std::shared_ptr<apache::thrift::ContextStack> _ctx) {
-    ctx_ = std::move(_ctx);
-  }
-
-  bool isStreamEnd() const {
-    return isStreamEnd_;
-  }
-
- private:
-  uint16_t protocolId_;
-  std::shared_ptr<apache::thrift::ContextStack> ctx_;
-  std::unique_ptr<folly::IOBuf> buf_;
-  std::unique_ptr<apache::thrift::transport::THeader> header_;
-  folly::exception_wrapper excw_;
-  bool isSecurityActive_;
-  bool isStreamEnd_;
-  SemiStream<std::unique_ptr<folly::IOBuf>> stream_;
+namespace detail {
+template <RpcKind Kind>
+struct RequestClientCallbackType {
+  using Ptr = RequestClientCallback::Ptr;
 };
-
-class RequestCallback {
- public:
-  virtual ~RequestCallback() {}
-  virtual void requestSent() = 0;
-  virtual void replyReceived(ClientReceiveState&&) = 0;
-  virtual void requestError(ClientReceiveState&&) = 0;
-
-  std::shared_ptr<folly::RequestContext> context_;
-  // To log latency incurred for doing thrift security
-  int64_t securityStart_ = 0;
-  int64_t securityEnd_ = 0;
+template <>
+struct RequestClientCallbackType<RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE> {
+  using Ptr = StreamClientCallback*;
 };
-
-/***
- *  Like RequestCallback, a base class to be derived, but with a different set
- *  of overridable member functions which may be better suited to some cases.
- */
-class SendRecvRequestCallback : public RequestCallback {
- public:
-  virtual void send(folly::exception_wrapper&& ex) = 0;
-  virtual void recv(ClientReceiveState&& state) = 0;
-
- private:
-  enum struct Phase { Send, Recv };
-
-  void requestSent() final {
-    send({});
-    phase_ = Phase::Recv;
-  }
-  void requestError(ClientReceiveState&& state) final {
-    switch (phase_) {
-      case Phase::Send:
-        send(std::move(state.exception()));
-        phase_ = Phase::Recv;
-        break;
-      case Phase::Recv:
-        recv(std::move(state));
-        break;
-    }
-  }
-  void replyReceived(ClientReceiveState&& state) final {
-    recv(std::move(state));
-  }
-
-  Phase phase_{Phase::Send};
+template <>
+struct RequestClientCallbackType<RpcKind::SINK> {
+  using Ptr = SinkClientCallback*;
 };
-
-class FunctionSendRecvRequestCallback final : public SendRecvRequestCallback {
- public:
-  using Send = folly::Function<void(folly::exception_wrapper&&)>;
-  using Recv = folly::Function<void(ClientReceiveState&&)>;
-  FunctionSendRecvRequestCallback(Send sendf, Recv recvf)
-      : sendf_(std::move(sendf)), recvf_(std::move(recvf)) {}
-  void send(folly::exception_wrapper&& ew) override {
-    sendf_(std::move(ew));
-  }
-  void recv(ClientReceiveState&& state) override {
-    recvf_(std::move(state));
-  }
-
- private:
-  Send sendf_;
-  Recv recvf_;
-};
-
-/* FunctionReplyCallback is meant to make RequestCallback easy to use
- * with folly::Function objects.  It is slower than implementing
- * RequestCallback directly.  It also throws the specific error
- * away, since there is no place to save it in a backwards
- * compatible way to thrift1.  It is still logged, though.
- *
- * Recommend upgrading to RequestCallback if possible
- */
-class FunctionReplyCallback : public RequestCallback {
- public:
-  explicit FunctionReplyCallback(
-      folly::Function<void(ClientReceiveState&&)> callback)
-      : callback_(std::move(callback)) {}
-  void replyReceived(ClientReceiveState&& state) override {
-    callback_(std::move(state));
-  }
-  void requestError(ClientReceiveState&& state) override {
-    VLOG(1) << "Got an exception in FunctionReplyCallback replyReceiveError: "
-            << state.exception();
-    callback_(std::move(state));
-  }
-  void requestSent() override {}
-
- private:
-  folly::Function<void(ClientReceiveState&&)> callback_;
-};
-
-/* Useful for oneway methods. */
-class FunctionSendCallback : public RequestCallback {
- public:
-  explicit FunctionSendCallback(
-      folly::Function<void(ClientReceiveState&&)>&& callback)
-      : callback_(std::move(callback)) {}
-  void requestSent() override {
-    auto cb = std::move(callback_);
-    cb(ClientReceiveState(folly::exception_wrapper(), nullptr, false));
-  }
-  void requestError(ClientReceiveState&& state) override {
-    auto cb = std::move(callback_);
-    cb(std::move(state));
-  }
-  void replyReceived(ClientReceiveState&& /*state*/) override {}
-
- private:
-  folly::Function<void(ClientReceiveState&&)> callback_;
-};
-
-class CloseCallback {
- public:
-  /**
-   * When the channel is closed, replyError() will be invoked on all of the
-   * outstanding replies, then channelClosed() on the CloseCallback.
-   */
-  virtual void channelClosed() = 0;
-
-  virtual ~CloseCallback() {}
-};
-
-/**
- * RpcOptions class to set per-RPC options (such as request timeout).
- */
-class RpcOptions {
- public:
-  typedef apache::thrift::concurrency::PRIORITY PRIORITY;
-  RpcOptions()
-      : timeout_(0),
-        priority_(apache::thrift::concurrency::N_PRIORITIES),
-        chunkTimeout_(0),
-        queueTimeout_(0) {}
-
-  /**
-   * NOTE: This only sets the receive timeout, and not the send timeout on
-   * transport. Probably you want to use HeaderClientChannel::setTimeout()
-   */
-  RpcOptions& setTimeout(std::chrono::milliseconds timeout) {
-    timeout_ = timeout;
-    return *this;
-  }
-
-  std::chrono::milliseconds getTimeout() const {
-    return timeout_;
-  }
-
-  RpcOptions& setPriority(PRIORITY priority) {
-    priority_ = priority;
-    return *this;
-  }
-
-  PRIORITY getPriority() const {
-    return priority_;
-  }
-
-  RpcOptions& setChunkTimeout(std::chrono::milliseconds chunkTimeout) {
-    chunkTimeout_ = chunkTimeout;
-    return *this;
-  }
-
-  std::chrono::milliseconds getChunkTimeout() const {
-    return chunkTimeout_;
-  }
-
-  RpcOptions& setQueueTimeout(std::chrono::milliseconds queueTimeout) {
-    queueTimeout_ = queueTimeout;
-    return *this;
-  }
-
-  std::chrono::milliseconds getQueueTimeout() const {
-    return queueTimeout_;
-  }
-
-  void setWriteHeader(const std::string& key, const std::string& value) {
-    writeHeaders_[key] = value;
-  }
-
-  void setReadHeaders(std::map<std::string, std::string>&& readHeaders) {
-    readHeaders_ = std::move(readHeaders);
-  }
-
-  const std::map<std::string, std::string>& getReadHeaders() const {
-    return readHeaders_;
-  }
-
-  const std::map<std::string, std::string>& getWriteHeaders() const {
-    return writeHeaders_;
-  }
-
-  std::map<std::string, std::string> releaseWriteHeaders() {
-    std::map<std::string, std::string> headers;
-    writeHeaders_.swap(headers);
-    return headers;
-  }
-
- private:
-  std::chrono::milliseconds timeout_;
-  PRIORITY priority_;
-  std::chrono::milliseconds chunkTimeout_;
-  std::chrono::milliseconds queueTimeout_;
-
-  // For sending and receiving headers.
-  std::map<std::string, std::string> writeHeaders_;
-  std::map<std::string, std::string> readHeaders_;
-};
+} // namespace detail
 
 /**
  * RequestChannel defines an asynchronous API for request-based I/O.
@@ -381,12 +86,14 @@ class RequestChannel : virtual public folly::DelayedDestruction {
    *
    * cb must not be null.
    */
-  virtual uint32_t sendRequestSync(
-      RpcOptions&,
-      std::unique_ptr<RequestCallback>,
-      std::unique_ptr<apache::thrift::ContextStack>,
-      std::unique_ptr<folly::IOBuf>,
-      std::shared_ptr<apache::thrift::transport::THeader>);
+  template <RpcKind Kind>
+  void sendRequestAsync(
+      apache::thrift::RpcOptions&&,
+      apache::thrift::ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<apache::thrift::transport::THeader>,
+      typename apache::thrift::detail::RequestClientCallbackType<Kind>::Ptr) =
+      delete;
 
   /**
    * ReplyCallback will be invoked when the reply to this request is
@@ -396,51 +103,23 @@ class RequestChannel : virtual public folly::DelayedDestruction {
    *
    * cb must not be null.
    */
-  virtual uint32_t sendRequest(
-      RpcOptions&,
-      std::unique_ptr<RequestCallback>,
-      std::unique_ptr<apache::thrift::ContextStack>,
-      std::unique_ptr<folly::IOBuf>,
-      std::shared_ptr<apache::thrift::transport::THeader>) = 0;
-
-  uint32_t sendRequest(
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<apache::thrift::ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) {
-    RpcOptions options;
-    return sendRequest(
-        options,
-        std::move(cb),
-        std::move(ctx),
-        std::move(buf),
-        std::move(header));
-  }
+  virtual void sendRequestResponse(
+      const RpcOptions&,
+      apache::thrift::ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<apache::thrift::transport::THeader>,
+      RequestClientCallback::Ptr) = 0;
 
   /* Similar to sendRequest, although replyReceived will never be called
    *
    * Null RequestCallback is allowed for oneway requests
    */
-  virtual uint32_t sendOnewayRequest(
-      RpcOptions&,
-      std::unique_ptr<RequestCallback>,
-      std::unique_ptr<apache::thrift::ContextStack>,
-      std::unique_ptr<folly::IOBuf>,
-      std::shared_ptr<apache::thrift::transport::THeader>) = 0;
-
-  uint32_t sendOnewayRequest(
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<apache::thrift::ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) {
-    RpcOptions options;
-    return sendOnewayRequest(
-        options,
-        std::move(cb),
-        std::move(ctx),
-        std::move(buf),
-        std::move(header));
-  }
+  virtual void sendRequestNoResponse(
+      const RpcOptions&,
+      apache::thrift::ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<apache::thrift::transport::THeader>,
+      RequestClientCallback::Ptr) = 0;
 
   /**
    * ReplyCallback will be invoked when the reply to this request is
@@ -450,201 +129,234 @@ class RequestChannel : virtual public folly::DelayedDestruction {
    *
    * cb must not be null.
    */
-  virtual uint32_t sendStreamRequest(
-      RpcOptions&,
-      std::unique_ptr<RequestCallback>,
-      std::unique_ptr<apache::thrift::ContextStack>,
-      std::unique_ptr<folly::IOBuf>,
-      std::shared_ptr<apache::thrift::transport::THeader>);
+  virtual void sendRequestStream(
+      const RpcOptions& rpcOptions,
+      apache::thrift::ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<transport::THeader> header,
+      StreamClientCallback* clientCallback);
+
+  virtual void sendRequestSink(
+      const RpcOptions& rpcOptions,
+      apache::thrift::ManagedStringView&& methodName,
+      SerializedRequest&&,
+      std::shared_ptr<transport::THeader> header,
+      SinkClientCallback* clientCallback);
 
   virtual void setCloseCallback(CloseCallback*) = 0;
 
   virtual folly::EventBase* getEventBase() const = 0;
 
   virtual uint16_t getProtocolId() = 0;
+
+  virtual void terminateInteraction(InteractionId id);
+
+  // registers a new interaction with the channel
+  // returns id of created interaction (always nonzero)
+  virtual InteractionId createInteraction(
+      apache::thrift::ManagedStringView&& name);
+
+  // registers an interaction with a nested channel
+  // only some channels can be nested; the rest call terminate here
+  virtual InteractionId registerInteraction(
+      apache::thrift::ManagedStringView&& name, int64_t id);
+
+  using Ptr =
+      std::unique_ptr<RequestChannel, folly::DelayedDestruction::Destructor>;
+
+ protected:
+  static InteractionId createInteractionId(int64_t id);
+  static void releaseInteractionId(InteractionId&& id);
 };
 
-class ClientSyncCallback : public RequestCallback {
- public:
-  explicit ClientSyncCallback(
-      ClientReceiveState* rs,
-      RpcKind kind = RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE)
-      : rs_(rs), rpcKind_(kind) {}
+template <>
+void RequestChannel::sendRequestAsync<RpcKind::SINGLE_REQUEST_NO_RESPONSE>(
+    apache::thrift::RpcOptions&&,
+    apache::thrift::ManagedStringView&& methodName,
+    SerializedRequest&&,
+    std::shared_ptr<apache::thrift::transport::THeader>,
+    RequestClientCallback::Ptr);
+template <>
+void RequestChannel::sendRequestAsync<RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE>(
+    apache::thrift::RpcOptions&&,
+    apache::thrift::ManagedStringView&& methodName,
+    SerializedRequest&&,
+    std::shared_ptr<apache::thrift::transport::THeader>,
+    RequestClientCallback::Ptr);
+template <>
+void RequestChannel::sendRequestAsync<
+    RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE>(
+    apache::thrift::RpcOptions&&,
+    apache::thrift::ManagedStringView&& methodName,
+    SerializedRequest&&,
+    std::shared_ptr<apache::thrift::transport::THeader>,
+    StreamClientCallback*);
+template <>
+void RequestChannel::sendRequestAsync<RpcKind::SINK>(
+    apache::thrift::RpcOptions&&,
+    apache::thrift::ManagedStringView&& methodName,
+    SerializedRequest&&,
+    std::shared_ptr<apache::thrift::transport::THeader>,
+    SinkClientCallback*);
 
-  void requestSent() override {}
-  void replyReceived(ClientReceiveState&& rs) override {
+template <bool oneWay>
+class ClientSyncCallback : public RequestClientCallback {
+ public:
+  explicit ClientSyncCallback(ClientReceiveState* rs) : rs_(rs) {}
+
+  void waitUntilDone(folly::EventBase* evb) {
+    if (evb) {
+      if (!evb->inRunningEventBaseThread() || !folly::fibers::onFiber()) {
+        while (!doneBaton_.ready()) {
+          evb->drive();
+        }
+      }
+    }
+    doneBaton_.wait();
+  }
+
+  // This approach avoids an inner coroutine frame
+  folly::fibers::Baton& co_waitUntilDone() { return doneBaton_; }
+
+  void onRequestSent() noexcept override {
+    if (oneWay) {
+      doneBaton_.post();
+    }
+  }
+  void onResponse(ClientReceiveState&& rs) noexcept override {
     assert(rs.buf());
-    assert(!isOneway());
+    assert(!oneWay);
     *rs_ = std::move(rs);
+    doneBaton_.post();
   }
-  void requestError(ClientReceiveState&& rs) override {
-    assert(!!rs.exception());
-    *rs_ = std::move(rs);
+  void onResponseError(folly::exception_wrapper ex) noexcept override {
+    *rs_ = ClientReceiveState(std::move(ex), nullptr);
+    doneBaton_.post();
   }
-  bool isOneway() const {
-    return rpcKind_ == RpcKind::SINGLE_REQUEST_NO_RESPONSE;
-  }
-  RpcKind rpcKind() const {
-    return rpcKind_;
-  }
+
+  bool isInlineSafe() const override { return true; }
+
+  bool isSync() const override { return true; }
 
  private:
   ClientReceiveState* rs_;
-  RpcKind rpcKind_;
+  folly::fibers::Baton doneBaton_;
 };
 
-template <typename T>
-void clientCallbackToObservable(
-    ClientReceiveState& state,
-    folly::exception_wrapper (*recv_wrapped)(T&, ClientReceiveState&),
-    wangle::SubjectPtr<T>& subj) {
-  if (auto const& ew = state.exception()) {
-    subj->onError(ew);
-    return;
-  }
-  T value;
-  if (auto ew = recv_wrapped(value, state)) {
-    subj->onError(ew);
-    return;
-  }
-  if (state.isStreamEnd()) {
-    subj->onCompleted();
-    return;
-  }
-  subj->onNext(value);
+inline StreamClientCallback* createStreamClientCallback(
+    RequestClientCallback::Ptr requestCallback,
+    const BufferOptions& bufferOptions) {
+  DCHECK(requestCallback->isInlineSafe());
+  class RequestClientCallbackWrapper
+      : public apache::thrift::detail::ClientStreamBridge::
+            FirstResponseCallback {
+   public:
+    RequestClientCallbackWrapper(
+        RequestClientCallback::Ptr requestCallback,
+        const BufferOptions& bufferOptions)
+        : requestCallback_(std::move(requestCallback)),
+          bufferOptions_(bufferOptions) {}
+
+    void onFirstResponse(
+        FirstResponsePayload&& firstResponse,
+        apache::thrift::detail::ClientStreamBridge::ClientPtr
+            clientStreamBridge) override {
+      auto tHeader = std::make_unique<transport::THeader>();
+      tHeader->setClientType(THRIFT_HTTP_CLIENT_TYPE);
+      apache::thrift::detail::fillTHeaderFromResponseRpcMetadata(
+          firstResponse.metadata, *tHeader);
+      requestCallback_.release()->onResponse(ClientReceiveState(
+          static_cast<uint16_t>(-1),
+          std::move(firstResponse.payload),
+          std::move(tHeader),
+          nullptr,
+          std::move(clientStreamBridge),
+          bufferOptions_));
+      delete this;
+    }
+
+    void onFirstResponseError(folly::exception_wrapper ew) override {
+      requestCallback_.release()->onResponseError(std::move(ew));
+      delete this;
+    }
+
+   private:
+    RequestClientCallback::Ptr requestCallback_;
+    BufferOptions bufferOptions_;
+  };
+
+  return apache::thrift::detail::ClientStreamBridge::create(
+      new RequestClientCallbackWrapper(
+          std::move(requestCallback), bufferOptions));
 }
 
 template <class Protocol>
+SerializedRequest preprocessSendT(
+    Protocol* prot,
+    const apache::thrift::RpcOptions& rpcOptions,
+    apache::thrift::ContextStack& ctx,
+    apache::thrift::transport::THeader& header,
+    folly::StringPiece methodName,
+    folly::FunctionRef<void(Protocol*)> writefunc,
+    folly::FunctionRef<size_t(Protocol*)> sizefunc) {
+  return folly::fibers::runInMainContext([&] {
+    size_t bufSize = sizefunc(prot);
+    folly::IOBufQueue queue(folly::IOBufQueue::cacheChainLength());
+
+    // Preallocate small buffer headroom for transports metadata & framing.
+    constexpr size_t kHeadroomBytes = 128;
+    auto buf = folly::IOBuf::create(kHeadroomBytes + bufSize);
+    buf->advance(kHeadroomBytes);
+    queue.append(std::move(buf));
+
+    prot->setOutput(&queue, bufSize);
+    auto guard = folly::makeGuard([&] { prot->setOutput(nullptr); });
+    try {
+      ctx.preWrite();
+      writefunc(prot);
+      ::apache::thrift::SerializedMessage smsg;
+      smsg.protocolType = prot->protocolType();
+      smsg.buffer = queue.front();
+      smsg.methodName = methodName;
+      ctx.onWriteData(smsg);
+      ctx.postWrite(folly::to_narrow(queue.chainLength()));
+    } catch (const apache::thrift::TException& ex) {
+      ctx.handlerErrorWrapped(
+          folly::exception_wrapper(std::current_exception(), ex));
+      throw;
+    }
+
+    if (rpcOptions.getEnableChecksum()) {
+      header.setCrc32c(apache::thrift::checksum::crc32c(*queue.front()));
+    }
+
+    return SerializedRequest(queue.move());
+  });
+}
+
+template <RpcKind Kind, class Protocol>
 void clientSendT(
     Protocol* prot,
-    apache::thrift::RpcOptions& rpcOptions,
-    std::unique_ptr<apache::thrift::RequestCallback> callback,
-    std::unique_ptr<apache::thrift::ContextStack> ctx,
+    apache::thrift::RpcOptions&& rpcOptions,
+    typename apache::thrift::detail::RequestClientCallbackType<Kind>::Ptr
+        callback,
+    apache::thrift::ContextStack& ctx,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     RequestChannel* channel,
-    const char* methodName,
+    apache::thrift::ManagedStringView&& methodName,
     folly::FunctionRef<void(Protocol*)> writefunc,
-    folly::FunctionRef<size_t(Protocol*)> sizefunc,
-    RpcKind kind,
-    bool sync) {
-  size_t bufSize = sizefunc(prot);
-  bufSize += prot->serializedMessageSize(methodName);
-  folly::IOBufQueue queue(folly::IOBufQueue::cacheChainLength());
-  prot->setOutput(&queue, bufSize);
-  auto guard = folly::makeGuard([&] { prot->setOutput(nullptr); });
-  try {
-    ctx->preWrite();
-    prot->writeMessageBegin(methodName, apache::thrift::T_CALL, 0);
-    writefunc(prot);
-    prot->writeMessageEnd();
-    ::apache::thrift::SerializedMessage smsg;
-    smsg.protocolType = prot->protocolType();
-    smsg.buffer = queue.front();
-    ctx->onWriteData(smsg);
-    ctx->postWrite(queue.chainLength());
-  } catch (const apache::thrift::TException& ex) {
-    ctx->handlerErrorWrapped(
-        folly::exception_wrapper(std::current_exception(), ex));
-    throw;
-  }
+    folly::FunctionRef<size_t(Protocol*)> sizefunc) {
+  auto request = preprocessSendT(
+      prot, rpcOptions, ctx, *header, methodName.view(), writefunc, sizefunc);
 
-  if (sync) {
-    channel->sendRequestSync(
-        rpcOptions, std::move(callback), std::move(ctx), queue.move(), header);
-    return;
-  }
-
-  auto eb = channel->getEventBase();
-  if (!eb || eb->isInEventBaseThread()) {
-    switch (kind) {
-      case RpcKind::SINGLE_REQUEST_NO_RESPONSE:
-        // Calling asyncComplete before sending because
-        // sendOnewayRequest moves from ctx and clears it.
-        ctx->asyncComplete();
-        channel->sendOnewayRequest(
-            rpcOptions,
-            std::move(callback),
-            std::move(ctx),
-            queue.move(),
-            header);
-        break;
-      case RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE:
-        channel->sendRequest(
-            rpcOptions,
-            std::move(callback),
-            std::move(ctx),
-            queue.move(),
-            header);
-        break;
-      case RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE:
-        channel->sendStreamRequest(
-            rpcOptions,
-            std::move(callback),
-            std::move(ctx),
-            queue.move(),
-            header);
-        break;
-      default:
-        folly::assume_unreachable();
-        break;
-    }
-
-  } else {
-    switch (kind) {
-      case RpcKind::SINGLE_REQUEST_NO_RESPONSE:
-        eb->runInEventBaseThread([channel,
-                                  rpcOptions,
-                                  callback = std::move(callback),
-                                  ctx = std::move(ctx),
-                                  queue = queue.move(),
-                                  header]() mutable {
-          // Calling asyncComplete before sending because
-          // sendOnewayRequest moves from ctx and clears it.
-          ctx->asyncComplete();
-          channel->sendOnewayRequest(
-              rpcOptions,
-              std::move(callback),
-              std::move(ctx),
-              std::move(queue),
-              header);
-        });
-        break;
-      case RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE:
-        eb->runInEventBaseThread([channel,
-                                  rpcOptions,
-                                  callback = std::move(callback),
-                                  ctx = std::move(ctx),
-                                  queue = queue.move(),
-                                  header]() mutable {
-          channel->sendRequest(
-              rpcOptions,
-              std::move(callback),
-              std::move(ctx),
-              std::move(queue),
-              header);
-        });
-        break;
-      case RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE:
-        eb->runInEventBaseThread([channel,
-                                  rpcOptions,
-                                  callback = std::move(callback),
-                                  ctx = std::move(ctx),
-                                  queue = queue.move(),
-                                  header]() mutable {
-          channel->sendStreamRequest(
-              rpcOptions,
-              std::move(callback),
-              std::move(ctx),
-              std::move(queue),
-              header);
-        });
-        break;
-      default:
-        folly::assume_unreachable();
-        break;
-    }
-  }
+  channel->sendRequestAsync<Kind>(
+      std::move(rpcOptions),
+      std::move(methodName),
+      std::move(request),
+      std::move(header),
+      std::move(callback));
 }
+
 } // namespace thrift
 } // namespace apache
 

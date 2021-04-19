@@ -70,7 +70,9 @@ Useful (but not complete set of) options that can be set on the ThriftServer:
 
 * setNumCPUWorkerThreads(int) - Number of synchronous pool threads.  Defaults
   to number of IO threads.  If you do a lot of blocking synchronous
-  work, you may want to increase this.
+  work, you may want to increase this.  This controls the number of normal
+  priority threads; the Thrift thread manager can create additional threads for
+  other priorities.
 
 * setInterface(std::shared_ptr<ServerInterface>) - Your thrift handler
   interface that subclasses the generated code.
@@ -171,7 +173,7 @@ python framework automatically knows which file changes need to go in.
   use option 'stack_arguments'
 
 * Optional / Required by default are the same as before.  Using option
-  'stack_arguments' will make it behave more like the dynamic
+  'terse_writes' will make it behave more like the dynamic
   languages:  If the field is the same as the default value (or
   nothing if no default value is set), then it won't ever be sent on
   the wire.

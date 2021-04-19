@@ -7,8 +7,9 @@
 
 from __future__ import absolute_import
 import six
+import sys
 from thrift.util.Recursive import fix_spec
-from thrift.Thrift import *
+from thrift.Thrift import TType, TMessageType, TPriority, TRequestContext, TProcessorEventHandler, TServerInterface, TProcessor, TException, TApplicationException, UnimplementedTypedef
 from thrift.protocol.TProtocol import TProtocolException
 
 
@@ -23,11 +24,10 @@ from thrift.protocol import TBinaryProtocol
 from thrift.protocol import TCompactProtocol
 from thrift.protocol import THeaderProtocol
 fastproto = None
-if not '__pypy__' in sys.builtin_module_names:
-  try:
-    from thrift.protocol import fastproto
-  except:
-    pass
+try:
+  from thrift.protocol import fastproto
+except ImportError:
+  pass
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3
 
@@ -51,11 +51,9 @@ class Included:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -77,10 +75,6 @@ class Included:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:

@@ -1,3 +1,17 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from enum import Enum, Flag
 
 class TransportErrorType(Enum):
@@ -15,7 +29,6 @@ class TransportErrorType(Enum):
     INVALID_FRAME_SIZE: TransportErrorType = ...
     SSL_ERROR: TransportErrorType = ...
     COULD_NOT_BIND: TransportErrorType = ...
-    SASL_HANDSHAKE_TIMEOUT: TransportErrorType = ...
     NETWORK_ERROR: TransportErrorType = ...
     value: int
 
@@ -49,23 +62,21 @@ class ProtocolErrorType(Enum):
     MISSING_REQUIRED_FIELD: ProtocolErrorType = ...
     value: int
 
-
 class Error(Exception): ...
 
+class GeneratedError(Error):
+    def __repr__(self) -> str: ...
 
 class ApplicationError(Error):
-    def __int__(self, type: ApplicationErrorType, message: str) -> None: ...
+    def __init__(self, type: ApplicationErrorType, message: str) -> None: ...
     type: ApplicationErrorType
     message: str
 
-
 class LibraryError(Error): ...
-
 
 class ProtocolError(LibraryError):
     type: ProtocolErrorType
     message: str
-
 
 class TransportError(LibraryError):
     type: TransportErrorType

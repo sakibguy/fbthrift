@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,44 +23,13 @@
 #include <sstream>
 #include <string>
 
-#include <thrift/compiler/ast/t_annotated.h>
+#include <thrift/compiler/ast/t_named.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
 
 class t_program;
-
-/*
- * All the thrift supported types
- *
- * @kTypeBits - TODO: add description
- * @kTypeMask - TODO: add description
- */
-struct t_types {
-  enum struct TypeValue {
-    TYPE_VOID,
-    TYPE_STRING,
-    TYPE_BOOL,
-    TYPE_BYTE,
-    TYPE_I16,
-    TYPE_I32,
-    TYPE_I64,
-    TYPE_DOUBLE,
-    TYPE_ENUM,
-    TYPE_LIST,
-    TYPE_SET,
-    TYPE_MAP,
-    TYPE_STRUCT,
-    TYPE_SERVICE,
-    TYPE_PROGRAM,
-    TYPE_FLOAT,
-    TYPE_STREAM,
-  };
-
-  static constexpr size_t kTypeBits = 5;
-  static constexpr uint64_t kTypeMask = (1ULL << kTypeBits) - 1;
-};
 
 /**
  * class t_type
@@ -72,103 +41,88 @@ struct t_types {
  * various types.
  *
  */
-class t_type : public t_annotated {
+class t_type : public t_named {
  public:
-  /**
-   * Simplify access to thrift's TypeValues
+  /*
+   * All the thrift supported types
+   *
+   * TODO(afuller): Remove 'legacy type id's use of these enum values, then
+   * remove the explicit numbering.
    */
-  using TypeValue = t_types::TypeValue;
+  enum class type {
+    // Base types.
+    t_void = 0,
+    t_bool = 2,
+    t_byte = 3,
+    t_i16 = 4,
+    t_i32 = 5,
+    t_i64 = 6,
+    t_float = 15,
+    t_double = 7,
+    t_string = 1,
+    t_binary = 18,
 
-  virtual ~t_type() {}
+    // Container types.
+    t_list = 9,
+    t_set = 10,
+    t_map = 11,
 
-  /**
-   * t_type abstract methods
-   */
+    // Declared types
+    t_enum = 8,
+    t_struct = 12,
+    t_service = 13,
+    t_sink = 16,
+    t_stream = 17,
+    t_program = 14,
+  };
+  static constexpr size_t kTypeCount = 19;
+  // TODO: add description
+  static constexpr size_t kTypeBits = 5;
+  // TODO: add description
+  static constexpr uint64_t kTypeMask = (1ULL << kTypeBits) - 1;
+  static const std::string& type_name(type t);
+
+  // Returns the full name for the given type. For example:
+  // `list<string, string>`
   virtual std::string get_full_name() const = 0;
-  virtual std::string get_impl_full_name() const = 0;
-  virtual TypeValue get_type_value() const = 0;
+
+  // TODO: Rename function.
+  virtual type get_type_value() const = 0;
 
   /**
    * Default returns for every thrift type
    */
-  virtual bool is_void() const {
-    return false;
-  }
-  virtual bool is_base_type() const {
-    return false;
-  }
-  virtual bool is_string() const {
-    return false;
-  }
-  virtual bool is_bool() const {
-    return false;
-  }
-  virtual bool is_byte() const {
-    return false;
-  }
-  virtual bool is_i16() const {
-    return false;
-  }
-  virtual bool is_i32() const {
-    return false;
-  }
-  virtual bool is_i64() const {
-    return false;
-  }
-  virtual bool is_any_int() const {
-    return false;
-  }
-  virtual bool is_float() const {
-    return false;
-  }
-  virtual bool is_double() const {
-    return false;
-  }
-  virtual bool is_floating_point() const {
-    return false;
-  }
-  virtual bool is_typedef() const {
-    return false;
-  }
-  virtual bool is_enum() const {
-    return false;
-  }
-  virtual bool is_struct() const {
-    return false;
-  }
-  virtual bool is_xception() const {
-    return false;
-  }
-  virtual bool is_container() const {
-    return false;
-  }
-  virtual bool is_list() const {
-    return false;
-  }
-  virtual bool is_set() const {
-    return false;
-  }
-  virtual bool is_map() const {
-    return false;
-  }
-  virtual bool is_stream() const {
-    return false;
-  }
-  virtual bool is_pubsub_stream() const {
-    return false;
-  }
-  virtual bool is_streamresponse() const {
-    return false;
-  }
-  virtual bool has_extratype() const {
-    return false;
-  }
-  virtual bool is_service() const {
-    return false;
-  }
-  virtual bool is_binary() const {
-    return false;
-  }
+  virtual bool is_void() const { return false; }
+  virtual bool is_base_type() const { return false; }
+  virtual bool is_string() const { return false; }
+  virtual bool is_bool() const { return false; }
+  virtual bool is_byte() const { return false; }
+  virtual bool is_i16() const { return false; }
+  virtual bool is_i32() const { return false; }
+  virtual bool is_i64() const { return false; }
+  virtual bool is_float() const { return false; }
+  virtual bool is_double() const { return false; }
+  virtual bool is_typedef() const { return false; }
+  virtual bool is_enum() const { return false; }
+  virtual bool is_struct() const { return false; }
+  virtual bool is_union() const { return false; }
+  // TODO: remove old function "xception" once everything has been swtiched to
+  // "exception"
+  virtual bool is_xception() const { return is_exception(); }
+  virtual bool is_exception() const { return false; }
+  virtual bool is_container() const { return false; }
+  virtual bool is_list() const { return false; }
+  virtual bool is_set() const { return false; }
+  virtual bool is_map() const { return false; }
+  virtual bool is_sink() const { return false; }
+  virtual bool is_streamresponse() const { return false; }
+  virtual bool is_service() const { return false; }
+  virtual bool is_binary() const { return false; }
+  virtual bool is_paramlist() const { return false; }
+
+  bool is_string_or_binary() const { return is_string() || is_binary(); }
+  bool is_any_int() const { return is_i16() || is_i32() || is_i64(); }
+  bool is_floating_point() const { return is_double() || is_float(); }
 
   /**
    * Create a unique hash number based on t_type's properties.
@@ -187,21 +141,14 @@ class t_type : public t_annotated {
   }
 
   /**
-   * t_type setters
-   */
-  virtual void set_name(const std::string& name) {
-    name_ = name;
-  }
-
-  /**
    * t_type getters
    */
-  const t_program* get_program() const {
-    return program_;
-  }
-  const std::string& get_name() const {
-    return name_;
-  }
+  const t_program* program() const { return program_; }
+
+  /**
+   * TODO: remove, see: T84718055
+   */
+  const t_program* get_program() const { return program_; }
 
  protected:
   /**
@@ -210,7 +157,7 @@ class t_type : public t_annotated {
    * A t_type object can't be initialized by itself. The constructors
    * are protected and only t_type's children can initialize it.
    */
-  t_type() {}
+  t_type() = default;
 
   /**
    * Constructor for t_type
@@ -224,7 +171,7 @@ class t_type : public t_annotated {
    *
    * @param name - The symbolic name of the thrift type
    */
-  explicit t_type(std::string name) : name_(std::move(name)) {}
+  explicit t_type(std::string name) : t_named(std::move(name)) {}
 
   /**
    * Constructor for t_type
@@ -233,7 +180,7 @@ class t_type : public t_annotated {
    * @param name    - The symbolic name of the thrift type
    */
   t_type(t_program* program, std::string name)
-      : program_(program), name_(std::move(name)) {}
+      : t_named(std::move(name)), program_(program) {}
 
   /**
    * Returns a string in the format "prefix program_name.type_name"
@@ -243,7 +190,39 @@ class t_type : public t_annotated {
   std::string make_full_name(const char* prefix) const;
 
   t_program* program_{nullptr};
-  std::string name_;
+
+ public:
+  // TODO(afuller): Delete everything below this point. It's only here for
+  // backwards captibility.
+
+  std::string get_impl_full_name() const { return get_full_name(); }
+};
+
+/**
+ * A reference to a thrift type.
+ *
+ * Type references are different from other references because they can be
+ * annotated and unresolved.
+ *
+ * TODO(afuller): Make t_type_ref annotatable and remove anonymous types.
+ * TODO(afuller): Make t_type_ref support an 'unresolved' state, where only the
+ * ident is known, and remove placeholder typedefs.
+ */
+class t_type_ref final {
+ public:
+  t_type_ref() = default;
+  explicit t_type_ref(const t_type* type) : type_(type) {}
+
+  void set_type(const t_type* type) { type_ = type; }
+  const t_type* type() const { return type_; }
+
+  /**
+   * TODO: remove, see: T84718055
+   */
+  const t_type* get_type() const { return type_; }
+
+ private:
+  const t_type* type_ = nullptr;
 };
 
 } // namespace compiler

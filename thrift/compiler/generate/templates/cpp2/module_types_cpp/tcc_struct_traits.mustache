@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,20 +20,18 @@ namespace apache {
 namespace thrift {
 namespace detail {
 
-<%#program:structs%>
 void TccStructTraits<<% > common/namespace_cpp2%><%struct:name%>>::translateFieldName(
-    FOLLY_MAYBE_UNUSED folly::StringPiece _fname,
-    FOLLY_MAYBE_UNUSED int16_t& fid,
-    FOLLY_MAYBE_UNUSED apache::thrift::protocol::TType& _ftype) {
-  if (false) {}
-  <%#struct:fields%><%#field:type%>
-  else if (_fname == "<%field:name%>") {
-    fid = <%field:key%>;
-    _ftype = apache::thrift::protocol::<% > module_types_tcc/struct_type%>;
-  }
-  <%/field:type%><%/struct:fields%>
+    folly::StringPiece _fname,
+    int16_t& fid,
+    apache::thrift::protocol::TType& _ftype) noexcept {
+  using data = apache::thrift::TStructDataStorage<<% > common/namespace_cpp2%><%struct:name%>>;
+  static const st::translate_field_name_table table{
+      data::fields_size,
+      data::fields_names.data(),
+      data::fields_ids.data(),
+      data::fields_types.data()};
+  st::translate_field_name(_fname, fid, _ftype, table);
 }
-<%/program:structs%>
 
 } // namespace detail
 } // namespace thrift

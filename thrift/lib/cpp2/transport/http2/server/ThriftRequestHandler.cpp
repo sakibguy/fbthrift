@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,7 @@
 
 #include <thrift/lib/cpp2/transport/http2/server/ThriftRequestHandler.h>
 
-#include <thrift/lib/cpp2/transport/http2/common/H2ChannelFactory.h>
+#include <thrift/lib/cpp2/transport/http2/common/SingleRpcChannel.h>
 
 namespace apache {
 namespace thrift {
@@ -24,20 +24,17 @@ namespace thrift {
 using folly::IOBuf;
 using proxygen::HTTPMessage;
 using proxygen::ProxygenError;
-using proxygen::RequestHandler;
 using proxygen::UpgradeProtocol;
 
 ThriftRequestHandler::ThriftRequestHandler(
-    ThriftProcessor* processor,
-    uint32_t channelVersion)
-    : processor_(processor), channelVersion_(channelVersion) {}
+    ThriftProcessor* processor, std::shared_ptr<Cpp2Worker> worker)
+    : processor_(processor), worker_(std::move(worker)) {}
 
 ThriftRequestHandler::~ThriftRequestHandler() {}
 
-void ThriftRequestHandler::onRequest(
+void ThriftRequestHandler::onHeadersComplete(
     std::unique_ptr<HTTPMessage> headers) noexcept {
-  channel_ =
-      H2ChannelFactory::createChannel(channelVersion_, downstream_, processor_);
+  channel_ = std::make_shared<SingleRpcChannel>(txn_, processor_, worker_);
   channel_->onH2StreamBegin(std::move(headers));
 }
 
@@ -51,16 +48,49 @@ void ThriftRequestHandler::onEOM() noexcept {
 
 void ThriftRequestHandler::onUpgrade(UpgradeProtocol /*prot*/) noexcept {}
 
-void ThriftRequestHandler::requestComplete() noexcept {
-  channel_->onH2StreamClosed(ProxygenError::kErrorNone);
+void ThriftRequestHandler::detachTransaction() noexcept {
+  if (channel_) {
+    channel_->onH2StreamClosed(ProxygenError::kErrorNone, "");
+  }
   delete this;
 }
 
-void ThriftRequestHandler::onError(ProxygenError error) noexcept {
-  if (channel_) {
-    channel_->onH2StreamClosed(error);
+void ThriftRequestHandler::onError(
+    const proxygen::HTTPException& error) noexcept {
+  if (error.getProxygenError() == proxygen::kErrorTimeout) {
+    deliverChannelError(proxygen::kErrorTimeout);
+
+    if (!txn_->canSendHeaders()) {
+      txn_->sendAbort();
+    } else {
+      HTTPMessage resp;
+      resp.setStatusCode(408 /* client timeout */);
+      txn_->sendHeadersWithOptionalEOM(resp, true);
+    }
+  } else if (
+      error.getDirection() == proxygen::HTTPException::Direction::INGRESS) {
+    deliverChannelError(proxygen::kErrorRead);
+
+    if (!txn_->canSendHeaders()) {
+      txn_->sendAbort();
+    } else {
+      HTTPMessage resp;
+      resp.setStatusCode(400 /* bad request */);
+      txn_->sendHeadersWithOptionalEOM(resp, true);
+    }
+
+  } else {
+    deliverChannelError(
+        error.hasProxygenError() ? error.getProxygenError()
+                                 : proxygen::kErrorWrite);
   }
-  delete this;
+}
+
+void ThriftRequestHandler::deliverChannelError(proxygen::ProxygenError error) {
+  if (channel_) {
+    channel_->onH2StreamClosed(error, "");
+    channel_ = nullptr;
+  }
 }
 
 } // namespace thrift

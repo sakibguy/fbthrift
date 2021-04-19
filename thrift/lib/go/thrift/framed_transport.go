@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -25,16 +22,19 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 const DEFAULT_MAX_LENGTH = 16384000
 
 type FramedTransport struct {
 	transport Transport
-	buf       bytes.Buffer
-	reader    *bufio.Reader
-	frameSize uint32 //Current remaining size of the frame. if ==0 read next frame header
-	buffer    [4]byte
+	framebuf  byteReader    // buffer for reading complete frames off the wire
+	buf       bytes.Buffer  // buffers the writes
+	reader    *bufio.Reader // just a buffer over the underlying transport
+	frameSize uint32        // Current remaining size of the frame. if ==0 read next frame header
+	rBuffer   [4]byte       // used for reading
+	wBuffer   [4]byte       // used for writing
 	maxLength uint32
 }
 
@@ -92,7 +92,7 @@ func (p *FramedTransport) Read(buf []byte) (l int, err error) {
 			return
 		}
 	}
-	got, err := p.reader.Read(buf)
+	got, err := p.framebuf.Read(buf)
 	p.frameSize = p.frameSize - uint32(got)
 	//sanity check
 	if p.frameSize < 0 {
@@ -111,7 +111,7 @@ func (p *FramedTransport) ReadByte() (c byte, err error) {
 	if p.frameSize < 1 {
 		return 0, NewTransportExceptionFromError(fmt.Errorf("Not enough frame size %d to read %d bytes", p.frameSize, 1))
 	}
-	c, err = p.reader.ReadByte()
+	c, err = p.framebuf.ReadByte()
 	if err == nil {
 		p.frameSize--
 	}
@@ -133,7 +133,7 @@ func (p *FramedTransport) WriteString(s string) (n int, err error) {
 
 func (p *FramedTransport) Flush() error {
 	size := p.buf.Len()
-	buf := p.buffer[:4]
+	buf := p.wBuffer[:4]
 	binary.BigEndian.PutUint32(buf, uint32(size))
 	_, err := p.transport.Write(buf)
 	if err != nil {
@@ -150,7 +150,7 @@ func (p *FramedTransport) Flush() error {
 }
 
 func (p *FramedTransport) readFrameHeader() (uint32, error) {
-	buf := p.buffer[:4]
+	buf := p.rBuffer[:4]
 	if _, err := io.ReadFull(p.reader, buf); err != nil {
 		return 0, err
 	}
@@ -158,6 +158,17 @@ func (p *FramedTransport) readFrameHeader() (uint32, error) {
 	if size < 0 || size > p.maxLength {
 		return 0, NewTransportException(UNKNOWN_TRANSPORT_EXCEPTION, fmt.Sprintf("Incorrect frame size (%d)", size))
 	}
+
+	framebuf := newLimitedByteReader(p.reader, int64(size))
+	out, err := ioutil.ReadAll(framebuf)
+	if err != nil {
+		return 0, err
+	}
+	if uint32(len(out)) < size {
+		return 0, NewTransportExceptionFromError(fmt.Errorf("Unable to read full frame of size %d", size))
+	}
+	p.framebuf = newLimitedByteReader(bytes.NewBuffer(out), int64(size))
+
 	return size, nil
 }
 

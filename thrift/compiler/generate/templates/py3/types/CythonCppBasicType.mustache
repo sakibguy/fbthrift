@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,10 +30,10 @@ instead to use a custom type override when appropriate (from the cpp.type
 annotation).
 
 }}{{#type:bool?}}cbool{{/type:bool?}}{{!
-}}{{#type:byte?}}int8_t{{/type:byte?}}{{!
-}}{{#type:i16?}}int16_t{{/type:i16?}}{{!
-}}{{#type:i32?}}int32_t{{/type:i32?}}{{!
-}}{{#type:i64?}}int64_t{{/type:i64?}}{{!
+}}{{#type:byte?}}cint8_t{{/type:byte?}}{{!
+}}{{#type:i16?}}cint16_t{{/type:i16?}}{{!
+}}{{#type:i32?}}cint32_t{{/type:i32?}}{{!
+}}{{#type:i64?}}cint64_t{{/type:i64?}}{{!
 }}{{#type:double?}}double{{/type:double?}}{{!
 }}{{#type:float?}}float{{/type:float?}}{{!
 }}{{#type:string?}}string{{/type:string?}}{{!
@@ -52,14 +52,14 @@ annotation).
   }}{{/program:typeContext?}}{{/type:externalProgram?}}{{!
 }}{{/type:defaultTemplate?}}{{/type:container?}}{{!
 }}{{#type:list?}}{{type:cythonTemplate}}[{{!
-  }}{{#type:listElemType}}{{> types/CythonCppType}}{{/type:listElemType}}{{!
+  }}{{#type:list_elem_type}}{{> types/CythonCppType}}{{/type:list_elem_type}}{{!
 }}]{{/type:list?}}{{!
 }}{{#type:set?}}{{type:cythonTemplate}}[{{!
-  }}{{#type:setElemType}}{{> types/CythonCppType}}{{/type:setElemType}}{{!
+  }}{{#type:set_elem_type}}{{> types/CythonCppType}}{{/type:set_elem_type}}{{!
 }}]{{/type:set?}}{{!
 }}{{#type:map?}}{{type:cythonTemplate}}[{{!
-  }}{{#type:keyType}}{{> types/CythonCppType}}{{/type:keyType}},{{!
-  }}{{#type:valueType}}{{> types/CythonCppType}}{{/type:valueType}}{{!
+  }}{{#type:key_type}}{{> types/CythonCppType}}{{/type:key_type}},{{!
+  }}{{#type:value_type}}{{> types/CythonCppType}}{{/type:value_type}}{{!
 }}]{{/type:map?}}{{!
 }}{{#type:enum}}{{!
   }}{{#type:externalProgram?}}{{> common/ModulePath}}.{{/type:externalProgram?}}{{!

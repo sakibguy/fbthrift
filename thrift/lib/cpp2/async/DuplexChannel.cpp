@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,6 @@
 
 #include <folly/io/Cursor.h>
 
-using apache::thrift::async::TAsyncTransport;
 using apache::thrift::transport::THeader;
 using folly::IOBuf;
 using folly::IOBufQueue;
@@ -33,15 +32,10 @@ namespace apache {
 namespace thrift {
 
 DuplexChannel::DuplexChannel(
-    Who::WhoEnum who,
-    const shared_ptr<TAsyncTransport>& transport)
+    Who::WhoEnum who, const shared_ptr<folly::AsyncTransport>& transport)
     : cpp2Channel_(
           new DuplexCpp2Channel(
-              who,
-              transport,
-              make_unique<DuplexFramingHandler>(*this),
-              make_unique<DuplexProtectionHandler>(*this),
-              make_unique<DuplexSaslNegotiationHandler>(*this)),
+              who, transport, make_unique<DuplexFramingHandler>(*this)),
           folly::DelayedDestruction::Destructor()),
       clientChannel_(
           new DuplexClientChannel(*this, cpp2Channel_),
@@ -122,8 +116,7 @@ DuplexChannel::DuplexFramingHandler::removeFrame(folly::IOBufQueue* q) {
 }
 
 std::unique_ptr<folly::IOBuf> DuplexChannel::DuplexFramingHandler::addFrame(
-    std::unique_ptr<folly::IOBuf> buf,
-    THeader* header) {
+    std::unique_ptr<folly::IOBuf> buf, THeader* header) {
   buf = getHandler(duplex_.lastSender_.get()).addFrame(std::move(buf), header);
 
   if (duplex_.lastSender_.get() != duplex_.mainChannel_.get()) {

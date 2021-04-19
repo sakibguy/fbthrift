@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,14 +18,17 @@
 
 Base Constant Values
 
-%><%#value:bool?%><%value:boolValue%><%/value:bool?%><%!
+%><%#value:bool?%><%value:bool_value%><%/value:bool?%><%!
 
-%><%#value:integer?%><%value:integerValue%><%/value:integer?%><%!
+%><%#value:integer?%><%value:integer_value%><%/value:integer?%><%!
 
-%><%#value:double?%><%value:doubleValue%><%/value:double?%><%!
+%><%#value:double?%><%value:double_value%><%/value:double?%><%!
 
-%><%#value:string?%>"<%value:stringValue%>"<%/value:string?%><%!
+%><%#value:string?%><%!
+  %><%^value:string_multi_line?%>"<%value:string_value%>"<%/value:string_multi_line?%><%!
+  %><%#value:string_multi_line?%>R"__FBTHRIFT_STRL(<%value:string_value%>)__FBTHRIFT_STRL"<%/value:string_multi_line?%><%!
+%><%/value:string?%><%!
 
 %><%#value:enum?%><%#value:enum_value?%><% > common/type_namespace_cpp2%><%value:enum_name%>::<%value:enum_value_name%><%/value:enum_value?%><%/value:enum?%><%!
 
-%><%#value:enum?%><%^value:enum_value?%>static_cast<<% > common/type_namespace_cpp2%><%value:enum_name%>>(<%value:integerValue%>)<%/value:enum_value?%><%/value:enum?%>
+%><%#value:enum?%><%^value:enum_value?%>static_cast<<% > common/type_namespace_cpp2%><%value:enum_name%>>(<%value:integer_value%>)<%/value:enum_value?%><%/value:enum?%>

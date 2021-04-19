@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,17 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef THRIFT_ASYNC_CPP2CONNCONTEXT_H_
 #define THRIFT_ASYNC_CPP2CONNCONTEXT_H_ 1
 
 #include <memory>
+#include <string_view>
 
+#include <folly/CancellationToken.h>
+#include <folly/MapUtil.h>
+#include <folly/Memory.h>
+#include <folly/Optional.h>
 #include <folly/SocketAddress.h>
-#include <thrift/lib/cpp/async/TAsyncTransport.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 #include <thrift/lib/cpp/server/TConnectionContext.h>
+#include <thrift/lib/cpp/server/TServerObserver.h>
 #include <thrift/lib/cpp/transport/THeader.h>
-#include <thrift/lib/cpp2/async/SaslServer.h>
+#include <thrift/lib/cpp2/async/Interaction.h>
 #include <wangle/ssl/SSLUtil.h>
 
 using apache::thrift::concurrency::PriorityThreadManager;
@@ -31,70 +39,99 @@ using apache::thrift::concurrency::PriorityThreadManager;
 namespace apache {
 namespace thrift {
 
+namespace rocket {
+class ThriftRocketServerHandler;
+}
+
 using ClientIdentityHook = std::function<std::unique_ptr<void, void (*)(void*)>(
-    const folly::AsyncTransportWrapper* transport,
+    const folly::AsyncTransport* transport,
     X509* cert,
-    const apache::thrift::SaslServer* sasl,
     const folly::SocketAddress& peerAddress)>;
 
 class RequestChannel;
 class TClientBase;
+class Cpp2Worker;
+
+class ClientMetadataRef {
+ public:
+  explicit ClientMetadataRef(const ClientMetadata& md) : md_(md) {}
+  std::optional<std::string_view> getAgent();
+  std::optional<std::string_view> getHostname();
+  std::optional<std::string_view> getOtherMetadataField(std::string_view key);
+
+ private:
+  const ClientMetadata& md_;
+};
 
 class Cpp2ConnContext : public apache::thrift::server::TConnectionContext {
  public:
+  enum class TransportType {
+    HEADER,
+    ROCKET,
+    HTTP2,
+  };
+
   explicit Cpp2ConnContext(
       const folly::SocketAddress* address = nullptr,
-      const apache::thrift::async::TAsyncTransport* transport = nullptr,
-      const apache::thrift::SaslServer* sasl_server = nullptr,
+      const folly::AsyncTransport* transport = nullptr,
       folly::EventBaseManager* manager = nullptr,
       const std::shared_ptr<RequestChannel>& duplexChannel = nullptr,
       const std::shared_ptr<X509> peerCert = nullptr /*overridden from socket*/,
-      apache::thrift::ClientIdentityHook clientIdentityHook = nullptr)
-      : saslServer_(sasl_server),
-        manager_(manager),
-        requestHeader_(nullptr),
+      apache::thrift::ClientIdentityHook clientIdentityHook = nullptr,
+      const Cpp2Worker* worker = nullptr)
+      : manager_(manager),
         duplexChannel_(duplexChannel),
         peerCert_(peerCert),
-        peerIdentities_(nullptr, [](void*) {}),
-        transport_(transport) {
+        transport_(transport),
+        worker_(worker) {
     if (address) {
       peerAddress_ = *address;
     }
     if (transport) {
+      // require worker to be passed when wrapping a real connection
+      DCHECK(worker != nullptr);
       transport->getLocalAddress(&localAddress_);
-      peerCert_ = transport->getPeerCert();
+      auto cert = transport->getPeerCertificate();
+      if (cert) {
+        peerCert_ = cert->getX509();
+      }
       securityProtocol_ = transport->getSecurityProtocol();
+
+      if (localAddress_.getFamily() == AF_UNIX) {
+        auto wrapper = transport_->getUnderlyingTransport<folly::AsyncSocket>();
+        if (wrapper) {
+          peerCred_ = PeerCred::queryFromSocket(wrapper->getNetworkSocket());
+        }
+      }
     }
 
     if (clientIdentityHook) {
-      peerIdentities_ = clientIdentityHook(
-          transport_, peerCert_.get(), sasl_server, peerAddress_);
+      peerIdentities_ =
+          clientIdentityHook(transport_, peerCert_.get(), peerAddress_);
     }
   }
 
-  const folly::SocketAddress* getLocalAddress() const {
-    return &localAddress_;
+  void reset() {
+    peerAddress_.reset();
+    localAddress_.reset();
+    userData_.reset();
   }
 
-  apache::thrift::transport::THeader* getHeader() const override {
-    return requestHeader_;
+  const folly::SocketAddress* getPeerAddress() const final {
+    return &peerAddress_;
+  }
+
+  const folly::SocketAddress* getLocalAddress() const { return &localAddress_; }
+
+  void setLocalAddress(const folly::SocketAddress& localAddress) {
+    localAddress_ = localAddress;
   }
 
   void setRequestHeader(apache::thrift::transport::THeader* header) {
-    requestHeader_ = header;
+    header_ = header;
   }
 
-  virtual void setSaslServer(const apache::thrift::SaslServer* sasl_server) {
-    saslServer_ = sasl_server;
-  }
-
-  virtual const apache::thrift::SaslServer* getSaslServer() const {
-    return saslServer_;
-  }
-
-  folly::EventBaseManager* getEventBaseManager() override {
-    return manager_;
-  }
+  folly::EventBaseManager* getEventBaseManager() override { return manager_; }
 
   std::string getPeerCommonName() const {
     if (peerCert_) {
@@ -105,9 +142,7 @@ class Cpp2ConnContext : public apache::thrift::server::TConnectionContext {
     return std::string();
   }
 
-  virtual std::shared_ptr<X509> getPeerCertificate() const {
-    return peerCert_;
-  }
+  virtual std::shared_ptr<X509> getPeerCertificate() const { return peerCert_; }
 
   template <typename Client>
   std::shared_ptr<Client> getDuplexClient() {
@@ -124,24 +159,246 @@ class Cpp2ConnContext : public apache::thrift::server::TConnectionContext {
     return securityProtocol_;
   }
 
-  virtual void* getPeerIdentities() const {
-    return peerIdentities_.get();
+  virtual void* getPeerIdentities() const { return peerIdentities_.get(); }
+
+  const folly::AsyncTransport* getTransport() const { return transport_; }
+
+  /**
+   * Get the user data field.
+   */
+  void* getUserData() const override { return userData_.get(); }
+
+  /**
+   * Set the user data field.
+   *
+   * @param data         The new value for the user data field.
+   *
+   * @return Returns the old user data value.
+   */
+  void* setUserData(folly::erased_unique_ptr data) override {
+    auto oldData = userData_.release();
+    userData_ = std::move(data);
+    return oldData;
+  }
+  using TConnectionContext::setUserData;
+
+#ifndef _WIN32
+  struct PeerEffectiveCreds {
+    pid_t pid;
+    uid_t uid;
+    gid_t gid;
+  };
+
+  /**
+   * Returns the connecting process ID, effective user ID, and effective user ID
+   * of the unix socket peer. The connection may have terminated since that
+   * time, so the PID may no longer map to a running process or the same process
+   * that initially connected. Returns nullopt for TCP, on Windows, and if there
+   * was an error retrieving the peer creds. In that case, call
+   * `getPeerCredError` for the reason.
+   *
+   * On macOS, the pid field contains the effective pid. On Linux, there is no
+   * distinction.
+   */
+  folly::Optional<PeerEffectiveCreds> getPeerEffectiveCreds() const {
+    return peerCred_.getPeerEffectiveCreds();
+  }
+#endif
+
+  /**
+   * If the peer effective pid or uid are not available, it's possible
+   * retrieving the information failed. Produce an error message with the
+   * reason.
+   */
+  folly::Optional<std::string> getPeerCredError() const {
+    return peerCred_.getError();
   }
 
-  const apache::thrift::async::TAsyncTransport* getTransport() const {
-    return transport_;
+  /**
+   * Retrieve a new folly::CancellationToken that will be signaled when the
+   * connection is closed.
+   */
+  folly::CancellationToken getCancellationToken() const {
+    return cancellationSource_.getToken();
   }
+
+  /**
+   * Signal that the connection has been closed.
+   *
+   * This is intended to be called by the thrift server implementation code.
+   *
+   * Note that this will cause any CancellationCallback functions that have been
+   * registered to run immediately in this thread.  If any of these callbacks
+   * throw this will cause program termination.
+   */
+  void connectionClosed() { cancellationSource_.requestCancellation(); }
+
+  const Cpp2Worker* getWorker() const { return worker_; }
+
+  std::optional<TransportType> getTransportType() const {
+    return transportType_;
+  }
+
+  std::optional<ClientMetadataRef> getClientMetadataRef() const {
+    if (!clientMetadata_) {
+      return {};
+    }
+    return ClientMetadataRef{*clientMetadata_};
+  }
+
+  InterfaceKind getInterfaceKind() const { return interfaceKind_; }
 
  private:
-  const apache::thrift::SaslServer* saslServer_;
+  /**
+   * Adds interaction to interaction map
+   * Returns false if id is in use
+   */
+  bool addTile(int64_t id, std::unique_ptr<Tile> tile) {
+    return tiles_.try_emplace(id, std::move(tile)).second;
+  }
+  /**
+   * Updates interaction in map
+   * Returns old value
+   */
+  std::unique_ptr<Tile> resetTile(int64_t id, std::unique_ptr<Tile> tile) {
+    DCHECK(tiles_.count(id));
+    return std::exchange(tiles_[id], std::move(tile));
+  }
+  /**
+   * Removes interaction from map
+   * Returns old value
+   */
+  std::unique_ptr<Tile> removeTile(int64_t id) {
+    auto it = tiles_.find(id);
+    if (it == tiles_.end()) {
+      return nullptr;
+    }
+    auto ret = std::move(it->second);
+    tiles_.erase(it);
+    return ret;
+  }
+  /**
+   * Gets tile from map
+   * Throws std::out_of_range if not found
+   */
+  Tile& getTile(int64_t id) { return *tiles_.at(id); }
+  friend class GeneratedAsyncProcessor;
+  friend class Tile;
+  friend class TilePromise;
+
+  void setTransportType(TransportType transportType) {
+    transportType_ = transportType;
+  }
+
+  void readSetupMetadata(const RequestSetupMetadata& meta) {
+    if (const auto& md = meta.clientMetadata_ref()) {
+      setClientMetadata(*md);
+    }
+    if (auto interfaceKind = meta.interfaceKind_ref()) {
+      interfaceKind_ = *interfaceKind;
+    }
+  }
+
+  void setClientMetadata(const ClientMetadata& md) { clientMetadata_ = md; }
+
+  friend class Cpp2Connection;
+  friend class rocket::ThriftRocketServerHandler;
+
+  /**
+   * Platform-independent representation of unix domain socket peer credentials,
+   * e.g. ucred on Linux and xucred on macOS.
+   *
+   * Null implementation on Windows.
+   */
+  class PeerCred {
+   public:
+#ifndef _WIN32
+    using StatusOrPid = pid_t;
+#else
+    // Even on Windows, differentiate between not initialized (not unix
+    // domain socket), and unsupported platform.
+    using StatusOrPid = int;
+#endif
+
+    /**
+     * pid_t is guaranteed to be signed, so reserve non-positive values as
+     * sentinels that indicate credential validity.
+     * While negative pid_t values are possible, they are used to refer
+     * to process groups and thus cannot occur in a process identifier.
+     * Linux and macOS allow user IDs to span the entire range of a uint32_t,
+     * so sentinal values must be stored in pid_t.
+     */
+    enum Validity : StatusOrPid {
+      NotInitialized = -1,
+      ErrorRetrieving = -2,
+      UnsupportedPlatform = -3,
+    };
+
+    PeerCred() = default;
+    PeerCred(const PeerCred&) = default;
+    PeerCred& operator=(const PeerCred&) = default;
+
+    /**
+     * Query a socket for peer credentials.
+     */
+    static PeerCred queryFromSocket(folly::NetworkSocket socket);
+
+#ifndef _WIN32
+    folly::Optional<PeerEffectiveCreds> getPeerEffectiveCreds() const {
+      return hasCredentials()
+          ? folly::make_optional(PeerEffectiveCreds{pid_, uid_, gid_})
+          : folly::none;
+    }
+#endif
+
+    /**
+     * If retrieving the effective credentials failed, return a string
+     * containing the reason.
+     */
+    folly::Optional<std::string> getError() const;
+
+   private:
+    explicit PeerCred(Validity validity) : pid_{validity} {}
+
+#ifndef _WIN32
+    explicit PeerCred(pid_t pid, uid_t uid, gid_t gid)
+        : pid_{pid}, uid_{uid}, gid_{gid} {}
+#endif
+
+    bool hasCredentials() const { return pid_ >= 0; }
+
+    StatusOrPid pid_ = Validity::NotInitialized;
+#ifndef _WIN32
+    uid_t uid_ = 0;
+    gid_t gid_ = 0;
+#endif
+  };
+
+  folly::erased_unique_ptr userData_{folly::empty_erased_unique_ptr()};
+  folly::SocketAddress peerAddress_;
+  folly::SocketAddress localAddress_;
   folly::EventBaseManager* manager_;
-  transport::THeader* requestHeader_;
   std::shared_ptr<RequestChannel> duplexChannel_;
   std::shared_ptr<TClientBase> duplexClient_;
   std::shared_ptr<X509> peerCert_;
-  std::unique_ptr<void, void (*)(void*)> peerIdentities_;
+  folly::erased_unique_ptr peerIdentities_{folly::empty_erased_unique_ptr()};
   std::string securityProtocol_;
-  const apache::thrift::async::TAsyncTransport* transport_;
+  const folly::AsyncTransport* transport_;
+  PeerCred peerCred_;
+  // A CancellationSource that will be signaled when the connection is closed.
+  folly::CancellationSource cancellationSource_;
+  folly::F14FastMap<int64_t, std::unique_ptr<Tile>> tiles_;
+  const Cpp2Worker* worker_;
+  InterfaceKind interfaceKind_{InterfaceKind::USER};
+  std::optional<TransportType> transportType_;
+  std::optional<ClientMetadata> clientMetadata_;
+};
+
+class Cpp2ClientRequestContext
+    : public apache::thrift::server::TConnectionContext {
+ public:
+  Cpp2ClientRequestContext() = default;
+  void setRequestHeader(transport::THeader* header) { header_ = header; }
 };
 
 // Request-specific context
@@ -150,14 +407,9 @@ class Cpp2RequestContext : public apache::thrift::server::TConnectionContext {
   explicit Cpp2RequestContext(
       Cpp2ConnContext* ctx,
       apache::thrift::transport::THeader* header = nullptr)
-      : ctx_(ctx),
-        requestData_(nullptr, no_op_destructor),
-        header_(header),
-        startedProcessing_(false) {}
+      : TConnectionContext(header), ctx_(ctx) {}
 
-  void setConnectionContext(Cpp2ConnContext* ctx) {
-    ctx_ = ctx;
-  }
+  void setConnectionContext(Cpp2ConnContext* ctx) { ctx_ = ctx; }
 
   // Forward all connection-specific information
   const folly::SocketAddress* getPeerAddress() const override {
@@ -168,20 +420,19 @@ class Cpp2RequestContext : public apache::thrift::server::TConnectionContext {
     return ctx_->getLocalAddress();
   }
 
-  void reset() {
-    ctx_->reset();
-  }
+  void reset() { ctx_->reset(); }
 
-  PriorityThreadManager::PRIORITY getCallPriority() {
+  concurrency::PRIORITY getCallPriority() const {
     return header_->getCallPriority();
   }
 
-  apache::thrift::transport::THeader* getHeader() const override {
-    return header_;
+  concurrency::ThreadManager::ExecutionScope getRequestExecutionScope() const {
+    return executionScope_;
   }
 
-  virtual const apache::thrift::SaslServer* getSaslServer() const {
-    return ctx_->getSaslServer();
+  void setRequestExecutionScope(
+      concurrency::ThreadManager::ExecutionScope scope) {
+    executionScope_ = std::move(scope);
   }
 
   virtual std::vector<uint16_t>& getTransforms() {
@@ -192,42 +443,26 @@ class Cpp2RequestContext : public apache::thrift::server::TConnectionContext {
     return ctx_->getEventBaseManager();
   }
 
-  void* getUserData() const override {
-    return ctx_->getUserData();
-  }
+  void* getUserData() const override { return ctx_->getUserData(); }
 
-  void* setUserData(void* data, void (*destructor)(void*) = nullptr) override {
-    return ctx_->setUserData(data, destructor);
+  void* setUserData(folly::erased_unique_ptr data) override {
+    return ctx_->setUserData(std::move(data));
   }
-
-  typedef void (*void_ptr_destructor)(void*);
-  typedef std::unique_ptr<void, void_ptr_destructor> RequestDataPtr;
+  using TConnectionContext::setUserData;
 
   // This data is set on a per request basis.
-  void* getRequestData() const {
-    return requestData_.get();
-  }
+  void* getRequestData() const { return requestData_.get(); }
 
   // Returns the old request data context so the caller can clean up
-  RequestDataPtr setRequestData(
-      void* data,
-      void_ptr_destructor destructor = no_op_destructor) {
-    RequestDataPtr oldData(data, destructor);
-    requestData_.swap(oldData);
-    return oldData;
+  folly::erased_unique_ptr setRequestData(
+      void* data, void (*destructor)(void*) = no_op_destructor) {
+    return std::exchange(requestData_, {data, destructor});
+  }
+  folly::erased_unique_ptr setRequestData(folly::erased_unique_ptr data) {
+    return std::exchange(requestData_, std::move(data));
   }
 
-  virtual Cpp2ConnContext* getConnectionContext() const {
-    return ctx_;
-  }
-
-  bool getStartedProcessing() const {
-    return startedProcessing_;
-  }
-
-  void setStartedProcessing() {
-    startedProcessing_ = true;
-  }
+  virtual Cpp2ConnContext* getConnectionContext() const { return ctx_; }
 
   std::chrono::milliseconds getRequestTimeout() const {
     return requestTimeout_;
@@ -237,57 +472,62 @@ class Cpp2RequestContext : public apache::thrift::server::TConnectionContext {
     requestTimeout_ = requestTimeout;
   }
 
-  bool isProcessingStartTimeSet() const {
-    return processingStartTime_.hasValue();
-  }
-
-  void setProcessingStartTime(
-      std::chrono::time_point<std::chrono::steady_clock> processingStartTime) {
-    processingStartTime_ = processingStartTime;
-  }
-
-  std::chrono::time_point<std::chrono::steady_clock> getProcessingStartTime()
-      const {
-    return processingStartTime_.value();
-  }
-
   void setMethodName(std::string methodName) {
     methodName_ = std::move(methodName);
   }
 
-  const std::string& getMethodName() {
-    return methodName_;
+  const std::string& getMethodName() const { return methodName_; }
+
+  std::string releaseMethodName() { return std::move(methodName_); }
+
+  void setProtoSeqId(int32_t protoSeqId) { protoSeqId_ = protoSeqId; }
+
+  int32_t getProtoSeqId() { return protoSeqId_; }
+
+  void setInteractionId(int64_t id) { interactionId_ = id; }
+
+  int64_t getInteractionId() { return interactionId_; }
+
+  void setInteractionCreate(InteractionCreate interactionCreate) {
+    interactionCreate_ = std::move(interactionCreate);
   }
 
-  void setProtoSeqId(int32_t protoSeqId) {
-    protoSeqId_ = protoSeqId;
+  folly::Optional<InteractionCreate>& getInteractionCreate() {
+    return interactionCreate_;
   }
 
-  int32_t getProtoSeqId() {
-    return protoSeqId_;
+  server::TServerObserver::PreHandlerTimestamps& getTimestamps() {
+    return timestamps_;
   }
 
-  void setMessageBeginSize(uint32_t messageBeginSize) {
-    messageBeginSize_ = messageBeginSize;
-  }
+  void setTile(Tile& tile) { tile_ = &tile; }
 
-  uint32_t getMessageBeginSize() {
-    return messageBeginSize_;
+  Tile* getTile() { return tile_; }
+
+  const std::string* clientId() {
+    if (auto header = getHeader(); header && header->clientId()) {
+      return &*header->clientId();
+    }
+    if (auto headers = getHeadersPtr()) {
+      return folly::get_ptr(*headers, transport::THeader::kClientId);
+    }
+    return nullptr;
   }
 
  protected:
-  static void no_op_destructor(void* /*ptr*/) {}
+  apache::thrift::server::TServerObserver::CallTimestamps timestamps_;
 
  private:
   Cpp2ConnContext* ctx_;
-  RequestDataPtr requestData_;
-  apache::thrift::transport::THeader* header_;
-  bool startedProcessing_ = false;
+  folly::erased_unique_ptr requestData_{nullptr, nullptr};
   std::chrono::milliseconds requestTimeout_{0};
-  folly::Optional<std::chrono::steady_clock::time_point> processingStartTime_;
   std::string methodName_;
   int32_t protoSeqId_{0};
-  uint32_t messageBeginSize_{0};
+  int64_t interactionId_{0};
+  folly::Optional<InteractionCreate> interactionCreate_;
+  Tile* tile_{nullptr};
+  concurrency::ThreadManager::ExecutionScope executionScope_{
+      concurrency::PRIORITY::NORMAL};
 };
 
 } // namespace thrift

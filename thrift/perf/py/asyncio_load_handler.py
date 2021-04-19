@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
-from apache.thrift.test.asyncio.load import LoadTest
-from apache.thrift.test.asyncio.load.ttypes import LoadError
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 import pickle
 import time
+from concurrent.futures import ProcessPoolExecutor
+
+from apache.thrift.test.asyncio.load import LoadTest
+from apache.thrift.test.asyncio.load.ttypes import LoadError
 
 
 def us_to_sec(microseconds):
@@ -12,11 +27,11 @@ def us_to_sec(microseconds):
 
 
 def burn_in_executor(us):
-    '''
+    """
     The "busy wait" functions are CPU bound; to prevent blocking
     they need to be run in an executor. This function
     provides the implementation.
-    '''
+    """
     start = time.time()
     end = start + us_to_sec(us)
     while time.time() < end:
@@ -39,23 +54,17 @@ class LoadHandler(LoadTest.Iface):
     def asyncNoop(self):
         pass
 
-    @asyncio.coroutine
-    def sleep(self, us):
-        yield from asyncio.sleep(us_to_sec(us))
+    async def sleep(self, us):
+        await asyncio.sleep(us_to_sec(us))
 
-    @asyncio.coroutine
-    def onewaySleep(self, us):
-        yield from asyncio.sleep(us_to_sec(us))
+    async def onewaySleep(self, us):
+        await asyncio.sleep(us_to_sec(us))
 
-    @asyncio.coroutine
-    def burn(self, us):
-        return (yield from self.loop.run_in_executor(self.pool,
-            burn_in_executor, us))
+    async def burn(self, us):
+        return await self.loop.run_in_executor(self.pool, burn_in_executor, us)
 
-    @asyncio.coroutine
-    def onewayBurn(self, us):
-        return (yield from self.loop.run_in_executor(self.pool,
-            burn_in_executor, us))
+    async def onewayBurn(self, us):
+        return await self.loop.run_in_executor(self.pool, burn_in_executor, us)
 
     def badSleep(self, us):
         # "bad" because it sleeps on the main thread
@@ -79,10 +88,10 @@ class LoadHandler(LoadTest.Iface):
         pass
 
     def recv(self, bytes):
-        return 'a' * bytes
+        return "a" * bytes
 
     def sendrecv(self, data, recvBytes):
-        return 'a' * recvBytes
+        return "a" * recvBytes
 
     def echo(self, data):
         return data

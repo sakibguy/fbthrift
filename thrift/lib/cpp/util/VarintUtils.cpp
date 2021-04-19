@@ -1,35 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <thrift/lib/cpp/util/VarintUtils.h>
+
 #include <thrift/lib/cpp/TApplicationException.h>
 
 #include <stdint.h>
 
-namespace apache { namespace thrift { namespace util {
+namespace apache {
+namespace thrift {
+namespace util {
 
 /**
  * Read an i16 from the wire as a varint. The MSB of each byte is set
  * if there is another byte to follow. This can read up to 3 bytes.
  */
-uint32_t readVarint16(uint8_t const* ptr, int16_t* i16,
-                      uint8_t const* boundary) {
+uint32_t readVarint16(
+    uint8_t const* ptr, int16_t* i16, uint8_t const* boundary) {
   int64_t val;
   uint32_t rsize = readVarint64(ptr, &val, boundary);
   *i16 = (int16_t)val;
@@ -40,8 +40,8 @@ uint32_t readVarint16(uint8_t const* ptr, int16_t* i16,
  * Read an i32 from the wire as a varint. The MSB of each byte is set
  * if there is another byte to follow. This can read up to 5 bytes.
  */
-uint32_t readVarint32(uint8_t const* ptr, int32_t* i32,
-                      uint8_t const* boundary) {
+uint32_t readVarint32(
+    uint8_t const* ptr, int32_t* i32, uint8_t const* boundary) {
   int64_t val;
   uint32_t rsize = readVarint64(ptr, &val, boundary);
   *i32 = (int32_t)val;
@@ -53,8 +53,8 @@ uint32_t readVarint32(uint8_t const* ptr, int32_t* i32,
  * if there is another byte to follow. This can read up to 10 bytes.
  * Caller is responsible for advancing ptr after call.
  */
-uint32_t readVarint64(uint8_t const* ptr, int64_t* i64,
-                      uint8_t const* boundary) {
+uint32_t readVarint64(
+    uint8_t const* ptr, int64_t* i64, uint8_t const* boundary) {
   uint32_t rsize = 0;
   uint64_t val = 0;
   int shift = 0;
@@ -62,8 +62,8 @@ uint32_t readVarint64(uint8_t const* ptr, int64_t* i64,
   while (true) {
     if (ptr == boundary) {
       throw TApplicationException(
-        TApplicationException::INVALID_MESSAGE_TYPE,
-        "Trying to read past header boundary");
+          TApplicationException::INVALID_MESSAGE_TYPE,
+          "Trying to read past header boundary");
     }
     uint8_t byte = *(ptr++);
     rsize++;
@@ -106,9 +106,11 @@ uint32_t writeVarint16(uint16_t n, uint8_t* pkt) {
 }
 
 namespace detail {
-  [[noreturn]] void throwInvalidVarint() {
-    throw std::out_of_range("invalid varint read");
-  }
+[[noreturn]] void throwInvalidVarint() {
+  throw std::out_of_range("invalid varint read");
 }
+} // namespace detail
 
-}}} // apache::thrift::util
+} // namespace util
+} // namespace thrift
+} // namespace apache

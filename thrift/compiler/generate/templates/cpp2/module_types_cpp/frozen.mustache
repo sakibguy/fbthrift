@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ size_t Freezer<<% > common/namespace_cpp2%><%struct:name%>, void>::extraSizeImpl
 %><%#struct:fields%><%!
 %><%#field:type%><%!
 %><%^type:bool?%>
-    + extraSize(src.<%field:name%>)<%!
+    + extraSize(src.<% > module_types_cpp/field_value_ref%>)<%!
 %><%/type:bool?%><%!
 %><%/field:type%><%!
 %><%/struct:fields%>;
@@ -39,14 +39,14 @@ void Freezer<<% > common/namespace_cpp2%><%struct:name%>, void>::freezeImpl(
 <%#struct:fields%>
 <%#field:type%>
 <%#type:bool?%>
-  dst.<%field:name%> = src.<%field:name%>;
+  dst.<%field:cpp_name%> = src.<% > module_types_cpp/field_value_ref%>;
 <%/type:bool?%>
 <%^type:bool?%>
-  freeze(src.<%field:name%>, dst.<%field:name%>, buffer);
+  freeze(src.<% > module_types_cpp/field_value_ref%>, dst.<%field:cpp_name%>, buffer);
 <%/type:bool?%>
 <%^field:required?%>
 <%^field:cpp_ref?%>
-  dst.__isset.<%field:name%> = src.__isset.<%field:name%>;
+  dst.__isset.<%field:cpp_name%> = src.__isset.<%field:cpp_name%>;
 <%/field:cpp_ref?%>
 <%/field:required?%>
 <%/field:type%>
@@ -60,14 +60,14 @@ void Freezer<<% > common/namespace_cpp2%><%struct:name%>, void>::thawImpl(
 <%#struct:fields%>
 <%#field:type%>
 <%#type:bool?%>
-  dst.<%field:name%> = src.<%field:name%>;
+  dst.<% > module_types_cpp/field_value_ref%> = src.<%field:cpp_name%>;
 <%/type:bool?%>
 <%^type:bool?%>
-  thaw(src.<%field:name%>, dst.<%field:name%>);
+  thaw(src.<%field:cpp_name%>, dst.<% > module_types_cpp/field_value_ref%>);
 <%/type:bool?%>
 <%^field:required?%>
 <%^field:cpp_ref?%>
-  dst.__isset.<%field:name%> = src.__isset.<%field:name%>;
+  dst.__isset.<%field:cpp_name%> = src.__isset.<%field:cpp_name%>;
 <%/field:cpp_ref?%>
 <%/field:required?%>
 <%/field:type%>

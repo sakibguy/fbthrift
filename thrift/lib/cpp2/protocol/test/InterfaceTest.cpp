@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
@@ -44,44 +44,32 @@ struct maker {
 
 template <>
 struct maker<StringPiece> {
-  static StringPiece make() {
-    return strvalue;
-  }
+  static StringPiece make() { return strvalue; }
 };
 
 template <>
 struct maker<ByteRange> {
-  static ByteRange make() {
-    return ByteRange(strvalue);
-  }
+  static ByteRange make() { return ByteRange(strvalue); }
 };
 
 template <>
 struct maker<IOBuf> {
-  static IOBuf make() {
-    return IOBuf(IOBuf::COPY_BUFFER, strvalue);
-  }
+  static IOBuf make() { return IOBuf(IOBuf::COPY_BUFFER, strvalue); }
 };
 
 template <>
 struct maker<UniquePtrIOBuf> {
-  static UniquePtrIOBuf make() {
-    return IOBuf::copyBuffer(strvalue);
-  }
+  static UniquePtrIOBuf make() { return IOBuf::copyBuffer(strvalue); }
 };
 
 template <>
 struct maker<ConstIOBufPtr> {
-  static ConstIOBufPtr make() {
-    return &iobuf;
-  }
+  static ConstIOBufPtr make() { return &iobuf; }
 };
 
 template <>
 struct maker<Cursor> {
-  static Cursor make() {
-    return Cursor(&iobuf);
-  }
+  static Cursor make() { return Cursor(&iobuf); }
 };
 
 using Writers = testing::Types<
@@ -90,12 +78,7 @@ using Writers = testing::Types<
     CompactV1ProtocolWriter,
     DebugProtocolWriter,
     JSONProtocolWriter,
-    SimpleJSONProtocolWriter,
-    VirtualWriter<BinaryProtocolWriter>,
-    VirtualWriter<CompactProtocolWriter>,
-    VirtualWriter<DebugProtocolWriter>,
-    VirtualWriter<JSONProtocolWriter>,
-    VirtualWriter<SimpleJSONProtocolWriter>>;
+    SimpleJSONProtocolWriter>;
 
 using Readers = testing::Types<
     BinaryProtocolReader,
@@ -113,9 +96,7 @@ class WriterInterfaceTest : public testing::Test {
  protected:
   IOBufQueue queue;
   Writer writer;
-  void SetUp() override {
-    writer.setOutput(&queue);
-  }
+  void SetUp() override { writer.setOutput(&queue); }
 };
 
 template <typename Reader>
@@ -123,9 +104,7 @@ class ReaderInterfaceTest : public testing::Test {
  protected:
   IOBufQueue queue;
   typename Reader::ProtocolWriter writer;
-  void SetUp() override {
-    writer.setOutput(&queue);
-  }
+  void SetUp() override { writer.setOutput(&queue); }
 
   Reader reader() {
     Reader reader;

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,53 +13,80 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <gtest/gtest.h>
+
+#include <folly/portability/GTest.h>
 
 #include <folly/SocketAddress.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
+#include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncTimeout.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/test/SocketPair.h>
 #include <folly/io/async/test/TestSSLServer.h>
+#include <folly/lang/Bits.h>
 #include <thrift/lib/cpp/EventHandlerBase.h>
 #include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
 #include <thrift/lib/cpp2/async/Cpp2Channel.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/async/HeaderServerChannel.h>
 #include <thrift/lib/cpp2/async/MessageChannel.h>
 #include <thrift/lib/cpp2/async/RequestChannel.h>
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
-#include <thrift/lib/cpp2/async/StubSaslClient.h>
-#include <thrift/lib/cpp2/async/StubSaslServer.h>
 
 using namespace apache::thrift;
 using namespace apache::thrift::async;
 using namespace apache::thrift::transport;
 using apache::thrift::ContextStack;
-using std::unique_ptr;
 using folly::IOBuf;
 using folly::IOBufQueue;
-using std::shared_ptr;
 using std::make_unique;
+using std::shared_ptr;
+using std::unique_ptr;
 
-// +/- for checking timing due to timer granularity, in microseconds
-constexpr size_t kTimingEpsilon = 1000;
-
-unique_ptr<IOBuf> makeTestBuf(size_t len) {
+unique_ptr<IOBuf> makeTestBufImpl(size_t len) {
   unique_ptr<IOBuf> buf = IOBuf::create(len);
   buf->IOBuf::append(len);
   memset(buf->writableData(), char(0x80), len);
-  return buf;
+  return LegacySerializedRequest(
+             T_COMPACT_PROTOCOL, "test", SerializedRequest(std::move(buf)))
+      .buffer;
+}
+
+unique_ptr<IOBuf> makeTestBuf(size_t len) {
+  for (auto requestLen = len; requestLen > 0; --requestLen) {
+    auto buf = makeTestBufImpl(requestLen);
+    if (buf->computeChainDataLength() == len) {
+      return buf;
+    }
+  }
+  LOG(FATAL) << "Can't generate valid legacy request of given length: " << len;
+}
+
+SerializedRequest makeTestSerializedRequest(size_t len) {
+  for (auto requestLen = len; requestLen > 0; --requestLen) {
+    unique_ptr<IOBuf> buf = IOBuf::create(requestLen);
+    buf->IOBuf::append(requestLen);
+    memset(buf->writableData(), char(0x80), requestLen);
+    if (LegacySerializedRequest(
+            T_COMPACT_PROTOCOL, "test", SerializedRequest(buf->clone()))
+            .buffer->computeChainDataLength() == len) {
+      return SerializedRequest(std::move(buf));
+    }
+  }
+  LOG(FATAL) << "Can't generate valid serialized request of given length: "
+             << len;
 }
 
 class EventBaseAborter : public folly::AsyncTimeout {
  public:
   EventBaseAborter(folly::EventBase* eventBase, uint32_t timeoutMS)
-    : folly::AsyncTimeout(eventBase, folly::AsyncTimeout::InternalEnum::INTERNAL)
-    , eventBase_(eventBase) {
+      : folly::AsyncTimeout(
+            eventBase, folly::AsyncTimeout::InternalEnum::INTERNAL),
+        eventBase_(eventBase) {
     scheduleTimeout(timeoutMS);
   }
 
@@ -74,9 +101,9 @@ class EventBaseAborter : public folly::AsyncTimeout {
 
 // Creates/unwraps a framed message (LEN(MSG) | MSG)
 class TestFramingHandler : public FramingHandler {
-public:
-  std::tuple<unique_ptr<IOBuf>, size_t, unique_ptr<THeader>>
-  removeFrame(IOBufQueue* q) override {
+ public:
+  std::tuple<unique_ptr<IOBuf>, size_t, unique_ptr<THeader>> removeFrame(
+      IOBufQueue* q) override {
     assert(q);
     queue_.append(*q);
     if (!queue_.front() || queue_.front()->empty()) {
@@ -118,23 +145,25 @@ public:
 
     return framing;
   }
-private:
+
+ private:
   IOBufQueue queue_;
 };
 
 template <typename Channel>
 unique_ptr<Channel, folly::DelayedDestruction::Destructor> createChannel(
-    const shared_ptr<TAsyncTransport>& transport) {
-  return Channel::newChannel(transport);
+    folly::AsyncTransport::UniquePtr transport) {
+  return Channel::newChannel(std::move(transport));
 }
 
 template <>
 unique_ptr<Cpp2Channel, folly::DelayedDestruction::Destructor> createChannel(
-    const shared_ptr<TAsyncTransport>& transport) {
-  return Cpp2Channel::newChannel(transport, make_unique<TestFramingHandler>());
+    folly::AsyncTransport::UniquePtr transport) {
+  return Cpp2Channel::newChannel(
+      std::move(transport), make_unique<TestFramingHandler>());
 }
 
-template<typename Channel1, typename Channel2>
+template <typename Channel1, typename Channel2>
 class SocketPairTest {
  public:
   struct Config {
@@ -144,23 +173,28 @@ class SocketPairTest {
   SocketPairTest(Config config = Config()) : eventBase_() {
     folly::SocketPair socketPair;
 
+    folly::AsyncSocket::UniquePtr socket0, socket1;
     if (config.ssl) {
       auto clientCtx = std::make_shared<folly::SSLContext>();
       auto serverCtx = std::make_shared<folly::SSLContext>();
       getctx(clientCtx, serverCtx);
-      socket0_ = TAsyncSSLSocket::newSocket(
-          clientCtx, &eventBase_, socketPair.extractFD0(), false);
-      socket1_ = TAsyncSSLSocket::newSocket(
-          serverCtx, &eventBase_, socketPair.extractFD1(), true);
-      dynamic_cast<TAsyncSSLSocket*>(socket0_.get())->sslConn(nullptr);
-      dynamic_cast<TAsyncSSLSocket*>(socket1_.get())->sslAccept(nullptr);
+      socket0 = TAsyncSSLSocket::newSocket(
+          clientCtx, &eventBase_, socketPair.extractNetworkSocket0(), false);
+      socket1 = TAsyncSSLSocket::newSocket(
+          serverCtx, &eventBase_, socketPair.extractNetworkSocket1(), true);
+      dynamic_cast<folly::AsyncSSLSocket*>(socket0.get())->sslConn(nullptr);
+      dynamic_cast<folly::AsyncSSLSocket*>(socket1.get())->sslAccept(nullptr);
     } else {
-      socket0_ = TAsyncSocket::newSocket(&eventBase_, socketPair.extractFD0());
-      socket1_ = TAsyncSocket::newSocket(&eventBase_, socketPair.extractFD1());
+      socket0 = folly::AsyncSocket::newSocket(
+          &eventBase_, socketPair.extractNetworkSocket0());
+      socket1 = folly::AsyncSocket::newSocket(
+          &eventBase_, socketPair.extractNetworkSocket1());
     }
+    socket0_ = socket0.get();
+    socket1_ = socket1.get();
 
-    channel0_ = createChannel<Channel1>(socket0_);
-    channel1_ = createChannel<Channel2>(socket1_);
+    channel0_ = createChannel<Channel1>(std::move(socket0));
+    channel1_ = createChannel<Channel2>(std::move(socket1));
   }
   virtual ~SocketPairTest() {}
 
@@ -169,9 +203,7 @@ class SocketPairTest {
     eventBase_.loop();
   }
 
-  void run() {
-    runWithTimeout();
-  }
+  void run() { runWithTimeout(); }
 
   void getctx(
       std::shared_ptr<folly::SSLContext> clientCtx,
@@ -183,21 +215,13 @@ class SocketPairTest {
     serverCtx->loadPrivateKey(folly::kTestKey);
   }
 
-  int getFd0() {
-    return socket0_->getFd();
-  }
+  int getFd0() { return socket0_->getNetworkSocket().toFd(); }
 
-  int getFd1() {
-    return socket1_->getFd();
-  }
+  int getFd1() { return socket1_->getNetworkSocket().toFd(); }
 
-  shared_ptr<TAsyncSocket> getSocket0() {
-    return socket0_;
-  }
+  folly::AsyncSocket* getSocket0() { return socket0_; }
 
-  shared_ptr<TAsyncSocket> getSocket1() {
-    return socket1_;
-  }
+  folly::AsyncSocket* getSocket1() { return socket1_; }
 
   void runWithTimeout(uint32_t timeoutMS = 6000) {
     preLoop();
@@ -210,36 +234,30 @@ class SocketPairTest {
 
  protected:
   folly::EventBase eventBase_;
-  shared_ptr<TAsyncSocket> socket0_;
-  shared_ptr<TAsyncSocket> socket1_;
+  folly::AsyncSocket* socket0_;
+  folly::AsyncSocket* socket1_;
   unique_ptr<Channel1, folly::DelayedDestruction::Destructor> channel0_;
   unique_ptr<Channel2, folly::DelayedDestruction::Destructor> channel1_;
 };
 
-
-class MessageCallback
-    : public MessageChannel::SendCallback
-    , public MessageChannel::RecvCallback {
+class MessageCallback : public MessageChannel::SendCallback,
+                        public MessageChannel::RecvCallback {
  public:
   MessageCallback()
-      : sent_(0)
-      , recv_(0)
-      , sendError_(0)
-      , recvError_(0)
-      , recvEOF_(0)
-      , recvBytes_(0) {}
+      : sent_(0),
+        recv_(0),
+        sendError_(0),
+        recvError_(0),
+        recvEOF_(0),
+        recvBytes_(0) {}
 
   void sendQueued() override {}
 
   void messageSent() override { sent_++; }
-  void messageSendError(folly::exception_wrapper&&) override {
-    sendError_++;
-  }
+  void messageSendError(folly::exception_wrapper&&) override { sendError_++; }
 
   void messageReceived(
-      unique_ptr<IOBuf>&& buf,
-      unique_ptr<THeader>&&,
-      unique_ptr<sample>) override {
+      unique_ptr<IOBuf>&& buf, unique_ptr<THeader>&&) override {
     recv_++;
     recvBytes_ += buf->computeChainDataLength();
   }
@@ -256,24 +274,28 @@ class MessageCallback
   size_t recvBytes_;
 };
 
-class TestRequestCallback : public RequestCallback, public CloseCallback {
+class TestRequestCallback : public RequestClientCallback, public CloseCallback {
  public:
-  void requestSent() override {}
-  void replyReceived(ClientReceiveState&& state) override {
+  explicit TestRequestCallback(bool oneWay = false) : oneWay_(oneWay) {}
+
+  void onRequestSent() noexcept override {
+    if (oneWay_) {
+      delete this;
+    }
+  }
+
+  void onResponse(ClientReceiveState&& state) noexcept override {
     reply_++;
     replyBytes_ += state.buf()->computeChainDataLength();
-    if (state.isSecurityActive()) {
-      replySecurityActive_++;
-    }
-    securityStartTime_ = securityStart_;
-    securityEndTime_ = securityEnd_;
+    delete this;
   }
-  void requestError(ClientReceiveState&& state) override {
-    EXPECT_TRUE(state.exception());
+
+  void onResponseError(folly::exception_wrapper ex) noexcept override {
+    EXPECT_TRUE(ex);
     replyError_++;
-    securityStartTime_ = securityStart_;
-    securityEndTime_ = securityEnd_;
+    delete this;
   }
+
   void channelClosed() override { closed_ = true; }
 
   static void reset() {
@@ -281,38 +303,28 @@ class TestRequestCallback : public RequestCallback, public CloseCallback {
     reply_ = 0;
     replyBytes_ = 0;
     replyError_ = 0;
-    replySecurityActive_ = 0;
-    securityStartTime_ = 0;
-    securityEndTime_ = 0;
   }
-
   static bool closed_;
   static uint32_t reply_;
   static uint32_t replyBytes_;
   static uint32_t replyError_;
-  static uint32_t replySecurityActive_;
-  static int64_t securityStartTime_;
-  static int64_t securityEndTime_;
+
+ private:
+  const bool oneWay_;
 };
 
 bool TestRequestCallback::closed_ = false;
 uint32_t TestRequestCallback::reply_ = 0;
 uint32_t TestRequestCallback::replyBytes_ = 0;
 uint32_t TestRequestCallback::replyError_ = 0;
-uint32_t TestRequestCallback::replySecurityActive_ = 0;
-int64_t TestRequestCallback::securityStartTime_ = 0;
-int64_t TestRequestCallback::securityEndTime_ = 0;
 
-class ResponseCallback
-    : public ResponseChannel::Callback {
+class ResponseCallback : public HeaderServerChannel::Callback {
  public:
   ResponseCallback()
-      : serverClosed_(false)
-      , oneway_(0)
-      , request_(0)
-      , requestBytes_(0) {}
+      : serverClosed_(false), oneway_(0), request_(0), requestBytes_(0) {}
 
-  void requestReceived(unique_ptr<ResponseChannel::Request>&& req) override {
+  void requestReceived(
+      unique_ptr<HeaderServerChannel::HeaderRequest>&& req) override {
     request_++;
     requestBytes_ += req->getBuf()->computeChainDataLength();
     if (req->isOneway()) {
@@ -332,8 +344,8 @@ class ResponseCallback
   uint32_t requestBytes_;
 };
 
-class MessageTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>
-                  , public MessageCallback {
+class MessageTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>,
+                    public MessageCallback {
  public:
   explicit MessageTest(size_t len, Config socketConfig = Config())
       : SocketPairTest(socketConfig), len_(len), header_(new THeader) {}
@@ -352,15 +364,11 @@ class MessageTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>
     EXPECT_EQ(recvBytes_, len_);
   }
 
-  void messageReceived(unique_ptr<IOBuf>&& buf,
-                       unique_ptr<THeader>&& header,
-                       unique_ptr<sample> sample) override {
-    MessageCallback::messageReceived(std::move(buf),
-                                     std::move(header),
-                                     std::move(sample));
+  void messageReceived(
+      unique_ptr<IOBuf>&& buf, unique_ptr<THeader>&& header) override {
+    MessageCallback::messageReceived(std::move(buf), std::move(header));
     channel1_->setReceiveCallback(nullptr);
   }
-
 
  private:
   size_t len_;
@@ -369,31 +377,30 @@ class MessageTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>
 };
 
 TEST(Channel, Cpp2Channel) {
-  MessageTest(1).run();
+  MessageTest(10).run();
   MessageTest(100).run();
-  MessageTest(1024*1024).run();
+  MessageTest(1024 * 1024).run();
 }
 
 TEST(Channel, Cpp2ChannelSSL) {
   MessageTest::Config socketConfig;
   socketConfig.ssl = true;
-  MessageTest(1, socketConfig).run();
+  MessageTest(10, socketConfig).run();
   MessageTest(100, socketConfig).run();
   MessageTest(1024 * 1024, socketConfig).run();
 }
 
-class MessageCloseTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>
-                       , public MessageCallback {
-public:
+class MessageCloseTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>,
+                         public MessageCallback {
+ public:
   MessageCloseTest() : header_(new THeader) {}
 
   void preLoop() override {
-    channel0_->sendMessage(&sendCallback_,
-                           makeTestBuf(1024*1024),
-                           header_.get());
+    channel0_->sendMessage(
+        &sendCallback_, makeTestBuf(1024 * 1024), header_.get());
     // Close the other socket after delay
     this->eventBase_.runInLoop(
-      std::bind(&TAsyncSocket::close, this->socket1_.get()));
+        std::bind(&folly::AsyncSocket::close, this->socket1_));
     channel1_->setReceiveCallback(this);
   }
 
@@ -419,17 +426,15 @@ TEST(Channel, MessageCloseTest) {
   MessageCloseTest().run();
 }
 
-class MessageEOFTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>
-                     , public MessageCallback {
-public:
+class MessageEOFTest : public SocketPairTest<Cpp2Channel, Cpp2Channel>,
+                       public MessageCallback {
+ public:
   MessageEOFTest() : header_(new THeader) {}
 
   void preLoop() override {
     channel0_->setReceiveCallback(this);
     channel1_->getTransport()->shutdownWrite();
-    channel0_->sendMessage(this,
-                           makeTestBuf(1024*1024),
-                           header_.get());
+    channel0_->sendMessage(this, makeTestBuf(1024 * 1024), header_.get());
   }
 
   void postLoop() override {
@@ -449,41 +454,43 @@ TEST(Channel, MessageEOFTest) {
 }
 
 class HeaderChannelTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
- explicit HeaderChannelTest(size_t len, Config socketConfig = Config())
-     : SocketPairTest(socketConfig), len_(len) {}
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
+ public:
+  explicit HeaderChannelTest(size_t len, Config socketConfig = Config())
+      : SocketPairTest(socketConfig), len_(len) {}
 
- class Callback : public TestRequestCallback {
-  public:
-   explicit Callback(HeaderChannelTest* c) : c_(c) {}
-   void replyReceived(ClientReceiveState&& state) override {
-     TestRequestCallback::replyReceived(std::move(state));
-     c_->channel1_->setCallback(nullptr);
-   }
+  class Callback : public TestRequestCallback {
+   public:
+    Callback(HeaderChannelTest* c, bool oneWay)
+        : TestRequestCallback(oneWay), c_(c) {}
+    void onResponse(ClientReceiveState&& state) noexcept override {
+      c_->channel1_->setCallback(nullptr);
+      TestRequestCallback::onResponse(std::move(state));
+    }
 
-  private:
-   HeaderChannelTest* c_;
+   private:
+    HeaderChannelTest* c_;
   };
 
   void preLoop() override {
     TestRequestCallback::reset();
     channel1_->setCallback(this);
     channel0_->setCloseCallback(this);
-    channel0_->sendOnewayRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(len_),
-      std::unique_ptr<THeader>(new THeader));
-    channel0_->sendRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(len_),
-      std::unique_ptr<THeader>(new THeader));
+    RpcOptions options;
+    channel0_->sendRequestNoResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new Callback(this, true)));
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new Callback(this, false)));
     channel0_->setCloseCallback(nullptr);
   }
 
@@ -494,11 +501,9 @@ public:
     EXPECT_EQ(closed_, false);
     EXPECT_EQ(serverClosed_, false);
     EXPECT_EQ(request_, 2);
-    EXPECT_EQ(requestBytes_, len_*2);
+    EXPECT_EQ(requestBytes_, len_ * 2);
     EXPECT_EQ(oneway_, 1);
     channel1_->setCallback(nullptr);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
  private:
@@ -506,15 +511,15 @@ public:
 };
 
 TEST(Channel, HeaderChannelTest) {
-  HeaderChannelTest(1).run();
+  HeaderChannelTest(10).run();
   HeaderChannelTest(100).run();
-  HeaderChannelTest(1024*1024).run();
+  HeaderChannelTest(1024 * 1024).run();
 }
 
 TEST(Channel, HeaderChannelTestSSL) {
   HeaderChannelTest::Config socketConfig;
   socketConfig.ssl = true;
-  HeaderChannelTest(1, socketConfig).run();
+  HeaderChannelTest(10, socketConfig).run();
   HeaderChannelTest(100, socketConfig).run();
   HeaderChannelTest(1024 * 1024, socketConfig).run();
 }
@@ -526,30 +531,26 @@ class HeaderChannelClosedTest
  public:
   explicit HeaderChannelClosedTest() {}
 
-  class Callback : public RequestCallback {
+  class Callback : public RequestClientCallback {
    public:
-    explicit Callback(HeaderChannelClosedTest* c)
-      : c_(c) {}
+    explicit Callback(HeaderChannelClosedTest* c) : c_(c) {}
 
-    ~Callback() override {
-      c_->callbackDtor_ = true;
-    }
+    ~Callback() override { c_->callbackDtor_ = true; }
 
-    void replyReceived(ClientReceiveState&&) override {
+    void onResponse(ClientReceiveState&&) noexcept override {
       FAIL() << "should not recv reply from closed channel";
     }
 
-    void requestSent() override {
+    void onRequestSent() noexcept override {
       FAIL() << "should not have sent message on closed channel";
     }
 
-    void requestError(ClientReceiveState&& state) override {
-      EXPECT_TRUE(state.isException());
-      EXPECT_TRUE(state.exception().with_exception(
-          [this](const TTransportException& e) {
-            EXPECT_EQ(e.getType(), TTransportException::END_OF_FILE);
-            c_->gotError_ = true;
-          }));
+    void onResponseError(folly::exception_wrapper ew) noexcept override {
+      EXPECT_TRUE(ew.with_exception([this](const TTransportException& e) {
+        EXPECT_EQ(e.getType(), TTransportException::END_OF_FILE);
+        c_->gotError_ = true;
+      }));
+      delete this;
     }
 
    private:
@@ -559,17 +560,17 @@ class HeaderChannelClosedTest
   void preLoop() override {
     TestRequestCallback::reset();
     channel1_->getTransport()->shutdownWrite();
-    seqId_ = channel0_->sendRequest(
-      std::make_unique<Callback>(this),
-      // Fake method name for creating a ContextStatck
-      std::make_unique<ContextStack>("{ChannelTest}"),
-      makeTestBuf(42),
-      std::make_unique<THeader>());
+    RpcOptions options;
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(42),
+        std::make_unique<THeader>(),
+        RequestClientCallback::Ptr(new Callback(this)));
   }
 
   void postLoop() override {
     EXPECT_TRUE(gotError_);
-    EXPECT_FALSE(channel0_->expireCallback(seqId_));
     EXPECT_TRUE(callbackDtor_);
   }
 
@@ -583,344 +584,37 @@ TEST(Channel, HeaderChannelClosedTest) {
   HeaderChannelClosedTest().run();
 }
 
-class SecurityNegotiationTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
-  explicit SecurityNegotiationTest(bool clientSasl, bool clientNonSasl,
-                                   bool serverSasl, bool serverNonSasl,
-                                   bool expectConn, bool expectSecurity,
-                                   bool expectSecurityAttempt,
-                                   int64_t expectedSecurityLatency = 0)
-      : clientSasl_(clientSasl), clientNonSasl_(clientNonSasl)
-      , serverSasl_(serverSasl), serverNonSasl_(serverNonSasl)
-      , expectConn_(expectConn), expectSecurity_(expectSecurity)
-      , expectSecurityAttempt_(expectSecurityAttempt)
-      , expectedSecurityLatency_(expectedSecurityLatency) {
-    // Replace handshake mechanism with a stub.
-    stubSaslClient_ = new StubSaslClient(socket0_->getEventBase());
-    // Force each RTT in stub handshake to take at least 100 ms.
-    stubSaslClient_->setForceMsSpentPerRTT(100);
-    channel0_->setSaslClient(std::unique_ptr<SaslClient>(stubSaslClient_));
-    stubSaslServer_ = new StubSaslServer(socket1_->getEventBase());
-    channel1_->setSaslServer(std::unique_ptr<SaslServer>(stubSaslServer_));
-
-    // Capture the timestamp
-    auto now = std::chrono::high_resolution_clock::now();
-    initTime_ = std::chrono::duration_cast<std::chrono::microseconds>(
-                  now.time_since_epoch()).count();
-
-  }
-
-  ~SecurityNegotiationTest() override {
-    // In case we are still installed as a callback on the channels, clear the
-    // callbacks now.  We are being destroyed now, so it will cause a crash if
-    // we are left installed and the channel then tries to call us.
-    if (channel0_) {
-      channel0_->setCloseCallback(nullptr);
-    }
-    if (channel1_) {
-      channel1_->setCallback(nullptr);
-    }
-  }
-
-  class Callback : public TestRequestCallback {
-   public:
-    explicit Callback(SecurityNegotiationTest* c)
-    : c_(c) {}
-    void replyReceived(ClientReceiveState&& state) override {
-      TestRequestCallback::replyReceived(std::move(state));
-      // If the request works, clear the close callback, so it's not
-      // hanging around.
-      if (!c_->closed_) {
-        c_->channel0_->setCloseCallback(nullptr);
-      }
-      if (!c_->serverClosed_) {
-        c_->channel1_->setCallback(nullptr);
-      }
-    }
-    // Leave requestError() alone.  If the request fails, don't
-    // clear any callbacks.  Failure here (in this test) implies
-    // negotiation failure which means the client will destroy its
-    // own collection which cleans up the callback, which will cause
-    // the server to see a connection close, and we test for both
-    // callbacks being invoked.
-  private:
-    SecurityNegotiationTest* c_;
-  };
-
-  void channelClosed() override {
-    EXPECT_EQ(channel0_->getSaslPeerIdentity(), "");
-    TestRequestCallback::channelClosed();
-  }
-
-  void channelClosed(folly::exception_wrapper&& ew) override {
-    EXPECT_EQ(channel1_->getSaslPeerIdentity(), "");
-    ResponseCallback::channelClosed(std::move(ew));
-    channel1_->setCallback(nullptr);
-  }
-
-  void preLoop() override {
-    TestRequestCallback::reset();
-    if (clientSasl_ && clientNonSasl_) {
-      channel0_->setSecurityPolicy(THRIFT_SECURITY_PERMITTED);
-    } else if (clientSasl_) {
-      channel0_->setSecurityPolicy(THRIFT_SECURITY_REQUIRED);
-    } else {
-      channel0_->setSecurityPolicy(THRIFT_SECURITY_DISABLED);
-    }
-
-    if (serverSasl_ && serverNonSasl_) {
-      channel1_->setSecurityPolicy(THRIFT_SECURITY_PERMITTED);
-    } else if (serverSasl_) {
-      channel1_->setSecurityPolicy(THRIFT_SECURITY_REQUIRED);
-    } else {
-      channel1_->setSecurityPolicy(THRIFT_SECURITY_DISABLED);
-    }
-
-    channel1_->setCallback(this);
-    channel0_->setCloseCallback(this);
-    channel0_->sendRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(1),
-      std::unique_ptr<THeader>(new THeader));
-  }
-
-  void postLoop() override {
-    if (expectConn_) {
-      EXPECT_EQ(reply_, 1);
-      EXPECT_EQ(replyError_, 0);
-      EXPECT_EQ(replyBytes_, 1);
-      EXPECT_EQ(closed_, false);
-      EXPECT_EQ(serverClosed_, false);
-      EXPECT_EQ(request_, 1);
-      EXPECT_EQ(requestBytes_, 1);
-      EXPECT_EQ(oneway_, 0);
-    } else {
-      CHECK(!expectSecurity_);
-      EXPECT_EQ(reply_, 0);
-      EXPECT_EQ(replyError_, 1);
-      EXPECT_EQ(replyBytes_, 0);
-      EXPECT_EQ(closed_, true);
-      EXPECT_EQ(serverClosed_, true);
-      EXPECT_EQ(request_, 0);
-      EXPECT_EQ(requestBytes_, 0);
-      EXPECT_EQ(oneway_, 0);
-    }
-    if (expectSecurity_) {
-      EXPECT_NE(channel0_->getSaslPeerIdentity(), "");
-      EXPECT_NE(channel1_->getSaslPeerIdentity(), "");
-      EXPECT_EQ(replySecurityActive_, 1);
-
-      // Check the latency incurred for doing security
-      CHECK(expectSecurityAttempt_);
-      EXPECT_GT(securityStartTime_, initTime_);
-      EXPECT_GT(securityEndTime_, securityStartTime_);
-      /*
-       * Security is expected to succeed. We assert that security latency is
-       * less than expectedSecurityLatency_
-       */
-      EXPECT_LT(securityEndTime_ - securityStartTime_,
-                expectedSecurityLatency_);
-      EXPECT_GT(securityEndTime_ - securityStartTime_, 200*1000);
-    } else {
-      EXPECT_EQ(replySecurityActive_, 0);
-      if (expectSecurityAttempt_) {
-        // Check the latency incurred for doing security
-        EXPECT_GT(securityStartTime_, initTime_);
-        EXPECT_GT(securityEndTime_, securityStartTime_);
-        /*
-         * Security is expected to be attempted but not succeed. We assert on
-         * security latency at least being greater than expectedSecurityLatency_
-         */
-        EXPECT_GT(securityEndTime_ - securityStartTime_,
-                  expectedSecurityLatency_ - kTimingEpsilon);
-        EXPECT_LT(securityEndTime_ - securityStartTime_,
-                  static_cast<int64_t>(expectedSecurityLatency_ * 1.2));
-      }
-    }
-  }
-
-protected:
-  StubSaslClient* stubSaslClient_;
-  StubSaslServer* stubSaslServer_;
-
- private:
-  bool clientSasl_;
-  bool clientNonSasl_;
-  bool serverSasl_;
-  bool serverNonSasl_;
-  bool expectConn_;
-  bool expectSecurity_;
-  bool expectSecurityAttempt_;
-  int64_t expectedSecurityLatency_;
-  int64_t initTime_;
-};
-
-class SecurityNegotiationClientFailTest : public SecurityNegotiationTest {
-public:
-  template <typename... Args>
-  explicit SecurityNegotiationClientFailTest(Args&&... args)
-      : SecurityNegotiationTest(std::forward<Args>(args)...) {
-    stubSaslClient_->setForceFallback();
-  }
-};
-
-class SecurityNegotiationServerFailTest : public SecurityNegotiationTest {
-public:
-  template <typename... Args>
-  explicit SecurityNegotiationServerFailTest(Args&&... args)
-      : SecurityNegotiationTest(std::forward<Args>(args)...) {
-    stubSaslServer_->setForceFallback();
-  }
-};
-
-class SecurityNegotiationClientTimeoutGarbageTest :
-  public SecurityNegotiationTest {
-public:
-  template <typename... Args>
-  explicit SecurityNegotiationClientTimeoutGarbageTest(Args&&... args)
-      : SecurityNegotiationTest(std::forward<Args>(args)...) {
-    stubSaslClient_->setForceTimeout();
-    stubSaslServer_->setForceSendGarbage();
-  }
-};
-
-class SecurityNegotiationLatencyTest : public SecurityNegotiationTest {
-public:
-  template <typename... Args>
-  explicit SecurityNegotiationLatencyTest(Args&&... args)
-      : SecurityNegotiationTest(std::forward<Args>(args)...) {
-    stubSaslClient_->setForceTimeout();
-  }
-};
-
-TEST(Channel, SecurityNegotiationLatencyTest) {
-  // This test forces a timeout on the client side. This means that the client
-  // will attempt to do security but not succeed.
-
-  int64_t defaultSaslTimeout = 500 * 1000; //microseconds
-
-  //clientSasl clientNonSasl serverSasl serverNonSasl expectConn expectSecurity
-  //expectSecurityAttempt expectedSecurityLatency
-
-  /*
-   * For the following three tests connection will not be established because
-   * of security failure. Since the first RTT itself times out, the expected
-   * security latency is > defaultSaslTimeout.
-   */
-
-  // Client = required, Server: required.
-  SecurityNegotiationLatencyTest(true, false, true, false, false, false, true,
-                                 defaultSaslTimeout).run();
-
-  // Client = required, Server: permitted.
-  SecurityNegotiationLatencyTest(true, false, true, true, false, false, true,
-                                 defaultSaslTimeout).run();
-
-  // Client = permitted, Server: required.
-  SecurityNegotiationLatencyTest(true, true, true, false, false, false, true,
-                                 defaultSaslTimeout).run();
-
-  // For the following test connection will be established despite security
-  // failure.
-
-  // Client = permitted, Server: permitted.
-  SecurityNegotiationLatencyTest(true, true, true, true, true, false, true,
-                                 defaultSaslTimeout).run();
-}
-
-TEST(Channel, SecurityNegotiationTest) {
-  //clientSasl clientNonSasl serverSasl serverNonSasl expectConn expectSecurity
-  //expectSecurityAttempt
-
-  /*
-   * When expectSecurity is true, we expect security to succed in those runs.
-   * The expected latency in these cases < 2*defaultSaslTimeout since the
-   * stubSaslClient implementation performs only 2 RTTs.
-   */
-
-  int64_t defaultSaslTimeout = 500 * 1000; //microseconds
-
-  // Client: disabled; Server: disabled, disabled, required, permitted
-  SecurityNegotiationTest(false, false, false, false, true, false, false).run();
-  SecurityNegotiationTest(false, false, false, true, true, false, false).run();
-  SecurityNegotiationTest(false, false, true, false, false, false, false).run();
-  SecurityNegotiationTest(false, false, true, true, true, false, false).run();
-
-  // Client policy: disabled; Server: disabled, disabled, required, permitted
-  SecurityNegotiationTest(false, true, false, false, true, false, false).run();
-  SecurityNegotiationTest(false, true, false, true, true, false, false).run();
-  SecurityNegotiationTest(false, true, true, false, false, false, false).run();
-  SecurityNegotiationTest(false, true, true, true, true, false, false).run();
-
-  // Client policy: required; Server: disabled, disabled, required, permitted
-  SecurityNegotiationTest(true, false, false, false, false, false, false).run();
-  SecurityNegotiationTest(true, false, false, true, false, false, false).run();
-  SecurityNegotiationTest(true, false, true, false, true, true, true,
-                          2*defaultSaslTimeout).run();
-  SecurityNegotiationTest(true, false, true, true, true, true, true,
-                          2*defaultSaslTimeout).run();
-
-  // Client policy: permitted; Server: disabled, disabled, required, permitted
-  SecurityNegotiationTest(true, true, false, false, true, false, false).run();
-  SecurityNegotiationTest(true, true, false, true, true, false, false).run();
-  SecurityNegotiationTest(true, true, true, false, true, true, true,
-                          2*defaultSaslTimeout).run();
-  SecurityNegotiationTest(true, true, true, true, true, true, true,
-                          2*defaultSaslTimeout).run();
-}
-
-TEST(Channel, SecurityNegotiationFailTest) {
-  SecurityNegotiationServerFailTest(
-    true, false, true, true, false,false, false).run();
-
-  SecurityNegotiationClientFailTest(
-    true, true, true, false, false, false, false).run();
-
-  SecurityNegotiationClientFailTest(
-    true, true, true, true, true, false, false).run();
-  SecurityNegotiationServerFailTest(
-    true, true, true, true, true, false, false).run();
-}
-
-TEST(Channel, SecurityNegotiationTimeoutGarbageTest) {
-  SecurityNegotiationClientTimeoutGarbageTest(
-    true, false, true, true, false, false, false).run();
-}
-
 class InOrderTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
  public:
   explicit InOrderTest(Config socketConfig = Config())
-      : SocketPairTest(socketConfig), len_(1) {}
+      : SocketPairTest(socketConfig), len_(10) {}
 
   class Callback : public TestRequestCallback {
    public:
-    explicit Callback(InOrderTest* c)
-    : c_(c) {}
-    void replyReceived(ClientReceiveState&& state) override {
+    explicit Callback(InOrderTest* c) : c_(c) {}
+    void onResponse(ClientReceiveState&& state) noexcept override {
       if (reply_ == 1) {
         c_->channel1_->setCallback(nullptr);
         // Verify that they came back in the same order
         EXPECT_EQ(state.buf()->computeChainDataLength(), c_->len_ + 1);
       }
-      TestRequestCallback::replyReceived(std::move(state));
+      TestRequestCallback::onResponse(std::move(state));
     }
 
-    void requestReceived(unique_ptr<ResponseChannel::Request>&& req) {
+    void requestReceived(ResponseChannelRequest::UniquePtr rcr) {
+      auto req = dynamic_cast<HeaderServerChannel::HeaderRequest*>(rcr.get());
       c_->request_++;
       c_->requestBytes_ += req->getBuf()->computeChainDataLength();
       if (c_->firstbuf_) {
         req->sendReply(req->extractBuf());
-        c_->firstbuf_->sendReply(c_->firstbuf_->extractBuf());
+        auto firstbuf = dynamic_cast<HeaderServerChannel::HeaderRequest*>(
+            c_->firstbuf_.get());
+        c_->firstbuf_->sendReply(firstbuf->extractBuf());
       } else {
-        c_->firstbuf_ = std::move(req);
+        c_->firstbuf_ = std::move(rcr);
       }
     }
 
@@ -932,35 +626,34 @@ class InOrderTest
     TestRequestCallback::reset();
     channel0_->setFlags(0); // turn off out of order
     channel1_->setCallback(this);
-    channel0_->sendRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(len_),
-      std::unique_ptr<THeader>(new THeader));
-    channel0_->sendRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(len_ + 1),
-      std::unique_ptr<THeader>(new THeader));
+    RpcOptions options;
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new Callback(this)));
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_ + 1),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new Callback(this)));
   }
 
   void postLoop() override {
     EXPECT_EQ(reply_, 2);
     EXPECT_EQ(replyError_, 0);
-    EXPECT_EQ(replyBytes_, 2*len_ + 1);
+    EXPECT_EQ(replyBytes_, 2 * len_ + 1);
     EXPECT_EQ(closed_, false);
     EXPECT_EQ(serverClosed_, false);
     EXPECT_EQ(request_, 2);
-    EXPECT_EQ(requestBytes_, 2*len_ + 1);
+    EXPECT_EQ(requestBytes_, 2 * len_ + 1);
     EXPECT_EQ(oneway_, 0);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
  private:
-  std::unique_ptr<ResponseChannel::Request> firstbuf_;
+  ResponseChannelRequest::UniquePtr firstbuf_;
   size_t len_;
 };
 
@@ -975,27 +668,29 @@ TEST(Channel, InOrderTestSSL) {
 }
 
 class BadSeqIdTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
- explicit BadSeqIdTest(size_t len, Config socketConfig = Config())
-     : SocketPairTest(socketConfig), len_(len) {}
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
+ public:
+  explicit BadSeqIdTest(size_t len, Config socketConfig = Config())
+      : SocketPairTest(socketConfig), len_(len) {}
 
- class Callback : public TestRequestCallback {
-  public:
-   explicit Callback(BadSeqIdTest* c) : c_(c) {}
+  class Callback : public TestRequestCallback {
+   public:
+    Callback(BadSeqIdTest* c, bool oneWay)
+        : TestRequestCallback(oneWay), c_(c) {}
 
-   void requestError(ClientReceiveState&& state) override {
-     c_->channel1_->setCallback(nullptr);
-     TestRequestCallback::requestError(std::move(state));
-   }
+    void onResponseError(folly::exception_wrapper ew) noexcept override {
+      c_->channel1_->setCallback(nullptr);
+      TestRequestCallback::onResponseError(std::move(ew));
+    }
 
-  private:
-   BadSeqIdTest* c_;
+   private:
+    BadSeqIdTest* c_;
   };
 
-  void requestReceived(unique_ptr<ResponseChannel::Request>&& req) override {
+  void requestReceived(
+      unique_ptr<HeaderServerChannel::HeaderRequest>&& req) override {
     request_++;
     requestBytes_ += req->getBuf()->computeChainDataLength();
     if (req->isOneway()) {
@@ -1005,10 +700,7 @@ public:
     unique_ptr<THeader> header(new THeader);
     header->setSequenceNumber(-1);
     HeaderServerChannel::HeaderRequest r(
-      channel1_.get(),
-      req->extractBuf(),
-      std::move(header),
-      std::unique_ptr<MessageChannel::RecvCallback::sample>(nullptr));
+        channel1_.get(), req->extractBuf(), std::move(header), {});
     r.sendReply(r.extractBuf());
   }
 
@@ -1016,18 +708,19 @@ public:
     TestRequestCallback::reset();
     channel0_->setTimeout(1000);
     channel1_->setCallback(this);
-    channel0_->sendOnewayRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(len_),
-      std::unique_ptr<THeader>(new THeader));
-    channel0_->sendRequest(
-      std::unique_ptr<RequestCallback>(new Callback(this)),
-      // Fake method name for creating a ContextStatck
-      std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-      makeTestBuf(len_),
-      std::unique_ptr<THeader>(new THeader));
+    RpcOptions options;
+    channel0_->sendRequestNoResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new Callback(this, true)));
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new Callback(this, false)));
   }
 
   void postLoop() override {
@@ -1037,10 +730,8 @@ public:
     EXPECT_EQ(closed_, false);
     EXPECT_EQ(serverClosed_, false);
     EXPECT_EQ(request_, 2);
-    EXPECT_EQ(requestBytes_, len_*2);
+    EXPECT_EQ(requestBytes_, len_ * 2);
     EXPECT_EQ(oneway_, 1);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
  private:
@@ -1048,40 +739,41 @@ public:
 };
 
 TEST(Channel, BadSeqIdTest) {
-  BadSeqIdTest(1).run();
+  BadSeqIdTest(10).run();
 }
 
 TEST(Channel, BadSeqIdTestSSL) {
   BadSeqIdTest::Config socketConfig;
   socketConfig.ssl = true;
-  BadSeqIdTest(1, socketConfig).run();
+  BadSeqIdTest(10, socketConfig).run();
 }
 
 class TimeoutTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
- explicit TimeoutTest(uint32_t timeout, Config socketConfig = Config())
-     : SocketPairTest(socketConfig), timeout_(timeout), len_(1) {}
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
+ public:
+  explicit TimeoutTest(uint32_t timeout, Config socketConfig = Config())
+      : SocketPairTest(socketConfig), timeout_(timeout), len_(10) {}
 
- void preLoop() override {
-   TestRequestCallback::reset();
-   channel1_->setCallback(this);
-   channel0_->setTimeout(timeout_);
-   channel0_->setCloseCallback(this);
-   channel0_->sendRequest(
-       std::unique_ptr<RequestCallback>(new TestRequestCallback),
-       // Fake method name for creating a ContextStatck
-       std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-       makeTestBuf(len_),
-       std::unique_ptr<THeader>(new THeader));
-   channel0_->sendRequest(
-       std::unique_ptr<RequestCallback>(new TestRequestCallback),
-       // Fake method name for creating a ContextStatck
-       std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-       makeTestBuf(len_),
-       std::unique_ptr<THeader>(new THeader));
+  void preLoop() override {
+    TestRequestCallback::reset();
+    channel1_->setCallback(this);
+    channel0_->setTimeout(timeout_);
+    channel0_->setCloseCallback(this);
+    RpcOptions options;
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new TestRequestCallback()));
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new TestRequestCallback()));
   }
 
   void postLoop() override {
@@ -1095,21 +787,20 @@ public:
     EXPECT_EQ(oneway_, 0);
     channel0_->setCloseCallback(nullptr);
     channel1_->setCallback(nullptr);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
-  void requestReceived(unique_ptr<ResponseChannel::Request>&& req) override {
+  void requestReceived(
+      unique_ptr<HeaderServerChannel::HeaderRequest>&& req) override {
     request_++;
     requestBytes_ += req->getBuf()->computeChainDataLength();
     // Don't respond, let it time out
     // TestRequestCallback::replyReceived(std::move(buf));
     channel1_->getEventBase()->tryRunAfterDelay(
-      [&](){
-        channel1_->setCallback(nullptr);
-        channel0_->setCloseCallback(nullptr);
-      },
-      timeout_ * 2); // enough time for server socket to close also
+        [&]() {
+          channel1_->setCallback(nullptr);
+          channel0_->setCloseCallback(nullptr);
+        },
+        timeout_ * 2); // enough time for server socket to close also
   }
 
  private:
@@ -1133,56 +824,55 @@ TEST(Channel, TimeoutTestSSL) {
 
 // Test client per-call timeout options
 class OptionsTimeoutTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
- explicit OptionsTimeoutTest(Config socketConfig = Config())
-     : SocketPairTest(socketConfig), len_(1) {}
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
+ public:
+  explicit OptionsTimeoutTest(Config socketConfig = Config())
+      : SocketPairTest(socketConfig), len_(10) {}
 
- void preLoop() override {
-   TestRequestCallback::reset();
-   channel1_->setCallback(this);
-   channel0_->setTimeout(1000);
-   RpcOptions options;
-   options.setTimeout(std::chrono::milliseconds(25));
-   channel0_->sendRequest(
-       options,
-       std::unique_ptr<RequestCallback>(new TestRequestCallback),
-       // Fake method name for creating a ContextStatck
-       std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-       makeTestBuf(len_),
-       std::unique_ptr<THeader>(new THeader));
-   // Verify the timeout worked within 10ms
-   channel0_->getEventBase()->tryRunAfterDelay(
-       [&]() { EXPECT_EQ(replyError_, 1); }, 35);
-   // Verify that subsequent successful requests don't delay timeout
-   channel0_->getEventBase()->tryRunAfterDelay(
-       [&]() {
-         channel0_->sendRequest(
-             std::unique_ptr<RequestCallback>(new TestRequestCallback),
-             // Fake method name for creating a ContextStatck
-             std::unique_ptr<ContextStack>(new ContextStack("{ChannelTest}")),
-             makeTestBuf(len_),
-             std::unique_ptr<THeader>(new THeader));
-       },
-       20);
+  void preLoop() override {
+    TestRequestCallback::reset();
+    channel1_->setCallback(this);
+    channel0_->setTimeout(1000);
+    RpcOptions options;
+    options.setTimeout(std::chrono::milliseconds(25));
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(len_),
+        std::unique_ptr<THeader>(new THeader),
+        RequestClientCallback::Ptr(new TestRequestCallback()));
+    // Verify the timeout worked within 10ms
+    channel0_->getEventBase()->tryRunAfterDelay(
+        [&]() { EXPECT_EQ(replyError_, 1); }, 35);
+    // Verify that subsequent successful requests don't delay timeout
+    channel0_->getEventBase()->tryRunAfterDelay(
+        [&]() {
+          RpcOptions options;
+          channel0_->sendRequestResponse(
+              options,
+              "test",
+              makeTestSerializedRequest(len_),
+              std::unique_ptr<THeader>(new THeader),
+              RequestClientCallback::Ptr(new TestRequestCallback()));
+        },
+        20);
   }
 
   void postLoop() override {
     EXPECT_EQ(reply_, 1);
     EXPECT_EQ(replyError_, 1);
-    EXPECT_EQ(replyBytes_, 1);
+    EXPECT_EQ(replyBytes_, len_);
     EXPECT_EQ(closed_, false); // client timeouts do not close connection
     EXPECT_EQ(serverClosed_, false);
     EXPECT_EQ(request_, 2);
     EXPECT_EQ(requestBytes_, len_ * 2);
     EXPECT_EQ(oneway_, 0);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
-  void requestReceived(unique_ptr<ResponseChannel::Request>&& req) override {
+  void requestReceived(
+      unique_ptr<HeaderServerChannel::HeaderRequest>&& req) override {
     if (request_ == 0) {
       request_++;
       requestBytes_ += req->getBuf()->computeChainDataLength();
@@ -1207,27 +897,27 @@ TEST(Channel, OptionsTimeoutTestSSL) {
 }
 
 class ClientCloseTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
- explicit ClientCloseTest(bool halfClose) : halfClose_(halfClose) {}
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
+ public:
+  explicit ClientCloseTest(bool halfClose) : halfClose_(halfClose) {}
 
- void preLoop() override {
-   TestRequestCallback::reset();
-   channel1_->setCallback(this);
-   channel0_->setCloseCallback(this);
-   if (halfClose_) {
-     channel1_->getEventBase()->tryRunAfterDelay(
-         [&]() { channel1_->getTransport()->shutdownWrite(); }, 10);
-   } else {
-     channel1_->getEventBase()->tryRunAfterDelay(
-         [&]() { channel1_->getTransport()->close(); }, 10);
-   }
-   channel1_->getEventBase()->tryRunAfterDelay(
-       [&]() { channel1_->setCallback(nullptr); }, 20);
-   channel0_->getEventBase()->tryRunAfterDelay(
-       [&]() { channel0_->setCloseCallback(nullptr); }, 20);
+  void preLoop() override {
+    TestRequestCallback::reset();
+    channel1_->setCallback(this);
+    channel0_->setCloseCallback(this);
+    if (halfClose_) {
+      channel1_->getEventBase()->tryRunAfterDelay(
+          [&]() { channel1_->getTransport()->shutdownWrite(); }, 10);
+    } else {
+      channel1_->getEventBase()->tryRunAfterDelay(
+          [&]() { channel1_->getTransport()->close(); }, 10);
+    }
+    channel1_->getEventBase()->tryRunAfterDelay(
+        [&]() { channel1_->setCallback(nullptr); }, 20);
+    channel0_->getEventBase()->tryRunAfterDelay(
+        [&]() { channel0_->setCloseCallback(nullptr); }, 20);
   }
 
   void postLoop() override {
@@ -1239,8 +929,6 @@ public:
     EXPECT_EQ(request_, 0);
     EXPECT_EQ(requestBytes_, 0);
     EXPECT_EQ(oneway_, 0);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
  private:
@@ -1253,13 +941,11 @@ TEST(Channel, ClientCloseTest) {
 }
 
 class ServerCloseTest
-    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>
-    , public TestRequestCallback
-    , public ResponseCallback {
-public:
-  explicit ServerCloseTest(bool halfClose)
-      : halfClose_(halfClose) {
-  }
+    : public SocketPairTest<HeaderClientChannel, HeaderServerChannel>,
+      public TestRequestCallback,
+      public ResponseCallback {
+ public:
+  explicit ServerCloseTest(bool halfClose) : halfClose_(halfClose) {}
 
   void preLoop() override {
     TestRequestCallback::reset();
@@ -1267,25 +953,15 @@ public:
     channel0_->setCloseCallback(this);
     if (halfClose_) {
       channel0_->getEventBase()->tryRunAfterDelay(
-        [&](){channel0_->getTransport()->shutdownWrite();
-
-        },
-        10);
+          [&]() { channel0_->getTransport()->shutdownWrite(); }, 10);
     } else {
       channel0_->getEventBase()->tryRunAfterDelay(
-        [&](){channel0_->getTransport()->close();},
-        10);
+          [&]() { channel0_->getTransport()->close(); }, 10);
     }
     channel1_->getEventBase()->tryRunAfterDelay(
-      [&](){
-        channel1_->setCallback(nullptr);
-      },
-    20);
+        [&]() { channel1_->setCallback(nullptr); }, 20);
     channel0_->getEventBase()->tryRunAfterDelay(
-      [&](){
-        channel0_->setCloseCallback(nullptr);
-      },
-    20);
+        [&]() { channel0_->setCloseCallback(nullptr); }, 20);
   }
 
   void postLoop() override {
@@ -1297,8 +973,6 @@ public:
     EXPECT_EQ(request_, 0);
     EXPECT_EQ(requestBytes_, 0);
     EXPECT_EQ(oneway_, 0);
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
   }
 
  private:
@@ -1311,7 +985,7 @@ TEST(Channel, ServerCloseTest) {
 }
 
 class ClientCloseOnErrorTest;
-class InvalidResponseCallback : public ResponseChannel::Callback {
+class InvalidResponseCallback : public HeaderServerChannel::Callback {
  public:
   explicit InvalidResponseCallback(ClientCloseOnErrorTest* self)
       : self_(self), request_(0), requestBytes_(0) {}
@@ -1322,7 +996,8 @@ class InvalidResponseCallback : public ResponseChannel::Callback {
     return *this;
   }
 
-  void requestReceived(unique_ptr<ResponseChannel::Request>&& req) override;
+  void requestReceived(
+      unique_ptr<HeaderServerChannel::HeaderRequest>&& req) override;
   void channelClosed(folly::exception_wrapper&&) override {}
 
  protected:
@@ -1355,10 +1030,10 @@ class ClientCloseOnErrorTest
    public:
     explicit Callback(ClientCloseOnErrorTest* c) : c_(c) {}
 
-    void requestError(ClientReceiveState&& state) override {
-      TestRequestCallback::requestError(std::move(state));
+    void onResponseError(folly::exception_wrapper ew) noexcept override {
       // force closing the channel on error
       c_->channel0_->closeNow();
+      TestRequestCallback::onResponseError(std::move(ew));
     }
 
    private:
@@ -1377,16 +1052,19 @@ class ClientCloseOnErrorTest
     }
 
     channel1_->setCallback(this);
-    channel0_->sendRequest(
-        std::make_unique<Callback>(this),
-        nullptr,
-        makeTestBuf(10),
-        std::make_unique<THeader>());
-    channel0_->sendRequest(
-        std::make_unique<Callback>(this),
-        nullptr,
-        makeTestBuf(reqSize_),
-        std::make_unique<THeader>());
+    RpcOptions options;
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(10),
+        std::make_unique<THeader>(),
+        RequestClientCallback::Ptr(new Callback(this)));
+    channel0_->sendRequestResponse(
+        options,
+        "test",
+        makeTestSerializedRequest(reqSize_),
+        std::make_unique<THeader>(),
+        RequestClientCallback::Ptr(new Callback(this)));
   }
 
   void postLoop() override {
@@ -1395,8 +1073,6 @@ class ClientCloseOnErrorTest
     EXPECT_EQ(replyBytes_, 0);
     EXPECT_EQ(request_, (forcePendingSend_ ? 1 : 2));
     EXPECT_EQ(requestBytes_, 10 + (forcePendingSend_ ? 0 : reqSize_));
-    EXPECT_EQ(securityStartTime_, 0);
-    EXPECT_EQ(securityEndTime_, 0);
     channel1_->setCallback(nullptr);
   }
 
@@ -1406,7 +1082,7 @@ class ClientCloseOnErrorTest
 };
 
 void InvalidResponseCallback::requestReceived(
-    unique_ptr<ResponseChannel::Request>&& req) {
+    unique_ptr<HeaderServerChannel::HeaderRequest>&& req) {
   request_++;
   requestBytes_ += req->getBuf()->computeChainDataLength();
   if (closeSocketInResponse_) {
@@ -1435,27 +1111,29 @@ TEST(Channel, ClientCloseOnErrorTest) {
       .run();
 }
 
-class DestroyAsyncTransport : public apache::thrift::async::TAsyncTransport {
+class DestroyAsyncTransport : public folly::AsyncTransport {
  public:
-  DestroyAsyncTransport() : cb_(nullptr) { }
-  void setReadCB(
-      folly::AsyncTransportWrapper::ReadCallback* callback) override {
+  DestroyAsyncTransport() : cb_(nullptr) {}
+  void setReadCB(folly::AsyncTransport::ReadCallback* callback) override {
     cb_ = callback;
   }
   ReadCallback* getReadCallback() const override {
     return dynamic_cast<ReadCallback*>(cb_);
   }
-  void write(folly::AsyncTransportWrapper::WriteCallback*,
-             const void*,
-             size_t,
-             WriteFlags) override {}
-  void writev(folly::AsyncTransportWrapper::WriteCallback*,
-              const iovec*,
-              size_t,
-              WriteFlags) override {}
-  void writeChain(folly::AsyncTransportWrapper::WriteCallback*,
-                  std::unique_ptr<folly::IOBuf>&&,
-                  WriteFlags) override {}
+  void write(
+      folly::AsyncTransport::WriteCallback*,
+      const void*,
+      size_t,
+      folly::WriteFlags) override {}
+  void writev(
+      folly::AsyncTransport::WriteCallback*,
+      const iovec*,
+      size_t,
+      folly::WriteFlags) override {}
+  void writeChain(
+      folly::AsyncTransport::WriteCallback*,
+      std::unique_ptr<folly::IOBuf>&&,
+      folly::WriteFlags) override {}
   void close() override {}
   void closeNow() override {}
   void shutdownWrite() override {}
@@ -1479,11 +1157,10 @@ class DestroyAsyncTransport : public apache::thrift::async::TAsyncTransport {
   void setEorTracking(bool /* track */) override {}
   bool isEorTrackingEnabled() const override { return false; }
 
-  void invokeEOF() {
-    cb_->readEOF();
-  }
+  void invokeEOF() { cb_->readEOF(); }
+
  private:
-  folly::AsyncTransportWrapper::ReadCallback* cb_;
+  folly::AsyncTransport::ReadCallback* cb_;
 };
 
 class DestroyRecvCallback : public MessageChannel::RecvCallback {
@@ -1491,14 +1168,12 @@ class DestroyRecvCallback : public MessageChannel::RecvCallback {
   typedef std::unique_ptr<Cpp2Channel, folly::DelayedDestruction::Destructor>
       ChannelPointer;
   explicit DestroyRecvCallback(ChannelPointer&& channel)
-      : channel_(std::move(channel)),
-        invocations_(0) {
+      : channel_(std::move(channel)), invocations_(0) {
     channel_->setReceiveCallback(this);
   }
   void messageReceived(
       std::unique_ptr<folly::IOBuf>&&,
-      std::unique_ptr<apache::thrift::transport::THeader>&&,
-      std::unique_ptr<MessageChannel::RecvCallback::sample>) override {}
+      std::unique_ptr<apache::thrift::transport::THeader>&&) override {}
   void messageChannelEOF() override {
     EXPECT_EQ(invocations_, 0);
     invocations_++;
@@ -1511,11 +1186,10 @@ class DestroyRecvCallback : public MessageChannel::RecvCallback {
   int invocations_;
 };
 
-
 TEST(Channel, DestroyInEOF) {
-  auto t = new DestroyAsyncTransport;
-  std::shared_ptr<TAsyncTransport> transport(t);
-  auto channel = createChannel<Cpp2Channel>(transport);
+  auto t = new DestroyAsyncTransport();
+  auto transport = folly::AsyncTransport::UniquePtr(t);
+  auto channel = createChannel<Cpp2Channel>(std::move(transport));
   DestroyRecvCallback drc(std::move(channel));
   t->invokeEOF();
 }
@@ -1534,9 +1208,9 @@ TEST(Channel, SetKeepRegisteredForClose) {
   rc = getsockname(lfd, (struct sockaddr*)&addr, &addrlen);
 
   folly::EventBase base;
-  auto transport =
-    TAsyncSocket::newSocket(&base, "127.0.0.1", ntohs(addr.sin_port));
-  auto channel = createChannel<HeaderClientChannel>(transport);
+  auto transport = folly::AsyncSocket::newSocket(
+      &base, "127.0.0.1", folly::Endian::big(addr.sin_port));
+  auto channel = createChannel<HeaderClientChannel>(std::move(transport));
   NullCloseCallback ncc;
   channel->setCloseCallback(&ncc);
   channel->setKeepRegisteredForClose(false);

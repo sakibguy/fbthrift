@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef _THRIFT_TRANSPORT_TVIRTUALTRANSPORT_H_
@@ -22,8 +19,9 @@
 
 #include <thrift/lib/cpp/transport/TTransport.h>
 
-namespace apache { namespace thrift { namespace transport {
-
+namespace apache {
+namespace thrift {
+namespace transport {
 
 /**
  * Helper class that provides default implementations of TTransport methods.
@@ -41,7 +39,7 @@ namespace apache { namespace thrift { namespace transport {
  * TVirtualTransport::read_virt() calls read(), and TTransport::read() calls
  * read_virt().)
  */
-template <class Super_=TTransport>
+template <class Super_ = TTransport>
 class TTransportDefaults : public Super_ {
  public:
   /*
@@ -60,9 +58,7 @@ class TTransportDefaults : public Super_ {
   const uint8_t* borrow(uint8_t* buf, uint32_t* len) {
     return this->TTransport::borrow_virt(buf, len);
   }
-  void consume(uint32_t len) {
-    this->TTransport::consume_virt(len);
-  }
+  void consume(uint32_t len) { this->TTransport::consume_virt(len); }
 
  protected:
   TTransportDefaults() {}
@@ -85,7 +81,7 @@ class TTransportDefaults : public Super_ {
  *
  * @author Chad Walters <chad@powerset.com>
  */
-template < class Transport_, class Super_=TTransportDefaults<TTransport> >
+template <class Transport_, class Super_ = TTransportDefaults<TTransport>>
 class TVirtualTransport : public Super_ {
  public:
   /*
@@ -136,12 +132,14 @@ class TVirtualTransport : public Super_ {
    * additional versions can be added as needed.
    */
   template <typename Arg_>
-  TVirtualTransport(Arg_ const& arg) : Super_(arg) { }
+  TVirtualTransport(Arg_ const& arg) : Super_(arg) {}
 
   template <typename Arg1_, typename Arg2_>
-  TVirtualTransport(Arg1_ const& a1, Arg2_ const& a2) : Super_(a1, a2) { }
+  TVirtualTransport(Arg1_ const& a1, Arg2_ const& a2) : Super_(a1, a2) {}
 };
 
-}}} // apache::thrift::transport
+} // namespace transport
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef _THRIFT_TRANSPORT_TVIRTUALTRANSPORT_H_

@@ -1,33 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-#include <thrift/lib/cpp/concurrency/TimerManager.h>
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
-#include <thrift/lib/cpp/concurrency/Monitor.h>
+#include <thrift/lib/cpp/concurrency/TimerManager.h>
 #include <thrift/lib/cpp/concurrency/Util.h>
 
 #include <assert.h>
+#include <condition_variable>
 #include <iostream>
+#include <mutex>
 
-namespace apache { namespace thrift { namespace concurrency { namespace test {
-
-using namespace apache::thrift::concurrency;
+namespace apache {
+namespace thrift {
+namespace concurrency {
+namespace test {
 
 /**
  * ThreadManagerTests class
@@ -35,53 +34,52 @@ using namespace apache::thrift::concurrency;
  * @version $Id:$
  */
 class TimerManagerTests {
-
  public:
-
   static const double ERROR;
 
-  class Task: public Runnable {
+  class Task : public Runnable {
    public:
-
-    Task(Monitor& monitor, int64_t timeout) :
-      _timeout(timeout),
-      _startTime(Util::currentTime()),
-      _monitor(monitor),
-      _success(false),
-      _done(false) {}
+    Task(std::mutex& mutex, std::condition_variable& cond, int64_t timeout)
+        : _timeout(timeout),
+          _startTime(Util::currentTime()),
+          _mutex(mutex),
+          _cond(cond),
+          _success(false),
+          _done(false) {}
 
     ~Task() override { std::cerr << this << std::endl; }
 
     void run() override {
-
       _endTime = Util::currentTime();
 
       // Figure out error percentage
 
       int64_t delta = _endTime - _startTime;
 
-
-      delta = delta > _timeout ?  delta - _timeout : _timeout - delta;
+      delta = delta > _timeout ? delta - _timeout : _timeout - delta;
 
       float error = delta / _timeout;
 
-      if(error < ERROR) {
+      if (error < ERROR) {
         _success = true;
       }
 
       _done = true;
 
-      std::cout << "\t\t\tTimerManagerTests::Task[" << this << "] done" << std::endl; //debug
+      std::cout << "\t\t\tTimerManagerTests::Task[" << this << "] done"
+                << std::endl; // debug
 
-      {Synchronized s(_monitor);
-        _monitor.notifyAll();
+      {
+        std::unique_lock<std::mutex> l(_mutex);
+        _cond.notify_all();
       }
     }
 
     int64_t _timeout;
     int64_t _startTime;
     int64_t _endTime;
-    Monitor& _monitor;
+    std::mutex& _mutex;
+    std::condition_variable& _cond;
     bool _success;
     bool _done;
   };
@@ -92,36 +90,39 @@ class TimerManagerTests {
    * properly clean up itself and the remaining orphaned timeout task when the
    * manager goes out of scope and its destructor is called.
    */
-  bool test00(int64_t timeout=1000LL) {
-
-    shared_ptr<TimerManagerTests::Task> orphanTask = shared_ptr<TimerManagerTests::Task>(new TimerManagerTests::Task(_monitor, 10 * timeout));
+  bool test00(int64_t timeout = 1000LL) {
+    shared_ptr<TimerManagerTests::Task> orphanTask =
+        shared_ptr<TimerManagerTests::Task>(
+            new TimerManagerTests::Task(_mutex, _cond, 10 * timeout));
 
     {
-
       TimerManager timerManager;
 
-      timerManager.threadFactory(shared_ptr<PosixThreadFactory>(new PosixThreadFactory()));
+      timerManager.threadFactory(
+          shared_ptr<PosixThreadFactory>(new PosixThreadFactory()));
 
       timerManager.start();
 
       assert(timerManager.state() == TimerManager::STARTED);
 
-      shared_ptr<TimerManagerTests::Task> task = shared_ptr<TimerManagerTests::Task>(new TimerManagerTests::Task(_monitor, timeout));
+      shared_ptr<TimerManagerTests::Task> task =
+          shared_ptr<TimerManagerTests::Task>(
+              new TimerManagerTests::Task(_mutex, _cond, timeout));
 
       {
-        Synchronized s(_monitor);
+        std::unique_lock<std::mutex> l(_mutex);
 
         timerManager.add(orphanTask, 10 * timeout);
 
         timerManager.add(task, timeout);
 
-        _monitor.wait();
+        _cond.wait(l);
       }
 
       assert(task->_done);
 
-
-      std::cout << "\t\t\t" << (task->_success ? "Success" : "Failure") << "!" << std::endl;
+      std::cout << "\t\t\t" << (task->_success ? "Success" : "Failure") << "!"
+                << std::endl;
     }
 
     // timerManager.stop(); This is where it happens via destructor
@@ -133,10 +134,13 @@ class TimerManagerTests {
 
   friend class TestTask;
 
-  Monitor _monitor;
+  std::mutex _mutex;
+  std::condition_variable _cond;
 };
 
 const double TimerManagerTests::ERROR = .20;
 
-}}}} // apache::thrift::concurrency
-
+} // namespace test
+} // namespace concurrency
+} // namespace thrift
+} // namespace apache

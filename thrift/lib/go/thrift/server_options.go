@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -26,8 +23,9 @@ import (
 
 // ServerOptions is options needed to run a thrift server
 type ServerOptions struct {
-	quit chan struct{}
-	log  *log.Logger
+	quit        chan struct{}
+	log         *log.Logger
+	interceptor Interceptor
 
 	serverTransport        ServerTransport
 	inputTransportFactory  TransportFactory
@@ -87,6 +85,13 @@ func Logger(log *log.Logger) func(*ServerOptions) {
 	}
 }
 
+// WithInterceptor sets the interceptor for the server
+func WithInterceptor(interceptor Interceptor) func(*ServerOptions) {
+	return func(server *ServerOptions) {
+		server.interceptor = interceptor
+	}
+}
+
 func defaultServerOptions(serverTransport ServerTransport) *ServerOptions {
 	return &ServerOptions{
 		serverTransport:        serverTransport,
@@ -94,7 +99,7 @@ func defaultServerOptions(serverTransport ServerTransport) *ServerOptions {
 		outputTransportFactory: NewTransportFactory(),
 		inputProtocolFactory:   NewBinaryProtocolFactoryDefault(),
 		outputProtocolFactory:  NewBinaryProtocolFactoryDefault(),
-		quit: make(chan struct{}, 1),
-		log:  log.New(os.Stderr, "", log.LstdFlags),
+		quit:                   make(chan struct{}, 1),
+		log:                    log.New(os.Stderr, "", log.LstdFlags),
 	}
 }

@@ -10,48 +10,21 @@
 namespace cpp2 {
 
 
-TestServiceClientWrapper::TestServiceClientWrapper(
-    std::shared_ptr<cpp2::TestServiceAsyncClient> async_client,
-    std::shared_ptr<apache::thrift::RequestChannel> channel) : 
-    async_client(async_client),
-      channel_(channel) {}
-
-TestServiceClientWrapper::~TestServiceClientWrapper() {}
-
-folly::Future<folly::Unit> TestServiceClientWrapper::disconnect() {
-  return folly::via(
-    this->async_client->getChannel()->getEventBase(),
-    [this] { disconnectInLoop(); });
-}
-
-void TestServiceClientWrapper::disconnectInLoop() {
-    channel_.reset();
-    async_client.reset();
-}
-
-void TestServiceClientWrapper::setPersistentHeader(const std::string& key, const std::string& value) {
-    auto headerChannel = async_client->getHeaderChannel();
-    if (headerChannel != nullptr) {
-        headerChannel->setPersistentHeader(key, value);
-    }
-}
-
-
 folly::Future<int64_t>
 TestServiceClientWrapper::init(
     apache::thrift::RpcOptions& rpcOptions,
     int64_t arg_int1) {
+  auto* client = static_cast<::cpp2::TestServiceAsyncClient*>(async_client_.get());
   folly::Promise<int64_t> _promise;
   auto _future = _promise.getFuture();
   auto callback = std::make_unique<::thrift::py3::FutureCallback<int64_t>>(
-    std::move(_promise), rpcOptions, async_client->recv_wrapped_init, channel_);
-  async_client->init(
+    std::move(_promise), rpcOptions, client->recv_wrapped_init, channel_);
+  client->init(
     rpcOptions,
     std::move(callback),
     arg_int1
   );
   return _future;
 }
-
 
 } // namespace cpp2

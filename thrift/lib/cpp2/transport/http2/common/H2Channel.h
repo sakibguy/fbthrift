@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +19,8 @@
 #include <memory>
 
 #include <folly/io/IOBuf.h>
-#include <proxygen/httpserver/ResponseHandler.h>
 #include <proxygen/lib/http/HTTPMessage.h>
+#include <proxygen/lib/http/ProxygenErrorEnum.h>
 #include <thrift/lib/cpp2/transport/core/ThriftChannelIf.h>
 
 namespace apache {
@@ -59,6 +59,9 @@ class ThriftProcessor;
  */
 class H2Channel : public ThriftChannelIf {
  public:
+  static constexpr folly::StringPiece RPC_KIND = "rpckind";
+
+  H2Channel() = default;
   virtual ~H2Channel() = default;
 
   // Called from Proxygen at the beginning of the stream.
@@ -79,32 +82,13 @@ class H2Channel : public ThriftChannelIf {
   // more writes to the stream should be performed after this point.
   // Also, after this call Proxygen will relinquish access to this
   // object.
-  virtual void onH2StreamClosed(proxygen::ProxygenError /*error*/) noexcept {
-    responseHandler_ = nullptr;
-    h2ClientConnection_ = nullptr;
-  }
+  virtual void onH2StreamClosed(
+      proxygen::ProxygenError /*error*/,
+      std::string errorDescription) noexcept = 0;
 
-  void sendStreamThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata>,
-      std::unique_ptr<folly::IOBuf>,
-      apache::thrift::SemiStream<
-          std::unique_ptr<folly::IOBuf>>) noexcept override {
-    LOG(FATAL) << "Http2 transport layer doesn't support streaming yet";
-  }
+  virtual void onMessageFlushed() noexcept {}
 
  protected:
-  // Constructor for server side that uses a ResponseHandler object
-  // to write to the HTTP/2 stream.
-  explicit H2Channel(proxygen::ResponseHandler* toHttp2)
-      : responseHandler_(toHttp2), h2ClientConnection_(nullptr) {}
-
-  // Constructor for client side that uses a HTTPTransaction object to
-  // write to the HTTP/2 stream.  The HTTPTransaction object is
-  // obtained from the H2ClientConnection object provided to this
-  // constructor just before sending the header frame to the server.
-  explicit H2Channel(H2ClientConnection* toHttp2)
-      : responseHandler_(nullptr), h2ClientConnection_(toHttp2) {}
-
   // Encodes Thrift headers to be HTTP compliant.
   void encodeHeaders(
       const std::map<std::string, std::string>& source,
@@ -112,24 +96,15 @@ class H2Channel : public ThriftChannelIf {
 
   // Decodes previously encoded HTTP compliant headers into Thrift
   // headers.
-  void decodeHeaders(
+  static void decodeHeaders(
       const proxygen::HTTPMessage& source,
-      std::map<std::string, std::string>& dest) noexcept;
+      std::map<std::string, std::string>& dest,
+      RequestRpcMetadata* metadata) noexcept;
 
-  void maybeAddChannelVersionHeader(
-      proxygen::HTTPMessage& msg,
-      const std::string& version) noexcept;
-
-  // Used to write messages to HTTP/2 on the server side.
-  // Owned by H2RequestHandler.  Should not be used after
-  // onH2StreamClosed() has been called.
-  proxygen::ResponseHandler* responseHandler_;
-
-  // Used to write messages to HTTP/2 on the client side.  Owned by
-  // client side framework that manages connections (e.g.,
-  // ConnectionManager).  Should not be used after onH2StreamClosed()
-  // has been called.
-  H2ClientConnection* h2ClientConnection_;
+  static bool handleThriftMetadata(
+      RequestRpcMetadata* metadata,
+      const std::string& name,
+      const std::string& value) noexcept;
 };
 
 } // namespace thrift

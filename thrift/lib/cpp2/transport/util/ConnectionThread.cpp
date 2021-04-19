@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,13 +16,13 @@
 
 #include <thrift/lib/cpp2/transport/util/ConnectionThread.h>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <folly/portability/GFlags.h>
 
 #include <folly/Conv.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
-#include <thrift/lib/cpp/async/TAsyncTransport.h>
 #include <thrift/lib/cpp2/transport/http2/client/H2ClientConnection.h>
 
 DEFINE_string(transport, "http2", "The transport to use (http2)");
@@ -31,9 +31,7 @@ DEFINE_bool(use_ssl, false, "Create an encrypted client connection");
 namespace apache {
 namespace thrift {
 
-using apache::thrift::async::TAsyncSocket;
 using apache::thrift::async::TAsyncSSLSocket;
-using apache::thrift::async::TAsyncTransport;
 
 ConnectionThread::~ConnectionThread() {
   getEventBase()->runInEventBaseThreadAndWait(
@@ -41,8 +39,7 @@ ConnectionThread::~ConnectionThread() {
 }
 
 std::shared_ptr<ClientConnectionIf> ConnectionThread::getConnection(
-    const std::string& addr,
-    uint16_t port) {
+    const std::string& addr, uint16_t port) {
   std::string serverKey = folly::to<std::string>(addr, ":", port);
   getEventBase()->runInEventBaseThreadAndWait(
       [&]() { maybeCreateConnection(serverKey, addr, port); });
@@ -51,22 +48,25 @@ std::shared_ptr<ClientConnectionIf> ConnectionThread::getConnection(
 }
 
 void ConnectionThread::maybeCreateConnection(
-    const std::string& serverKey,
-    const std::string& addr,
-    uint16_t port) {
-  LOG_IF(FATAL, FLAGS_transport == "rsocket")
-      << "Use RSocketClientChannel::newChannel()";
+    const std::string& serverKey, const std::string& addr, uint16_t port) {
+  LOG_IF(FATAL, FLAGS_transport == "rocket")
+      << "Use RocketClientChannel::newChannel()";
 
-  connections_.withWLock([&](auto& connections) {
+  connections_.withWLock([&, this](auto& connections) {
     std::shared_ptr<ClientConnectionIf>& connection = connections[serverKey];
     if (connection == nullptr || !connection->good()) {
-      TAsyncSocket::UniquePtr socket(
-          new TAsyncSocket(getEventBase(), addr, port));
+      folly::AsyncSocket::UniquePtr socket(
+          new folly::AsyncSocket(this->getEventBase(), addr, port));
       if (FLAGS_use_ssl) {
         auto sslContext = std::make_shared<folly::SSLContext>();
+#if FOLLY_OPENSSL_HAS_ALPN
         sslContext->setAdvertisedNextProtocols({"h2", "http"});
+#endif
         auto sslSocket = new TAsyncSSLSocket(
-            sslContext, getEventBase(), socket->detachFd(), false);
+            sslContext,
+            this->getEventBase(),
+            socket->detachNetworkSocket(),
+            false);
         sslSocket->sslConn(nullptr);
         socket.reset(sslSocket);
       }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,8 @@
 
 #include <folly/io/async/Request.h>
 
+#include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
+
 namespace apache {
 namespace thrift {
 
@@ -33,16 +35,12 @@ const std::chrono::milliseconds ThriftClientCallback::kDefaultTimeout =
 
 ThriftClientCallback::ThriftClientCallback(
     EventBase* evb,
-    std::unique_ptr<RequestCallback> cb,
-    std::unique_ptr<ContextStack> ctx,
-    bool isSecurityActive,
-    uint16_t protoId,
+    bool oneWay,
+    RequestClientCallback::Ptr cb,
     std::chrono::milliseconds timeout)
     : evb_(evb),
+      oneWay_(oneWay),
       cb_(std::move(cb)),
-      ctx_(std::move(ctx)),
-      isSecurityActive_(isSecurityActive),
-      protoId_(protoId),
       active_(cb_),
       timeout_(timeout) {}
 
@@ -52,10 +50,9 @@ ThriftClientCallback::~ThriftClientCallback() {
 }
 
 void ThriftClientCallback::onThriftRequestSent() {
-  DCHECK(evb_->isInEventBaseThread());
+  DCHECK(!evb_ || evb_->isInEventBaseThread());
   if (active_) {
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->requestSent();
+    (oneWay_ ? cb_.release() : cb_.get())->onRequestSent();
 
     if (timeout_.count() > 0) {
       evb_->timer().scheduleTimeout(this, timeout_);
@@ -64,65 +61,26 @@ void ThriftClientCallback::onThriftRequestSent() {
 }
 
 void ThriftClientCallback::onThriftResponse(
-    std::unique_ptr<ResponseRpcMetadata> metadata,
-    std::unique_ptr<IOBuf> payload) noexcept {
-  DCHECK(metadata);
-  DCHECK(evb_->isInEventBaseThread());
+    ResponseRpcMetadata&& metadata, std::unique_ptr<IOBuf> payload) noexcept {
+  DCHECK(!evb_ || evb_->isInEventBaseThread());
   cancelTimeout();
   if (active_) {
     active_ = false;
     auto tHeader = std::make_unique<transport::THeader>();
     tHeader->setClientType(THRIFT_HTTP_CLIENT_TYPE);
-    if (metadata->__isset.otherMetadata) {
-      tHeader->setReadHeaders(std::move(metadata->otherMetadata));
-    }
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->replyReceived(ClientReceiveState(
-        protoId_,
-        std::move(payload),
-        std::move(tHeader),
-        std::move(ctx_),
-        isSecurityActive_));
-  }
-}
-
-void ThriftClientCallback::onThriftResponse(
-    std::unique_ptr<ResponseRpcMetadata> metadata,
-    std::unique_ptr<IOBuf> payload,
-    Stream<std::unique_ptr<folly::IOBuf>> stream) noexcept {
-  DCHECK(metadata);
-  DCHECK(evb_->isInEventBaseThread());
-  cancelTimeout();
-  if (active_) {
-    active_ = false;
-    auto tHeader = std::make_unique<transport::THeader>();
-    tHeader->setClientType(THRIFT_HTTP_CLIENT_TYPE);
-    if (metadata->__isset.otherMetadata) {
-      tHeader->setReadHeaders(std::move(metadata->otherMetadata));
-    }
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-
-    ClientReceiveState crs(
-        protoId_,
-        ResponseAndSemiStream<
-            std::unique_ptr<folly::IOBuf>,
-            std::unique_ptr<folly::IOBuf>>{std::move(payload),
-                                           std::move(stream)},
-        std::move(tHeader),
-        std::move(ctx_),
-        isSecurityActive_);
-    cb_->replyReceived(std::move(crs));
+    apache::thrift::detail::fillTHeaderFromResponseRpcMetadata(
+        metadata, *tHeader);
+    cb_.release()->onResponse(ClientReceiveState(
+        -1, std::move(payload), std::move(tHeader), nullptr));
   }
 }
 
 void ThriftClientCallback::onError(exception_wrapper ex) noexcept {
-  DCHECK(evb_->isInEventBaseThread());
+  DCHECK(!evb_ || evb_->isInEventBaseThread());
   cancelTimeout();
   if (active_) {
     active_ = false;
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->requestError(
-        ClientReceiveState(std::move(ex), std::move(ctx_), isSecurityActive_));
+    cb_.release()->onResponseError(std::move(ex));
   }
 }
 
@@ -133,12 +91,9 @@ EventBase* ThriftClientCallback::getEventBase() const {
 void ThriftClientCallback::timeoutExpired() noexcept {
   if (active_) {
     active_ = false;
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->requestError(ClientReceiveState(
+    cb_.release()->onResponseError(
         folly::make_exception_wrapper<TTransportException>(
-            apache::thrift::transport::TTransportException::TIMED_OUT),
-        std::move(ctx_),
-        isSecurityActive_));
+            apache::thrift::transport::TTransportException::TIMED_OUT));
     if (auto onTimedout = std::move(onTimedout_)) {
       onTimedout();
     }

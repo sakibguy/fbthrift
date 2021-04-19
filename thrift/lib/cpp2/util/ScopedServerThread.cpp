@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,12 +16,13 @@
 
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <utility>
 
 #include <folly/ScopeGuard.h>
 #include <folly/SocketAddress.h>
-#include <thrift/lib/cpp/concurrency/Monitor.h>
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
 #include <thrift/lib/cpp2/server/BaseThriftServer.h>
 
@@ -31,7 +32,9 @@ using namespace apache::thrift::concurrency;
 using namespace apache::thrift::server;
 using namespace apache::thrift::transport;
 
-namespace apache { namespace thrift { namespace util {
+namespace apache {
+namespace thrift {
+namespace util {
 
 /**
  * ScopedServerThread::Helper runs the server loop in the new server thread.
@@ -39,14 +42,16 @@ namespace apache { namespace thrift { namespace util {
  * It also provides a waitUntilStarted() method that the main thread can use to
  * block until the server has started listening for new connections.
  */
-class ScopedServerThread::Helper : public Runnable,
-                                   public TServerEventHandler {
+class ScopedServerThread::Helper : public Runnable, public TServerEventHandler {
  public:
   Helper() : state_(STATE_NOT_STARTED) {}
 
   ~Helper() override;
 
-  void init(shared_ptr<BaseThriftServer> server, shared_ptr<Helper> self);
+  void init(
+      shared_ptr<BaseThriftServer> server,
+      shared_ptr<Helper> self,
+      Func onExit);
 
   void run() override;
 
@@ -62,9 +67,7 @@ class ScopedServerThread::Helper : public Runnable,
    *
    * This may be called from the main thread.
    */
-  const folly::SocketAddress* getAddress() const {
-    return &address_;
-  }
+  const folly::SocketAddress* getAddress() const { return &address_; }
 
   /**
    * Wait until the server has started.
@@ -75,21 +78,22 @@ class ScopedServerThread::Helper : public Runnable,
 
   void preServe(const folly::SocketAddress* address) override;
 
-  const shared_ptr<BaseThriftServer>& getServer() const {
-    return server_;
-  }
+  const shared_ptr<BaseThriftServer>& getServer() const { return server_; }
+
+  void releaseServer() { server_.reset(); }
 
  private:
   enum StateEnum {
     STATE_NOT_STARTED,
     STATE_RUNNING,
-    STATE_START_ERROR
+    STATE_START_ERROR,
   };
 
   class EventHandler : public TServerEventHandler {
    public:
     explicit EventHandler(const shared_ptr<Helper>& outer) : outer_(outer) {}
     void preServe(const folly::SocketAddress* address) override;
+
    private:
     weak_ptr<Helper> outer_;
   };
@@ -101,7 +105,7 @@ class ScopedServerThread::Helper : public Runnable,
     virtual void rethrow() = 0;
   };
 
-  template<typename ExceptionT>
+  template <typename ExceptionT>
   class SavedExceptionImpl : public SavedException {
    public:
     explicit SavedExceptionImpl(const ExceptionT& x) : exception_(x) {}
@@ -113,7 +117,7 @@ class ScopedServerThread::Helper : public Runnable,
   };
 
   // Attempt to downcast to a specific type to avoid slicing.
-  template<typename ExceptionT>
+  template <typename ExceptionT>
   bool tryHandleServeError(const std::exception& x) {
     auto e = dynamic_cast<const ExceptionT*>(&x);
     if (e) {
@@ -127,37 +131,41 @@ class ScopedServerThread::Helper : public Runnable,
   // state as possible.
   void handleServeError(const std::exception& x) override {
     tryHandleServeError<TTransportException>(x) ||
-    tryHandleServeError<TException>(x) ||
-    tryHandleServeError<std::system_error>(x) ||
-    tryHandleServeError<std::exception>(x);
+        tryHandleServeError<TException>(x) ||
+        tryHandleServeError<std::system_error>(x) ||
+        tryHandleServeError<std::exception>(x);
   }
 
-  template<typename ExceptionT>
+  template <typename ExceptionT>
   void handleServeError(const ExceptionT& x) {
     if (eventHandler_ && *eventHandler_) {
       (*eventHandler_)->handleServeError(x);
     }
 
-    Synchronized s(stateMonitor_);
+    std::unique_lock<std::mutex> l(stateMutex_);
 
     if (state_ == STATE_NOT_STARTED) {
       // If the error occurred before the server started,
       // save a copy of the error and notify the main thread
       savedError_.reset(new SavedExceptionImpl<ExceptionT>(x));
       state_ = STATE_START_ERROR;
-      stateMonitor_.notify();
+      stateCondVar_.notify_one();
     } else {
       // The error occurred during normal server execution.
       // Just log an error message.
-      T_ERROR("ScopedServerThread: serve() raised a %s while running: %s",
-              typeid(x).name(), x.what());
+      T_ERROR(
+          "ScopedServerThread: serve() raised a %s while running: %s",
+          typeid(x).name(),
+          x.what());
     }
   }
 
   StateEnum state_;
-  Monitor stateMonitor_;
+  std::mutex stateMutex_;
+  std::condition_variable stateCondVar_;
 
   shared_ptr<BaseThriftServer> server_;
+  Func onExit_;
   // If the server event handler has been intercepted, then this field will be
   // set to the replaced event handler, which could be nullptr.
   folly::Optional<shared_ptr<TServerEventHandler>> eventHandler_;
@@ -172,9 +180,9 @@ ScopedServerThread::Helper::~Helper() {
 }
 
 void ScopedServerThread::Helper::init(
-    shared_ptr<BaseThriftServer> server,
-    shared_ptr<Helper> self) {
+    shared_ptr<BaseThriftServer> server, shared_ptr<Helper> self, Func onExit) {
   server_ = std::move(server);
+  onExit_ = std::move(onExit);
 
   // Install ourself as the server event handler, so that our preServe() method
   // will be called once we've successfully bound to the port and are about to
@@ -198,16 +206,21 @@ void ScopedServerThread::Helper::run() {
   } catch (...) {
     TServerEventHandler::handleServeError();
   }
+  if (onExit_) {
+    onExit_();
+  }
 }
 
 void ScopedServerThread::Helper::stop() {
-  server_->stop();
+  if (server_) {
+    server_->stop();
+  }
 }
 
 void ScopedServerThread::Helper::waitUntilStarted() {
-  concurrency::Synchronized s(stateMonitor_);
+  std::unique_lock<std::mutex> l(stateMutex_);
   while (state_ == STATE_NOT_STARTED) {
-    stateMonitor_.waitForever();
+    stateCondVar_.wait(l);
   }
 
   // If an error occurred starting the server,
@@ -218,8 +231,7 @@ void ScopedServerThread::Helper::waitUntilStarted() {
   }
 }
 
-void ScopedServerThread::Helper::preServe(
-    const folly::SocketAddress* address) {
+void ScopedServerThread::Helper::preServe(const folly::SocketAddress* address) {
   // Save a copy of the address
   address_ = *address;
 
@@ -237,10 +249,10 @@ void ScopedServerThread::Helper::preServe(
   }
 
   // Inform the main thread that the server has started
-  concurrency::Synchronized s(stateMonitor_);
+  std::unique_lock<std::mutex> l(stateMutex_);
   assert(state_ == STATE_NOT_STARTED);
   state_ = STATE_RUNNING;
-  stateMonitor_.notify();
+  stateCondVar_.notify_one();
 }
 
 void ScopedServerThread::Helper::EventHandler::preServe(
@@ -254,8 +266,7 @@ void ScopedServerThread::Helper::EventHandler::preServe(
  * ScopedServerThread methods
  */
 
-ScopedServerThread::ScopedServerThread() {
-}
+ScopedServerThread::ScopedServerThread() {}
 
 ScopedServerThread::ScopedServerThread(shared_ptr<BaseThriftServer> server) {
   start(std::move(server));
@@ -265,7 +276,8 @@ ScopedServerThread::~ScopedServerThread() {
   stop();
 }
 
-void ScopedServerThread::start(shared_ptr<BaseThriftServer> server) {
+void ScopedServerThread::start(
+    shared_ptr<BaseThriftServer> server, Func onExit) {
   if (helper_) {
     throw TLibraryException("ScopedServerThread is already running");
   }
@@ -276,7 +288,7 @@ void ScopedServerThread::start(shared_ptr<BaseThriftServer> server) {
   // TServerEventHandler ourself.
   auto helper = std::make_shared<Helper>();
 
-  helper->init(std::move(server), helper);
+  helper->init(std::move(server), helper, std::move(onExit));
 
   // Start the thread
   PosixThreadFactory threadFactory;
@@ -302,20 +314,27 @@ void ScopedServerThread::stop() {
   }
 
   helper_->stop();
-  thread_->join();
+  join();
   helper_.reset();
-  thread_.reset();
 }
 
 void ScopedServerThread::join() {
-  thread_->join();
+  if (thread_) {
+    thread_->join();
+    // Make sure we don't try to join the thread again from the destructor.
+    thread_ = nullptr;
+  }
+  if (helper_) {
+    helper_->releaseServer();
+  }
 }
 
 const folly::SocketAddress* ScopedServerThread::getAddress() const {
   if (!helper_) {
-    throw TTransportException(TTransportException::NOT_OPEN,
-                              "attempted to get address of stopped "
-                              "ScopedServerThread");
+    throw TTransportException(
+        TTransportException::NOT_OPEN,
+        "attempted to get address of stopped "
+        "ScopedServerThread");
   }
 
   return helper_->getAddress();
@@ -332,4 +351,6 @@ bool ScopedServerThread::setServeThreadName(const std::string& name) {
   return thread_->setName(name);
 }
 
-}}} // apache::thrift::util
+} // namespace util
+} // namespace thrift
+} // namespace apache

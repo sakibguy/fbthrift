@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,6 @@
 
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp2/async/SemiStream.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache {
@@ -49,6 +48,12 @@ class ThriftClientCallback;
  */
 class ThriftChannelIf : public std::enable_shared_from_this<ThriftChannelIf> {
  public:
+  struct RequestMetadata {
+    RequestRpcMetadata requestRpcMetadata;
+    std::string host;
+    std::string url;
+  };
+
   ThriftChannelIf() {}
 
   virtual ~ThriftChannelIf() = default;
@@ -62,15 +67,8 @@ class ThriftChannelIf : public std::enable_shared_from_this<ThriftChannelIf> {
   // Calls must be scheduled on the event base obtained from
   // "getEventBase()".
   virtual void sendThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
+      ResponseRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload) noexcept = 0;
-
-  // Stream response
-  virtual void sendStreamThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
-      std::unique_ptr<folly::IOBuf> response,
-      apache::thrift::SemiStream<std::unique_ptr<folly::IOBuf>>
-          stream) noexcept = 0;
 
   // Called from the client to initiate an RPC with a server.
   // "callback" is used to call back with the response for single
@@ -84,7 +82,7 @@ class ThriftChannelIf : public std::enable_shared_from_this<ThriftChannelIf> {
   // "callback" must not be destroyed until it has received the call
   // back to "onThriftResponse()".
   virtual void sendThriftRequest(
-      std::unique_ptr<RequestRpcMetadata> metadata,
+      RequestMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload,
       std::unique_ptr<ThriftClientCallback> callback) noexcept = 0;
 

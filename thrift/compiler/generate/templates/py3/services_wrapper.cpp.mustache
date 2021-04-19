@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,9 +17,10 @@
 }}{{!
 
 This is a top level C++ file that generates an implementation of the C++
-Services interface. That implementation keeps a reference to a Pyobject, which
+Services interface. That implementation keeps a pointer to a Pyobject, which
 is supposed to be the Python handler for that service, as written by the end
-user. It has lightweight wrappers of each service method (which accept futures)
+user. The life cycle of the handler is managed by the thrift server.
+It has lightweight wrappers of each service method (which accept futures)
 that pass the python object and a promise return code into the functions
 defined in ServicesCallbacks, along with appropriate arguments.
 
@@ -39,7 +40,6 @@ defined in ServicesCallbacks, along with appropriate arguments.
 {{/program:cppNamespaces}}
 {{#program:services}}
 
-{{! Manage the PyObject if it's the base class }}
 {{^service:extends?}}
 {{service:name}}Wrapper::{{service:name}}Wrapper(PyObject *obj, folly::Executor* exc)
   : if_object(obj), executor(exc)
@@ -47,17 +47,12 @@ defined in ServicesCallbacks, along with appropriate arguments.
     {{#program:hasServiceFunctions?}}
     import_{{#program:py3Namespaces}}{{value}}__{{/program:py3Namespaces}}{{program:name}}__services();
     {{/program:hasServiceFunctions?}}
-    Py_XINCREF(this->if_object);
   }
 
-{{service:name}}Wrapper::~{{service:name}}Wrapper() {
-    Py_XDECREF(this->if_object);
-}
 {{/service:extends?}}
-{{! Otherwise, proxy to the parent class to do the memory management}}
 {{#service:extends?}}
 {{service:name}}Wrapper::{{service:name}}Wrapper(PyObject *obj, folly::Executor* exc)
-  : {{#service:extends}}{{#service:cppNamespaces}}{{value}}::{{/service:cppNamespaces}}{{service:name}}Wrapper(obj, exc){{/service:extends}}
+  : {{#service:extends}}::{{#service:cppNamespaces}}{{value}}::{{/service:cppNamespaces}}{{service:name}}Wrapper(obj, exc){{/service:extends}}
   {
     {{#program:hasServiceFunctions?}}
     import_{{#program:py3Namespaces}}{{value}}__{{/program:py3Namespaces}}{{program:name}}__services();
@@ -65,29 +60,23 @@ defined in ServicesCallbacks, along with appropriate arguments.
   }
 {{/service:extends?}}
 
-{{#service:functions}}
-folly::Future<{{#function:returnType}}{{!
-        }}{{^program:stack_arguments?}}{{> types/CppArgType}}{{/program:stack_arguments?}}{{!
-        }}{{#program:stack_arguments?}}{{> types/CppValueType}}{{/program:stack_arguments?}}{{!
-    }}{{/function:returnType}}>{{!
-}} {{service:name}}Wrapper::future_{{function:name}}({{#function:args}}
-  {{#field:type}}{{!
-          }}{{^program:stack_arguments?}}{{> types/CppArgType}}{{/program:stack_arguments?}}{{!
-          }}{{#program:stack_arguments?}}{{> types/CppStackArgType}}{{/program:stack_arguments?}}{{!
-      }}{{/field:type}} {{field:name}}{{^last?}},{{/last?}}{{#last?}}
+{{#service:supportedFunctions}}
+void {{service:name}}Wrapper::async_{{#function:eb}}eb{{/function:eb}}{{^function:eb}}tm{{/function:eb}}_{{function:cppName}}(
+  {{> services/CppHandlerCallbackType}} callback{{#function:args}}
+    , {{#field:type}}{{!
+            }}{{^function:stack_arguments?}}{{> types/CppArgType}}{{/function:stack_arguments?}}{{!
+            }}{{#function:stack_arguments?}}{{> types/CppStackArgType}}{{/function:stack_arguments?}}{{!
+        }}{{/field:type}} {{field:py_name}}{{#last?}}
 {{/last?}}{{/function:args}}) {
-  {{#function:returnType}}folly::Promise<{{!
-          }}{{^program:stack_arguments?}}{{> types/CppArgType}}{{/program:stack_arguments?}}{{!
-          }}{{#program:stack_arguments?}}{{> types/CppValueType}}{{/program:stack_arguments?}}{{!
-      }}{{/function:returnType}}> promise;
-  auto future = promise.getFuture();
-  auto ctx = getConnectionContext();
+  auto ctx = callback->getRequestContext();
   folly::via(
     this->executor,
     [this, ctx,
-     promise = std::move(promise){{#function:args}},
+     callback = std::move(callback){{#function:args}},
      {{#field:type}}{{> CppFieldCapture}}{{/field:type}}{{/function:args}}
     ]() mutable {
+        auto [promise, future] = folly::makePromiseContract<{{!
+            }}{{#function:return_type}}{{> services/CppReturnType}}{{/function:return_type}}>();
         call_cy_{{service:name}}_{{function:name}}(
             this->if_object,
             ctx,
@@ -95,12 +84,14 @@ folly::Future<{{#function:returnType}}{{!
             {{> CppPassField}}
 {{/field:type}}{{/function:args}}
         );
+        std::move(future).via(this->executor).thenTry([callback = std::move(callback)](folly::Try<{{!
+            }}{{#function:return_type}}{{> services/CppReturnType}}{{/function:return_type}}>&& t) {
+          (void)t;
+          {{^function:oneway?}}callback->complete(std::move(t));{{/function:oneway?}}
+        });
     });
-
-  return future;
 }
-
-{{/service:functions}}
+{{/service:supportedFunctions}}
 std::shared_ptr<apache::thrift::ServerInterface> {{service:name}}Interface(PyObject *if_object, folly::Executor *exc) {
   return std::make_shared<{{service:name}}Wrapper>(if_object, exc);
 }

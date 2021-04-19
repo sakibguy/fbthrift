@@ -6,9 +6,10 @@ package includes
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 	transitive0 "transitive"
 
 )
@@ -18,17 +19,20 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var _ = transitive0.GoUnusedProtection__
 var GoUnusedProtection__ int;
 
-type IncludedInt64 int64
+type IncludedInt64 = int64
 
 func IncludedInt64Ptr(v IncludedInt64) *IncludedInt64 { return &v }
 
-type TransitiveFoo *transitive0.Foo
+type TransitiveFoo = transitive0.Foo
 
 func TransitiveFooPtr(v TransitiveFoo) *TransitiveFoo { return &v }
+
+func NewTransitiveFoo() *TransitiveFoo { return transitive0.NewFoo() }
 
 // Attributes:
 //  - MyIntField
@@ -39,7 +43,9 @@ type Included struct {
 }
 
 func NewIncluded() *Included {
-  return &Included{}
+  return &Included{
+    MyTransitiveField: transitive0.NewFoo(),
+  }
 }
 
 
@@ -56,7 +62,44 @@ func (p *Included) GetMyTransitiveField() *transitive0.Foo {
 return p.MyTransitiveField
 }
 func (p *Included) IsSetMyTransitiveField() bool {
-  return p.MyTransitiveField != nil
+  return p != nil && p.MyTransitiveField != nil
+}
+
+type IncludedBuilder struct {
+  obj *Included
+}
+
+func NewIncludedBuilder() *IncludedBuilder{
+  return &IncludedBuilder{
+    obj: NewIncluded(),
+  }
+}
+
+func (p IncludedBuilder) Emit() *Included{
+  return &Included{
+    MyIntField: p.obj.MyIntField,
+    MyTransitiveField: p.obj.MyTransitiveField,
+  }
+}
+
+func (i *IncludedBuilder) MyIntField(myIntField int64) *IncludedBuilder {
+  i.obj.MyIntField = myIntField
+  return i
+}
+
+func (i *IncludedBuilder) MyTransitiveField(myTransitiveField *transitive0.Foo) *IncludedBuilder {
+  i.obj.MyTransitiveField = myTransitiveField
+  return i
+}
+
+func (i *Included) SetMyIntField(myIntField int64) *Included {
+  i.MyIntField = myIntField
+  return i
+}
+
+func (i *Included) SetMyTransitiveField(myTransitiveField *transitive0.Foo) *Included {
+  i.MyTransitiveField = myTransitiveField
+  return i
 }
 
 func (p *Included) Read(iprot thrift.Protocol) error {
@@ -97,10 +140,10 @@ func (p *Included) Read(iprot thrift.Protocol) error {
 
 func (p *Included)  ReadField1(iprot thrift.Protocol) error {
   if v, err := iprot.ReadI64(); err != nil {
-  return thrift.PrependError("error reading field 1: ", err)
-} else {
-  p.MyIntField = v
-}
+    return thrift.PrependError("error reading field 1: ", err)
+  } else {
+    p.MyIntField = v
+  }
   return nil
 }
 
@@ -149,6 +192,14 @@ func (p *Included) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Included(%+v)", *p)
+
+  myIntFieldVal := fmt.Sprintf("%v", p.MyIntField)
+  var myTransitiveFieldVal string
+  if p.MyTransitiveField == nil {
+    myTransitiveFieldVal = "<nil>"
+  } else {
+    myTransitiveFieldVal = fmt.Sprintf("%v", p.MyTransitiveField)
+  }
+  return fmt.Sprintf("Included({MyIntField:%s MyTransitiveField:%s})", myIntFieldVal, myTransitiveFieldVal)
 }
 

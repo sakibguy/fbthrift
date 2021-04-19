@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,37 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <numa.h>
 
 #include <chrono>
+#include <condition_variable>
 #include <deque>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <thread>
 
 #include <folly/Synchronized.h>
 #include <folly/executors/Codel.h>
+#include <folly/portability/GTest.h>
 #include <folly/portability/SysResource.h>
 #include <folly/portability/SysTime.h>
 #include <folly/synchronization/Baton.h>
-#include <gtest/gtest.h>
 #include <thrift/lib/cpp/concurrency/FunctionRunner.h>
-#include <thrift/lib/cpp/concurrency/Monitor.h>
-#include <thrift/lib/cpp/concurrency/NumaThreadManager.h>
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 #include <thrift/lib/cpp/concurrency/Util.h>
 
 using namespace apache::thrift::concurrency;
 
-DECLARE_bool(thrift_numa_enabled);
-
 class ThreadManagerTest : public testing::Test {
  public:
-  ~ThreadManagerTest() override {
-    ThreadManager::setObserver(nullptr);
-  }
+  ~ThreadManagerTest() override { ThreadManager::setObserver(nullptr); }
+
  private:
   gflags::FlagSaver flagsaver_;
 };
@@ -51,12 +47,14 @@ class ThreadManagerTest : public testing::Test {
 // Loops until x==y for up to timeout ms.
 // The end result is the same as of {EXPECT,ASSERT}_EQ(x,y)
 // (depending on OP) if x!=y after the timeout passes
-#define X_EQUAL_SPECIFIC_TIMEOUT(OP, timeout, x, y) do { \
-    using std::chrono::steady_clock; \
-    using std::chrono::milliseconds;  \
-    auto end = steady_clock::now() + milliseconds(timeout);  \
-    while ((x) != (y) && steady_clock::now() < end)  {} \
-    OP##_EQ(x, y); \
+#define X_EQUAL_SPECIFIC_TIMEOUT(OP, timeout, x, y)         \
+  do {                                                      \
+    using std::chrono::steady_clock;                        \
+    using std::chrono::milliseconds;                        \
+    auto end = steady_clock::now() + milliseconds(timeout); \
+    while ((x) != (y) && steady_clock::now() < end) {       \
+    }                                                       \
+    OP##_EQ(x, y);                                          \
   } while (0)
 
 #define CHECK_EQUAL_SPECIFIC_TIMEOUT(timeout, x, y) \
@@ -70,14 +68,19 @@ class ThreadManagerTest : public testing::Test {
 #define CHECK_EQUAL_TIMEOUT(x, y) CHECK_EQUAL_SPECIFIC_TIMEOUT(1000, x, y)
 #define REQUIRE_EQUAL_TIMEOUT(x, y) REQUIRE_EQUAL_SPECIFIC_TIMEOUT(1000, x, y)
 
-class LoadTask: public Runnable {
+class LoadTask : public Runnable {
  public:
-  LoadTask(Monitor* monitor, size_t* count, int64_t timeout)
-    : monitor_(monitor),
-      count_(count),
-      timeout_(timeout),
-      startTime_(0),
-      endTime_(0) {}
+  LoadTask(
+      std::mutex* mutex,
+      std::condition_variable* cond,
+      size_t* count,
+      int64_t timeout)
+      : mutex_(mutex),
+        cond_(cond),
+        count_(count),
+        timeout_(timeout),
+        startTime_(0),
+        endTime_(0) {}
 
   void run() override {
     startTime_ = Util::currentTime();
@@ -85,16 +88,17 @@ class LoadTask: public Runnable {
     endTime_ = Util::currentTime();
 
     {
-      Synchronized s(*monitor_);
+      std::unique_lock<std::mutex> l(*mutex_);
 
       (*count_)--;
       if (*count_ == 0) {
-        monitor_->notify();
+        cond_->notify_one();
       }
     }
   }
 
-  Monitor* monitor_;
+  std::mutex* mutex_;
+  std::condition_variable* cond_;
   size_t* count_;
   int64_t timeout_;
   int64_t startTime_;
@@ -107,18 +111,19 @@ class LoadTask: public Runnable {
  * up properly on delete.
  */
 static void loadTest(size_t numTasks, int64_t timeout, size_t numWorkers) {
-  Monitor monitor;
+  std::mutex mutex;
+  std::condition_variable cond;
   size_t tasksLeft = numTasks;
 
-  auto threadManager =
-    ThreadManager::newSimpleThreadManager(numWorkers, 0, true);
+  auto threadManager = ThreadManager::newSimpleThreadManager(numWorkers, true);
   auto threadFactory = std::make_shared<PosixThreadFactory>();
   threadManager->threadFactory(threadFactory);
   threadManager->start();
 
   std::set<std::shared_ptr<LoadTask>> tasks;
   for (size_t n = 0; n < numTasks; n++) {
-    tasks.insert(std::make_shared<LoadTask>(&monitor, &tasksLeft, timeout));
+    tasks.insert(
+        std::make_shared<LoadTask>(&mutex, &cond, &tasksLeft, timeout));
   }
 
   int64_t startTime = Util::currentTime();
@@ -129,9 +134,9 @@ static void loadTest(size_t numTasks, int64_t timeout, size_t numWorkers) {
   int64_t tasksStartedTime = Util::currentTime();
 
   {
-    Synchronized s(monitor);
+    std::unique_lock<std::mutex> l(mutex);
     while (tasksLeft > 0) {
-      monitor.wait();
+      cond.wait(l);
     }
   }
   int64_t endTime = Util::currentTime();
@@ -170,11 +175,11 @@ static void loadTest(size_t numTasks, int64_t timeout, size_t numWorkers) {
 
   double overheadPct = (actualTime - idealTime) / idealTime;
   if (overheadPct < 0) {
-    overheadPct*= -1.0;
+    overheadPct *= -1.0;
   }
 
   LOG(INFO) << "ideal time: " << idealTime << "ms "
-            << "actual time: "<< actualTime << "ms "
+            << "actual time: " << actualTime << "ms "
             << "task startup time: " << taskStartTime << "ms "
             << "overhead: " << overheadPct * 100.0 << "%";
 
@@ -190,10 +195,10 @@ static void loadTest(size_t numTasks, int64_t timeout, size_t numWorkers) {
   int64_t fullIterations = numTasks / numWorkers;
   int64_t tasksOnLastIteration = numTasks % numWorkers;
   auto expectedTotalWaitTimeMs = std::chrono::milliseconds(
-    numWorkers * ((fullIterations * (fullIterations - 1)) / 2) * timeout +
-    tasksOnLastIteration * fullIterations * timeout);
-  auto idealAvgWaitUs = std::chrono::microseconds(expectedTotalWaitTimeMs) /
-    numTasks;
+      numWorkers * ((fullIterations * (fullIterations - 1)) / 2) * timeout +
+      tasksOnLastIteration * fullIterations * timeout);
+  auto idealAvgWaitUs =
+      std::chrono::microseconds(expectedTotalWaitTimeMs) / numTasks;
 
   LOG(INFO) << "avg wait time: " << waitTimeUs.count() << "us "
             << "avg run time: " << runTimeUs.count() << "us "
@@ -201,7 +206,7 @@ static void loadTest(size_t numTasks, int64_t timeout, size_t numWorkers) {
 
   const auto doubleMilliToMicro = [](double val) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
-      std::chrono::duration<double, std::milli>(val));
+        std::chrono::duration<double, std::milli>(val));
   };
   // Verify that the average run time was more than the timeout, but not
   // more than 10% over.
@@ -225,188 +230,85 @@ TEST_F(ThreadManagerTest, LoadTest) {
   loadTest(numTasks, timeout, numWorkers);
 }
 
-class BlockTask: public Runnable {
+class BlockTask : public Runnable {
  public:
-  BlockTask(Monitor* monitor, Monitor* bmonitor, bool* blocked, size_t* count)
-    : monitor_(monitor),
-      bmonitor_(bmonitor),
-      blocked_(blocked),
-      count_(count),
-      started_(false) {}
+  BlockTask(
+      std::mutex* mutex,
+      std::condition_variable* cond,
+      std::mutex* bmutex,
+      std::condition_variable* bcond,
+      bool* blocked,
+      size_t* count)
+      : mutex_(mutex),
+        cond_(cond),
+        bmutex_(bmutex),
+        bcond_(bcond),
+        blocked_(blocked),
+        count_(count),
+        started_(false) {}
 
   void run() override {
     started_ = true;
     {
-      Synchronized s(*bmonitor_);
+      std::unique_lock<std::mutex> l(*bmutex_);
       while (*blocked_) {
-        bmonitor_->wait();
+        bcond_->wait(l);
       }
     }
 
     {
-      Synchronized s(*monitor_);
+      std::unique_lock<std::mutex> l(*mutex_);
       (*count_)--;
       if (*count_ == 0) {
-        monitor_->notify();
+        cond_->notify_one();
       }
     }
   }
 
-  Monitor* monitor_;
-  Monitor* bmonitor_;
+  std::mutex* mutex_;
+  std::condition_variable* cond_;
+  std::mutex* bmutex_;
+  std::condition_variable* bcond_;
   bool* blocked_;
   size_t* count_;
   bool started_;
 };
 
-/**
- * Block test.
- * Create pendingTaskCountMax tasks.  Verify that we block adding the
- * pendingTaskCountMax + 1th task.  Verify that we unblock when a task
- * completes
- */
-static void blockTest(int64_t /*timeout*/, size_t numWorkers) {
-  size_t pendingTaskMaxCount = numWorkers;
-
-  auto threadManager =
-    ThreadManager::newSimpleThreadManager(numWorkers, pendingTaskMaxCount);
-  auto threadFactory = std::make_shared<PosixThreadFactory>();
-  threadManager->threadFactory(threadFactory);
-  threadManager->start();
-
-  Monitor monitor;
-  Monitor bmonitor;
-
-  // Add an initial set of tasks, 1 task per worker
-  bool blocked1 = true;
-  size_t tasksCount1 = numWorkers;
-  std::set<std::shared_ptr<BlockTask>> tasks;
-  for (size_t ix = 0; ix < numWorkers; ix++) {
-    auto task = std::make_shared<BlockTask>(
-        &monitor, &bmonitor, &blocked1, &tasksCount1);
-    tasks.insert(task);
-    threadManager->add(task);
-  }
-  REQUIRE_EQUAL_TIMEOUT(threadManager->totalTaskCount(), numWorkers);
-
-  // Add a second set of tasks.
-  // All of these will end up pending since the first set of tasks
-  // are using up all of the worker threads and are still blocked
-  bool blocked2 = true;
-  size_t tasksCount2 = pendingTaskMaxCount;
-  for (size_t ix = 0; ix < pendingTaskMaxCount; ix++) {
-    auto task = std::make_shared<BlockTask>(
-        &monitor, &bmonitor, &blocked2, &tasksCount2);
-    tasks.insert(task);
-    threadManager->add(task);
-  }
-
-  REQUIRE_EQUAL_TIMEOUT(threadManager->totalTaskCount(),
-                      numWorkers + pendingTaskMaxCount);
-  REQUIRE_EQUAL_TIMEOUT(threadManager->pendingTaskCountMax(),
-                      pendingTaskMaxCount);
-
-  // Attempt to add one more task.
-  // Since the pending task count is full, this should fail
-  bool blocked3 = true;
-  size_t tasksCount3 = 1;
-  auto extraTask = std::make_shared<BlockTask>(
-      &monitor, &bmonitor, &blocked3, &tasksCount3);
-  ASSERT_THROW(threadManager->add(extraTask, 1), TimedOutException);
-
-  ASSERT_THROW(threadManager->add(extraTask, -1), TooManyPendingTasksException);
-
-  // Unblock the first set of tasks
-  {
-    Synchronized s(bmonitor);
-    blocked1 = false;
-    bmonitor.notifyAll();
-  }
-  // Wait for the first set of tasks to all finish
-  {
-    Synchronized s(monitor);
-    while (tasksCount1 != 0) {
-      monitor.wait();
-    }
-  }
-
-  // We should be able to add the extra task now
-  try {
-    threadManager->add(extraTask, 1);
-  } catch (const TimedOutException& e) {
-    FAIL() << "Unexpected timeout adding task";
-  } catch (const TooManyPendingTasksException& e) {
-    FAIL() << "Unexpected failure adding task";
-  }
-
-  // Unblock the second set of tasks
-  {
-    Synchronized s(bmonitor);
-    blocked2 = false;
-    bmonitor.notifyAll();
-  }
-  {
-    Synchronized s(monitor);
-    while (tasksCount2 != 0) {
-      monitor.wait();
-    }
-  }
-
-  // Unblock the extra task
-  {
-    Synchronized s(bmonitor);
-    blocked3 = false;
-    bmonitor.notifyAll();
-  }
-  {
-    Synchronized s(monitor);
-    while (tasksCount3 != 0) {
-      monitor.wait();
-    }
-  }
-
-  CHECK_EQUAL_TIMEOUT(threadManager->totalTaskCount(), 0);
-}
-
-TEST_F(ThreadManagerTest, BlockTest) {
-  int64_t timeout = 50;
-  size_t numWorkers = 100;
-  blockTest(timeout, numWorkers);
-}
-
-static void expireTestCallback(std::shared_ptr<Runnable>,
-                               Monitor* monitor,
-                               size_t* count) {
-  Synchronized s(*monitor);
+static void expireTestCallback(
+    std::shared_ptr<Runnable>,
+    std::mutex* mutex,
+    std::condition_variable* cond,
+    size_t* count) {
+  std::unique_lock<std::mutex> l(*mutex);
   --(*count);
   if (*count == 0) {
-    monitor->notify();
+    cond->notify_one();
   }
 }
 
 static void expireTest(size_t numWorkers, int64_t expirationTimeMs) {
   size_t maxPendingTasks = numWorkers;
   size_t activeTasks = numWorkers + maxPendingTasks;
-  Monitor monitor;
+  std::mutex mutex;
+  std::condition_variable cond;
 
-  auto threadManager =
-    ThreadManager::newSimpleThreadManager(numWorkers, maxPendingTasks);
+  auto threadManager = ThreadManager::newSimpleThreadManager(numWorkers);
   auto threadFactory = std::make_shared<PosixThreadFactory>();
   threadManager->threadFactory(threadFactory);
-  threadManager->setExpireCallback(
-      std::bind(expireTestCallback, std::placeholders::_1,
-                     &monitor, &activeTasks));
+  threadManager->setExpireCallback(std::bind(
+      expireTestCallback, std::placeholders::_1, &mutex, &cond, &activeTasks));
   threadManager->start();
 
   // Add numWorkers + maxPendingTasks to fill up the ThreadManager's task queue
   std::vector<std::shared_ptr<BlockTask>> tasks;
   tasks.reserve(activeTasks);
 
-  Monitor bmonitor;
+  std::mutex bmutex;
+  std::condition_variable bcond;
   bool blocked = true;
   for (size_t n = 0; n < numWorkers + maxPendingTasks; ++n) {
     auto task = std::make_shared<BlockTask>(
-        &monitor, &bmonitor, &blocked, &activeTasks);
+        &mutex, &cond, &bmutex, &bcond, &blocked, &activeTasks);
     tasks.push_back(task);
     threadManager->add(task, 0, expirationTimeMs);
   }
@@ -416,28 +318,26 @@ static void expireTest(size_t numWorkers, int64_t expirationTimeMs) {
 
   // Unblock the tasks
   {
-    Synchronized s(bmonitor);
+    std::unique_lock<std::mutex> l(bmutex);
     blocked = false;
-    bmonitor.notifyAll();
+    bcond.notify_all();
   }
   // Wait for all tasks to complete or expire
   {
-    Synchronized s(monitor);
+    std::unique_lock<std::mutex> l(mutex);
     while (activeTasks != 0) {
-      monitor.wait();
+      cond.wait(l);
     }
   }
 
   // The first numWorkers tasks should have completed,
   // the remaining ones should have expired without running
-  size_t index = 0;
-  for (const auto& task : tasks) {
+  for (size_t index = 0; index < tasks.size(); ++index) {
     if (index < numWorkers) {
       EXPECT_TRUE(tasks[index]->started_);
     } else {
       EXPECT_TRUE(!tasks[index]->started_);
     }
-    ++index;
   }
 }
 
@@ -450,22 +350,25 @@ TEST_F(ThreadManagerTest, ExpireTest) {
 class AddRemoveTask : public Runnable,
                       public std::enable_shared_from_this<AddRemoveTask> {
  public:
-  AddRemoveTask(uint32_t timeoutUs,
-                const std::shared_ptr<ThreadManager>& manager,
-                Monitor* monitor,
-                int64_t* count,
-                int64_t* objectCount)
-    : timeoutUs_(timeoutUs),
-      manager_(manager),
-      monitor_(monitor),
-      count_(count),
-      objectCount_(objectCount) {
-    Synchronized s(monitor_);
+  AddRemoveTask(
+      uint32_t timeoutUs,
+      const std::shared_ptr<ThreadManager>& manager,
+      std::mutex* mutex,
+      std::condition_variable* cond,
+      int64_t* count,
+      int64_t* objectCount)
+      : timeoutUs_(timeoutUs),
+        manager_(manager),
+        mutex_(mutex),
+        cond_(cond),
+        count_(count),
+        objectCount_(objectCount) {
+    std::unique_lock<std::mutex> l(*mutex_);
     ++*objectCount_;
   }
 
   ~AddRemoveTask() override {
-    Synchronized s(monitor_);
+    std::unique_lock<std::mutex> l(*mutex_);
     --*objectCount_;
   }
 
@@ -473,7 +376,7 @@ class AddRemoveTask : public Runnable,
     usleep(timeoutUs_);
 
     {
-      Synchronized s(monitor_);
+      std::unique_lock<std::mutex> l(*mutex_);
 
       if (*count_ <= 0) {
         // The task count already dropped to 0.
@@ -484,7 +387,7 @@ class AddRemoveTask : public Runnable,
 
       --*count_;
       if (*count_ == 0) {
-        monitor_->notifyAll();
+        cond_->notify_all();
         return;
       }
     }
@@ -496,27 +399,29 @@ class AddRemoveTask : public Runnable,
  private:
   int32_t timeoutUs_;
   std::shared_ptr<ThreadManager> manager_;
-  Monitor* monitor_;
+  std::mutex* mutex_;
+  std::condition_variable* cond_;
   int64_t* count_;
   int64_t* objectCount_;
 };
 
 class WorkerCountChanger : public Runnable {
  public:
-  WorkerCountChanger(const std::shared_ptr<ThreadManager>& manager,
-                     Monitor* monitor,
-                     int64_t *count,
-                     int64_t* addAndRemoveCount)
-    : manager_(manager),
-      monitor_(monitor),
-      count_(count),
-      addAndRemoveCount_(addAndRemoveCount) {}
+  WorkerCountChanger(
+      const std::shared_ptr<ThreadManager>& manager,
+      std::mutex* mutex,
+      int64_t* count,
+      int64_t* addAndRemoveCount)
+      : manager_(manager),
+        mutex_(mutex),
+        count_(count),
+        addAndRemoveCount_(addAndRemoveCount) {}
 
   void run() override {
     // Continue adding and removing threads until the tasks are all done
     while (true) {
       {
-        Synchronized s(monitor_);
+        std::unique_lock<std::mutex> l(*mutex_);
         if (*count_ == 0) {
           return;
         }
@@ -534,6 +439,7 @@ class WorkerCountChanger : public Runnable {
 
     std::uniform_int_distribution<> taskDist(1, 50);
     uint32_t tasksToAdd = taskDist(rng_);
+    (void)tasksToAdd;
 
     // Sleep for a random amount of time
     std::uniform_int_distribution<> sleepDist(1000, 5000);
@@ -547,7 +453,7 @@ class WorkerCountChanger : public Runnable {
  private:
   std::mt19937 rng_;
   std::shared_ptr<ThreadManager> manager_;
-  Monitor* monitor_;
+  std::mutex* mutex_;
   int64_t* count_;
   int64_t* addAndRemoveCount_;
 };
@@ -569,7 +475,8 @@ TEST_F(ThreadManagerTest, AddRemoveWorker) {
   threadManager->threadFactory(threadFactory);
   threadManager->start();
 
-  Monitor monitor;
+  std::mutex mutex;
+  std::condition_variable cond;
   int64_t currentTaskObjects = 0;
   int64_t count = numTasks;
   int64_t addRemoveCount = 0;
@@ -579,17 +486,21 @@ TEST_F(ThreadManagerTest, AddRemoveWorker) {
   for (int64_t n = 0; n < numParallelTasks; ++n) {
     int64_t taskTimeoutUs = taskTimeoutDist(rng);
     auto task = std::make_shared<AddRemoveTask>(
-        taskTimeoutUs, threadManager, &monitor, &count,
+        taskTimeoutUs,
+        threadManager,
+        &mutex,
+        &cond,
+        &count,
         &currentTaskObjects);
     threadManager->add(task);
   }
 
   auto addRemoveFactory = std::make_shared<PosixThreadFactory>();
   addRemoveFactory->setDetached(false);
-  std::deque<std::shared_ptr<Thread> > addRemoveThreads;
+  std::deque<std::shared_ptr<Thread>> addRemoveThreads;
   for (int64_t n = 0; n < numAddRemoveWorkers; ++n) {
     auto worker = std::make_shared<WorkerCountChanger>(
-          threadManager, &monitor, &count, &addRemoveCount);
+        threadManager, &mutex, &count, &addRemoveCount);
     auto thread = addRemoveFactory->newThread(worker);
     addRemoveThreads.push_back(thread);
     thread->start();
@@ -614,7 +525,7 @@ TEST_F(ThreadManagerTest, NeverStartedTest) {
   // This ensures that calling stop() on an unstarted ThreadManager works
   // properly.
   {
-    auto threadManager = ThreadManager::newSimpleThreadManager(10);
+    auto threadManager = ThreadManager::newSimpleThreadManager(10); //
   }
 
   // Destroy a ThreadManager that has a ThreadFactory but was never started.
@@ -635,17 +546,70 @@ TEST_F(ThreadManagerTest, OnlyStartedTest) {
   }
 }
 
+TEST_F(ThreadManagerTest, RequestContext) {
+  class TestData : public folly::RequestData {
+   public:
+    explicit TestData(int data) : data(data) {}
+
+    bool hasCallback() override { return false; }
+
+    int data;
+  };
+
+  // Create new request context for this scope.
+  folly::RequestContextScopeGuard rctx;
+  EXPECT_EQ(nullptr, folly::RequestContext::get()->getContextData("test"));
+  folly::RequestContext::get()->setContextData(
+      "test", std::make_unique<TestData>(42));
+  auto data = folly::RequestContext::get()->getContextData("test");
+  EXPECT_EQ(42, dynamic_cast<TestData*>(data)->data);
+
+  struct VerifyRequestContext {
+    ~VerifyRequestContext() {
+      auto data2 = folly::RequestContext::get()->getContextData("test");
+      EXPECT_TRUE(data2 != nullptr);
+      if (data2 != nullptr) {
+        EXPECT_EQ(42, dynamic_cast<TestData*>(data2)->data);
+      }
+    }
+  };
+
+  {
+    auto threadManager = ThreadManager::newSimpleThreadManager(10);
+    auto threadFactory = std::make_shared<PosixThreadFactory>();
+    threadManager->threadFactory(threadFactory);
+    threadManager->start();
+    threadManager->add([] { VerifyRequestContext(); });
+    threadManager->add([x = VerifyRequestContext()] {});
+    threadManager->join();
+  }
+}
+
+TEST_F(ThreadManagerTest, Exceptions) {
+  class ThrowTask : public Runnable {
+   public:
+    void run() override {
+      throw std::runtime_error("This should not crash the program");
+    }
+  };
+  {
+    auto threadManager = ThreadManager::newSimpleThreadManager(10);
+    auto threadFactory = std::make_shared<PosixThreadFactory>();
+    threadManager->threadFactory(threadFactory);
+    threadManager->start();
+    threadManager->add(std::make_shared<ThrowTask>());
+    threadManager->join();
+  }
+}
+
 class TestObserver : public ThreadManager::Observer {
  public:
   TestObserver(int64_t timeout, const std::string& expectedName)
-    : timesCalled(0)
-    , timeout(timeout)
-    , expectedName(expectedName) {}
+      : timesCalled(0), timeout(timeout), expectedName(expectedName) {}
 
   void preRun(folly::RequestContext*) override {}
   void postRun(
-      folly::RequestContext*,
-      const ThreadManager::RunStats& stats) override {
+      folly::RequestContext*, const ThreadManager::RunStats& stats) override {
     EXPECT_EQ(expectedName, stats.threadPoolName);
 
     // Note: Technically could fail if system clock changes.
@@ -660,75 +624,15 @@ class TestObserver : public ThreadManager::Observer {
   std::string expectedName;
 };
 
-TEST_F(ThreadManagerTest, NumaThreadManagerTest) {
-  gflags::FlagSaver saver;
-  FLAGS_thrift_numa_enabled = true;
-
-  if (numa_available() == -1) {
-    LOG(ERROR) << "numa is unavailable, skipping NumaThreadManagerTest";
-    return;
-  }
-
-  auto numa = std::make_unique<NumaThreadManager>(2);
-  bool failed = false;
-
-  numa->setNamePrefix("foo");
-  numa->start();
-
-  folly::Synchronized<std::set<int>> nodes;
-
-  auto data = RequestContext::get()->getContextData("numa");
-  EXPECT_EQ(nullptr, data);
-
-  auto checkFunc = FunctionRunner::create([&](){
-      auto data = RequestContext::get()->getContextData(
-        "numa");
-      // Check that the request is not bound unless requested
-      if (nullptr != data) {
-        failed = true;
-      }
-      auto node = NumaThreadFactory::getNumaNode();
-      SYNCHRONIZED(nodes) {
-        nodes.insert(node);
-      }
-
-      numa->add(FunctionRunner::create([=,&failed]() {
-            auto data = RequestContext::get()->getContextData(
-              "numa");
-            if (nullptr != data) {
-              failed = true;
-            }
-            // Check that multiple calls stay on the same node
-            auto node2 = NumaThreadFactory::getNumaNode();
-            if (node != node2) {
-              failed = true;
-            }
-          }),
-        0,
-        0,
-        true,
-        true);
-    });
-
-  for (int i = 0; i < 100; i++) {
-    numa->add(checkFunc,
-    0,
-    0,
-    true,
-    true);
-  }
-
-  numa->join();
-  EXPECT_EQ(numa_num_configured_nodes(), nodes->size());
-  EXPECT_FALSE(failed);
-}
-
 class FailThread : public PthreadThread {
  public:
-  FailThread(int policy, int priority, int stackSize, bool detached,
-             std::shared_ptr<Runnable> runnable)
-    : PthreadThread(policy, priority, stackSize, detached, runnable) {
-  }
+  FailThread(
+      int policy,
+      int priority,
+      int stackSize,
+      bool detached,
+      std::shared_ptr<Runnable> runnable)
+      : PthreadThread(policy, priority, stackSize, detached, runnable) {}
 
   void start() override { throw 2; }
 };
@@ -737,31 +641,38 @@ class FailThreadFactory : public PosixThreadFactory {
  public:
   class FakeImpl : public Impl {
    public:
-    FakeImpl(POLICY policy, PosixThreadFactory::PRIORITY priority,
-             int stackSize, DetachState detached)
-      : Impl(policy, priority, stackSize, detached) {
-    }
+    FakeImpl(
+        POLICY policy,
+        PosixThreadFactory::THREAD_PRIORITY priority,
+        int stackSize,
+        DetachState detached)
+        : Impl(policy, priority, stackSize, detached) {}
 
-    std::shared_ptr<Thread> newThread(const std::shared_ptr<Runnable>& runnable,
-                                      DetachState detachState) const override {
+    std::shared_ptr<Thread> newThread(
+        const std::shared_ptr<Runnable>& runnable,
+        DetachState detachState) const override {
       auto result = std::make_shared<FailThread>(
           toPthreadPolicy(policy_),
-          toPthreadPriority(policy_, priority_), stackSize_,
-          detachState == DETACHED, runnable);
+          toPthreadPriority(policy_, priority_),
+          stackSize_,
+          detachState == DETACHED,
+          runnable);
       result->weakRef(result);
       runnable->thread(result);
       return result;
     }
   };
 
-  explicit FailThreadFactory(POLICY /*policy*/=kDefaultPolicy,
-                             PRIORITY /*priority*/=kDefaultPriority,
-                             int /*stackSize*/=kDefaultStackSizeMB,
-                             bool detached=true) {
-   impl_ = std::make_shared<FailThreadFactory::FakeImpl>(
+  explicit FailThreadFactory(
+      POLICY /*policy*/ = kDefaultPolicy,
+      THREAD_PRIORITY /*priority*/ = kDefaultPriority,
+      int /*stackSize*/ = kDefaultStackSizeMB,
+      bool detached = true) {
+    impl_ = std::make_shared<FailThreadFactory::FakeImpl>(
         kDefaultPolicy,
         kDefaultPriority,
-        kDefaultStackSizeMB, detached ? DETACHED : ATTACHED);
+        kDefaultStackSizeMB,
+        detached ? DETACHED : ATTACHED);
   }
 };
 
@@ -774,6 +685,7 @@ class DummyFailureClass {
     threadManager_->threadFactory(threadFactory);
     threadManager_->start();
   }
+
  private:
   std::shared_ptr<ThreadManager> threadManager_;
 };
@@ -784,31 +696,12 @@ TEST_F(ThreadManagerTest, ThreadStartFailureTest) {
   }
 }
 
-TEST_F(ThreadManagerTest, NumaThreadManagerBind) {
-  gflags::FlagSaver saver;
-  FLAGS_thrift_numa_enabled = true;
-
-  auto numa = std::make_unique<NumaThreadManager>(2);
-  numa->setNamePrefix("foo");
-  numa->start();
-
-  // Test binding the request.  Only works on threads started with
-  // NumaThreadManager.
-  numa->add(FunctionRunner::create([=](){
-      // Try binding the numa node
-      NumaThreadFactory::setNumaNode();
-      auto node = NumaThreadFactory::getNumaNode();
-      EXPECT_NE(-1, node);
-      }));
-  numa->join();
-}
-
 TEST_F(ThreadManagerTest, ObserverTest) {
-  int64_t timeout = 1000;
   auto observer = std::make_shared<TestObserver>(1000, "foo");
   ThreadManager::setObserver(observer);
 
-  Monitor monitor;
+  std::mutex mutex;
+  std::condition_variable cond;
   size_t tasks = 1;
 
   auto threadManager = ThreadManager::newSimpleThreadManager(10);
@@ -816,7 +709,7 @@ TEST_F(ThreadManagerTest, ObserverTest) {
   threadManager->threadFactory(std::make_shared<PosixThreadFactory>());
   threadManager->start();
 
-  auto task = std::make_shared<LoadTask>(&monitor, &tasks, 1000);
+  auto task = std::make_shared<LoadTask>(&mutex, &cond, &tasks, 1000);
   threadManager->add(task);
   threadManager->join();
   EXPECT_EQ(1, observer->timesCalled);
@@ -829,14 +722,14 @@ TEST_F(ThreadManagerTest, ObserverAssignedAfterStart) {
   };
   class MyObserver : public ThreadManager::Observer {
    public:
-    MyObserver(std::string name, std::shared_ptr<std::string> tgt) :
-      name_(std::move(name)), tgt_(std::move(tgt)) {}
+    MyObserver(std::string name, std::shared_ptr<std::string> tgt)
+        : name_(std::move(name)), tgt_(std::move(tgt)) {}
     void preRun(folly::RequestContext*) override {}
     void postRun(
-        folly::RequestContext*,
-        const ThreadManager::RunStats&) override {
+        folly::RequestContext*, const ThreadManager::RunStats&) override {
       *tgt_ = name_;
     }
+
    private:
     std::string name_;
     std::shared_ptr<std::string> tgt_;
@@ -858,13 +751,12 @@ TEST_F(ThreadManagerTest, ObserverAssignedAfterStart) {
 }
 
 TEST_F(ThreadManagerTest, PosixThreadFactoryPriority) {
-  auto getNiceValue = [](PosixThreadFactory::PRIORITY prio) -> int {
+  auto getNiceValue = [](PosixThreadFactory::THREAD_PRIORITY prio) -> int {
     PosixThreadFactory factory(PosixThreadFactory::OTHER, prio);
     factory.setDetached(false);
     int result = 0;
-    auto t = factory.newThread(FunctionRunner::create([&] {
-      result = getpriority(PRIO_PROCESS, 0);
-    }));
+    auto t = factory.newThread(
+        FunctionRunner::create([&] { result = getpriority(PRIO_PROCESS, 0); }));
     t->start();
     t->join();
     return result;
@@ -872,17 +764,18 @@ TEST_F(ThreadManagerTest, PosixThreadFactoryPriority) {
 
   // NOTE: Test may not have permission to raise priority,
   // so use prio <= NORMAL.
-  EXPECT_EQ(0, getNiceValue(PosixThreadFactory::NORMAL));
-  EXPECT_LT(0, getNiceValue(PosixThreadFactory::LOW));
-  std::thread([&] {
+  EXPECT_EQ(0, getNiceValue(PosixThreadFactory::NORMAL_PRI));
+  EXPECT_LT(0, getNiceValue(PosixThreadFactory::LOW_PRI));
+  auto th = std::thread([&] {
     for (int i = 0; i < 20; ++i) {
       if (setpriority(PRIO_PROCESS, 0, i) != 0) {
         PLOG(WARNING) << "failed setpriority(" << i << ")";
         continue;
       }
-      EXPECT_EQ(i, getNiceValue(PosixThreadFactory::INHERITED));
+      EXPECT_EQ(i, getNiceValue(PosixThreadFactory::INHERITED_PRI));
     }
-  }).join();
+  });
+  th.join();
 }
 
 TEST_F(ThreadManagerTest, PriorityThreadManagerWorkerCount) {
@@ -927,22 +820,24 @@ TEST_F(ThreadManagerTest, PriorityThreadManagerWorkerCount) {
 }
 
 TEST_F(ThreadManagerTest, PriorityQueueThreadManagerExecutor) {
-  auto threadManager = ThreadManager::newPriorityQueueThreadManager(
-    1,
-    true /*stats*/,
-    10
-  );
+  auto threadManager =
+      ThreadManager::newPriorityQueueThreadManager(1, true /*stats*/);
   threadManager->start();
   folly::Baton<> reqSyncBaton;
   folly::Baton<> reqDoneBaton;
   // block the TM
-  threadManager->add([&] {reqSyncBaton.wait();});
+  threadManager->add([&] { reqSyncBaton.wait(); });
 
   std::string foo = "";
-  threadManager->addWithPriority([&] {foo += "a"; reqDoneBaton.post();}, 0);
+  threadManager->addWithPriority(
+      [&] {
+        foo += "a";
+        reqDoneBaton.post();
+      },
+      0);
   // Should be added by default at highest priority
-  threadManager->add([&] {foo += "b";});
-  threadManager->addWithPriority([&] {foo += "c";}, 1);
+  threadManager->add([&] { foo += "b"; });
+  threadManager->addWithPriority([&] { foo += "c"; }, 1);
 
   // unblock the TM
   reqSyncBaton.post();
@@ -952,3 +847,52 @@ TEST_F(ThreadManagerTest, PriorityQueueThreadManagerExecutor) {
 
   EXPECT_EQ("bca", foo);
 }
+
+std::array<std::function<std::shared_ptr<ThreadManager>()>, 3> factories = {
+    std::bind(
+        (std::shared_ptr<ThreadManager>(*)(
+            size_t, bool))ThreadManager::newSimpleThreadManager,
+        1,
+        false),
+    std::bind(ThreadManager::newPriorityQueueThreadManager, 1, false),
+    []() -> std::shared_ptr<apache::thrift::concurrency::ThreadManager> {
+      return PriorityThreadManager::newPriorityThreadManager({{
+          1 /*HIGH_IMPORTANT*/,
+          2 /*HIGH*/,
+          3 /*IMPORTANT*/,
+          4 /*NORMAL*/,
+          5 /*BEST_EFFORT*/
+      }});
+    }};
+class JoinTest : public testing::TestWithParam<
+                     std::function<std::shared_ptr<ThreadManager>()>> {};
+
+TEST_P(JoinTest, Join) {
+  auto threadManager = GetParam()();
+  auto threadFactory = std::make_shared<PosixThreadFactory>();
+  threadManager->threadFactory(threadFactory);
+  threadManager->start();
+  folly::Baton<> wait1, wait2, joinStarted, joined;
+  // block the TM
+  threadManager->add(
+      FunctionRunner::create([&] { wait1.wait(); }), 0, 0, false);
+  threadManager->add(FunctionRunner::create([&] { wait2.wait(); }), 0, 0, true);
+  std::thread t([&] {
+    joinStarted.post();
+    threadManager->join();
+    joined.post();
+  });
+
+  joinStarted.wait();
+  EXPECT_FALSE(joined.try_wait_for(std::chrono::milliseconds(100)));
+  joined.reset();
+  wait1.post();
+  EXPECT_FALSE(joined.try_wait_for(std::chrono::milliseconds(100)));
+  joined.reset();
+  wait2.post();
+  EXPECT_TRUE(joined.try_wait_for(std::chrono::milliseconds(100)));
+  t.join();
+}
+
+INSTANTIATE_TEST_CASE_P(
+    ThreadManagerTest, JoinTest, ::testing::ValuesIn(factories));

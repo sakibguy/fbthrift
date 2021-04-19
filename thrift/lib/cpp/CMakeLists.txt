@@ -1,9 +1,23 @@
-get_property(reflection-cpp2-SOURCES GLOBAL PROPERTY reflection-cpp2-SOURCES)
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 
 add_library(
   thrift-core
 
   Thrift.cpp
+  ../cpp2/FieldRef.cpp
 )
 target_include_directories(
   thrift-core
@@ -13,6 +27,7 @@ target_include_directories(
 target_link_libraries(
   thrift-core
   PUBLIC
+    fmt::fmt
     Folly::folly
 )
 
@@ -34,49 +49,33 @@ target_link_libraries(
     ${GLOG_LIBRARIES}
 )
 
-bypass_source_check("${reflection-cpp2-SOURCES}")
-add_library(
-  protocol
-
-  protocol/TDebugProtocol.cpp
-  protocol/TJSONProtocol.cpp
-  protocol/TBase64Utils.cpp
-  protocol/TProtocolException.cpp
-  protocol/TSimpleJSONProtocol.cpp
-  ${reflection-cpp2-SOURCES}
-)
-add_dependencies(protocol reflection-cpp2-target)
-target_link_libraries(
-  protocol
-  PUBLIC
-    Folly::folly
-    ${GLOG_LIBRARIES}
-)
-
 add_library(
   transport
 
   transport/TTransportException.cpp
   transport/TFDTransport.cpp
-  transport/THeaderTransport.cpp
   transport/THttpTransport.cpp
   transport/THttpClient.cpp
   transport/THttpServer.cpp
   transport/TSocket.cpp
-  transport/TServerSocket.cpp
   transport/TBufferTransports.cpp
   transport/THeader.cpp
   transport/TZlibTransport.cpp
-  util/FdUtils.cpp
+  ../cpp2/transport/rocket/framing/Util.cpp
   util/PausableTimer.cpp
   util/THttpParser.cpp
   util/VarintUtils.cpp
+)
+add_dependencies(
+  transport
+  rpcmetadata
 )
 target_link_libraries(
   transport
   PUBLIC
     concurrency
     thrift-core
+    rpcmetadata
     Folly::folly
     ${OPENSSL_LIBRARIES}
     ${ZLIB_LIBRARIES}
@@ -88,11 +87,8 @@ add_library(
 
   ContextStack.cpp
   EventHandlerBase.cpp
-  async/TAsyncSocketFactory.cpp
-  async/TAsyncSSLSocketFactory.cpp
   async/TBinaryAsyncChannel.cpp
   async/TFramedAsyncChannel.cpp
-  async/THeaderAsyncChannel.cpp
   async/THttpAsyncChannel.cpp
   async/TUnframedAsyncChannel.cpp
   async/TZlibAsyncChannel.cpp
@@ -111,15 +107,14 @@ target_link_libraries(
 
 add_library(
   thrift
-
-  VirtualProfiling.cpp
+  INTERFACE
 )
 target_link_libraries(
   thrift
-  PUBLIC
+  INTERFACE
     async
     concurrency
-    protocol
+    thriftprotocol
     transport
     Folly::folly
     ${GLOG_LIBRARIES}
@@ -139,11 +134,17 @@ foreach(dir ${THRIFT1_HEADER_DIRS})
           FILES_MATCHING PATTERN "*.tcc")
 endforeach()
 
+if (BUILD_SHARED_LIBS)
+  # all but thrift since it's an interface
+  set_target_properties(thrift-core concurrency transport async
+    PROPERTIES VERSION ${PROJECT_VERSION}
+    )
+endif()
+
 install(
   TARGETS
     thrift-core
     concurrency
-    protocol
     transport
     async
     thrift

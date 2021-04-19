@@ -1,3 +1,17 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -250,42 +264,3 @@ class TestTCppServerPriorities(BaseTest):
 
     def test_header_priorities(self):
         pass
-
-    def test_server_queues(self):
-        handler = self.PriorityHandler()
-        processor = PriorityService.Processor(handler)
-
-        # Make sure there are 0 threads for best_effort and 1 queue slot
-        # (the queue size cannot be set to 0)
-        cppserver = TCppServerTestManager.make_server(processor)
-        cppserver.setNewPriorityThreadManager(
-            best_effort=0,
-            normal=1,
-            important=1,
-            high=0,
-            high_important=0,
-            enableTaskStats=False,
-            maxQueueLen=1
-        )
-
-        # Since we'll have a Cpp2Worker stuck, don't wait for it to exit
-        cppserver.setWorkersJoinTimeout(0)
-
-        with TCppServerTestManager(cppserver) as server:
-            # Send a request to the server and return immediately
-            try:
-                self._expiring_rpc(
-                    server, PriorityService, 'bestEffort', 0, None)
-            except TTransportException:
-                pass
-
-            # The queue for bestEffort should be full, as the first request
-            # will never get processed (best_effort=0)
-            with self.assertRaises(TApplicationException):
-                self._perform_rpc(server, PriorityService, 'bestEffort')
-
-            # However the normal prio one should go through
-            self.assertTrue(
-                self._perform_rpc(server, PriorityService, 'normal'))
-
-            cppserver.getThreadManager().clearPending()

@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 cpp_include "<unordered_map>"
 
 namespace cpp2 apache.thrift.reflection
@@ -31,28 +47,27 @@ enum Type {
 }
 
 struct StructField {
-  1: bool isRequired,
-  2: i64 type,
-  3: string name,
-  4: optional map<string, string>
-    ( cpp.template = "std::unordered_map" )
-    annotations,
-  5: i16 order, // lexical order of this field, 0-based
+  1: bool isRequired;
+  2: i64 type;
+  3: string name;
+  4: optional map<string, string> (
+    cpp.template = "std::unordered_map",
+  ) annotations;
+  5: i16 order; // lexical order of this field, 0-based
 }
 
 struct DataType {
-  1: string name,
-  2: optional map<i16, StructField>
-    ( cpp.template = "std::unordered_map" )
-    fields,
-  3: optional i64 mapKeyType,
-  4: optional i64 valueType,
-  5: optional map<string, i32> ( cpp.template = "std::unordered_map" )
-    enumValues,
+  1: string name;
+  2: optional map<i16, StructField> (
+    cpp.template = "std::unordered_map",
+  ) fields;
+  3: optional i64 mapKeyType;
+  4: optional i64 valueType;
+  5: optional map<string, i32> (cpp.template = "std::unordered_map") enumValues;
 }
 
 struct Schema {
-  1: map<i64, DataType> ( cpp.template = "std::unordered_map" ) dataTypes,
+  1: map<i64, DataType> (cpp.template = "std::unordered_map") dataTypes;
   // name to type
-  2: map<string, i64> ( cpp.template = "std::unordered_map" ) names,
+  2: map<string, i64> (cpp.template = "std::unordered_map") names;
 }

@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,68 +23,54 @@ are special because we try to memoize their wrappers on the parent handler
 if they have been previously retrieved.
 
 }}{{#type:iobuf?}}{{!
-}}if self.__{{field:name}} is None:
-    self.__{{field:name}} = __iobuf.IOBuf.create(ptr_address(deref(self._cpp_obj).{{field:name}}), self)
-return self.__{{field:name}}{{!
+}}if self.__fbthrift_cached_{{field:py_name}} is None:
+    self.__fbthrift_cached_{{field:py_name}} = _fbthrift_iobuf.IOBuf.create(ptr_address(deref(self._cpp_obj).{{> CythonFieldRef}}), self)
+return self.__fbthrift_cached_{{field:py_name}}{{!
 }}{{/type:iobuf?}}{{!
 }}{{#type:iobufRef?}}{{!
-}}if self.__{{field:name}} is None:
-    if not deref(self._cpp_obj).{{field:name}}:
+}}if self.__fbthrift_cached_{{field:py_name}} is None:
+    if not deref(self._cpp_obj).{{> CythonFieldValueRef}}:
         return None
-    self.__{{field:name}} = __iobuf.IOBuf.create(deref(self._cpp_obj).{{field:name}}.get(), self)
-return self.__{{field:name}}{{!
+    self.__fbthrift_cached_{{field:py_name}} = _fbthrift_iobuf.IOBuf.create(deref(self._cpp_obj).{{> CythonFieldValueRef}}.get(), self)
+return self.__fbthrift_cached_{{field:py_name}}{{!
 }}{{/type:iobufRef?}}{{!
+}}{{#type:flexibleBinary?}}{{!
+  }}return (<const char*>deref(self._cpp_obj).{{> CythonFieldValueRef}}{{!
+    }}.data())[:deref(self._cpp_obj).{{> CythonFieldValueRef}}{{!
+    }}.size()]{{!
+}}{{/type:flexibleBinary?}}{{!
 }}{{^type:hasCustomTypeBehavior?}}{{!
 }}{{#field:reference?}}{{!
-}}if self.__{{field:name}} is None:
-    if not deref(self._cpp_obj).{{field:name}}:
+}}if self.__fbthrift_cached_{{field:py_name}} is None:
+    if not deref(self._cpp_obj).{{> CythonFieldValueRef}}:
         return None
     {{! Use an aliasing constructor since the object we're returning is still
         managed by the top-level object, possible via a unique_ptr }}
-    self.__{{field:name}} = {{> types/CythonPythonType}}.create(aliasing_constructor_{{field:name}}({{!
-      }}self._cpp_obj, {{!
-        If this is a shared_const ref, we cast away the constness as part of
-        creating the new object (since the new object needs a plain shared_ptr).
-        This is unsafe in theory but seems ok in practice, since we never modify
-        our underlying object.
-      }}{{#field:shared_const_ref?}}<{{> types/CythonCppType}}*>{{/field:shared_const_ref?}}{{!
-      }}(deref(self._cpp_obj).{{field:name}}.get())))
-return self.__{{field:name}}{{!
+    self.__fbthrift_cached_{{field:py_name}} = {{> types/CythonPythonType}}.create(__reference_shared_ptr({{!
+      }}deref(deref(self._cpp_obj).{{> CythonFieldValueRef}}), self._cpp_obj))
+return self.__fbthrift_cached_{{field:py_name}}{{!
 }}{{/field:reference?}}{{!
 }}{{^field:reference?}}{{!
 }}{{#type:base?}}{{!
   }}return {{!
     }}{{#type:bool?}}<pbool> {{/type:bool?}}{{!
     }}{{#type:string?}}(<bytes>{{/type:string?}}{{!
-    }}self._cpp_obj.get().{{field:name}}{{!
-    }}{{#program:optionals?}}{{#field:optional?}}.value(){{/field:optional?}}{{/program:optionals?}}{{!
+    }}deref(self._cpp_obj).{{> CythonFieldValueRef}}{{!
     }}{{#type:string?}}).decode('UTF-8'){{/type:string?}}{{!
 }}{{/type:base?}}{{!
-}}{{#type:enum?}}{{!
-  }}return translate_cpp_enum_to_python({{!
-    }}{{> types/CythonPythonType}}, {{!
-    }}<int>({{!
-    }}deref(self._cpp_obj).{{field:name}}{{!
-    }}{{#program:optionals?}}{{#field:optional?}}.value(){{/field:optional?}}{{/program:optionals?}}{{!
-    }})){{!
-}}{{/type:enum?}}{{!
-}}{{#type:struct?}}{{!
-}}if self.__{{field:name}} is None:
-    self.__{{field:name}} = {{> types/CythonPythonType}}.create({{!
-      }}make_shared[{{> types/CythonCppType}}]({{!
-      }}deref(self._cpp_obj).{{field:name}}{{!
-      }}{{#program:optionals?}}{{#field:optional?}}.value(){{/field:optional?}}{{/program:optionals?}}{{!
-      }}))
-return self.__{{field:name}}{{!
-}}{{/type:struct?}}{{!
-}}{{#type:container?}}{{!
-}}if self.__{{field:name}} is None:
-    self.__{{field:name}} = {{> types/CythonPythonType}}.create({{!
-      }}make_shared[{{> types/CythonCppType}}]({{!
-      }}deref(self._cpp_obj).{{field:name}}{{!
-      }}{{#program:optionals?}}{{#field:optional?}}.value(){{/field:optional?}}{{/program:optionals?}}{{!
-      }}))
-return self.__{{field:name}}{{!
-}}{{/type:container?}}{{!
+}}{{^type:base?}}{{!
+}}if self.__fbthrift_cached_{{field:py_name}} is None:
+    self.__fbthrift_cached_{{field:py_name}} = {{!
+      }}{{#type:enum?}}translate_cpp_enum_to_python({{!
+        }}{{> types/CythonPythonType}}, {{!
+        }}<int>({{!
+        }}deref(self._cpp_obj).{{> CythonFieldValueRef}}{{!
+      }})){{/type:enum?}}{{!
+      }}{{^type:enum?}}{{> types/CythonPythonType}}.create(__reference_shared_ptr({{!
+      }}deref(self._cpp_obj).{{> CythonFieldRef}}, {{!
+      }}self._cpp_obj{{!
+      }})){{/type:enum?}}
+return self.__fbthrift_cached_{{field:py_name}}{{!
+}}{{/type:base?}}{{!
 }}{{/field:reference?}}{{!
 }}{{/type:hasCustomTypeBehavior?}}

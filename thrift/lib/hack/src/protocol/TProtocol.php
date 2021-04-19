@@ -1,14 +1,21 @@
 <?hh
-
-/**
-* Copyright (c) 2006- Facebook
-* Distributed under the Thrift Software License
-*
-* See accompanying file LICENSE or visit the Thrift site at:
-* http://developers.facebook.com/thrift/
-*
-* @package thrift.protocol
-*/
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @package thrift.protocol
+ */
 
 /**
  * Protocol base class module.
@@ -138,22 +145,34 @@ abstract class TProtocol {
    * @param int $type message type TMessageType::CALL or TMessageType::REPLY
    * @param int $seqid The sequence id of this message
    */
-  public abstract function readMessageBegin(&$name, &$type, &$seqid);
+  public abstract function readMessageBegin(
+    inout $name,
+    inout $type,
+    inout $seqid,
+  );
 
   /**
    * Read the close of message
    */
   public abstract function readMessageEnd();
 
-  public abstract function readStructBegin(&$name);
+  public abstract function readStructBegin(inout $name);
 
   public abstract function readStructEnd();
 
-  public abstract function readFieldBegin(&$name, &$fieldType, &$fieldId);
+  public abstract function readFieldBegin(
+    inout $name,
+    inout $fieldType,
+    inout $fieldId,
+  );
 
   public abstract function readFieldEnd();
 
-  public abstract function readMapBegin(&$keyType, &$valType, &$size);
+  public abstract function readMapBegin(
+    inout $keyType,
+    inout $valType,
+    inout $size,
+  );
 
   public function readMapHasNext(): bool {
     throw new TProtocolException(
@@ -225,10 +244,14 @@ abstract class TProtocol {
       case TType::STRING:
         return $this->readString($_ref);
       case TType::STRUCT: {
-          $result = $this->readStructBegin($_ref);
+          $result = $this->readStructBegin(inout $_ref);
           while (true) {
             $ftype = null;
-            $result += $this->readFieldBegin($_ref, $ftype, $_ref);
+            $result += $this->readFieldBegin(
+              inout $_ref,
+              inout $ftype,
+              inout $_ref,
+            );
             if ($ftype == TType::STOP) {
               break;
             }
@@ -242,7 +265,11 @@ abstract class TProtocol {
           $keyType = null;
           $valType = null;
           $size = 0;
-          $result = $this->readMapBegin($keyType, $valType, $size);
+          $result = $this->readMapBegin(
+            inout $keyType,
+            inout $valType,
+            inout $size,
+          );
           for ($i = 0; $size === null || $i < $size; $i++) {
             if ($size === null && !$this->readMapHasNext()) {
               break;

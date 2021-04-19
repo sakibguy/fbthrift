@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,31 +14,33 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
+#include <folly/synchronization/Baton.h>
 
-#include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
-#include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/async/RequestChannel.h>
+#include <thrift/lib/cpp2/server/ThriftServer.h>
+#include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
 
-#include <folly/io/async/AsyncServerSocket.h>
-#include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
-#include <thrift/lib/cpp2/async/StubSaslClient.h>
-#include <thrift/lib/cpp2/async/StubSaslServer.h>
 #include <thrift/lib/cpp2/test/util/TestInterface.h>
 
 #include <thrift/lib/cpp2/test/util/TestThriftServerFactory.h>
-#include <thrift/lib/cpp2/test/util/TestProxygenThriftServerFactory.h>
 
-#include <thrift/lib/cpp2/test/util/TestHeaderClientChannelFactory.h>
 #include <thrift/lib/cpp2/test/util/TestHTTPClientChannelFactory.h>
+#include <thrift/lib/cpp2/test/util/TestHeaderClientChannelFactory.h>
 
+#include <folly/CancellationToken.h>
+#include <folly/Optional.h>
+#include <folly/Synchronized.h>
 #include <folly/executors/GlobalExecutor.h>
 #include <folly/fibers/FiberManagerMap.h>
+#include <folly/io/async/AsyncServerSocket.h>
+#include <folly/io/async/EventBase.h>
 
 #include <boost/cast.hpp>
 #include <boost/lexical_cast.hpp>
@@ -47,9 +49,9 @@
 using namespace apache::thrift;
 using namespace apache::thrift::test;
 using namespace apache::thrift::util;
-using namespace apache::thrift::async;
 using namespace apache::thrift::transport;
 using apache::thrift::protocol::PROTOCOL_TYPES;
+using namespace std::literals;
 
 DECLARE_int32(thrift_cpp2_protocol_reader_string_limit);
 
@@ -57,7 +59,6 @@ namespace {
 
 enum ThriftServerTypes {
   THRIFT_SERVER,
-  PROXYGEN,
 };
 
 enum ClientChannelTypes {
@@ -66,31 +67,18 @@ enum ClientChannelTypes {
 };
 
 class SharedServerTests
-    : public testing::TestWithParam<std::tuple<ThriftServerTypes,
-                                               ClientChannelTypes,
-                                               PROTOCOL_TYPES,
-                                               THRIFT_SECURITY_POLICY>> {
+    : public testing::TestWithParam<
+          std::tuple<ThriftServerTypes, ClientChannelTypes, PROTOCOL_TYPES>> {
  protected:
   void SetUp() override {
     base.reset(new folly::EventBase);
 
     auto protocolId = std::get<2>(GetParam());
-    auto securityPolicy = std::get<3>(GetParam());
 
     switch (std::get<0>(GetParam())) {
       case THRIFT_SERVER: {
         auto f = std::make_unique<TestThriftServerFactory<TestInterface>>();
-        if (securityPolicy != THRIFT_SECURITY_DISABLED) {
-          f->useStubSaslServer(true);
-          f->enableSasl(true);
-        }
         serverFactory = std::move(f);
-        break;
-      }
-      case PROXYGEN: {
-        ASSERT_EQ(THRIFT_SECURITY_DISABLED, securityPolicy);
-        serverFactory = std::make_unique<
-            TestProxygenThriftServerFactory<TestInterface>>();
         break;
       }
       default:
@@ -101,12 +89,10 @@ class SharedServerTests
       case HEADER: {
         auto c = std::make_unique<TestHeaderClientChannelFactory>();
         c->setProtocolId(protocolId);
-        c->setSecurityPolicy(securityPolicy);
         channelFactory = std::move(c);
         break;
       }
       case HTTP2: {
-        ASSERT_EQ(THRIFT_SECURITY_DISABLED, securityPolicy);
         auto c = std::make_unique<TestHTTPClientChannelFactory>();
         c->setProtocolId(protocolId);
         channelFactory = std::move(c);
@@ -130,8 +116,8 @@ class SharedServerTests
     if (!sst) {
       startServer();
     }
-    socket = TAsyncTransport::UniquePtr(
-        new TAsyncSocket(base.get(), *sst->getAddress()));
+    socket = folly::AsyncTransport::UniquePtr(
+        new folly::AsyncSocket(base.get(), *sst->getAddress()));
   }
 
   void createChannel() {
@@ -175,24 +161,26 @@ class SharedServerTests
   std::shared_ptr<BaseThriftServer> server{nullptr};
   std::unique_ptr<ScopedServerThread> sst{nullptr};
 
-  TAsyncTransport::UniquePtr socket{nullptr};
+  folly::AsyncTransport::UniquePtr socket{nullptr};
   apache::thrift::ClientChannel::Ptr channel{nullptr};
   std::unique_ptr<TestServiceAsyncClient> client{nullptr};
 };
-}
+} // namespace
 
 TEST_P(SharedServerTests, AsyncThrift2Test) {
   init();
 
-  client->sendResponse([&](ClientReceiveState&& state) {
-    std::string response;
-    try {
-      TestServiceAsyncClient::recv_sendResponse(response, state);
-    } catch (const std::exception& ex) {
-    }
-    EXPECT_EQ(response, "test64");
-    base->terminateLoopSoon();
-  }, 64);
+  client->sendResponse(
+      [&](ClientReceiveState&& state) {
+        std::string response;
+        try {
+          TestServiceAsyncClient::recv_sendResponse(response, state);
+        } catch (const std::exception&) {
+        }
+        EXPECT_EQ(response, "test64");
+        base->terminateLoopSoon();
+      },
+      64);
   base->loop();
 }
 
@@ -306,66 +294,15 @@ TEST_P(SharedServerTests, LargeSendTest) {
   ASSERT_EQ(request->computeChainDataLength(), hugeSize);
 
   client->sync_echoIOBuf(response, *request);
-  ASSERT_EQ(request->computeChainDataLength() + kEchoSuffix.size(),
-            response->computeChainDataLength());
+  ASSERT_EQ(
+      request->computeChainDataLength() + kEchoSuffix.size(),
+      response->computeChainDataLength());
 
   // response = request + kEchoSuffix. Make sure it's so
   request->prependChain(
       folly::IOBuf::wrapBuffer(kEchoSuffix.data(), kEchoSuffix.size()));
   // Not EXPECT_EQ; do you want to print two >1GiB strings on error?
   EXPECT_TRUE(compareIOBufChain(request.get(), response.get()));
-}
-
-TEST_P(SharedServerTests, OverloadTest) {
-  const int numThreads = 1;
-  const int queueSize = 10;
-  auto tm = concurrency::ThreadManager::newSimpleThreadManager(
-      numThreads, 0, false, queueSize);
-  tm->threadFactory(std::make_shared<concurrency::PosixThreadFactory>());
-  tm->start();
-  serverFactory->useSimpleThreadManager(false);
-  serverFactory->useThreadManager(tm);
-
-  init();
-
-  auto tval = 10000;
-  int too_full = 0;
-  int exception_headers = 0;
-  int completed = 0;
-  auto lambda = [&](ClientReceiveState&& state) {
-    std::string response;
-    auto headers = state.header()->getHeaders();
-    auto exHeader = headers.find("ex");
-    if (exHeader != headers.end()) {
-      EXPECT_EQ(kQueueOverloadedErrorCode, exHeader->second);
-      exception_headers++;
-    }
-    auto ew =
-        TestServiceAsyncClient::recv_wrapped_sendResponse(response, state);
-    if (ew) {
-      usleep(tval); // Wait for large task to finish
-      too_full++;
-    }
-
-    completed++;
-
-    if (completed == (numThreads + queueSize + 1)) {
-      base->terminateLoopSoon();
-    }
-  };
-
-  // Fill up the server's request buffer
-  client->sendResponse(lambda, tval);
-  for (int i = 0; i < numThreads + queueSize; i++) {
-    client->sendResponse(lambda, 0);
-  }
-  base->loop();
-
-  // We expect one 'too full' exception (queue size is 2, one
-  // being worked on)
-  // And three timeouts
-  EXPECT_EQ(1, too_full);
-  EXPECT_EQ(1, exception_headers);
 }
 
 TEST_P(SharedServerTests, OnewaySyncClientTest) {
@@ -382,44 +319,13 @@ TEST_P(SharedServerTests, ThriftServerSizeLimits) {
 
   std::string response;
 
-  try {
-    // make a largest possible input which should not throw an exception
-    std::string smallInput(1 << 19, '1');
-    client->sync_echoRequest(response, smallInput);
-    SUCCEED();
-  } catch (const std::exception& ex) {
-    ADD_FAILURE();
-  }
+  // make a largest possible input which should not throw an exception
+  std::string smallInput(1 << 19, '1');
+  client->sync_echoRequest(response, smallInput);
 
   // make an input that is too large by 1 byte
   std::string largeInput(1 << 21, '1');
   EXPECT_THROW(client->sync_echoRequest(response, largeInput), std::exception);
-}
-
-namespace {
-class MyExecutor : public folly::Executor {
- public:
-  void add(folly::Func f) override {
-    calls++;
-    f();
-  }
-
-  std::atomic<int> calls{0};
-};
-}
-
-TEST_P(SharedServerTests, PoolExecutorTest) {
-  auto exe = std::make_shared<MyExecutor>();
-  serverFactory->useSimpleThreadManager(false)
-      .useThreadManager(std::make_shared<
-          apache::thrift::concurrency::ThreadManagerExecutorAdapter>(exe));
-
-  init();
-
-  std::string response;
-
-  client->sync_echoRequest(response, "test");
-  EXPECT_EQ(1, exe->calls);
 }
 
 namespace {
@@ -429,7 +335,7 @@ class FiberExecutor : public folly::Executor {
     folly::fibers::getFiberManager(*folly::getEventBase()).add(std::move(f));
   }
 };
-}
+} // namespace
 
 TEST_P(SharedServerTests, FiberExecutorTest) {
   auto exe = std::make_shared<
@@ -496,7 +402,7 @@ class TestServerEventHandler
  private:
   std::atomic<int> count{0};
 };
-}
+} // namespace
 
 TEST_P(SharedServerTests, CallbackOrderingTest) {
   auto serverHandler = std::make_shared<TestServerEventHandler>();
@@ -518,20 +424,10 @@ TEST_P(SharedServerTests, CallbackOrderingTest) {
 using testing::Combine;
 using testing::Values;
 
-INSTANTIATE_TEST_CASE_P(ThriftServerTests,
-                        SharedServerTests,
-                        Combine(Values(ThriftServerTypes::THRIFT_SERVER),
-                                Values(ClientChannelTypes::HEADER),
-                                Values(protocol::T_BINARY_PROTOCOL,
-                                       protocol::T_COMPACT_PROTOCOL),
-                                Values(THRIFT_SECURITY_DISABLED,
-                                       THRIFT_SECURITY_PERMITTED,
-                                       THRIFT_SECURITY_REQUIRED)));
-
-INSTANTIATE_TEST_CASE_P(ProxygenThriftServerTests,
-                        SharedServerTests,
-                        Combine(Values(ThriftServerTypes::PROXYGEN),
-                                Values(ClientChannelTypes::HTTP2),
-                                Values(protocol::T_BINARY_PROTOCOL,
-                                       protocol::T_COMPACT_PROTOCOL),
-                                Values(THRIFT_SECURITY_DISABLED)));
+INSTANTIATE_TEST_CASE_P(
+    ThriftServerTests,
+    SharedServerTests,
+    Combine(
+        Values(ThriftServerTypes::THRIFT_SERVER),
+        Values(ClientChannelTypes::HEADER),
+        Values(protocol::T_BINARY_PROTOCOL, protocol::T_COMPACT_PROTOCOL)));

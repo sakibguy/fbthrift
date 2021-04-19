@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,21 +16,24 @@
 
 #pragma once
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <folly/Function.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/EventBaseLocal.h>
 #include <thrift/lib/cpp2/transport/core/ThriftProcessor.h>
 #include <thrift/lib/cpp2/transport/core/testutil/FakeChannel.h>
 #include <thrift/lib/cpp2/transport/core/testutil/FakeThreadManager.h>
 #include <thrift/lib/cpp2/transport/core/testutil/ServerConfigsMock.h>
 #include <thrift/lib/cpp2/transport/core/testutil/TestServiceMock.h>
-#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 #include <thrift/lib/cpp2/transport/core/testutil/gen-cpp2/TestService.tcc>
+#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache {
 namespace thrift {
+
+class Cpp2Worker;
 
 class CoreTestFixture : public testing::Test {
  public:
@@ -57,15 +60,16 @@ class CoreTestFixture : public testing::Test {
   // Receive the deserialized integer that results from 'sumTwoNumbers'
   static int32_t deserializeSumTwoNumbers(folly::IOBuf* buf);
 
-  static std::unique_ptr<RequestRpcMetadata> makeMetadata(
+  static RequestRpcMetadata makeMetadata(
       std::string name,
       int32_t seqId = 0,
       RpcKind kind = RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
 
   // Deserialize the exception if possible, return false otherwise.
   static bool deserializeException(
-      folly::IOBuf* buf,
-      TApplicationException* tae);
+      folly::IOBuf* buf, TApplicationException* tae);
+
+  std::unique_ptr<Cpp2ConnContext> newCpp2ConnContext();
 
  protected:
   apache::thrift::server::ServerConfigsMock serverConfigs_;
@@ -74,6 +78,7 @@ class CoreTestFixture : public testing::Test {
   ThriftProcessor processor_;
   folly::EventBase eventBase_;
   std::shared_ptr<FakeChannel> channel_;
+  std::shared_ptr<Cpp2Worker> worker_;
 };
 
 } // namespace thrift

@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016-present Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,13 +17,8 @@
 %><% > Autogen%>
 #pragma once
 
-<%#program:optionals?%>
-#include <folly/Optional.h>
-<%/program:optionals?%>
-#include <thrift/lib/cpp2/GeneratedHeaderHelper.h>
-#include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
-#include <thrift/lib/cpp2/protocol/Protocol.h>
+
 <%#program:frozen?%>
 #include <thrift/lib/cpp/Frozen.h>
 <%/program:frozen?%>
@@ -34,11 +29,32 @@
 <%#program:cpp_includes%>
 #include <%cpp_include%>
 <%/program:cpp_includes%>
-<% > common/push_and_undef_colliding_macros%>
 
+<%#program:structs?%>
+namespace apache {
+namespace thrift {
+namespace tag {
+<%#program:structs%>
+<%#struct:fields%>
+struct <%field:cpp_name%>;
+<%/struct:fields%>
+<%/program:structs%>
+} // namespace tag
+namespace detail {
+<%#program:structs%>
+<%#struct:fields%>
+#ifndef APACHE_THRIFT_ACCESSOR_<%field:cpp_name%>
+#define APACHE_THRIFT_ACCESSOR_<%field:cpp_name%>
+APACHE_THRIFT_DEFINE_ACCESSOR(<%field:cpp_name%>);
+#endif
+<%/struct:fields%>
+<%/program:structs%>
+} // namespace detail
+} // namespace thrift
+} // namespace apache
+
+<%/program:structs?%>
 <% > module_types_h/declare_enums%>
-
-<% > module_types_h/struct_indirection%>
 
 <% > module_types_h/forward_declare%>
 
@@ -46,12 +62,72 @@
 
 <% > module_types_h/hash_and_equal_to%>
 
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 <%#program:structs%>
 <% > common/namespace_cpp2_begin%>
 
+#ifndef SWIG
+using ::apache::thrift::detail::operator!=;
+using ::apache::thrift::detail::operator>;
+using ::apache::thrift::detail::operator<=;
+using ::apache::thrift::detail::operator>=;
+#endif
+
 class <%struct:name%> <%!
-%><%^struct:virtual%>final <%/struct:virtual%><%!
-%>: private apache::thrift::detail::st::ComparisonOperators<<%struct:name%>><%#struct:exception?%>, public apache::thrift::TException<%/struct:exception?%> {
+%><%^struct:virtual%>final <%/struct:virtual%><%#struct:exception?%><%!
+%>: public apache::thrift::TException<%/struct:exception?%> {
+ private:
+  friend struct ::apache::thrift::detail::st::struct_private_access;
+
+  //  used by a static_assert in the corresponding source
+  static constexpr bool __fbthrift_cpp2_gen_json = <%program:json?%>;
+  static constexpr bool __fbthrift_cpp2_gen_nimble = <%program:nimble?%>;
+  <%^struct:thrift_uri%>
+  static constexpr bool __fbthrift_cpp2_gen_has_thrift_uri = false;
+  <%/struct:thrift_uri%>
+  <%#struct:thrift_uri%>
+  static constexpr bool __fbthrift_cpp2_gen_has_thrift_uri = true;
+  static const char* __fbthrift_cpp2_gen_thrift_uri();
+  <%/struct:thrift_uri%>
+  <%#struct:exception?%>
+  static constexpr ::apache::thrift::ExceptionKind __fbthrift_cpp2_gen_exception_kind = 
+         ::apache::thrift::ExceptionKind::<%struct:exception_kind%>;
+  static constexpr ::apache::thrift::ExceptionSafety __fbthrift_cpp2_gen_exception_safety = 
+         ::apache::thrift::ExceptionSafety::<%struct:exception_safety%>;
+  static constexpr ::apache::thrift::ExceptionBlame __fbthrift_cpp2_gen_exception_blame = 
+         ::apache::thrift::ExceptionBlame::<%struct:exception_blame%>;
+  <%/struct:exception?%>
+
+ public:
+  using __fbthrift_cpp2_type = <%struct:name%>;
+  static constexpr bool __fbthrift_cpp2_is_union =
+    <%#struct:union?%>true<%/struct:union?%><%^struct:union?%>false<%/struct:union?%>;
+
+<%#struct:cpp_allocator%>
+ public:
+  using allocator_type = <%struct:cpp_allocator%>;
+  allocator_type get_allocator() const {
+<%#struct:cpp_allocator_via%>
+    return this-><%struct:cpp_allocator_via%>.get_allocator();
+<%/struct:cpp_allocator_via%>
+<%^struct:cpp_allocator_via%>
+    return __fbthrift_alloc;
+<%/struct:cpp_allocator_via%>
+  }
+<%^struct:cpp_allocator_via%>
+ private:
+  FOLLY_ATTR_NO_UNIQUE_ADDRESS allocator_type __fbthrift_alloc;
+<%/struct:cpp_allocator_via%>
+<%/struct:cpp_allocator%>
+
+<%#struct:cpp_data_method?%>
+ public:
+  <%struct:name%>& _data() & { return *this; }
+  <%struct:name%>&& _data() && { return std::move(*this); }
+  const <%struct:name%>& _data() const& { return *this; }
+  const <%struct:name%>&& _data() const&& { return std::move(*this); }
+
+<%/struct:cpp_data_method?%>
  public:
 <%#struct:union?%>
 <% > module_types_h/union_enum%>
@@ -62,10 +138,7 @@ class <%struct:name%> <%!
 
 <% > module_types_h/union_copy_ctor%>
 
-
 <% > module_types_h/union_assign_overload%>
-
-<% > module_types_h/union_tag_set_field%>
   void __clear();
 
   <%#struct:virtual%>virtual <%/struct:virtual%>~<%struct:name%>() {
@@ -77,15 +150,17 @@ class <%struct:name%> <%!
 <% > module_types_h/union_storage%>
 
 <%^struct:cpp_noncomparable%>
-<% > module_types_h/eq_overload%>
-<% > module_types_h/union_lt_overload%>
+
+  bool operator==(const <%struct:name%>&) const;
+  bool operator<(const <%struct:name%>&) const;
 <%/struct:cpp_noncomparable%>
 <% > module_types_h/union_setters%>
 
 <% > module_types_h/union_getters%>
 <% > module_types_h/union_mutables%>
 <% > module_types_h/union_moves%>
-  Type getType() const { return type_; }
+<% > module_types_h/union_field_ref%>
+  Type getType() const { return static_cast<Type>(type_); }
 
   template <class Protocol_>
   uint32_t read(Protocol_* iprot);
@@ -101,8 +176,8 @@ class <%struct:name%> <%!
     (&val)->~T();
   }
 
-  Type type_;
   storage_type value_;
+  std::underlying_type_t<Type> type_;
 <%/struct:union?%>
 <%^struct:union?%>
 
@@ -122,44 +197,43 @@ class <%struct:name%> <%!
       <%struct:message%>(std::move(__message)) {}
 <%/struct:message%><%/struct:exception?%>
   // FragileConstructor for use in initialization lists only.
+  [[deprecated("This constructor is deprecated")]]
   <%struct:name%>(apache::thrift::FragileConstructor<% > module_types_h/fragile_ctor_param_list%>);
-<% > module_types_h/struct_tag_set_field%>
-<%#struct:cpp_noexcept_move_ctor%>
-<%^struct:fields?%>
-  <%struct:name%>(<%struct:name%>&& other) noexcept {}
-<%/struct:fields?%>
-<%#struct:fields?%>
-<%#struct:is_large?%>
-  <%struct:name%>(<%struct:name%>&& other) noexcept;
-<%/struct:is_large?%>
-<%^struct:is_large?%>
-<% > module_types_h/move_ctor%>
-<%/struct:is_large?%>
-<%/struct:fields?%>
-<%/struct:cpp_noexcept_move_ctor%>
-<%^struct:cpp_noexcept_move_ctor%>
 
+<%#struct:is_eligible_for_constexpr?%>
   <%struct:name%>(<%struct:name%>&&) = default;
-<%/struct:cpp_noexcept_move_ctor%>
+<%/struct:is_eligible_for_constexpr?%>
+<%^struct:is_eligible_for_constexpr?%>
+  <%struct:name%>(<%struct:name%>&&) noexcept;
+<%/struct:is_eligible_for_constexpr?%>
 <%^struct:cpp_noncopyable%>
-<%^struct:fields_contain_cpp_ref?%>
+<%^struct:nondefault_copy_ctor_and_assignment?%>
 
   <%struct:name%>(const <%struct:name%>&) = default;
-<%/struct:fields_contain_cpp_ref?%>
-<%#struct:fields_contain_cpp_ref?%>
+<%/struct:nondefault_copy_ctor_and_assignment?%>
+<%#struct:nondefault_copy_ctor_and_assignment?%>
   <%struct:name%>(const <%struct:name%>& src);
-<%/struct:fields_contain_cpp_ref?%>
+<%/struct:nondefault_copy_ctor_and_assignment?%>
 <%/struct:cpp_noncopyable%>
 
+<%#struct:cpp_allocator%>
+<% > module_types_h/alloc_extended_ctors%>
+<%/struct:cpp_allocator%>
+
+<%#struct:cpp_noexcept_move%>
+  <%struct:name%>& operator=(<%struct:name%>&&) noexcept = default;
+<%/struct:cpp_noexcept_move%>
+<%^struct:cpp_noexcept_move%>
   <%struct:name%>& operator=(<%struct:name%>&&) = default;
+<%/struct:cpp_noexcept_move%>
 <%^struct:cpp_noncopyable%>
-<%^struct:fields_contain_cpp_ref?%>
+<%^struct:nondefault_copy_ctor_and_assignment?%>
 
   <%struct:name%>& operator=(const <%struct:name%>&) = default;
-<%/struct:fields_contain_cpp_ref?%>
-<%#struct:fields_contain_cpp_ref?%>
+<%/struct:nondefault_copy_ctor_and_assignment?%>
+<%#struct:nondefault_copy_ctor_and_assignment?%>
   <%struct:name%>& operator=(const <%struct:name%>& src);
-<%/struct:fields_contain_cpp_ref?%>
+<%/struct:nondefault_copy_ctor_and_assignment?%>
 <%/struct:cpp_noncopyable%>
   void __clear();
 <%^struct:virtual%>
@@ -183,12 +257,16 @@ class <%struct:name%> <%!
 <% > module_types_h/declare_members%>
 <%/struct:fields?%>
 <%^struct:cpp_noncomparable%>
-<% > module_types_h/eq_overload%>
-<% > module_types_h/lt_overload%>
+
+  bool operator==(const <%struct:name%>&) const;
+  bool operator<(const <%struct:name%>&) const;
 <%/struct:cpp_noncomparable%>
-<%#struct:fields?%><%^struct:optionals?%><%^struct:no_getters_setters?%>
+<%#struct:fields?%>
+<% > module_types_h/field_ref%>
+<%^struct:no_getters_setters?%>
 <% > module_types_h/getters_setters%>
-<%/struct:no_getters_setters?%><%/struct:optionals?%><%/struct:fields?%>
+<%/struct:no_getters_setters?%>
+<%/struct:fields?%>
 
   template <class Protocol_>
   uint32_t read(Protocol_* iprot);
@@ -216,64 +294,56 @@ class <%struct:name%> <%!
 <%/struct:cpp_methods%>
 
  private:
+<% > module_types_h/lazy_deserialization%>
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops< <%struct:name%> >;
+  friend class ::apache::thrift::Cpp2Ops<<%struct:name%>>;
+  friend void swap(<%struct:name%>& a, <%struct:name%>& b);
+  <%#program:tablebased?%>
+  <%^struct:union?%>
+  friend constexpr ptrdiff_t (::apache::thrift::detail::fieldOffset<<%struct:name%>>)(std::int16_t fieldIndex);
+  friend constexpr ptrdiff_t (::apache::thrift::detail::issetOffset<<%struct:name%>>)(std::int16_t fieldIndex);
+  <%/struct:union?%>
+  <%#struct:union?%>
+  friend constexpr ptrdiff_t (::apache::thrift::detail::unionTypeOffset<<%struct:name%>>)();
+  <%/struct:union?%>
+  <%/program:tablebased?%>
 };
-
-void swap(<%struct:name%>& a, <%struct:name%>& b);
-extern template void <%struct:name%>::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
-extern template uint32_t <%struct:name%>::write<>(apache::thrift::BinaryProtocolWriter*) const;
-extern template uint32_t <%struct:name%>::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
-extern template uint32_t <%struct:name%>::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
-extern template void <%struct:name%>::readNoXfer<>(apache::thrift::CompactProtocolReader*);
-extern template uint32_t <%struct:name%>::write<>(apache::thrift::CompactProtocolWriter*) const;
-extern template uint32_t <%struct:name%>::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
-extern template uint32_t <%struct:name%>::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
-<%#program:json?%>
-extern template void <%struct:name%>::readNoXfer<>(apache::thrift::SimpleJSONProtocolReader*);
-extern template uint32_t <%struct:name%>::write<>(apache::thrift::SimpleJSONProtocolWriter*) const;
-extern template uint32_t <%struct:name%>::serializedSize<>(apache::thrift::SimpleJSONProtocolWriter const*) const;
-extern template uint32_t <%struct:name%>::serializedSizeZC<>(apache::thrift::SimpleJSONProtocolWriter const*) const;
-<%/program:json?%>
 
 template <class Protocol_>
 uint32_t <%struct:name%>::read(Protocol_* iprot) {
-  auto _xferStart = iprot->getCurrentPosition().getCurrentPosition();
+  auto _xferStart = iprot->getCursorPosition();
   readNoXfer(iprot);
-  return iprot->getCurrentPosition().getCurrentPosition() - _xferStart;
+  return iprot->getCursorPosition() - _xferStart;
 }
 
 <% > common/namespace_cpp2_end%>
 
-namespace apache { namespace thrift {
-
-template <> inline void Cpp2Ops<<% > common/namespace_cpp2%><%struct:name%>>::clear(<% > common/namespace_cpp2%><%struct:name%>* obj) {
-  return obj->__clear();
-}
-
-template <> inline constexpr apache::thrift::protocol::TType Cpp2Ops<<% > common/namespace_cpp2%><%struct:name%>>::thriftType() {
-  return apache::thrift::protocol::T_STRUCT;
-}
-
-template <> template <class Protocol> uint32_t Cpp2Ops<<% > common/namespace_cpp2%><%struct:name%>>::write(Protocol* proto, <% > common/namespace_cpp2%><%struct:name%> const* obj) {
-  return obj->write(proto);
-}
-
-template <> template <class Protocol> void Cpp2Ops<<% > common/namespace_cpp2%><%struct:name%>>::read(Protocol* proto, <% > common/namespace_cpp2%><%struct:name%>* obj) {
-  return obj->readNoXfer(proto);
-}
-
-template <> template <class Protocol> uint32_t Cpp2Ops<<% > common/namespace_cpp2%><%struct:name%>>::serializedSize(Protocol const* proto, <% > common/namespace_cpp2%><%struct:name%> const* obj) {
-  return obj->serializedSize(proto);
-}
-
-template <> template <class Protocol> uint32_t Cpp2Ops<<% > common/namespace_cpp2%><%struct:name%>>::serializedSizeZC(Protocol const* proto, <% > common/namespace_cpp2%><%struct:name%> const* obj) {
-  return obj->serializedSizeZC(proto);
-}
-
 <% > module_types_h/frozen%>
-}} // apache::thrift
 <%/program:structs%>
-<% > common/pop_colliding_macros%>
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+<% > module_types_h/declare_union_types%><%!
+
+%><%#program:tablebased?%>
+namespace apache {
+namespace thrift {
+namespace detail {
+<%#program:structs%>
+template <>
+struct TypeToInfo<
+    ::apache::thrift::type_class::<%#struct:union?%>variant<%/struct:union?%><%^struct:union?%>structure<%/struct:union?%>,
+    <% > common/namespace_cpp2 %><%struct:name%>> {
+  static const ::apache::thrift::detail::TypeInfo typeInfo;
+};
+<%/program:structs%>
+<%#program:enums%>
+  template <>
+    struct TypeToInfo<
+        ::apache::thrift::type_class::enumeration,
+        <% > common/namespace_cpp2%><%enum:name%>> {
+    static const ::apache::thrift::detail::TypeInfo typeInfo;
+  };
+<%/program:enums%>
+}}} // namespace apache::thrift::detail
+<%/program:tablebased?%>

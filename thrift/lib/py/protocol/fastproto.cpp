@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #define __STDC_LIMIT_MACROS
 #include <Python.h>
 
@@ -23,53 +24,52 @@
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/protocol/ProtocolReaderWithRefill.h>
 
+#include <folly/Format.h>
 #include <folly/Range.h>
 #include <folly/ScopeGuard.h>
 
-using apache::thrift::protocol::TType;
 using apache::thrift::BinaryProtocolReaderWithRefill;
 using apache::thrift::BinaryProtocolWriter;
 using apache::thrift::CompactProtocolReaderWithRefill;
 using apache::thrift::CompactProtocolWriter;
+using apache::thrift::protocol::TType;
 
 #if PY_MAJOR_VERSION >= 3
-  #define FROM_LONG PyLong_FromLong
-  #define AS_LONG PyLong_AsLong
+#define FROM_LONG PyLong_FromLong
+#define AS_LONG PyLong_AsLong
 #else
-  #define FROM_LONG PyInt_FromLong
-  #define AS_LONG PyInt_AsLong
-  #include <cStringIO.h>
+#define FROM_LONG PyInt_FromLong
+#define AS_LONG PyInt_AsLong
+#include <cStringIO.h>
 #endif
 
 #if PY_MAJOR_VERSION >= 3
 static PyTypeObject* BytesIOType;
 #endif
+static PyObject* ExceptionsModule;
 
 // Stolen from cStringIO.c and also works for Python 3
 
-
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 5
-  /* The structure changes in https://hg.python.org/cpython/rev/2e29d54843a4.
-   * The first affected Python version is 3.5.0a1. */
-  typedef struct {
-    PyObject_HEAD
-    PyObject *buf;
-    Py_ssize_t pos, string_size;
-  } IOobject;
-  #define IOBUF(O) PyBytes_AS_STRING((O)->buf)
+/* The structure changes in https://hg.python.org/cpython/rev/2e29d54843a4.
+ * The first affected Python version is 3.5.0a1. */
+typedef struct {
+  PyObject_HEAD PyObject* buf;
+  Py_ssize_t pos, string_size;
+} IOobject;
+#define IOBUF(O) PyBytes_AS_STRING((O)->buf)
 #else
-  typedef struct {
-    PyObject_HEAD
-    char *buf;
-    Py_ssize_t pos, string_size;
-  } IOobject;
-  #define IOBUF(O) ((O)->buf)
+typedef struct {
+  PyObject_HEAD char* buf;
+  Py_ssize_t pos, string_size;
+} IOobject;
+#define IOBUF(O) ((O)->buf)
 #endif
 
 #define IOOOBJECT(O) ((IOobject*)(O))
 
 // Stolen from fastbinary.c
-#define INTERN_STRING(value) _intern_ ## value
+#define INTERN_STRING(value) _intern_##value
 
 static PyObject* INTERN_STRING(cstringio_buf);
 static PyObject* INTERN_STRING(cstringio_refill);
@@ -79,14 +79,12 @@ typedef struct {
   PyObject* refill_callable;
 } DecodeBuffer;
 
-static void
-free_decodebuf(DecodeBuffer* d) {
+static void free_decodebuf(DecodeBuffer* d) {
   Py_XDECREF(d->stringiobuf);
   Py_XDECREF(d->refill_callable);
 }
 
-static bool
-decode_buffer_from_obj(DecodeBuffer* dest, PyObject* obj) {
+static bool decode_buffer_from_obj(DecodeBuffer* dest, PyObject* obj) {
   dest->stringiobuf = PyObject_GetAttr(obj, INTERN_STRING(cstringio_buf));
   if (!dest->stringiobuf) {
     return false;
@@ -102,9 +100,9 @@ decode_buffer_from_obj(DecodeBuffer* dest, PyObject* obj) {
     return false;
   }
 
-  dest->refill_callable = PyObject_GetAttr(obj,
-      INTERN_STRING(cstringio_refill));
-  if(!dest->refill_callable) {
+  dest->refill_callable =
+      PyObject_GetAttr(obj, INTERN_STRING(cstringio_refill));
+  if (!dest->refill_callable) {
     free_decodebuf(dest);
     return false;
   }
@@ -118,8 +116,8 @@ decode_buffer_from_obj(DecodeBuffer* dest, PyObject* obj) {
   return true;
 }
 
-#define INT_CONV_ERROR_OCCURRED(v) ( ((v) == -1) && PyErr_Occurred() )
-#define CHECK_RANGE(v, min, max) ( ((v) <= (max)) && ((v) >= (min)) )
+#define INT_CONV_ERROR_OCCURRED(v) (((v) == -1) && PyErr_Occurred())
+#define CHECK_RANGE(v, min, max) (((v) <= (max)) && ((v) >= (min)))
 
 typedef struct {
   TType element_type;
@@ -137,7 +135,6 @@ typedef struct {
   PyObject* klass;
   PyObject* spec;
   bool isunion;
-  bool forward_compatibility;
 } StructTypeArgs;
 
 typedef struct {
@@ -148,13 +145,12 @@ typedef struct {
   PyObject* defval;
 } StructItemSpec;
 
-static bool
-parse_set_list_args(SetListTypeArgs* dest, PyObject* typeargs) {
+static bool parse_set_list_args(SetListTypeArgs* dest, PyObject* typeargs) {
   long element_type;
 
   if (PyTuple_Size(typeargs) != 2) {
-    PyErr_SetString(PyExc_TypeError,
-        "expecting tuple of size 2 for list/set type args");
+    PyErr_SetString(
+        PyExc_TypeError, "expecting tuple of size 2 for list/set type args");
     return false;
   }
 
@@ -169,8 +165,7 @@ parse_set_list_args(SetListTypeArgs* dest, PyObject* typeargs) {
   return true;
 }
 
-static bool
-parse_map_args(MapTypeArgs* dest, PyObject* typeargs) {
+static bool parse_map_args(MapTypeArgs* dest, PyObject* typeargs) {
   long ktype, vtype;
 
   if (PyTuple_Size(typeargs) != 4) {
@@ -197,26 +192,21 @@ parse_map_args(MapTypeArgs* dest, PyObject* typeargs) {
   return true;
 }
 
-static bool parse_struct_args(
-    StructTypeArgs* dest,
-    PyObject* typeargs,
-    bool forward_compatibility = false) {
+static bool parse_struct_args(StructTypeArgs* dest, PyObject* typeargs) {
   if (PyList_Size(typeargs) != 3) {
-    PyErr_SetString(PyExc_TypeError,
-        "expecting list of size 3 for struct args");
+    PyErr_SetString(
+        PyExc_TypeError, "expecting list of size 3 for struct args");
     return false;
   }
 
   dest->klass = PyList_GET_ITEM(typeargs, 0);
   dest->spec = PyList_GET_ITEM(typeargs, 1);
   dest->isunion = (PyObject_IsTrue(PyList_GET_ITEM(typeargs, 2)) == 1);
-  dest->forward_compatibility = forward_compatibility;
 
   return true;
 }
 
-static int
-parse_struct_item_spec(StructItemSpec* dest, PyObject* spec_tuple) {
+static int parse_struct_item_spec(StructItemSpec* dest, PyObject* spec_tuple) {
   long tag, type;
 
   // i'd like to use ParseArgs here, but it seems to be a bottleneck.
@@ -245,8 +235,7 @@ parse_struct_item_spec(StructItemSpec* dest, PyObject* spec_tuple) {
   return true;
 }
 
-static inline bool
-check_ssize_t_32(Py_ssize_t len) {
+static inline bool check_ssize_t_32(Py_ssize_t len) {
   // error from getting the int
   if (INT_CONV_ERROR_OCCURRED(len)) {
     return false;
@@ -258,8 +247,8 @@ check_ssize_t_32(Py_ssize_t len) {
   return true;
 }
 
-static inline bool
-parse_pyint(PyObject* o, int32_t* ret, int32_t min, int32_t max) {
+static inline bool parse_pyint(
+    PyObject* o, int32_t* ret, int32_t min, int32_t max) {
   long val = AS_LONG(o);
   if (INT_CONV_ERROR_OCCURRED(val)) {
     return false;
@@ -269,12 +258,11 @@ parse_pyint(PyObject* o, int32_t* ret, int32_t min, int32_t max) {
     return false;
   }
 
-  *ret = (int32_t) val;
+  *ret = (int32_t)val;
   return true;
 }
 
-static inline bool
-parse_pyfloat(PyObject *o, double *ret) {
+static inline bool parse_pyfloat(PyObject* o, double* ret) {
   double val = PyFloat_AsDouble(o);
   if (val == -1.0 && PyErr_Occurred()) {
     return false;
@@ -399,8 +387,8 @@ static bool encode_impl(
     case TType::T_SET: {
       Py_ssize_t len;
       SetListTypeArgs parsedargs;
-      PyObject *item;
-      PyObject *iterator;
+      PyObject* item;
+      PyObject* iterator;
 
       if (!parse_set_list_args(&parsedargs, typeargs)) {
         return false;
@@ -419,8 +407,12 @@ static bool encode_impl(
       }
 
       while ((item = PyIter_Next(iterator))) {
-        if (!encode_impl(writer, item, parsedargs.typeargs,
-              parsedargs.element_type, utf8strings)) {
+        if (!encode_impl(
+                writer,
+                item,
+                parsedargs.typeargs,
+                parsedargs.element_type,
+                utf8strings)) {
           Py_DECREF(item);
           Py_DECREF(iterator);
           return false;
@@ -456,10 +448,18 @@ static bool encode_impl(
         Py_INCREF(k);
         Py_INCREF(v);
 
-        if (!encode_impl(writer, k, parsedargs.ktypeargs, parsedargs.ktype,
-              utf8strings)
-            || !encode_impl(writer, v, parsedargs.vtypeargs, parsedargs.vtype,
-              utf8strings)) {
+        if (!encode_impl(
+                writer,
+                k,
+                parsedargs.ktypeargs,
+                parsedargs.ktype,
+                utf8strings) ||
+            !encode_impl(
+                writer,
+                v,
+                parsedargs.vtypeargs,
+                parsedargs.vtype,
+                utf8strings)) {
           Py_DECREF(k);
           Py_DECREF(v);
           return false;
@@ -485,13 +485,13 @@ static bool encode_impl(
       if (parsedargs.isunion) {
         // Union only has a field and a value.
         writer->writeStructBegin("");
-        PyObject *field = PyObject_GetAttrString(value, "field");
+        PyObject* field = PyObject_GetAttrString(value, "field");
         if (!field) {
           return false;
         }
 
         int fid = static_cast<int>(AS_LONG(field));
-        PyObject *spec_tuple = PyTuple_GET_ITEM(parsedargs.spec, fid);
+        PyObject* spec_tuple = PyTuple_GET_ITEM(parsedargs.spec, fid);
         if (spec_tuple != Py_None) {
           StructItemSpec parsedspec;
           PyObject* instval = nullptr;
@@ -516,8 +516,12 @@ static bool encode_impl(
           const char* fieldname = PyString_AsString(parsedspec.attrname);
 #endif
           writer->writeFieldBegin(fieldname, parsedspec.type, parsedspec.tag);
-          if (!encode_impl(writer, instval, parsedspec.typeargs,
-                parsedspec.type, utf8strings)) {
+          if (!encode_impl(
+                  writer,
+                  instval,
+                  parsedspec.typeargs,
+                  parsedspec.type,
+                  utf8strings)) {
             Py_DECREF(instval);
             return false;
           }
@@ -563,8 +567,12 @@ static bool encode_impl(
         const char* fieldname = PyString_AsString(parsedspec.attrname);
 #endif
         writer->writeFieldBegin(fieldname, parsedspec.type, parsedspec.tag);
-        if (!encode_impl(writer, instval, parsedspec.typeargs, parsedspec.type,
-              utf8strings)) {
+        if (!encode_impl(
+                writer,
+                instval,
+                parsedspec.typeargs,
+                parsedspec.type,
+                utf8strings)) {
           Py_DECREF(instval);
           return false;
         }
@@ -599,10 +607,9 @@ static PyObject* decode_val(
     int utf8strings,
     StructTypeArgs* args);
 
-template<typename Reader>
-static bool
-decode_struct(Reader *reader, PyObject *value, StructTypeArgs *args,
-    int utf8strings) {
+template <typename Reader>
+static bool decode_struct(
+    Reader* reader, PyObject* value, StructTypeArgs* args, int utf8strings) {
   int speclen = PyTuple_Size(args->spec);
   if (speclen == -1) {
     return false;
@@ -614,16 +621,16 @@ decode_struct(Reader *reader, PyObject *value, StructTypeArgs *args,
   std::string fname;
   TType ftype;
   int16_t fid;
-  PyObject *itemspec;
+  PyObject* itemspec;
   StructItemSpec parsedspec;
 
   int first_tag = 0;
   bool first_tag_read = false;
-  PyObject *first_item_spec;
+  PyObject* first_item_spec;
   StructItemSpec first_parsed_spec;
 
   while (true) {
-    PyObject *fieldval = nullptr;
+    PyObject* fieldval = nullptr;
     reader->readFieldBegin(fname, ftype, fid);
     if (ftype == TType::T_STOP) {
       break;
@@ -671,12 +678,37 @@ decode_struct(Reader *reader, PyObject *value, StructTypeArgs *args,
 
     fieldval = decode_val(
         reader, parsedspec.type, parsedspec.typeargs, utf8strings, args);
+
     if (!fieldval) {
+      PyObject *pType, *pValue, *pTraceback;
+      PyErr_Fetch(&pType, &pValue, &pTraceback);
+      if (!PyErr_GivenExceptionMatches(pType, PyExc_UnicodeDecodeError)) {
+        PyErr_Restore(pType, pValue, pTraceback);
+        return false;
+      }
+#if PY_MAJOR_VERSION >= 3
+      const char* fieldName = PyUnicode_AsUTF8(parsedspec.attrname);
+#else
+      const char* fieldName = PyString_AsString(parsedspec.attrname);
+#endif
+      PyObject* create_func_method_name = Py_BuildValue(
+          "s", "create_ThriftUnicodeDecodeError_from_UnicodeDecodeError");
+      PyObject* pFieldName = Py_BuildValue("s", fieldName);
+
+      PyObject* decode_error = PyObject_CallMethodObjArgs(
+          ExceptionsModule, create_func_method_name, pValue, pFieldName, NULL);
+      PyObject* thrift_decode_error_type = PyObject_Type(decode_error);
+      PyErr_SetObject(thrift_decode_error_type, decode_error);
+      Py_DECREF(pType);
+      Py_DECREF(pValue);
+      if (pTraceback != nullptr) {
+        Py_DECREF(pTraceback);
+      }
       return false;
     }
 
-    if (args->isunion){
-      PyObject *fieldobj = PyObject_GetAttrString(value, "field");
+    if (args->isunion) {
+      PyObject* fieldobj = PyObject_GetAttrString(value, "field");
       if (!fieldobj) {
         Py_DECREF(fieldval);
         return false;
@@ -695,7 +727,7 @@ decode_struct(Reader *reader, PyObject *value, StructTypeArgs *args,
       }
       Py_DECREF(fieldobj);
 
-      PyObject *valueobj = PyObject_GetAttrString(value, "value");
+      PyObject* valueobj = PyObject_GetAttrString(value, "value");
       if (!valueobj) {
         Py_DECREF(fieldobj);
         return false;
@@ -708,7 +740,7 @@ decode_struct(Reader *reader, PyObject *value, StructTypeArgs *args,
       }
       Py_DECREF(valueobj);
 
-      PyObject *tagobj = FROM_LONG(parsedspec.tag);
+      PyObject* tagobj = FROM_LONG(parsedspec.tag);
       if (!tagobj) {
         return false;
       }
@@ -769,7 +801,7 @@ static PyObject* decode_val(
       int64_t v;
       reader->readI64(v);
       if (CHECK_RANGE(v, LONG_MIN, LONG_MAX)) {
-        return FROM_LONG((long) v);
+        return FROM_LONG((long)v);
       }
       return PyLong_FromLongLong(v);
     }
@@ -781,7 +813,7 @@ static PyObject* decode_val(
     case TType::T_FLOAT: {
       float v;
       reader->readFloat(v);
-      return PyFloat_FromDouble((double) v);
+      return PyFloat_FromDouble((double)v);
     }
     case TType::T_STRING: {
       std::string s;
@@ -808,12 +840,12 @@ static PyObject* decode_val(
 
       reader->readListBegin(ttype, len);
       if (ttype != parsedargs.element_type) {
-        PyErr_SetString(PyExc_TypeError,
-            "got wrong ttype while reading list/set field");
+        PyErr_SetString(
+            PyExc_TypeError, "got wrong ttype while reading list/set field");
         return nullptr;
       }
 
-      PyObject *ret = PyList_New(len);
+      PyObject* ret = PyList_New(len);
       if (!ret) {
         return nullptr;
       }
@@ -834,7 +866,7 @@ static PyObject* decode_val(
 
       reader->readListEnd();
       if (type == TType::T_SET) {
-        PyObject *setret = PySet_New(ret);
+        PyObject* setret = PySet_New(ret);
         Py_DECREF(ret);
         return setret;
       }
@@ -851,27 +883,25 @@ static PyObject* decode_val(
       }
 
       reader->readMapBegin(ktype, vtype, len);
-      if (!args->forward_compatibility) {
-        if (ktype != parsedargs.ktype || vtype != parsedargs.vtype) {
-          if (len == 0 &&
-              std::is_same<Reader, CompactProtocolReaderWithRefill>::value) {
-            reader->readMapEnd();
-            return PyDict_New();
-          }
-          PyErr_SetString(
-              PyExc_TypeError, "got wrong ttype while reading map field");
-          return nullptr;
+      if (ktype != parsedargs.ktype || vtype != parsedargs.vtype) {
+        if (len == 0 &&
+            std::is_same<Reader, CompactProtocolReaderWithRefill>::value) {
+          reader->readMapEnd();
+          return PyDict_New();
         }
+        PyErr_SetString(
+            PyExc_TypeError, "got wrong ttype while reading map field");
+        return nullptr;
       }
 
-      PyObject *ret = PyDict_New();
+      PyObject* ret = PyDict_New();
       if (!ret) {
         return nullptr;
       }
 
       for (auto i = 0u; i < len; i++) {
-        PyObject *k = nullptr;
-        PyObject *v = nullptr;
+        PyObject* k = nullptr;
+        PyObject* v = nullptr;
         k = decode_val(reader, ktype, parsedargs.ktypeargs, utf8strings, args);
         if (!k) {
           Py_DECREF(ret);
@@ -899,10 +929,9 @@ static PyObject* decode_val(
     }
     case TType::T_STRUCT: {
       StructTypeArgs parsedargs;
-      PyObject *ret;
+      PyObject* ret;
 
-      if (!parse_struct_args(
-              &parsedargs, typeargs, args->forward_compatibility)) {
+      if (!parse_struct_args(&parsedargs, typeargs)) {
         return nullptr;
       }
 
@@ -931,9 +960,8 @@ static PyObject* decode_val(
 
 /* --- TOP-LEVEL WRAPPER AND TEMPLATES --- */
 
-template<typename Writer>
-static PyObject*
-encodeT(PyObject *enc_obj, PyObject *spec, int utf8strings) {
+template <typename Writer>
+static PyObject* encodeT(PyObject* enc_obj, PyObject* spec, int utf8strings) {
   folly::IOBufQueue encoded(folly::IOBufQueue::cacheChainLength());
   Writer writer;
   writer.setOutput(&encoded);
@@ -953,19 +981,23 @@ encodeT(PyObject *enc_obj, PyObject *spec, int utf8strings) {
 #endif
 }
 
-static std::unique_ptr<folly::IOBuf> refill(DecodeBuffer *input,
-    const uint8_t *remaining, int rlen, int read, int len) {
-  PyObject *newiobuf;
+static std::unique_ptr<folly::IOBuf> refill(
+    DecodeBuffer* input,
+    const uint8_t* remaining,
+    int rlen,
+    int read,
+    int len) {
+  PyObject* newiobuf;
 
-  IOobject *ioobj = IOOOBJECT(input->stringiobuf);
+  IOobject* ioobj = IOOOBJECT(input->stringiobuf);
   ioobj->pos += read;
 
 #if PY_MAJOR_VERSION >= 3
-  newiobuf = PyObject_CallFunction(input->refill_callable, (char*)"y#i",
-      remaining, rlen, len, nullptr);
+  newiobuf = PyObject_CallFunction(
+      input->refill_callable, (char*)"y#i", remaining, rlen, len, nullptr);
 #else
-  newiobuf = PyObject_CallFunction(input->refill_callable, (char*)"s#i",
-      remaining, rlen, len, nullptr);
+  newiobuf = PyObject_CallFunction(
+      input->refill_callable, (char*)"s#i", remaining, rlen, len, nullptr);
 #endif
 
   if (!newiobuf) {
@@ -979,22 +1011,22 @@ static std::unique_ptr<folly::IOBuf> refill(DecodeBuffer *input,
   // the underlying buffer. The protocol reader should only call refill
   // when it no longer needs its current IOBuf because the underlying
   // buffer is freed here.
-  return folly::IOBuf::wrapBuffer(IOBUF(ioobj) + ioobj->pos,
-      ioobj->string_size - ioobj->pos);
+  return folly::IOBuf::wrapBuffer(
+      IOBUF(ioobj) + ioobj->pos, ioobj->string_size - ioobj->pos);
 }
 
-template<typename Reader>
-static bool
-decodeT(DecodeBuffer *input, PyObject *dec_obj, StructTypeArgs *args,
+template <typename Reader>
+static bool decodeT(
+    DecodeBuffer* input,
+    PyObject* dec_obj,
+    StructTypeArgs* args,
     int utf8strings) {
-  auto refiller = [input] (const uint8_t* remaining,
-                           int rlen,
-                           int read,
-                           int len) {
+  auto refiller = [input](
+                      const uint8_t* remaining, int rlen, int read, int len) {
     return refill(input, remaining, rlen, read, len);
   };
   Reader reader(refiller);
-  IOobject *ioobj = IOOOBJECT(input->stringiobuf);
+  IOobject* ioobj = IOOOBJECT(input->stringiobuf);
   auto buf = folly::IOBuf::wrapBuffer(
       static_cast<char*>(IOBUF(ioobj)) + ioobj->pos, // IOBUF(ioobj) is char[1]
       ioobj->string_size - ioobj->pos);
@@ -1011,23 +1043,28 @@ decodeT(DecodeBuffer *input, PyObject *dec_obj, StructTypeArgs *args,
   }
 }
 
-static PyObject*
-encode(PyObject* /*self*/, PyObject *args, PyObject *kws) {
-  PyObject *enc_obj;
-  PyObject *spec;
+static PyObject* encode(PyObject* /*self*/, PyObject* args, PyObject* kws) {
+  PyObject* enc_obj;
+  PyObject* spec;
   int utf8strings = 0;
   int protoid = 0;
 
-  static char *kwlist[] = {
-    (char*)"enc",
-    (char*)"spec",
-    (char*)"utf8strings",
-    (char*)"protoid",
-    nullptr
-  };
+  static char* kwlist[] = {
+      (char*)"enc",
+      (char*)"spec",
+      (char*)"utf8strings",
+      (char*)"protoid",
+      nullptr};
 
-  if (!PyArg_ParseTupleAndKeywords(args, kws, "OO|ii", kwlist, &enc_obj,
-        &spec, &utf8strings, &protoid)) {
+  if (!PyArg_ParseTupleAndKeywords(
+          args,
+          kws,
+          "OO|ii",
+          kwlist,
+          &enc_obj,
+          &spec,
+          &utf8strings,
+          &protoid)) {
     return nullptr;
   }
 
@@ -1041,40 +1078,37 @@ encode(PyObject* /*self*/, PyObject *args, PyObject *kws) {
   }
 }
 
-static PyObject*
-decode(PyObject* /*self*/, PyObject *args, PyObject *kws) {
-  PyObject *dec_obj;
-  PyObject *transport;
-  PyObject *spec;
+static PyObject* decode(PyObject* /*self*/, PyObject* args, PyObject* kws) {
+  PyObject* dec_obj;
+  PyObject* transport;
+  PyObject* spec;
   int utf8strings = 0;
   int protoid = 0;
-  int forward_compatibility = 0;
   StructTypeArgs parsedargs;
   DecodeBuffer input = {};
 
-  static char* kwlist[] = {(char*)"dec",
-                           (char*)"transport",
-                           (char*)"spec",
-                           (char*)"utf8strings",
-                           (char*)"protoid",
-                           (char*)"forward_compatibility",
-                           nullptr};
+  static char* kwlist[] = {
+      (char*)"dec",
+      (char*)"transport",
+      (char*)"spec",
+      (char*)"utf8strings",
+      (char*)"protoid",
+      nullptr};
 
   if (!PyArg_ParseTupleAndKeywords(
           args,
           kws,
-          "OOO|iii",
+          "OOO|ii",
           kwlist,
           &dec_obj,
           &transport,
           &spec,
           &utf8strings,
-          &protoid,
-          &forward_compatibility)) {
+          &protoid)) {
     return nullptr;
   }
 
-  if (!parse_struct_args(&parsedargs, spec, forward_compatibility)) {
+  if (!parse_struct_args(&parsedargs, spec)) {
     return nullptr;
   }
 
@@ -1082,18 +1116,16 @@ decode(PyObject* /*self*/, PyObject *args, PyObject *kws) {
     return nullptr;
   }
 
-  SCOPE_EXIT {
-    free_decodebuf(&input);
-  };
+  SCOPE_EXIT { free_decodebuf(&input); };
 
   if (protoid == 0) {
-    if (!decodeT<BinaryProtocolReaderWithRefill>(&input, dec_obj,
-          &parsedargs, utf8strings)) {
+    if (!decodeT<BinaryProtocolReaderWithRefill>(
+            &input, dec_obj, &parsedargs, utf8strings)) {
       return nullptr;
     }
   } else if (protoid == 2) {
-    if (!decodeT<CompactProtocolReaderWithRefill>(&input, dec_obj,
-          &parsedargs, utf8strings)) {
+    if (!decodeT<CompactProtocolReaderWithRefill>(
+            &input, dec_obj, &parsedargs, utf8strings)) {
       return nullptr;
     }
   } else {
@@ -1108,78 +1140,81 @@ decode(PyObject* /*self*/, PyObject *args, PyObject *kws) {
 
 static PyMethodDef ThriftFastProtoMethods[] = {
 
-  {"encode", (PyCFunction)encode, METH_VARARGS | METH_KEYWORDS, ""},
-  {"decode", (PyCFunction)decode, METH_VARARGS | METH_KEYWORDS, ""},
+    {"encode", (PyCFunction)encode, METH_VARARGS | METH_KEYWORDS, ""},
+    {"decode", (PyCFunction)decode, METH_VARARGS | METH_KEYWORDS, ""},
 
-  {nullptr, nullptr, 0, nullptr}  /* Sentinel */
+    {nullptr, nullptr, 0, nullptr} /* Sentinel */
 };
 
 extern "C" {
 struct module_state {
-  PyObject *error;
+  PyObject* error;
 };
 
 #if PY_MAJOR_VERSION >= 3
 #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
 
-static int fastproto_traverse(PyObject *m, visitproc visit, void *arg) {
+static int fastproto_traverse(PyObject* m, visitproc visit, void* arg) {
   Py_VISIT(GETSTATE(m)->error);
   return 0;
 }
 
-static int fastproto_clear(PyObject *m) {
+static int fastproto_clear(PyObject* m) {
   Py_CLEAR(GETSTATE(m)->error);
   return 0;
 }
 
 static struct PyModuleDef ThriftFastProtoModuleDef = {
-  PyModuleDef_HEAD_INIT,
-  "thrift.protocol.fastproto",
-  nullptr,
-  sizeof(struct module_state),
-  ThriftFastProtoMethods,
-  nullptr,
-  fastproto_traverse,
-  fastproto_clear,
-  nullptr
-};
+    PyModuleDef_HEAD_INIT,
+    "thrift.protocol.fastproto",
+    nullptr,
+    sizeof(struct module_state),
+    ThriftFastProtoMethods,
+    nullptr,
+    fastproto_traverse,
+    fastproto_clear,
+    nullptr};
 
 #define INITERROR return nullptr
 
-PyObject*
-PyInit_fastproto(void);
+PyObject* PyInit_fastproto(void);
 
-PyObject*
-PyInit_fastproto(void)
+PyObject* PyInit_fastproto(void)
 #else
 #define INITERROR return
 #define GETSTATE(m) (&_state)
 static struct module_state _state;
 
-PyMODINIT_FUNC
-initfastproto(void);
+PyMODINIT_FUNC initfastproto(void);
 
-PyMODINIT_FUNC
-initfastproto(void)
+PyMODINIT_FUNC initfastproto(void)
 #endif
 {
-  PyObject *module;
-  struct module_state *st;
+  PyObject* module;
+  struct module_state* st;
 #if PY_MAJOR_VERSION >= 3
-  PyObject *iomodule = PyImport_ImportModule("io");
+  PyObject* iomodule = PyImport_ImportModule("io");
   if (iomodule == nullptr) {
     return nullptr;
   }
-  PyObject *bio = PyObject_CallMethod(iomodule, (char*)"BytesIO", (char*)"()");
+  PyObject* bio = PyObject_CallMethod(iomodule, (char*)"BytesIO", (char*)"()");
   if (bio == nullptr) {
     Py_DECREF(iomodule);
     return nullptr;
   }
   BytesIOType = (PyTypeObject*)PyObject_Type(bio);
+  ExceptionsModule = PyImport_ImportModule("thrift.protocol.exceptions");
+  if (ExceptionsModule == nullptr) {
+    Py_DECREF(iomodule);
+    Py_DECREF(bio);
+    return nullptr;
+  }
   module = PyModule_Create(&ThriftFastProtoModuleDef);
 #else
   PycString_IMPORT;
-  if (PycStringIO == nullptr) return;
+  if (PycStringIO == nullptr) {
+    return;
+  }
   module = Py_InitModule("thrift.protocol.fastproto", ThriftFastProtoMethods);
 #endif
 
@@ -1194,17 +1229,21 @@ initfastproto(void)
   }
 
 #if PY_MAJOR_VERSION >= 3
-#define INIT_INTERN_STRING(value) \
-  do { \
+#define INIT_INTERN_STRING(value)                              \
+  do {                                                         \
     INTERN_STRING(value) = PyUnicode_InternFromString(#value); \
-    if(!INTERN_STRING(value)) return nullptr; \
-  } while(0)
+    if (!INTERN_STRING(value)) {                               \
+      return nullptr;                                          \
+    }                                                          \
+  } while (0)
 #else
-#define INIT_INTERN_STRING(value) \
-  do { \
+#define INIT_INTERN_STRING(value)                             \
+  do {                                                        \
     INTERN_STRING(value) = PyString_InternFromString(#value); \
-    if(!INTERN_STRING(value)) return; \
-  } while(0)
+    if (!INTERN_STRING(value)) {                              \
+      return;                                                 \
+    }                                                         \
+  } while (0)
 #endif
 
   INIT_INTERN_STRING(cstringio_buf);

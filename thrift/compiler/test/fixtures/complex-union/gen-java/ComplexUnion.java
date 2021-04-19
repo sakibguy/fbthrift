@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -25,7 +23,6 @@ import com.facebook.thrift.protocol.*;
 
 @SuppressWarnings({ "unused", "serial", "unchecked" })
 public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<ComplexUnion> {
-  public static boolean DEFAULT_PRETTY_PRINT = true;
   private static final TStruct STRUCT_DESC = new TStruct("ComplexUnion");
   private static final TField INT_VALUE_FIELD_DESC = new TField("intValue", TType.I64, (short)1);
   private static final TField STRING_VALUE_FIELD_DESC = new TField("stringValue", TType.STRING, (short)5);
@@ -42,6 +39,7 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
   public static final int STRINGREF = 14;
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(INTVALUE, new FieldMetaData("intValue", TFieldRequirementType.DEFAULT, 
@@ -67,87 +65,88 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
     super();
   }
 
-  public ComplexUnion(int setField, Object value) {
-    super(setField, value);
+  public ComplexUnion(int setField, Object __value) {
+    super(setField, __value);
   }
 
   public ComplexUnion(ComplexUnion other) {
     super(other);
   }
+
   public ComplexUnion deepCopy() {
     return new ComplexUnion(this);
   }
 
-  public static ComplexUnion intValue(long value) {
+  public static ComplexUnion intValue(long __value) {
     ComplexUnion x = new ComplexUnion();
-    x.setIntValue(value);
+    x.setIntValue(__value);
     return x;
   }
 
-  public static ComplexUnion stringValue(String value) {
+  public static ComplexUnion stringValue(String __value) {
     ComplexUnion x = new ComplexUnion();
-    x.setStringValue(value);
+    x.setStringValue(__value);
     return x;
   }
 
-  public static ComplexUnion intListValue(List<Long> value) {
+  public static ComplexUnion intListValue(List<Long> __value) {
     ComplexUnion x = new ComplexUnion();
-    x.setIntListValue(value);
+    x.setIntListValue(__value);
     return x;
   }
 
-  public static ComplexUnion stringListValue(List<String> value) {
+  public static ComplexUnion stringListValue(List<String> __value) {
     ComplexUnion x = new ComplexUnion();
-    x.setStringListValue(value);
+    x.setStringListValue(__value);
     return x;
   }
 
-  public static ComplexUnion typedefValue(Map<Short,String> value) {
+  public static ComplexUnion typedefValue(Map<Short,String> __value) {
     ComplexUnion x = new ComplexUnion();
-    x.setTypedefValue(value);
+    x.setTypedefValue(__value);
     return x;
   }
 
-  public static ComplexUnion stringRef(String value) {
+  public static ComplexUnion stringRef(String __value) {
     ComplexUnion x = new ComplexUnion();
-    x.setStringRef(value);
+    x.setStringRef(__value);
     return x;
   }
 
 
   @Override
-  protected void checkType(short setField, Object value) throws ClassCastException {
+  protected void checkType(short setField, Object __value) throws ClassCastException {
     switch (setField) {
       case INTVALUE:
-        if (value instanceof Long) {
+        if (__value instanceof Long) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type Long for field 'intValue', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type Long for field 'intValue', but got " + __value.getClass().getSimpleName());
       case STRINGVALUE:
-        if (value instanceof String) {
+        if (__value instanceof String) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type String for field 'stringValue', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type String for field 'stringValue', but got " + __value.getClass().getSimpleName());
       case INTLISTVALUE:
-        if (value instanceof List) {
+        if (__value instanceof List) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type List<Long> for field 'intListValue', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type List<Long> for field 'intListValue', but got " + __value.getClass().getSimpleName());
       case STRINGLISTVALUE:
-        if (value instanceof List) {
+        if (__value instanceof List) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type List<String> for field 'stringListValue', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type List<String> for field 'stringListValue', but got " + __value.getClass().getSimpleName());
       case TYPEDEFVALUE:
-        if (value instanceof Map) {
+        if (__value instanceof Map) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type Map<Short,String> for field 'typedefValue', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type Map<Short,String> for field 'typedefValue', but got " + __value.getClass().getSimpleName());
       case STRINGREF:
-        if (value instanceof String) {
+        if (__value instanceof String) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type String for field 'stringRef', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type String for field 'stringRef', but got " + __value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -158,75 +157,73 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
     setField_ = 0;
     value_ = null;
     iprot.readStructBegin(metaDataMap);
-    TField field = iprot.readFieldBegin();
-    if (field.type != TType.STOP)
+    TField __field = iprot.readFieldBegin();
+    if (__field.type != TType.STOP)
     {
-      value_ = readValue(iprot, field);
+      value_ = readValue(iprot, __field);
       if (value_ != null)
       {
-        switch (field.id) {
+        switch (__field.id) {
           case INTVALUE:
-            if (field.type == INT_VALUE_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == INT_VALUE_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case STRINGVALUE:
-            if (field.type == STRING_VALUE_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == STRING_VALUE_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case INTLISTVALUE:
-            if (field.type == INT_LIST_VALUE_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == INT_LIST_VALUE_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case STRINGLISTVALUE:
-            if (field.type == STRING_LIST_VALUE_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == STRING_LIST_VALUE_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case TYPEDEFVALUE:
-            if (field.type == TYPEDEF_VALUE_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == TYPEDEF_VALUE_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case STRINGREF:
-            if (field.type == STRING_REF_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == STRING_REF_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
         }
       }
       iprot.readFieldEnd();
-      iprot.readFieldBegin();
-      iprot.readFieldEnd();
+      TField __stopField = iprot.readFieldBegin();
+      if (__stopField.type != TType.STOP) {
+        throw new TProtocolException(TProtocolException.INVALID_DATA, "Union 'ComplexUnion' is missing a STOP byte");
+      }
     }
     iprot.readStructEnd();
   }
 
   @Override
-  protected Object readValue(TProtocol iprot, TField field) throws TException {
-    switch (field.id) {
+  protected Object readValue(TProtocol iprot, TField __field) throws TException {
+    switch (__field.id) {
       case INTVALUE:
-        if (field.type == INT_VALUE_FIELD_DESC.type) {
+        if (__field.type == INT_VALUE_FIELD_DESC.type) {
           Long intValue;
           intValue = iprot.readI64();
           return intValue;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case STRINGVALUE:
-        if (field.type == STRING_VALUE_FIELD_DESC.type) {
+        if (__field.type == STRING_VALUE_FIELD_DESC.type) {
           String stringValue;
           stringValue = iprot.readString();
           return stringValue;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case INTLISTVALUE:
-        if (field.type == INT_LIST_VALUE_FIELD_DESC.type) {
+        if (__field.type == INT_LIST_VALUE_FIELD_DESC.type) {
           List<Long> intListValue;
           {
             TList _list0 = iprot.readListBegin();
@@ -242,12 +239,10 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
             iprot.readListEnd();
           }
           return intListValue;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case STRINGLISTVALUE:
-        if (field.type == STRING_LIST_VALUE_FIELD_DESC.type) {
+        if (__field.type == STRING_LIST_VALUE_FIELD_DESC.type) {
           List<String> stringListValue;
           {
             TList _list3 = iprot.readListBegin();
@@ -263,12 +258,10 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
             iprot.readListEnd();
           }
           return stringListValue;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case TYPEDEFVALUE:
-        if (field.type == TYPEDEF_VALUE_FIELD_DESC.type) {
+        if (__field.type == TYPEDEF_VALUE_FIELD_DESC.type) {
           Map<Short,String> typedefValue;
           {
             TMap _map6 = iprot.readMapBegin();
@@ -286,27 +279,22 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
             iprot.readMapEnd();
           }
           return typedefValue;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case STRINGREF:
-        if (field.type == STRING_REF_FIELD_DESC.type) {
+        if (__field.type == STRING_REF_FIELD_DESC.type) {
           String stringRef;
           stringRef = iprot.readString();
           return stringRef;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
-      default:
-        TProtocolUtil.skip(iprot, field.type);
-        return null;
+        break;
     }
+    TProtocolUtil.skip(iprot, __field.type);
+    return null;
   }
 
   @Override
-  protected void writeValue(TProtocol oprot, short setField, Object value) throws TException {
+  protected void writeValue(TProtocol oprot, short setField, Object __value) throws TException {
     switch (setField) {
       case INTVALUE:
         Long intValue = (Long)getFieldValue();
@@ -381,87 +369,70 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
     return STRUCT_DESC;
   }
 
-  public long  getIntValue() {
-    if (getSetField() == INTVALUE) {
-      return (Long)getFieldValue();
+  @Override
+  protected Map<Integer, FieldMetaData> getMetaDataMap() { return metaDataMap; }
+
+  private Object __getValue(int expectedFieldId) {
+    if (getSetField() == expectedFieldId) {
+      return getFieldValue();
     } else {
-      throw new RuntimeException("Cannot get field 'intValue' because union is currently set to " + getFieldDesc(getSetField()).name);
+      throw new RuntimeException("Cannot get field '" + getFieldDesc(expectedFieldId).name + "' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void setIntValue(long value) {
+  private void __setValue(int fieldId, Object __value) {
+    if (__value == null) throw new NullPointerException();
+    setField_ = fieldId;
+    value_ = __value;
+  }
+
+  public long getIntValue() {
+    return (Long) __getValue(INTVALUE);
+  }
+
+  public void setIntValue(long __value) {
     setField_ = INTVALUE;
-    value_ = value;
+    value_ = __value;
   }
 
-  public String  getStringValue() {
-    if (getSetField() == STRINGVALUE) {
-      return (String)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'stringValue' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public String getStringValue() {
+    return (String) __getValue(STRINGVALUE);
   }
 
-  public void setStringValue(String value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = STRINGVALUE;
-    value_ = value;
+  public void setStringValue(String __value) {
+    __setValue(STRINGVALUE, __value);
   }
 
-  public List<Long>  getIntListValue() {
-    if (getSetField() == INTLISTVALUE) {
-      return (List<Long>)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'intListValue' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public List<Long> getIntListValue() {
+    return (List<Long>) __getValue(INTLISTVALUE);
   }
 
-  public void setIntListValue(List<Long> value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = INTLISTVALUE;
-    value_ = value;
+  public void setIntListValue(List<Long> __value) {
+    __setValue(INTLISTVALUE, __value);
   }
 
-  public List<String>  getStringListValue() {
-    if (getSetField() == STRINGLISTVALUE) {
-      return (List<String>)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'stringListValue' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public List<String> getStringListValue() {
+    return (List<String>) __getValue(STRINGLISTVALUE);
   }
 
-  public void setStringListValue(List<String> value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = STRINGLISTVALUE;
-    value_ = value;
+  public void setStringListValue(List<String> __value) {
+    __setValue(STRINGLISTVALUE, __value);
   }
 
-  public Map<Short,String>  getTypedefValue() {
-    if (getSetField() == TYPEDEFVALUE) {
-      return (Map<Short,String>)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'typedefValue' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public Map<Short,String> getTypedefValue() {
+    return (Map<Short,String>) __getValue(TYPEDEFVALUE);
   }
 
-  public void setTypedefValue(Map<Short,String> value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = TYPEDEFVALUE;
-    value_ = value;
+  public void setTypedefValue(Map<Short,String> __value) {
+    __setValue(TYPEDEFVALUE, __value);
   }
 
-  public String  getStringRef() {
-    if (getSetField() == STRINGREF) {
-      return (String)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'stringRef' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public String getStringRef() {
+    return (String) __getValue(STRINGREF);
   }
 
-  public void setStringRef(String value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = STRINGREF;
-    value_ = value;
+  public void setStringRef(String __value) {
+    __setValue(STRINGREF, __value);
   }
 
   public boolean equals(Object other) {
@@ -482,124 +453,9 @@ public class ComplexUnion extends TUnion<ComplexUnion> implements Comparable<Com
   }
 
 
-  /**
-   * If you'd like this to perform more respectably, use the hashcode generator option.
-   */
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {getSetField(), getFieldValue()});
   }
-
-  @Override
-  public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
-  }
-
-  @Override
-  public String toString(int indent, boolean prettyPrint) {
-    String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
-    String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
-    StringBuilder sb = new StringBuilder("ComplexUnion");
-    sb.append(space);
-    sb.append("(");
-    sb.append(newLine);
-    boolean first = true;
-
-    // Only print this field if it is the set field
-    if (getSetField() == INTVALUE)
-    {
-      sb.append(indentStr);
-      sb.append("intValue");
-      sb.append(space);
-      sb.append(":").append(space);
-      sb.append(TBaseHelper.toString(this. getIntValue(), indent + 1, prettyPrint));
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == STRINGVALUE)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("stringValue");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getStringValue() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getStringValue(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == INTLISTVALUE)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("intListValue");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getIntListValue() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getIntListValue(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == STRINGLISTVALUE)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("stringListValue");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getStringListValue() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getStringListValue(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == TYPEDEFVALUE)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("typedefValue");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getTypedefValue() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getTypedefValue(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == STRINGREF)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("stringRef");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getStringRef() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getStringRef(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
-    sb.append(")");
-    return sb.toString();
-  }
-
 
 }

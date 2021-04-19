@@ -1,21 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #include <thrift/lib/cpp/test/loadgen/Controller.h>
 
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
@@ -24,12 +22,13 @@
 #include <thrift/lib/cpp/test/loadgen/Monitor.h>
 #include <thrift/lib/cpp/test/loadgen/WorkerIf.h>
 
-using std::shared_ptr;
 using apache::thrift::concurrency::PosixThreadFactory;
 using apache::thrift::concurrency::Thread;
-using apache::thrift::concurrency::Synchronized;
+using std::shared_ptr;
 
-namespace apache { namespace thrift { namespace loadgen {
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
 class Controller::WorkerRunner : public concurrency::Runnable {
  public:
@@ -44,20 +43,21 @@ class Controller::WorkerRunner : public concurrency::Runnable {
   Controller* controller_;
 };
 
-Controller::Controller(WorkerFactory* factory, Monitor* monitor,
-                       std::shared_ptr<LoadConfig> config,
-                       PosixThreadFactory* threadFactory)
-  : numThreads_(0)
-  , maxThreads_(0)
-  , workerFactory_(factory)
-  , monitor_(monitor)
-  , intervalTimer_(0)
-  , config_(config)
-  , threadFactory_(threadFactory) {
-}
+Controller::Controller(
+    WorkerFactory* factory,
+    Monitor* monitor,
+    std::shared_ptr<LoadConfig> config,
+    PosixThreadFactory* threadFactory)
+    : numThreads_(0),
+      maxThreads_(0),
+      workerFactory_(factory),
+      monitor_(monitor),
+      intervalTimer_(0),
+      config_(config),
+      threadFactory_(threadFactory) {}
 
-void Controller::run(uint32_t numThreads, uint32_t maxThreads,
-                     double monitorInterval) {
+void Controller::run(
+    uint32_t numThreads, uint32_t maxThreads, double monitorInterval) {
   maxThreads_ = maxThreads;
 
   // start all of the worker threads
@@ -68,9 +68,8 @@ void Controller::run(uint32_t numThreads, uint32_t maxThreads,
 }
 
 void Controller::createWorkerThreads(uint32_t numThreads) {
-  const PosixThreadFactory& threadFactory = threadFactory_ ?
-    *threadFactory_ :
-    PosixThreadFactory();
+  const PosixThreadFactory& threadFactory =
+      threadFactory_ ? *threadFactory_ : PosixThreadFactory();
 
   for (uint32_t n = 0; n < numThreads; ++n) {
     shared_ptr<WorkerRunner> runner(new WorkerRunner(this));
@@ -95,18 +94,18 @@ void Controller::startWorkers(uint32_t numThreads) {
   // other hand, the monitor correctly handles the case where some workers were
   // already performing operations for some time before the monitor started.
   {
-    Synchronized s(initMonitor_);
+    std::unique_lock<std::mutex> l(initMutex_);
     while (workers_.size() < numThreads_) {
-      initMonitor_.wait();
+      initCondVar_.wait(l);
     }
   }
 }
 
 void Controller::runMonitor(double interval) {
   unsigned long intervalUsec =
-    static_cast<unsigned long>(interval * concurrency::Util::US_PER_S);
+      static_cast<unsigned long>(interval * concurrency::Util::US_PER_S);
   unsigned long intervalNsec =
-    static_cast<unsigned long>(interval * concurrency::Util::NS_PER_S);
+      static_cast<unsigned long>(interval * concurrency::Util::NS_PER_S);
   IntervalTimer itimer(intervalNsec);
 
   itimer.start();
@@ -137,15 +136,15 @@ void Controller::runMonitor(double interval) {
 
       if (currentQps < desiredQps) {
         uint32_t numNewWorkerThreads =
-          (desiredQps - currentQps) * numThreads_ / currentQps;
+            (desiredQps - currentQps) * numThreads_ / currentQps;
         numNewWorkerThreads =
-          std::min(numNewWorkerThreads, maxThreads_ - numThreads_);
+            std::min(numNewWorkerThreads, maxThreads_ - numThreads_);
 
         createWorkerThreads(numNewWorkerThreads);
         numThreads_ += numNewWorkerThreads;
 
-        T_LOG_OPER("Total worker threads: %u (max %u)",
-                   numThreads_, maxThreads_);
+        T_LOG_OPER(
+            "Total worker threads: %u (max %u)", numThreads_, maxThreads_);
       }
     }
   }
@@ -170,25 +169,27 @@ void Controller::runMonitor(double interval) {
  * let smarter malloc implementations avoid false sharing.
  */
 shared_ptr<WorkerIf> Controller::createWorker() {
-  Synchronized s(initMonitor_);
+  std::unique_lock<std::mutex> l(initMutex_);
 
   // Create the worker
   int id = workers_.size();
   shared_ptr<ScoreBoard> scoreboard(monitor_->newScoreBoard(id));
-  shared_ptr<WorkerIf> worker(workerFactory_->newWorker(id, scoreboard,
-                                                        &intervalTimer_));
+  shared_ptr<WorkerIf> worker(
+      workerFactory_->newWorker(id, scoreboard, &intervalTimer_));
 
   // Add the worker to the workers_ array,
   // and notify anyone waiting that we have updated workers_
   workers_.push_back(worker);
-  initMonitor_.notifyAll();
+  initCondVar_.notify_all();
 
   // Wait on all of the other workers to be created
   while (workers_.size() != numThreads_) {
-    initMonitor_.wait();
+    initCondVar_.wait(l);
   }
 
   return worker;
 }
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache

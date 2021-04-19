@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -83,8 +80,9 @@ func (p *HeaderProtocol) ResetProtocol() error {
 
 func (p *HeaderProtocol) WriteMessageBegin(name string, typeId MessageType, seqid int32) error {
 	p.ResetProtocol()
-	// FIXME: Python is doing this -- don't know if it's correct.
-	// Should we be using this seqid or the header's?
+
+	// The conditions here only match on the Go client side.
+	// If we are a client, set header seq id same as msg id
 	if typeId == CALL || typeId == ONEWAY {
 		p.trans.SetSeqID(uint32(seqid))
 	}
@@ -107,6 +105,10 @@ func (p *HeaderProtocol) ReadMessageBegin() (name string, typeId MessageType, se
 		return name, EXCEPTION, seqid, err
 	}
 
+	// see https://github.com/apache/thrift/blob/master/doc/specs/SequenceNumbers.md
+	// TODO:  This is a bug. if we are speaking header protocol, we should be using
+	// seq id from the header. However, doing it here creates a non-backwards
+	// compatible code between client and server, since they both use this code.
 	return p.Protocol.ReadMessageBegin()
 }
 

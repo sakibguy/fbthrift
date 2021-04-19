@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 #include <thrift/lib/cpp2/async/FutureRequest.h>
 #include <thrift/lib/cpp2/async/RequestChannel.h>
@@ -22,8 +23,8 @@ namespace py3 {
 template <typename Result>
 class FutureCallback : public apache::thrift::FutureCallbackBase<Result> {
  private:
-  typedef folly::exception_wrapper (
-      *Processor)(Result&, apache::thrift::ClientReceiveState&);
+  typedef folly::exception_wrapper (*Processor)(
+      Result&, apache::thrift::ClientReceiveState&);
   Processor processor_;
   apache::thrift::RpcOptions& options_;
 
@@ -34,22 +35,20 @@ class FutureCallback : public apache::thrift::FutureCallbackBase<Result> {
       Processor processor,
       std::shared_ptr<apache::thrift::RequestChannel> channel = nullptr)
       : apache::thrift::FutureCallbackBase<Result>(
-            std::move(promise),
-            std::move(channel)),
+            std::move(promise), std::move(channel)),
         processor_(processor),
         options_(options) {}
 
   void replyReceived(apache::thrift::ClientReceiveState&& state) override {
-    SCOPE_EXIT {
-      if (state.header() && !state.header()->getHeaders().empty()) {
-        options_.setReadHeaders(state.header()->releaseHeaders());
-      }
-    };
     CHECK(!state.isException());
     CHECK(state.buf());
 
     Result result;
     auto ew = processor_(result, state);
+
+    if (state.header() && !state.header()->getHeaders().empty()) {
+      options_.setReadHeaders(state.header()->releaseHeaders());
+    }
 
     if (ew) {
       this->promise_.setException(ew);
@@ -57,6 +56,8 @@ class FutureCallback : public apache::thrift::FutureCallbackBase<Result> {
       this->promise_.setValue(std::move(result));
     }
   }
+
+  bool isInlineSafe() const override { return true; }
 };
 
 template <>
@@ -75,21 +76,19 @@ class FutureCallback<folly::Unit>
       Processor processor,
       std::shared_ptr<apache::thrift::RequestChannel> channel = nullptr)
       : apache::thrift::FutureCallbackBase<folly::Unit>(
-            std::move(promise),
-            std::move(channel)),
+            std::move(promise), std::move(channel)),
         processor_(processor),
         options_(options) {}
 
   void replyReceived(apache::thrift::ClientReceiveState&& state) override {
-    SCOPE_EXIT {
-      if (state.header() && !state.header()->getHeaders().empty()) {
-        options_.setReadHeaders(state.header()->releaseHeaders());
-      }
-    };
     CHECK(!state.isException());
     CHECK(state.buf());
 
     auto ew = processor_(state);
+
+    if (state.header() && !state.header()->getHeaders().empty()) {
+      options_.setReadHeaders(state.header()->releaseHeaders());
+    }
 
     if (ew) {
       promise_.setException(ew);
@@ -97,6 +96,8 @@ class FutureCallback<folly::Unit>
       promise_.setValue();
     }
   }
+
+  bool isInlineSafe() const override { return true; }
 };
 
 } // namespace py3

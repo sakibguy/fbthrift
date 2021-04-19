@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+namespace android test.fixtures.basic
+namespace java test.fixtures.basic
 namespace java.swift test.fixtures.basic
 
 enum MyEnum {
@@ -6,43 +24,38 @@ enum MyEnum {
 }
 
 struct MyStruct {
-  1: i64 MyIntField,
-  2: string MyStringField,
+  1: i64 MyIntField;
+  2: string MyStringField;
   # use the type before it is defined. Thrift should be able to handle this
-  3: MyDataItem MyDataField,
-  # glibc has macros with this name, Thrift should properly push/pop the macro
-  4: i64 major,
-  5: MyEnum myEnum,
+  3: MyDataItem MyDataField;
+  4: MyEnum myEnum;
+  5: bool oneway;
+  6: bool readonly;
+  7: bool idempotent;
 }
 
-struct MyDataItem {}
+struct MyDataItem {
+}
+
+union MyUnion {
+  1: MyEnum myEnum;
+  2: MyStruct myStruct;
+  3: MyDataItem myDataItem;
+}
 
 service MyService {
-  void ping()
-  string getRandomData()
-  bool hasDataById(1: i64 id)
-  string getDataById(1: i64 id)
-  void putDataById(1: i64 id, 2: string data)
-  oneway void lobDataById(1: i64 id, 2: string data)
+  void ping();
+  string getRandomData();
+  void sink(1: i64 sink);
+
+  void putDataById(1: i64 id, 2: string data);
+  readonly bool hasDataById(1: i64 id);
+  readonly string getDataById(1: i64 id);
+  idempotent void deleteDataById(1: i64 id);
+  oneway void lobDataById(1: i64 id, 2: string data);
 }
 
-service MyServiceFast {
-  void ping() (thread='eb')
-  string getRandomData() (thread='eb')
-  bool hasDataById(1: i64 id) (thread='eb')
-  string getDataById(1: i64 id) (thread='eb')
-  void putDataById(1: i64 id, 2: string data) (thread='eb')
-  oneway void lobDataById(1: i64 id, 2: string data) (thread='eb')
-}
-
-service MyServiceEmpty {
-}
-
-service MyServicePrioParent {
-  void ping() (priority = 'IMPORTANT')
-  void pong() (priority = 'HIGH_IMPORTANT')
-} (priority = 'HIGH')
-
-service MyServicePrioChild extends MyServicePrioParent {
-  void pang() (priority = 'BEST_EFFORT')
+service DbMixedStackArguments {
+  binary getDataByKey0(1: string key);
+  binary getDataByKey1(1: string key);
 }

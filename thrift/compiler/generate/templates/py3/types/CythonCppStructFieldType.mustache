@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,9 +25,7 @@ wrappers.
 }}{{#field:unique_ref?}}unique_ptr[{{/field:unique_ref?}}{{!
 }}{{#field:shared_ref?}}shared_ptr[{{/field:shared_ref?}}{{!
 }}{{#field:shared_const_ref?}}shared_ptr[const {{/field:shared_const_ref?}}{{!
-}}{{#program:optionals?}}{{#field:optional?}}cOptional[{{/field:optional?}}{{/program:optionals?}}{{!
 }}{{> types/CythonCppType}}{{!
 }}{{#field:unique_ref?}}]{{/field:unique_ref?}}{{!
 }}{{#field:shared_ref?}}]{{/field:shared_ref?}}{{!
-}}{{#field:shared_const_ref?}}]{{/field:shared_const_ref?}}{{!
-}}{{#program:optionals?}}{{#field:optional?}}]{{/field:optional?}}{{/program:optionals?}}
+}}{{#field:shared_const_ref?}}]{{/field:shared_const_ref?}}

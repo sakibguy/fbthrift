@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@
 #include <thrift/lib/cpp2/test/gen-cpp2/MyLeaf.h>
 #include <thrift/lib/cpp2/util/ScopedServerInterfaceThread.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace std;
 using namespace folly;
@@ -30,16 +30,10 @@ using namespace apache::thrift::test;
  */
 
 class Handler : public MyLeafSvIf {
-public:
-  Future<string> future_doRoot() override {
-    return makeFuture(string("root"));
-  }
-  Future<string> future_doNode() override {
-    return makeFuture(string("node"));
-  }
-  Future<string> future_doLeaf() override {
-    return makeFuture(string("leaf"));
-  }
+ public:
+  Future<string> future_doRoot() override { return makeFuture(string("root")); }
+  Future<string> future_doNode() override { return makeFuture(string("node")); }
+  Future<string> future_doLeaf() override { return makeFuture(string("leaf")); }
 };
 
 class ThriftServerInheritanceTest : public testing::Test {};
@@ -51,7 +45,7 @@ TEST_F(ThriftServerInheritanceTest, example) {
   EventBase eb;
   auto client = runner.newClient<MyLeafAsyncClient>(&eb);
 
-  EXPECT_EQ("root", client->future_doRoot().waitVia(&eb).getTry().value());
-  EXPECT_EQ("node", client->future_doNode().waitVia(&eb).getTry().value());
-  EXPECT_EQ("leaf", client->future_doLeaf().waitVia(&eb).getTry().value());
+  EXPECT_EQ("root", client->future_doRoot().waitVia(&eb).result().value());
+  EXPECT_EQ("node", client->future_doNode().waitVia(&eb).result().value());
+  EXPECT_EQ("leaf", client->future_doLeaf().waitVia(&eb).result().value());
 }

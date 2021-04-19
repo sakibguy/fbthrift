@@ -5,14 +5,22 @@
 #  @generated
 #
 
+cimport cython
+from cpython.version cimport PY_VERSION_HEX
+from libc.stdint cimport (
+    int8_t as cint8_t,
+    int16_t as cint16_t,
+    int32_t as cint32_t,
+    int64_t as cint64_t,
+)
 from libcpp.memory cimport shared_ptr, make_shared, unique_ptr, make_unique
 from libcpp.string cimport string
 from libcpp cimport bool as cbool
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 from libcpp.vector cimport vector
 from libcpp.set cimport set as cset
 from libcpp.map cimport map as cmap
+from libcpp.utility cimport move as cmove
 from cython.operator cimport dereference as deref
 from cpython.ref cimport PyObject
 from thrift.py3.exceptions cimport (
@@ -24,17 +32,30 @@ from thrift.py3.server import RequestContext, pass_context
 from folly cimport (
   cFollyPromise,
   cFollyUnit,
-  c_unit
+  c_unit,
 )
+from thrift.py3.common cimport (
+    cThriftServiceContext as __fbthrift_cThriftServiceContext,
+    cThriftMetadata as __fbthrift_cThriftMetadata,
+    ServiceMetadata,
+    extractMetadataFromServiceContext,
+    MetadataBox as __MetadataBox,
+)
+
+if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+    from thrift.py3.server cimport THRIFT_REQUEST_CONTEXT as __THRIFT_REQUEST_CONTEXT
 
 cimport folly.futures
 from folly.executor cimport get_executor
-cimport folly.iobuf as __iobuf
-import folly.iobuf as __iobuf
+cimport folly.iobuf as _fbthrift_iobuf
+import folly.iobuf as _fbthrift_iobuf
 from folly.iobuf cimport move as move_iobuf
+from folly.memory cimport to_shared_ptr as __to_shared_ptr
 
 cimport module.types as _module_types
 import module.types as _module_types
+
+cimport module.services_reflection as _services_reflection
 
 import asyncio
 import functools
@@ -45,41 +66,39 @@ import types as _py_types
 from module.services_wrapper cimport cRaiserInterface
 
 
-cdef extern from "<utility>" namespace "std":
-    cdef cFollyPromise[cFollyUnit] move_promise_cFollyUnit "std::move"(
-        cFollyPromise[cFollyUnit])
-    cdef cFollyPromise[unique_ptr[string]] move_promise_string "std::move"(
-        cFollyPromise[unique_ptr[string]])
 
-cdef class Promise_cFollyUnit:
-    cdef cFollyPromise[cFollyUnit] cPromise
-
-    @staticmethod
-    cdef create(cFollyPromise[cFollyUnit] cPromise):
-        inst = <Promise_cFollyUnit>Promise_cFollyUnit.__new__(Promise_cFollyUnit)
-        inst.cPromise = move_promise_cFollyUnit(cPromise)
-        return inst
-
+@cython.auto_pickle(False)
 cdef class Promise_string:
     cdef cFollyPromise[unique_ptr[string]] cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[string]] cPromise):
-        inst = <Promise_string>Promise_string.__new__(Promise_string)
-        inst.cPromise = move_promise_string(cPromise)
+        cdef Promise_string inst = Promise_string.__new__(Promise_string)
+        inst.cPromise = cmove(cPromise)
+        return inst
+
+@cython.auto_pickle(False)
+cdef class Promise_cFollyUnit:
+    cdef cFollyPromise[cFollyUnit] cPromise
+
+    @staticmethod
+    cdef create(cFollyPromise[cFollyUnit] cPromise):
+        cdef Promise_cFollyUnit inst = Promise_cFollyUnit.__new__(Promise_cFollyUnit)
+        inst.cPromise = cmove(cPromise)
         return inst
 
 cdef object _Raiser_annotations = _py_types.MappingProxyType({
 })
 
 
+@cython.auto_pickle(False)
 cdef class RaiserInterface(
     ServiceInterface
 ):
     annotations = _Raiser_annotations
 
     def __cinit__(self):
-        self.interface_wrapper = cRaiserInterface(
+        self._cpp_obj = cRaiserInterface(
             <PyObject *> self,
             get_executor()
         )
@@ -116,18 +135,34 @@ cdef class RaiserInterface(
             self):
         raise NotImplementedError("async def get500 is not implemented")
 
+    @classmethod
+    def __get_reflection__(cls):
+        return _services_reflection.get_reflection__Raiser(for_clients=False)
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        cdef __fbthrift_cThriftServiceContext context
+        ServiceMetadata[_services_reflection.cRaiserSvIf].gen(meta, context)
+        extractMetadataFromServiceContext(meta, context)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Raiser"
+
+
 
 cdef api void call_cy_Raiser_doBland(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cFollyUnit] cPromise
 ):
-    cdef RaiserInterface __iface
-    __iface = self
-    __promise = Promise_cFollyUnit.create(move_promise_cFollyUnit(cPromise))
-    __context = None
-    if __iface._pass_context_doBland:
-        __context = RequestContext.create(ctx)
+    cdef Promise_cFollyUnit __promise = Promise_cFollyUnit.create(cmove(cPromise))
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         Raiser_doBland_coro(
             self,
@@ -135,6 +170,8 @@ cdef api void call_cy_Raiser_doBland(
             __promise
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def Raiser_doBland_coro(
     object self,
@@ -142,7 +179,7 @@ async def Raiser_doBland_coro(
     Promise_cFollyUnit promise
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.doBland, "pass_context", False):
             result = await self.doBland(ctx,)
         else:
             result = await self.doBland()
@@ -167,12 +204,11 @@ cdef api void call_cy_Raiser_doRaise(
     Cpp2RequestContext* ctx,
     cFollyPromise[cFollyUnit] cPromise
 ):
-    cdef RaiserInterface __iface
-    __iface = self
-    __promise = Promise_cFollyUnit.create(move_promise_cFollyUnit(cPromise))
-    __context = None
-    if __iface._pass_context_doRaise:
-        __context = RequestContext.create(ctx)
+    cdef Promise_cFollyUnit __promise = Promise_cFollyUnit.create(cmove(cPromise))
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         Raiser_doRaise_coro(
             self,
@@ -180,6 +216,8 @@ cdef api void call_cy_Raiser_doRaise(
             __promise
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def Raiser_doRaise_coro(
     object self,
@@ -187,14 +225,16 @@ async def Raiser_doRaise_coro(
     Promise_cFollyUnit promise
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.doRaise, "pass_context", False):
             result = await self.doRaise(ctx,)
         else:
             result = await self.doRaise()
     except _module_types.Banal as ex:
-        promise.cPromise.setException(deref((<_module_types.Banal> ex)._cpp_obj.get()))
+        promise.cPromise.setException(deref((<_module_types.Banal> ex)._cpp_obj))
     except _module_types.Fiery as ex:
-        promise.cPromise.setException(deref((<_module_types.Fiery> ex)._cpp_obj.get()))
+        promise.cPromise.setException(deref((<_module_types.Fiery> ex)._cpp_obj))
+    except _module_types.Serious as ex:
+        promise.cPromise.setException(deref((<_module_types.Serious> ex)._cpp_obj))
     except __ApplicationError as ex:
         # If the handler raised an ApplicationError convert it to a C++ one
         promise.cPromise.setException(cTApplicationException(
@@ -216,12 +256,11 @@ cdef api void call_cy_Raiser_get200(
     Cpp2RequestContext* ctx,
     cFollyPromise[unique_ptr[string]] cPromise
 ):
-    cdef RaiserInterface __iface
-    __iface = self
-    __promise = Promise_string.create(move_promise_string(cPromise))
-    __context = None
-    if __iface._pass_context_get200:
-        __context = RequestContext.create(ctx)
+    cdef Promise_string __promise = Promise_string.create(cmove(cPromise))
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         Raiser_get200_coro(
             self,
@@ -229,6 +268,8 @@ cdef api void call_cy_Raiser_get200(
             __promise
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def Raiser_get200_coro(
     object self,
@@ -236,7 +277,7 @@ async def Raiser_get200_coro(
     Promise_string promise
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.get200, "pass_context", False):
             result = await self.get200(ctx,)
         else:
             result = await self.get200()
@@ -261,12 +302,11 @@ cdef api void call_cy_Raiser_get500(
     Cpp2RequestContext* ctx,
     cFollyPromise[unique_ptr[string]] cPromise
 ):
-    cdef RaiserInterface __iface
-    __iface = self
-    __promise = Promise_string.create(move_promise_string(cPromise))
-    __context = None
-    if __iface._pass_context_get500:
-        __context = RequestContext.create(ctx)
+    cdef Promise_string __promise = Promise_string.create(cmove(cPromise))
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         Raiser_get500_coro(
             self,
@@ -274,6 +314,8 @@ cdef api void call_cy_Raiser_get500(
             __promise
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def Raiser_get500_coro(
     object self,
@@ -281,14 +323,16 @@ async def Raiser_get500_coro(
     Promise_string promise
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.get500, "pass_context", False):
             result = await self.get500(ctx,)
         else:
             result = await self.get500()
     except _module_types.Fiery as ex:
-        promise.cPromise.setException(deref((<_module_types.Fiery> ex)._cpp_obj.get()))
+        promise.cPromise.setException(deref((<_module_types.Fiery> ex)._cpp_obj))
     except _module_types.Banal as ex:
-        promise.cPromise.setException(deref((<_module_types.Banal> ex)._cpp_obj.get()))
+        promise.cPromise.setException(deref((<_module_types.Banal> ex)._cpp_obj))
+    except _module_types.Serious as ex:
+        promise.cPromise.setException(deref((<_module_types.Serious> ex)._cpp_obj))
     except __ApplicationError as ex:
         # If the handler raised an ApplicationError convert it to a C++ one
         promise.cPromise.setException(cTApplicationException(

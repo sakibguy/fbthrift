@@ -1,55 +1,44 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.facebook.thrift.test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.facebook.thrift.TApplicationException;
 import com.facebook.thrift.TBase;
 import com.facebook.thrift.TException;
-import com.facebook.thrift.TProcessor;
 import com.facebook.thrift.TProcessorEventHandler;
 import com.facebook.thrift.TProcessorFactory;
 import com.facebook.thrift.protocol.TBinaryProtocol;
 import com.facebook.thrift.protocol.THeaderProtocol;
 import com.facebook.thrift.protocol.TProtocol;
-import com.facebook.thrift.protocol.TProtocolFactory;
 import com.facebook.thrift.server.TConnectionContext;
 import com.facebook.thrift.server.THsHaServer;
 import com.facebook.thrift.server.TNonblockingServer;
 import com.facebook.thrift.server.TServer;
 import com.facebook.thrift.transport.TFramedTransport;
 import com.facebook.thrift.transport.THeaderTransport;
-import com.facebook.thrift.transport.TMemoryBuffer;
 import com.facebook.thrift.transport.TNonblockingServerSocket;
+import com.facebook.thrift.transport.TSocket;
 import com.facebook.thrift.transport.TTransport;
 import com.facebook.thrift.transport.TTransportException;
-import com.facebook.thrift.transport.TTransportFactory;
-import com.facebook.thrift.transport.TServerSocket;
-import com.facebook.thrift.transport.TSocket;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.*;
 import thrift.test.Insanity;
 import thrift.test.Numberz;
 import thrift.test.ThriftTest;
@@ -58,14 +47,15 @@ import thrift.test.Xception2;
 import thrift.test.Xtruct;
 import thrift.test.Xtruct2;
 
-import org.junit.*;
-
 public class ClientHandlerTest extends junit.framework.TestCase {
   public int TEST_PORT = -1;
 
   public static final String identity = "me";
 
-  public enum ServerType { NONBLOCKING, HSHA };
+  public enum ServerType {
+    NONBLOCKING,
+    HSHA
+  };
 
   public class ServerThread implements Runnable {
     private TServer serverEngine;
@@ -82,12 +72,12 @@ public class ClientHandlerTest extends junit.framework.TestCase {
       pFactory = new TProcessorFactory(testProcessor);
 
       // Transport
-      tNonblockingServerSocket =  new TNonblockingServerSocket(0);
+      tNonblockingServerSocket = new TNonblockingServerSocket(0);
       TEST_PORT = tNonblockingServerSocket.getLocalPort();
 
       // Protocol factory
       List<THeaderTransport.ClientTypes> clientTypes =
-        new ArrayList<THeaderTransport.ClientTypes>();
+          new ArrayList<THeaderTransport.ClientTypes>();
       tTransportFactory = new THeaderTransport.Factory(clientTypes);
       tProtocolFactory = new THeaderProtocol.Factory();
 
@@ -100,18 +90,15 @@ public class ClientHandlerTest extends junit.framework.TestCase {
 
     public void makeNonblocking() throws TTransportException {
       // ThreadPool Server
-      serverEngine = new TNonblockingServer(pFactory,
-                                            tNonblockingServerSocket,
-                                            tTransportFactory,
-                                            tProtocolFactory);
+      serverEngine =
+          new TNonblockingServer(
+              pFactory, tNonblockingServerSocket, tTransportFactory, tProtocolFactory);
     }
 
     public void makeHsHa() throws TTransportException {
       // ThreadPool Server
-      serverEngine = new THsHaServer(pFactory,
-                                     tNonblockingServerSocket,
-                                     tTransportFactory,
-                                     tProtocolFactory);
+      serverEngine =
+          new THsHaServer(pFactory, tNonblockingServerSocket, tTransportFactory, tProtocolFactory);
     }
 
     public void run() {
@@ -177,8 +164,7 @@ public class ClientHandlerTest extends junit.framework.TestCase {
     }
 
     @Override
-    public void handlerError(Object handler_context, String fn_name,
-            Throwable th) {
+    public void handlerError(Object handler_context, String fn_name, Throwable th) {
       handlerCalls++;
       handlerError++;
       assertEquals(fn_name, "ThriftTest.testVoid");
@@ -193,8 +179,7 @@ public class ClientHandlerTest extends junit.framework.TestCase {
 
     public TestHandler() {}
 
-    public void testVoid() {
-    }
+    public void testVoid() {}
 
     public String testString(String thing) {
       return thing;
@@ -229,7 +214,7 @@ public class ClientHandlerTest extends junit.framework.TestCase {
       return nest;
     }
 
-    public Map<Integer,Integer> testMap(Map<Integer,Integer> thing) {
+    public Map<Integer, Integer> testMap(Map<Integer, Integer> thing) {
       return thing;
     }
 
@@ -241,7 +226,7 @@ public class ClientHandlerTest extends junit.framework.TestCase {
       return thing;
     }
 
-    public int testEnum(int thing) {
+    public Numberz testEnum(Numberz thing) {
       return thing;
     }
 
@@ -249,12 +234,11 @@ public class ClientHandlerTest extends junit.framework.TestCase {
       return thing;
     }
 
-    public Map<Integer,Map<Integer,Integer>> testMapMap(int hello) {
-      Map<Integer,Map<Integer,Integer>> mapmap =
-        new HashMap<Integer,Map<Integer,Integer>>();
+    public Map<Integer, Map<Integer, Integer>> testMapMap(int hello) {
+      Map<Integer, Map<Integer, Integer>> mapmap = new HashMap<Integer, Map<Integer, Integer>>();
 
-      HashMap<Integer,Integer> pos = new HashMap<Integer,Integer>();
-      HashMap<Integer,Integer> neg = new HashMap<Integer,Integer>();
+      HashMap<Integer, Integer> pos = new HashMap<Integer, Integer>();
+      HashMap<Integer, Integer> neg = new HashMap<Integer, Integer>();
       for (int i = 1; i < 5; i++) {
         pos.put(i, i);
         neg.put(-i, -i);
@@ -266,7 +250,7 @@ public class ClientHandlerTest extends junit.framework.TestCase {
       return mapmap;
     }
 
-    public Map<Long, Map<Integer,Insanity>> testInsanity(Insanity argument) {
+    public Map<Long, Map<Numberz, Insanity>> testInsanity(Insanity argument) {
 
       Xtruct hello = new Xtruct();
       hello.string_thing = "Hello2";
@@ -276,40 +260,42 @@ public class ClientHandlerTest extends junit.framework.TestCase {
 
       Xtruct goodbye = new Xtruct();
       goodbye.string_thing = "Goodbye4";
-      goodbye.byte_thing = (byte)4;
+      goodbye.byte_thing = (byte) 4;
       goodbye.i32_thing = 4;
-      goodbye.i64_thing = (long)4;
+      goodbye.i64_thing = (long) 4;
 
       Insanity crazy = new Insanity();
-      crazy.userMap = new HashMap<Integer, Long>();
+      crazy.userMap = new HashMap<Numberz, Long>();
       crazy.xtructs = new ArrayList<Xtruct>();
 
-      crazy.userMap.put(Numberz.EIGHT, (long)8);
+      crazy.userMap.put(Numberz.EIGHT, (long) 8);
       crazy.xtructs.add(goodbye);
 
       Insanity looney = new Insanity();
-      crazy.userMap.put(Numberz.FIVE, (long)5);
+      crazy.userMap.put(Numberz.FIVE, (long) 5);
       crazy.xtructs.add(hello);
 
-      HashMap<Integer,Insanity> first_map = new HashMap<Integer, Insanity>();
-      HashMap<Integer,Insanity> second_map = new HashMap<Integer, Insanity>();;
+      HashMap<Numberz, Insanity> first_map = new HashMap<Numberz, Insanity>();
+      HashMap<Numberz, Insanity> second_map = new HashMap<Numberz, Insanity>();
+      ;
 
       first_map.put(Numberz.TWO, crazy);
       first_map.put(Numberz.THREE, crazy);
 
       second_map.put(Numberz.SIX, looney);
 
-      Map<Long,Map<Integer,Insanity>> insane =
-        new HashMap<Long, Map<Integer,Insanity>>();
-      insane.put((long)1, first_map);
-      insane.put((long)2, second_map);
+      Map<Long, Map<Numberz, Insanity>> insane = new HashMap<Long, Map<Numberz, Insanity>>();
+      insane.put((long) 1, first_map);
+      insane.put((long) 2, second_map);
 
       return insane;
     }
 
-    public Xtruct testMulti(byte arg0, int arg1, long arg2, Map<Short,String> arg3, int arg4, long arg5) {
+    public Xtruct testMulti(
+        byte arg0, int arg1, long arg2, Map<Short, String> arg3, Numberz arg4, long arg5) {
 
-      Xtruct hello = new Xtruct();;
+      Xtruct hello = new Xtruct();
+      ;
       hello.string_thing = "Hello2";
       hello.byte_thing = arg0;
       hello.i32_thing = arg1;
@@ -353,38 +339,31 @@ public class ClientHandlerTest extends junit.framework.TestCase {
         throw new RuntimeException(ie);
       }
     }
-
   } // class TestHandler
 
   @Test
   public void testClientEventHandler() throws Exception {
-    doServerClient(ServerType.NONBLOCKING, false, true, false);
+    doServerClient(ServerType.NONBLOCKING, true, false);
   }
 
-  public void doServerClient(ServerType serverType, boolean unframed,
-                             boolean framed, boolean header)
-    throws TException, InterruptedException {
+  public void doServerClient(ServerType serverType, boolean framed, boolean header)
+      throws TException, InterruptedException {
     ServerThread st = new ServerThread(serverType);
     Thread r = new Thread(st);
     r.start();
-    doTransports(unframed, framed, header);
+    doTransports(framed, header);
     st.stop();
     r.interrupt();
     r.join();
   }
 
-  public void doTransports(boolean unframed,
-                            boolean framed, boolean header) throws TException{
+  public void doTransports(boolean framed, boolean header) throws TException {
     TTransport transport;
     TSocket socket = new TSocket("localhost", TEST_PORT);
     socket.setTimeout(1000);
     transport = socket;
     TProtocol prot = new TBinaryProtocol(transport);
-    if (unframed) {
-      testClient(transport, prot); // Unframed
-    }
-    List<THeaderTransport.ClientTypes> clientTypes =
-      new ArrayList<THeaderTransport.ClientTypes>();
+    List<THeaderTransport.ClientTypes> clientTypes = new ArrayList<THeaderTransport.ClientTypes>();
     prot = new THeaderProtocol(transport, clientTypes);
     if (header) {
       testClient(transport, prot); // Header w/compact
@@ -396,25 +375,19 @@ public class ClientHandlerTest extends junit.framework.TestCase {
     }
   }
 
-  public void testClient(TTransport transport, TProtocol prot)
-      throws TException {
-    ThriftTest.Client testClient =
-      new ThriftTest.Client(prot);
-    //rohan
+  public void testClient(TTransport transport, TProtocol prot) throws TException {
+    ThriftTest.Client testClient = new ThriftTest.Client(prot);
+    // rohan
     ClientEventHandler handler = new ClientEventHandler();
     testClient.addEventHandler(handler);
     Insanity insane = new Insanity();
 
-    /**
-     * CONNECT TEST
-     */
+    /** CONNECT TEST */
     transport.open();
 
-    //long start = System.nanoTime();
+    // long start = System.nanoTime();
 
-    /**
-     * VOID TEST
-     */
+    /** VOID TEST */
     testClient.testVoid();
 
     // Just do some basic testing that the event handler is called.
@@ -428,5 +401,4 @@ public class ClientHandlerTest extends junit.framework.TestCase {
 
     transport.close();
   }
-
 }

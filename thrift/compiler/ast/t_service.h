@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef T_SERVICE_H
@@ -39,41 +36,44 @@ class t_service : public t_type {
  public:
   explicit t_service(t_program* program) : t_type(program), extends_(nullptr) {}
 
-  bool is_service() const override {
-    return true;
-  }
+  bool is_service() const override { return true; }
 
-  void set_extends(t_service* extends) {
-    extends_ = extends;
-  }
+  void set_extends(t_service* extends) { extends_ = extends; }
 
-  void add_function(t_function* func) {
-    functions_.push_back(func);
+  void add_function(std::unique_ptr<t_function> func) {
+    functions_raw_.push_back(func.get());
+    functions_.push_back(std::move(func));
   }
 
   const std::vector<t_function*>& get_functions() const {
-    return functions_;
+    return functions_raw_;
   }
 
-  t_service* get_extends() const {
-    return extends_;
-  }
+  t_service* get_extends() const { return extends_; }
 
-  TypeValue get_type_value() const override {
-    return TypeValue::TYPE_SERVICE;
-  }
+  type get_type_value() const override { return type::t_service; }
 
   std::string get_full_name() const override {
     return make_full_name("service");
   }
 
-  std::string get_impl_full_name() const override {
-    return make_full_name("service");
-  }
+  bool is_interaction() const { return is_interaction_; }
+
+  void set_is_interaction() { is_interaction_ = true; }
+
+  bool is_serial_interaction() const { return is_serial_interaction_; }
+
+  void set_is_serial_interaction() { is_serial_interaction_ = true; }
 
  private:
-  std::vector<t_function*> functions_;
+  std::vector<std::unique_ptr<t_function>> functions_;
+
+  std::vector<t_function*> functions_raw_;
+
   t_service* extends_;
+
+  bool is_interaction_{false};
+  bool is_serial_interaction_{false};
 };
 
 } // namespace compiler

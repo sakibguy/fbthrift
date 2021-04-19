@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 
 #include <thrift/test/gen-cpp2/EnumTest_types.h>
@@ -27,8 +27,8 @@ TEST(QualifiedEnums, Defaults) {
   MyQualifiedStruct empty;
 
   BinaryProtocolWriter protWriter;
-  size_t bufSize = Cpp2Ops<MyQualifiedStruct>::serializedSize(&protWriter,
-                                                              &empty);
+  size_t bufSize =
+      Cpp2Ops<MyQualifiedStruct>::serializedSize(&protWriter, &empty);
   folly::IOBufQueue queue;
   protWriter.setOutput(&queue, bufSize);
   Cpp2Ops<MyQualifiedStruct>::write(&protWriter, &empty);
@@ -39,11 +39,11 @@ TEST(QualifiedEnums, Defaults) {
   MyQualifiedStruct actual;
   Cpp2Ops<MyQualifiedStruct>::read(&protReader, &actual);
 
-  EXPECT_EQ(MyQualifiedEnum::BAR, actual.field1);
-  EXPECT_EQ(MyQualifiedEnum::FOO, actual.field2);
-  EXPECT_EQ(MyEnum1::ME1_1, actual.field3);
-  EXPECT_EQ(MyEnum1::ME1_1, actual.field4);
-  EXPECT_EQ(MyEnum4::ME4_A, actual.field5);
+  EXPECT_EQ(MyQualifiedEnum::BAR, actual.field1_ref().value_unchecked());
+  EXPECT_EQ(MyQualifiedEnum::FOO, actual.field2_ref().value_unchecked());
+  EXPECT_EQ(MyEnum1::ME1_1, actual.field3_ref().value_unchecked());
+  EXPECT_EQ(MyEnum1::ME1_1, actual.field4_ref().value_unchecked());
+  EXPECT_EQ(MyEnum4::ME4_A, actual.field5_ref().value_unchecked());
 }
 
 TEST(QualifiedEnums, BitwiseOps) {

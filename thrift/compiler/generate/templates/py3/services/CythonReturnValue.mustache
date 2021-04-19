@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,42 +21,57 @@ value returned by the coroutine into the appropriate format to be returned
 to the client.
 
 }}{{#type:iobuf?}}{{!
-  }}{{#program:stack_arguments?}}deref{{/program:stack_arguments?}}{{!
-  }}((<__iobuf.IOBuf>result).c_clone()){{!
+  }}{{#function:stack_arguments?}}deref{{/function:stack_arguments?}}{{!
+  }}((<_fbthrift_iobuf.IOBuf>result).c_clone()){{!
 }}{{/type:iobuf?}}{{!
 }}{{#type:iobufRef?}}{{!
-  }}{{^program:stack_arguments?}}make_unique[unique_ptr[__iobuf.cIOBuf]]({{/program:stack_arguments?}}{{!
-    }}((<__iobuf.IOBuf>result).c_clone()){{!
-  }}{{^program:stack_arguments?}}){{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}make_unique[unique_ptr[_fbthrift_iobuf.cIOBuf]]({{/function:stack_arguments?}}{{!
+    }}((<_fbthrift_iobuf.IOBuf>result).c_clone()){{!
+  }}{{^function:stack_arguments?}}){{/function:stack_arguments?}}{{!
 }}{{/type:iobufRef?}}{{!
+}}{{#type:flexibleBinary?}}{{!
+  }}{{#function:stack_arguments?}}{{> types/CythonCppType}}({{/function:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/function:stack_arguments?}}{{!
+  }}cmove(<string>result)){{!
+}}{{/type:flexibleBinary?}}{{!
 }}{{^type:hasCustomTypeBehavior?}}{{!
 }}{{#type:bool?}}<cbool> result{{/type:bool?}}{{!
-}}{{#type:byte?}}<int8_t> result{{/type:byte?}}{{!
-}}{{#type:i16?}}<int16_t> result{{/type:i16?}}{{!
-}}{{#type:i32?}}<int32_t> result{{/type:i32?}}{{!
-}}{{#type:i64?}}<int64_t> result{{/type:i64?}}{{!
+}}{{#type:byte?}}<cint8_t> result{{/type:byte?}}{{!
+}}{{#type:i16?}}<cint16_t> result{{/type:i16?}}{{!
+}}{{#type:i32?}}<cint32_t> result{{/type:i32?}}{{!
+}}{{#type:i64?}}<cint64_t> result{{/type:i64?}}{{!
 }}{{#type:double?}}<double> result{{/type:double?}}{{!
 }}{{#type:float?}}<float> result{{/type:float?}}{{!
 }}{{#type:string?}}{{!
-  }}{{^program:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/function:stack_arguments?}}{{!
     }}<string?> result.encode('UTF-8'){{!
-  }}{{^program:stack_arguments?}}){{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}){{/function:stack_arguments?}}{{!
 }}{{/type:string?}}{{!
 }}{{#type:binary?}}{{!
-  }}{{^program:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/function:stack_arguments?}}{{!
     }}<string?> result{{!
-  }}{{^program:stack_arguments?}}){{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}){{/function:stack_arguments?}}{{!
 }}{{/type:binary?}}{{!
 }}{{#type:struct}}{{!
-  }}{{^program:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/function:stack_arguments?}}{{!
     }}deref((<{{> types/CythonPythonType}}?> result)._cpp_obj){{!
-  }}{{^program:stack_arguments?}}){{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}){{/function:stack_arguments?}}{{!
 }}{{/type:struct}}{{!
+}}{{#type:streamresponse?}}{{!
+  }}{{#type:stream_has_first_response?}}createEmptyResponseAndServerStream[{{!
+  }}{{#type:stream_first_response_type}}{{ >types/CythonCppType}}{{/type:stream_first_response_type}},{{!
+  }}{{#type:stream_elem_type}}{{ >types/CythonCppType}}{{/type:stream_elem_type}}]{{!
+  }}{{/type:stream_has_first_response?}}{{!
+  }}{{^type:stream_has_first_response?}}cServerStream[{{!
+  }}{{#type:stream_elem_type}}{{ >types/CythonCppType}}{{/type:stream_elem_type}}].createEmpty{{!
+  }}{{/type:stream_has_first_response?}}{{!
+  }}() # server streaming support is not implemented yet
+{{/type:streamresponse?}}{{!
 }}{{#type:container?}}{{!
-  }}{{^program:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}make_unique[{{> types/CythonCppType}}]({{/function:stack_arguments?}}{{!
     }}deref((<{{> types/CythonPythonType}}?> result)._cpp_obj){{!
-  }}{{^program:stack_arguments?}}){{/program:stack_arguments?}}{{!
+  }}{{^function:stack_arguments?}}){{/function:stack_arguments?}}{{!
 }}{{/type:container?}}{{!
 }}{{#type:void?}}c_unit{{/type:void?}}{{!
-}}{{#type:enum}}{{> types/CythonPythonType}}_to_cpp(result){{/type:enum}}{{!
+}}{{#type:enum?}}<{{> types/CythonCppType}}><int>result{{/type:enum?}}{{!
 }}{{/type:hasCustomTypeBehavior?}}

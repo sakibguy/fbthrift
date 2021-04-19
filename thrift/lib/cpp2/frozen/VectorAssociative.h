@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -36,12 +38,8 @@ class VectorAsSet : public std::vector<V> {
   /**
    * Insert value into the set at unspecified location.
    */
-  void insert(const V& value) {
-    this->push_back(value);
-  }
-  void insert(V&& value) {
-    this->push_back(std::move(value));
-  }
+  void insert(const V& value) { this->push_back(value); }
+  void insert(V&& value) { this->push_back(std::move(value)); }
 
   template <class Iterator>
   void insert(Iterator begin, Iterator end) {
@@ -104,10 +102,8 @@ class VectorAsHashMap : public VectorAsMap<K, V> {
 } // namespace apache
 
 THRIFT_DECLARE_TRAIT_TEMPLATE(
-    IsHashMap,
-    apache::thrift::frozen::VectorAsHashMap)
+    IsHashMap, apache::thrift::frozen::VectorAsHashMap)
 THRIFT_DECLARE_TRAIT_TEMPLATE(
-    IsHashSet,
-    apache::thrift::frozen::VectorAsHashSet)
+    IsHashSet, apache::thrift::frozen::VectorAsHashSet)
 THRIFT_DECLARE_TRAIT_TEMPLATE(IsOrderedMap, apache::thrift::frozen::VectorAsMap)
 THRIFT_DECLARE_TRAIT_TEMPLATE(IsOrderedSet, apache::thrift::frozen::VectorAsSet)

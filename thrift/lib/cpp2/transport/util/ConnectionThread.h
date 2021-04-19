@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,6 +27,8 @@
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <thrift/lib/cpp2/transport/core/ClientConnectionIf.h>
 
+DECLARE_string(transport);
+
 namespace apache {
 namespace thrift {
 
@@ -42,15 +44,12 @@ class ConnectionThread : public folly::ScopedEventBaseThread {
   // Returns a connection that may be used to talk to a server at
   // "addr:port".
   std::shared_ptr<ClientConnectionIf> getConnection(
-      const std::string& addr,
-      uint16_t port);
+      const std::string& addr, uint16_t port);
 
  private:
   // Creates a new connection on the provided event base if necessary.
   void maybeCreateConnection(
-      const std::string& serverKey,
-      const std::string& addr,
-      uint16_t port);
+      const std::string& serverKey, const std::string& addr, uint16_t port);
 
   folly::Synchronized<
       std::unordered_map<std::string, std::shared_ptr<ClientConnectionIf>>>

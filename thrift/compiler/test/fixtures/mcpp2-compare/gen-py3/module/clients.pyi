@@ -5,7 +5,7 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import thrift.py3.types
 import thrift.py3.client
 import thrift.py3.common
@@ -21,32 +21,13 @@ _EmptyServiceT = _typing.TypeVar('_EmptyServiceT', bound='EmptyService')
 
 class EmptyService(thrift.py3.client.Client):
 
-    async def __aenter__(self: _EmptyServiceT) -> _EmptyServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
-
+    pass
 
 
 _ReturnServiceT = _typing.TypeVar('_ReturnServiceT', bound='ReturnService')
 
 
 class ReturnService(thrift.py3.client.Client):
-
-    async def __aenter__(self: _ReturnServiceT) -> _ReturnServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
 
     async def noReturn(
         self,
@@ -147,13 +128,13 @@ class ReturnService(thrift.py3.client.Client):
         self,
         size: int,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> __IOBuf: ...
+    ) -> _fbthrift_iobuf.IOBuf: ...
 
     async def readData(
         self,
         size: int,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
-    ) -> __IOBuf: ...
+    ) -> _fbthrift_iobuf.IOBuf: ...
 
 
 
@@ -161,16 +142,6 @@ _ParamServiceT = _typing.TypeVar('_ParamServiceT', bound='ParamService')
 
 
 class ParamService(thrift.py3.client.Client):
-
-    async def __aenter__(self: _ParamServiceT) -> _ParamServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
 
     async def void_ret_i16_param(
         self,

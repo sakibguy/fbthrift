@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -26,7 +23,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"math"
 )
 
 const (
@@ -43,7 +39,7 @@ func NewHeaderTransportFactory(factory TransportFactory) TransportFactory {
 }
 
 func (p *tHeaderTransportFactory) GetTransport(base Transport) Transport {
-	return NewHeaderTransport(base)
+	return NewHeaderTransport(p.factory.GetTransport(base))
 }
 
 type HeaderTransport struct {
@@ -63,11 +59,13 @@ type HeaderTransport struct {
 	persistentWriteInfoHeaders map[string]string
 
 	// Negotiated
-	protoID         ProtocolID
-	seqID           uint32
-	flags           uint16
-	clientType      ClientType
-	writeTransforms []TransformID
+	protoID            ProtocolID
+	readSeqID          uint32 // read (and written, if not set explicitly)
+	writeSeqID         uint32 // written, if set by user of transport
+	seqIDExplicitlySet bool
+	flags              uint16
+	clientType         ClientType
+	writeTransforms    []TransformID
 }
 
 // NewHeaderTransport Create a new transport with defaults.
@@ -90,11 +88,12 @@ func NewHeaderTransport(transport Transport) *HeaderTransport {
 }
 
 func (t *HeaderTransport) SetSeqID(seq uint32) {
-	t.seqID = seq
+	t.seqIDExplicitlySet = true
+	t.writeSeqID = seq
 }
 
 func (t *HeaderTransport) SeqID() uint32 {
-	return t.seqID
+	return t.readSeqID
 }
 
 func (t *HeaderTransport) Identity() string {
@@ -132,7 +131,9 @@ func (t *HeaderTransport) PersistentHeaders() map[string]string {
 }
 
 func (t *HeaderTransport) ClearPersistentHeaders() {
-	t.persistentWriteInfoHeaders = map[string]string{}
+	if len(t.persistentWriteInfoHeaders) != 0 {
+		t.persistentWriteInfoHeaders = map[string]string{}
+	}
 }
 
 func (t *HeaderTransport) SetHeader(key, value string) {
@@ -153,7 +154,9 @@ func (t *HeaderTransport) Headers() map[string]string {
 }
 
 func (t *HeaderTransport) ClearHeaders() {
-	t.writeInfoHeaders = map[string]string{}
+	if len(t.writeInfoHeaders) != 0 {
+		t.writeInfoHeaders = map[string]string{}
+	}
 }
 
 func (t *HeaderTransport) ReadHeader(key string) (string, bool) {
@@ -223,6 +226,16 @@ func (t *HeaderTransport) applyUntransform() error {
 	return nil
 }
 
+// GetFlags returns the header flags.
+func (t *HeaderTransport) GetFlags() HeaderFlags {
+	return HeaderFlags(t.flags)
+}
+
+// SetFlags sets the header flags.
+func (t *HeaderTransport) SetFlags(flags HeaderFlags) {
+	t.flags = uint16(flags)
+}
+
 // ResetProtocol Needs to be called between every frame receive (BeginMessageRead)
 // We do this to read out the header for each frame. This contains the length of the
 // frame and protocol / metadata info.
@@ -244,14 +257,8 @@ func (t *HeaderTransport) ResetProtocol() error {
 	// Adopt the client's protocol
 	t.protoID = hdr.protoID
 	t.clientType = hdr.clientType
-	t.seqID = hdr.seq
+	t.readSeqID = hdr.seq
 	t.flags = hdr.flags
-
-	// If the client is using unframed, just pass up the data to the protocol
-	if t.clientType == UnframedDeprecated || t.clientType == UnframedCompactDeprecated {
-		t.framebuf = t.rbuf
-		return nil
-	}
 
 	// Make sure we can't read past the current frame length
 	t.frameSize = hdr.payloadLen
@@ -298,12 +305,13 @@ func (t *HeaderTransport) Close() error {
 	return t.transport.Close()
 }
 
+// UnderlyingTransport Get the underlying transport
+func (t *HeaderTransport) UnderlyingTransport() Transport {
+	return t.transport
+}
+
 // Read Read from the current framebuffer. EOF if the frame is done.
 func (t *HeaderTransport) Read(buf []byte) (int, error) {
-	// If we detected unframed, just pass the transport up
-	if t.clientType == UnframedDeprecated || t.clientType == UnframedCompactDeprecated {
-		return t.framebuf.Read(buf)
-	}
 	n, err := t.framebuf.Read(buf)
 	// Shouldn't be possibe, but just in case the frame size was flubbed
 	if uint64(n) > t.frameSize {
@@ -315,10 +323,6 @@ func (t *HeaderTransport) Read(buf []byte) (int, error) {
 
 // ReadByte Read a single byte from the current framebuffer. EOF if the frame is done.
 func (t *HeaderTransport) ReadByte() (byte, error) {
-	// If we detected unframed, just pass the transport up
-	if t.clientType == UnframedDeprecated || t.clientType == UnframedCompactDeprecated {
-		return t.framebuf.ReadByte()
-	}
 	b, err := t.framebuf.ReadByte()
 	t.frameSize--
 	return b, err
@@ -344,14 +348,14 @@ func (t *HeaderTransport) WriteString(s string) (int, error) {
 
 // RemainingBytes Return how many bytes remain in the current recv framebuffer.
 func (t *HeaderTransport) RemainingBytes() uint64 {
-	if t.clientType == UnframedDeprecated || t.clientType == UnframedCompactDeprecated {
-		// We cannot really tell the size without reading the whole struct in here
-		return math.MaxUint64
-	}
 	return t.frameSize
 }
 
 func applyTransforms(buf *bytes.Buffer, transforms []TransformID) (*bytes.Buffer, error) {
+	if len(transforms) == 0 {
+		return buf, nil
+	}
+
 	tmpbuf := bytes.NewBuffer(nil)
 	for _, trans := range transforms {
 		switch trans {
@@ -362,6 +366,13 @@ func applyTransforms(buf *bytes.Buffer, transforms []TransformID) (*bytes.Buffer
 				return nil, err
 			}
 			err = zwr.Close()
+			if err != nil {
+				return nil, err
+			}
+			buf, tmpbuf = tmpbuf, buf
+			tmpbuf.Reset()
+		case TransformZstd:
+			err := zstdWriter(tmpbuf, buf)
 			if err != nil {
 				return nil, err
 			}
@@ -380,11 +391,22 @@ func (t *HeaderTransport) flushHeader() error {
 	hdr := tHeader{}
 	hdr.headers = t.writeInfoHeaders
 	hdr.pHeaders = t.persistentWriteInfoHeaders
+	if t.seqIDExplicitlySet {
+		t.seqIDExplicitlySet = false
+		hdr.seq = t.writeSeqID
+	} else {
+		hdr.seq = t.readSeqID
+	}
+	hdr.transforms = t.writeTransforms
+
+	// protoID, clientType, and flags are state taken from what was recently read
+	// from ReadMessageBegin which always calls ResetProtocol.
+	// this means header protocol clients supporting out of order requests must also not change
+	// these fields dynamically between seq ids on a single transport instance.
+	// either we enforce that, or we keep around a lookup table of seq id -> these fields.
 	hdr.protoID = t.protoID
 	hdr.clientType = t.clientType
-	hdr.seq = t.seqID
 	hdr.flags = t.flags
-	hdr.transforms = t.writeTransforms
 
 	if t.identity != "" {
 		hdr.headers[IdentityHeader] = t.identity
@@ -403,14 +425,7 @@ func (t *HeaderTransport) flushHeader() error {
 		return NewTransportExceptionFromError(err)
 	}
 
-	hdrbuf := bytes.NewBuffer(make([]byte, 64))
-	hdrbuf.Reset()
-	err = hdr.Write(hdrbuf)
-	if err != nil {
-		return NewTransportExceptionFromError(err)
-	}
-
-	_, err = hdrbuf.WriteTo(t.transport)
+	err = hdr.Write(t.transport)
 	return NewTransportExceptionFromError(err)
 }
 
@@ -429,10 +444,6 @@ func (t *HeaderTransport) flushFramed() error {
 }
 
 func (t *HeaderTransport) Flush() error {
-	// Closure incase wbuf pointer changes in xform
-	defer func(tp *HeaderTransport) {
-		tp.wbuf.Reset()
-	}(t)
 	var err error
 
 	switch t.clientType {
@@ -442,11 +453,8 @@ func (t *HeaderTransport) Flush() error {
 		err = t.flushFramed()
 	case FramedCompact:
 		err = t.flushFramed()
-	case UnframedCompactDeprecated:
-		err = nil
-	case UnframedDeprecated:
-		err = nil
 	default:
+		t.wbuf.Reset() // reset incase wbuf pointer changes in xform
 		return NewTransportException(
 			UNKNOWN_TRANSPORT_EXCEPTION,
 			fmt.Sprintf("tHeader cannot flush for clientType %s", t.clientType.String()),
@@ -454,6 +462,7 @@ func (t *HeaderTransport) Flush() error {
 	}
 
 	if err != nil {
+		t.wbuf.Reset() // reset incase wbuf pointer changes in xform
 		return err
 	}
 
@@ -461,6 +470,7 @@ func (t *HeaderTransport) Flush() error {
 	if t.wbuf.Len() > 0 {
 		_, err = t.wbuf.WriteTo(t.transport)
 		if err != nil {
+			t.wbuf.Reset() // reset on return
 			return NewTransportExceptionFromError(err)
 		}
 	}
@@ -469,5 +479,7 @@ func (t *HeaderTransport) Flush() error {
 	t.ClearHeaders()
 
 	err = t.transport.Flush()
+
+	t.wbuf.Reset() // reset incase wbuf pointer changes in xform
 	return NewTransportExceptionFromError(err)
 }

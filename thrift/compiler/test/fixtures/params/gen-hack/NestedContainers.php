@@ -16,35 +16,35 @@ interface NestedContainersAsyncIf extends \IThriftAsyncIf {
    * void
    *   mapList(1: map<i32, list<i32>> foo);
    */
-  public function mapList(\Indexish<int, \Indexish<int, int>> $foo): Awaitable<void>;
+  public function mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void>;
 
   /**
    * Original thrift definition:-
    * void
    *   mapSet(1: map<i32, set<i32>> foo);
    */
-  public function mapSet(\Indexish<int, Set<int>> $foo): Awaitable<void>;
+  public function mapSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void>;
 
   /**
    * Original thrift definition:-
    * void
    *   listMap(1: list<map<i32, i32>> foo);
    */
-  public function listMap(\Indexish<int, \Indexish<int, int>> $foo): Awaitable<void>;
+  public function listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void>;
 
   /**
    * Original thrift definition:-
    * void
    *   listSet(1: list<set<i32>> foo);
    */
-  public function listSet(\Indexish<int, Set<int>> $foo): Awaitable<void>;
+  public function listSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void>;
 
   /**
    * Original thrift definition:-
    * void
    *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
    */
-  public function turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): Awaitable<void>;
+  public function turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): Awaitable<void>;
 }
 
 /**
@@ -57,35 +57,117 @@ interface NestedContainersIf extends \IThriftSyncIf {
    * void
    *   mapList(1: map<i32, list<i32>> foo);
    */
-  public function mapList(\Indexish<int, \Indexish<int, int>> $foo): void;
+  public function mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): void;
 
   /**
    * Original thrift definition:-
    * void
    *   mapSet(1: map<i32, set<i32>> foo);
    */
-  public function mapSet(\Indexish<int, Set<int>> $foo): void;
+  public function mapSet(KeyedContainer<int, Set<int>> $foo): void;
 
   /**
    * Original thrift definition:-
    * void
    *   listMap(1: list<map<i32, i32>> foo);
    */
-  public function listMap(\Indexish<int, \Indexish<int, int>> $foo): void;
+  public function listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): void;
 
   /**
    * Original thrift definition:-
    * void
    *   listSet(1: list<set<i32>> foo);
    */
-  public function listSet(\Indexish<int, Set<int>> $foo): void;
+  public function listSet(KeyedContainer<int, Set<int>> $foo): void;
 
   /**
    * Original thrift definition:-
    * void
    *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
    */
-  public function turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): void;
+  public function turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): void;
+}
+
+/**
+ * Original thrift service:-
+ * NestedContainers
+ */
+interface NestedContainersClientIf extends \IThriftSyncIf {
+  /**
+   * Original thrift definition:-
+   * void
+   *   mapList(1: map<i32, list<i32>> foo);
+   */
+  public function mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   mapSet(1: map<i32, set<i32>> foo);
+   */
+  public function mapSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   listMap(1: list<map<i32, i32>> foo);
+   */
+  public function listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   listSet(1: list<set<i32>> foo);
+   */
+  public function listSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
+   */
+  public function turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): Awaitable<void>;
+}
+
+/**
+ * Original thrift service:-
+ * NestedContainers
+ */
+interface NestedContainersAsyncRpcOptionsIf extends \IThriftAsyncRpcOptionsIf {
+  /**
+   * Original thrift definition:-
+   * void
+   *   mapList(1: map<i32, list<i32>> foo);
+   */
+  public function mapList(\RpcOptions $rpc_options, KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   mapSet(1: map<i32, set<i32>> foo);
+   */
+  public function mapSet(\RpcOptions $rpc_options, KeyedContainer<int, Set<int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   listMap(1: list<map<i32, i32>> foo);
+   */
+  public function listMap(\RpcOptions $rpc_options, KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   listSet(1: list<set<i32>> foo);
+   */
+  public function listSet(\RpcOptions $rpc_options, KeyedContainer<int, Set<int>> $foo): Awaitable<void>;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
+   */
+  public function turtles(\RpcOptions $rpc_options, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): Awaitable<void>;
 }
 
 /**
@@ -93,24 +175,24 @@ interface NestedContainersIf extends \IThriftSyncIf {
  * NestedContainers
  */
 trait NestedContainersClientBase {
-  require extends ThriftClientBase;
+  require extends \ThriftClientBase;
 
-  protected function sendImpl_mapList(\Indexish<int, \Indexish<int, int>> $foo): int {
+  protected function sendImpl_mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): int {
     $currentseqid = $this->getNextSequenceID();
-    $args = new NestedContainers_mapList_args(
-      (new Map($foo))->map(
+    $args = NestedContainers_mapList_args::fromShape(shape(
+      'foo' => (new Map($foo))->map(
         $_val0 ==> new Vector($_val0)
       ),
-    );
+    ));
     try {
       $this->eventHandler_->preSend('mapList', $args, $currentseqid);
-      if ($this->output_ instanceof \TBinaryProtocolAccelerated)
+      if ($this->output_ is \TBinaryProtocolAccelerated)
       {
-        thrift_protocol_write_binary($this->output_, 'mapList', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
+        \thrift_protocol_write_binary($this->output_, 'mapList', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
       }
-      else if ($this->output_ instanceof \TCompactProtocolAccelerated)
+      else if ($this->output_ is \TCompactProtocolAccelerated)
       {
-        thrift_protocol_write_compact($this->output_, 'mapList', \TMessageType::CALL, $args, $currentseqid, false);
+        \thrift_protocol_write_compact($this->output_, 'mapList', \TMessageType::CALL, $args, $currentseqid, false);
       }
       else
       {
@@ -130,7 +212,7 @@ trait NestedContainersClientBase {
           $this->eventHandler_->postSend('mapList', $args, $currentseqid);
           return $currentseqid;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->sendError('mapList', $args, $currentseqid, $ex);
       throw $ex;
     }
@@ -138,14 +220,14 @@ trait NestedContainersClientBase {
     return $currentseqid;
   }
 
-  protected function recvImpl_mapList(?int $expectedsequenceid = null): void {
+  protected function recvImpl_mapList(?int $expectedsequenceid = null, shape(?'read_options' => int) $options = shape()): void {
     try {
       $this->eventHandler_->preRecv('mapList', $expectedsequenceid);
-      if ($this->input_ instanceof \TBinaryProtocolAccelerated) {
-        $result = thrift_protocol_read_binary($this->input_, 'NestedContainers_mapList_result', $this->input_->isStrictRead());
-      } else if ($this->input_ instanceof \TCompactProtocolAccelerated)
+      if ($this->input_ is \TBinaryProtocolAccelerated) {
+        $result = \thrift_protocol_read_binary($this->input_, 'NestedContainers_mapList_result', $this->input_->isStrictRead(), Shapes::idx($options, 'read_options', 0));
+      } else if ($this->input_ is \TCompactProtocolAccelerated)
       {
-        $result = thrift_protocol_read_compact($this->input_, 'NestedContainers_mapList_result');
+        $result = \thrift_protocol_read_compact($this->input_, 'NestedContainers_mapList_result', Shapes::idx($options, 'read_options', 0));
       }
       else
       {
@@ -153,17 +235,21 @@ trait NestedContainersClientBase {
         $fname = '';
         $mtype = 0;
 
-        $this->input_->readMessageBegin(&$fname, &$mtype, &$rseqid);
-        if ($mtype == \TMessageType::EXCEPTION) {
+        $this->input_->readMessageBegin(
+          inout $fname,
+          inout $mtype,
+          inout $rseqid,
+        );
+        if ($mtype === \TMessageType::EXCEPTION) {
           $x = new \TApplicationException();
           $x->read($this->input_);
           $this->input_->readMessageEnd();
           throw $x;
         }
-        $result = new NestedContainers_mapList_result();
+        $result = NestedContainers_mapList_result::withDefaultValues();
         $result->read($this->input_);
         $this->input_->readMessageEnd();
-        if ($expectedsequenceid !== null && ($rseqid != $expectedsequenceid)) {
+        if ($expectedsequenceid !== null && ($rseqid !== $expectedsequenceid)) {
           throw new \TProtocolException("mapList failed: sequence id is out of order");
         }
       }
@@ -180,28 +266,28 @@ trait NestedContainersClientBase {
           $this->eventHandler_->postRecv('mapList', $expectedsequenceid, $ex->result);
           return;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->recvError('mapList', $expectedsequenceid, $ex);
       throw $ex;
     }
-          $this->eventHandler_->postRecv('mapList', $expectedsequenceid, null);
-return;
+    $this->eventHandler_->postRecv('mapList', $expectedsequenceid, null);
+    return;
   }
 
-  protected function sendImpl_mapSet(\Indexish<int, Set<int>> $foo): int {
+  protected function sendImpl_mapSet(KeyedContainer<int, Set<int>> $foo): int {
     $currentseqid = $this->getNextSequenceID();
-    $args = new NestedContainers_mapSet_args(
-      new Map($foo),
-    );
+    $args = NestedContainers_mapSet_args::fromShape(shape(
+      'foo' => new Map($foo),
+    ));
     try {
       $this->eventHandler_->preSend('mapSet', $args, $currentseqid);
-      if ($this->output_ instanceof \TBinaryProtocolAccelerated)
+      if ($this->output_ is \TBinaryProtocolAccelerated)
       {
-        thrift_protocol_write_binary($this->output_, 'mapSet', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
+        \thrift_protocol_write_binary($this->output_, 'mapSet', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
       }
-      else if ($this->output_ instanceof \TCompactProtocolAccelerated)
+      else if ($this->output_ is \TCompactProtocolAccelerated)
       {
-        thrift_protocol_write_compact($this->output_, 'mapSet', \TMessageType::CALL, $args, $currentseqid, false);
+        \thrift_protocol_write_compact($this->output_, 'mapSet', \TMessageType::CALL, $args, $currentseqid, false);
       }
       else
       {
@@ -221,7 +307,7 @@ return;
           $this->eventHandler_->postSend('mapSet', $args, $currentseqid);
           return $currentseqid;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->sendError('mapSet', $args, $currentseqid, $ex);
       throw $ex;
     }
@@ -229,14 +315,14 @@ return;
     return $currentseqid;
   }
 
-  protected function recvImpl_mapSet(?int $expectedsequenceid = null): void {
+  protected function recvImpl_mapSet(?int $expectedsequenceid = null, shape(?'read_options' => int) $options = shape()): void {
     try {
       $this->eventHandler_->preRecv('mapSet', $expectedsequenceid);
-      if ($this->input_ instanceof \TBinaryProtocolAccelerated) {
-        $result = thrift_protocol_read_binary($this->input_, 'NestedContainers_mapSet_result', $this->input_->isStrictRead());
-      } else if ($this->input_ instanceof \TCompactProtocolAccelerated)
+      if ($this->input_ is \TBinaryProtocolAccelerated) {
+        $result = \thrift_protocol_read_binary($this->input_, 'NestedContainers_mapSet_result', $this->input_->isStrictRead(), Shapes::idx($options, 'read_options', 0));
+      } else if ($this->input_ is \TCompactProtocolAccelerated)
       {
-        $result = thrift_protocol_read_compact($this->input_, 'NestedContainers_mapSet_result');
+        $result = \thrift_protocol_read_compact($this->input_, 'NestedContainers_mapSet_result', Shapes::idx($options, 'read_options', 0));
       }
       else
       {
@@ -244,17 +330,21 @@ return;
         $fname = '';
         $mtype = 0;
 
-        $this->input_->readMessageBegin(&$fname, &$mtype, &$rseqid);
-        if ($mtype == \TMessageType::EXCEPTION) {
+        $this->input_->readMessageBegin(
+          inout $fname,
+          inout $mtype,
+          inout $rseqid,
+        );
+        if ($mtype === \TMessageType::EXCEPTION) {
           $x = new \TApplicationException();
           $x->read($this->input_);
           $this->input_->readMessageEnd();
           throw $x;
         }
-        $result = new NestedContainers_mapSet_result();
+        $result = NestedContainers_mapSet_result::withDefaultValues();
         $result->read($this->input_);
         $this->input_->readMessageEnd();
-        if ($expectedsequenceid !== null && ($rseqid != $expectedsequenceid)) {
+        if ($expectedsequenceid !== null && ($rseqid !== $expectedsequenceid)) {
           throw new \TProtocolException("mapSet failed: sequence id is out of order");
         }
       }
@@ -271,30 +361,30 @@ return;
           $this->eventHandler_->postRecv('mapSet', $expectedsequenceid, $ex->result);
           return;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->recvError('mapSet', $expectedsequenceid, $ex);
       throw $ex;
     }
-          $this->eventHandler_->postRecv('mapSet', $expectedsequenceid, null);
-return;
+    $this->eventHandler_->postRecv('mapSet', $expectedsequenceid, null);
+    return;
   }
 
-  protected function sendImpl_listMap(\Indexish<int, \Indexish<int, int>> $foo): int {
+  protected function sendImpl_listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): int {
     $currentseqid = $this->getNextSequenceID();
-    $args = new NestedContainers_listMap_args(
-      (new Vector($foo))->map(
+    $args = NestedContainers_listMap_args::fromShape(shape(
+      'foo' => (new Vector($foo))->map(
         $_val0 ==> new Map($_val0)
       ),
-    );
+    ));
     try {
       $this->eventHandler_->preSend('listMap', $args, $currentseqid);
-      if ($this->output_ instanceof \TBinaryProtocolAccelerated)
+      if ($this->output_ is \TBinaryProtocolAccelerated)
       {
-        thrift_protocol_write_binary($this->output_, 'listMap', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
+        \thrift_protocol_write_binary($this->output_, 'listMap', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
       }
-      else if ($this->output_ instanceof \TCompactProtocolAccelerated)
+      else if ($this->output_ is \TCompactProtocolAccelerated)
       {
-        thrift_protocol_write_compact($this->output_, 'listMap', \TMessageType::CALL, $args, $currentseqid, false);
+        \thrift_protocol_write_compact($this->output_, 'listMap', \TMessageType::CALL, $args, $currentseqid, false);
       }
       else
       {
@@ -314,7 +404,7 @@ return;
           $this->eventHandler_->postSend('listMap', $args, $currentseqid);
           return $currentseqid;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->sendError('listMap', $args, $currentseqid, $ex);
       throw $ex;
     }
@@ -322,14 +412,14 @@ return;
     return $currentseqid;
   }
 
-  protected function recvImpl_listMap(?int $expectedsequenceid = null): void {
+  protected function recvImpl_listMap(?int $expectedsequenceid = null, shape(?'read_options' => int) $options = shape()): void {
     try {
       $this->eventHandler_->preRecv('listMap', $expectedsequenceid);
-      if ($this->input_ instanceof \TBinaryProtocolAccelerated) {
-        $result = thrift_protocol_read_binary($this->input_, 'NestedContainers_listMap_result', $this->input_->isStrictRead());
-      } else if ($this->input_ instanceof \TCompactProtocolAccelerated)
+      if ($this->input_ is \TBinaryProtocolAccelerated) {
+        $result = \thrift_protocol_read_binary($this->input_, 'NestedContainers_listMap_result', $this->input_->isStrictRead(), Shapes::idx($options, 'read_options', 0));
+      } else if ($this->input_ is \TCompactProtocolAccelerated)
       {
-        $result = thrift_protocol_read_compact($this->input_, 'NestedContainers_listMap_result');
+        $result = \thrift_protocol_read_compact($this->input_, 'NestedContainers_listMap_result', Shapes::idx($options, 'read_options', 0));
       }
       else
       {
@@ -337,17 +427,21 @@ return;
         $fname = '';
         $mtype = 0;
 
-        $this->input_->readMessageBegin(&$fname, &$mtype, &$rseqid);
-        if ($mtype == \TMessageType::EXCEPTION) {
+        $this->input_->readMessageBegin(
+          inout $fname,
+          inout $mtype,
+          inout $rseqid,
+        );
+        if ($mtype === \TMessageType::EXCEPTION) {
           $x = new \TApplicationException();
           $x->read($this->input_);
           $this->input_->readMessageEnd();
           throw $x;
         }
-        $result = new NestedContainers_listMap_result();
+        $result = NestedContainers_listMap_result::withDefaultValues();
         $result->read($this->input_);
         $this->input_->readMessageEnd();
-        if ($expectedsequenceid !== null && ($rseqid != $expectedsequenceid)) {
+        if ($expectedsequenceid !== null && ($rseqid !== $expectedsequenceid)) {
           throw new \TProtocolException("listMap failed: sequence id is out of order");
         }
       }
@@ -364,28 +458,28 @@ return;
           $this->eventHandler_->postRecv('listMap', $expectedsequenceid, $ex->result);
           return;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->recvError('listMap', $expectedsequenceid, $ex);
       throw $ex;
     }
-          $this->eventHandler_->postRecv('listMap', $expectedsequenceid, null);
-return;
+    $this->eventHandler_->postRecv('listMap', $expectedsequenceid, null);
+    return;
   }
 
-  protected function sendImpl_listSet(\Indexish<int, Set<int>> $foo): int {
+  protected function sendImpl_listSet(KeyedContainer<int, Set<int>> $foo): int {
     $currentseqid = $this->getNextSequenceID();
-    $args = new NestedContainers_listSet_args(
-      new Vector($foo),
-    );
+    $args = NestedContainers_listSet_args::fromShape(shape(
+      'foo' => new Vector($foo),
+    ));
     try {
       $this->eventHandler_->preSend('listSet', $args, $currentseqid);
-      if ($this->output_ instanceof \TBinaryProtocolAccelerated)
+      if ($this->output_ is \TBinaryProtocolAccelerated)
       {
-        thrift_protocol_write_binary($this->output_, 'listSet', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
+        \thrift_protocol_write_binary($this->output_, 'listSet', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
       }
-      else if ($this->output_ instanceof \TCompactProtocolAccelerated)
+      else if ($this->output_ is \TCompactProtocolAccelerated)
       {
-        thrift_protocol_write_compact($this->output_, 'listSet', \TMessageType::CALL, $args, $currentseqid, false);
+        \thrift_protocol_write_compact($this->output_, 'listSet', \TMessageType::CALL, $args, $currentseqid, false);
       }
       else
       {
@@ -405,7 +499,7 @@ return;
           $this->eventHandler_->postSend('listSet', $args, $currentseqid);
           return $currentseqid;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->sendError('listSet', $args, $currentseqid, $ex);
       throw $ex;
     }
@@ -413,14 +507,14 @@ return;
     return $currentseqid;
   }
 
-  protected function recvImpl_listSet(?int $expectedsequenceid = null): void {
+  protected function recvImpl_listSet(?int $expectedsequenceid = null, shape(?'read_options' => int) $options = shape()): void {
     try {
       $this->eventHandler_->preRecv('listSet', $expectedsequenceid);
-      if ($this->input_ instanceof \TBinaryProtocolAccelerated) {
-        $result = thrift_protocol_read_binary($this->input_, 'NestedContainers_listSet_result', $this->input_->isStrictRead());
-      } else if ($this->input_ instanceof \TCompactProtocolAccelerated)
+      if ($this->input_ is \TBinaryProtocolAccelerated) {
+        $result = \thrift_protocol_read_binary($this->input_, 'NestedContainers_listSet_result', $this->input_->isStrictRead(), Shapes::idx($options, 'read_options', 0));
+      } else if ($this->input_ is \TCompactProtocolAccelerated)
       {
-        $result = thrift_protocol_read_compact($this->input_, 'NestedContainers_listSet_result');
+        $result = \thrift_protocol_read_compact($this->input_, 'NestedContainers_listSet_result', Shapes::idx($options, 'read_options', 0));
       }
       else
       {
@@ -428,17 +522,21 @@ return;
         $fname = '';
         $mtype = 0;
 
-        $this->input_->readMessageBegin(&$fname, &$mtype, &$rseqid);
-        if ($mtype == \TMessageType::EXCEPTION) {
+        $this->input_->readMessageBegin(
+          inout $fname,
+          inout $mtype,
+          inout $rseqid,
+        );
+        if ($mtype === \TMessageType::EXCEPTION) {
           $x = new \TApplicationException();
           $x->read($this->input_);
           $this->input_->readMessageEnd();
           throw $x;
         }
-        $result = new NestedContainers_listSet_result();
+        $result = NestedContainers_listSet_result::withDefaultValues();
         $result->read($this->input_);
         $this->input_->readMessageEnd();
-        if ($expectedsequenceid !== null && ($rseqid != $expectedsequenceid)) {
+        if ($expectedsequenceid !== null && ($rseqid !== $expectedsequenceid)) {
           throw new \TProtocolException("listSet failed: sequence id is out of order");
         }
       }
@@ -455,34 +553,34 @@ return;
           $this->eventHandler_->postRecv('listSet', $expectedsequenceid, $ex->result);
           return;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->recvError('listSet', $expectedsequenceid, $ex);
       throw $ex;
     }
-          $this->eventHandler_->postRecv('listSet', $expectedsequenceid, null);
-return;
+    $this->eventHandler_->postRecv('listSet', $expectedsequenceid, null);
+    return;
   }
 
-  protected function sendImpl_turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): int {
+  protected function sendImpl_turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): int {
     $currentseqid = $this->getNextSequenceID();
-    $args = new NestedContainers_turtles_args(
-      (new Vector($foo))->map(
+    $args = NestedContainers_turtles_args::fromShape(shape(
+      'foo' => (new Vector($foo))->map(
         $_val0 ==> (new Vector($_val0))->map(
           $_val1 ==> (new Map($_val1))->map(
             $_val2 ==> new Map($_val2)
           )
         )
       ),
-    );
+    ));
     try {
       $this->eventHandler_->preSend('turtles', $args, $currentseqid);
-      if ($this->output_ instanceof \TBinaryProtocolAccelerated)
+      if ($this->output_ is \TBinaryProtocolAccelerated)
       {
-        thrift_protocol_write_binary($this->output_, 'turtles', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
+        \thrift_protocol_write_binary($this->output_, 'turtles', \TMessageType::CALL, $args, $currentseqid, $this->output_->isStrictWrite(), false);
       }
-      else if ($this->output_ instanceof \TCompactProtocolAccelerated)
+      else if ($this->output_ is \TCompactProtocolAccelerated)
       {
-        thrift_protocol_write_compact($this->output_, 'turtles', \TMessageType::CALL, $args, $currentseqid, false);
+        \thrift_protocol_write_compact($this->output_, 'turtles', \TMessageType::CALL, $args, $currentseqid, false);
       }
       else
       {
@@ -502,7 +600,7 @@ return;
           $this->eventHandler_->postSend('turtles', $args, $currentseqid);
           return $currentseqid;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->sendError('turtles', $args, $currentseqid, $ex);
       throw $ex;
     }
@@ -510,14 +608,14 @@ return;
     return $currentseqid;
   }
 
-  protected function recvImpl_turtles(?int $expectedsequenceid = null): void {
+  protected function recvImpl_turtles(?int $expectedsequenceid = null, shape(?'read_options' => int) $options = shape()): void {
     try {
       $this->eventHandler_->preRecv('turtles', $expectedsequenceid);
-      if ($this->input_ instanceof \TBinaryProtocolAccelerated) {
-        $result = thrift_protocol_read_binary($this->input_, 'NestedContainers_turtles_result', $this->input_->isStrictRead());
-      } else if ($this->input_ instanceof \TCompactProtocolAccelerated)
+      if ($this->input_ is \TBinaryProtocolAccelerated) {
+        $result = \thrift_protocol_read_binary($this->input_, 'NestedContainers_turtles_result', $this->input_->isStrictRead(), Shapes::idx($options, 'read_options', 0));
+      } else if ($this->input_ is \TCompactProtocolAccelerated)
       {
-        $result = thrift_protocol_read_compact($this->input_, 'NestedContainers_turtles_result');
+        $result = \thrift_protocol_read_compact($this->input_, 'NestedContainers_turtles_result', Shapes::idx($options, 'read_options', 0));
       }
       else
       {
@@ -525,17 +623,21 @@ return;
         $fname = '';
         $mtype = 0;
 
-        $this->input_->readMessageBegin(&$fname, &$mtype, &$rseqid);
-        if ($mtype == \TMessageType::EXCEPTION) {
+        $this->input_->readMessageBegin(
+          inout $fname,
+          inout $mtype,
+          inout $rseqid,
+        );
+        if ($mtype === \TMessageType::EXCEPTION) {
           $x = new \TApplicationException();
           $x->read($this->input_);
           $this->input_->readMessageEnd();
           throw $x;
         }
-        $result = new NestedContainers_turtles_result();
+        $result = NestedContainers_turtles_result::withDefaultValues();
         $result->read($this->input_);
         $this->input_->readMessageEnd();
-        if ($expectedsequenceid !== null && ($rseqid != $expectedsequenceid)) {
+        if ($expectedsequenceid !== null && ($rseqid !== $expectedsequenceid)) {
           throw new \TProtocolException("turtles failed: sequence id is out of order");
         }
       }
@@ -552,17 +654,17 @@ return;
           $this->eventHandler_->postRecv('turtles', $expectedsequenceid, $ex->result);
           return;
       }
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $this->eventHandler_->recvError('turtles', $expectedsequenceid, $ex);
       throw $ex;
     }
-          $this->eventHandler_->postRecv('turtles', $expectedsequenceid, null);
-return;
+    $this->eventHandler_->postRecv('turtles', $expectedsequenceid, null);
+    return;
   }
 
 }
 
-class NestedContainersAsyncClient extends ThriftClientBase implements NestedContainersAsyncIf {
+class NestedContainersAsyncClient extends \ThriftClientBase implements NestedContainersAsyncIf {
   use NestedContainersClientBase;
 
   /**
@@ -570,9 +672,25 @@ class NestedContainersAsyncClient extends ThriftClientBase implements NestedCont
    * void
    *   mapList(1: map<i32, list<i32>> foo);
    */
-  public async function mapList(\Indexish<int, \Indexish<int, int>> $foo): Awaitable<void> {
+  public async function mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "mapList");
     $currentseqid = $this->sendImpl_mapList($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_mapList($currentseqid);
   }
 
@@ -581,9 +699,25 @@ class NestedContainersAsyncClient extends ThriftClientBase implements NestedCont
    * void
    *   mapSet(1: map<i32, set<i32>> foo);
    */
-  public async function mapSet(\Indexish<int, Set<int>> $foo): Awaitable<void> {
+  public async function mapSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "mapSet");
     $currentseqid = $this->sendImpl_mapSet($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_mapSet($currentseqid);
   }
 
@@ -592,9 +726,25 @@ class NestedContainersAsyncClient extends ThriftClientBase implements NestedCont
    * void
    *   listMap(1: list<map<i32, i32>> foo);
    */
-  public async function listMap(\Indexish<int, \Indexish<int, int>> $foo): Awaitable<void> {
+  public async function listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "listMap");
     $currentseqid = $this->sendImpl_listMap($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_listMap($currentseqid);
   }
 
@@ -603,9 +753,25 @@ class NestedContainersAsyncClient extends ThriftClientBase implements NestedCont
    * void
    *   listSet(1: list<set<i32>> foo);
    */
-  public async function listSet(\Indexish<int, Set<int>> $foo): Awaitable<void> {
+  public async function listSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "listSet");
     $currentseqid = $this->sendImpl_listSet($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_listSet($currentseqid);
   }
 
@@ -614,38 +780,58 @@ class NestedContainersAsyncClient extends ThriftClientBase implements NestedCont
    * void
    *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
    */
-  public async function turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): Awaitable<void> {
+  public async function turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "turtles");
     $currentseqid = $this->sendImpl_turtles($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_turtles($currentseqid);
   }
 
 }
 
-class NestedContainersClient extends ThriftClientBase implements NestedContainersIf {
+class NestedContainersClient extends \ThriftClientBase implements NestedContainersClientIf {
   use NestedContainersClientBase;
-
-  <<__Deprecated('use gen_mapList()')>>
-  public function mapList(\Indexish<int, \Indexish<int, int>> $foo): void {
-    $currentseqid = $this->sendImpl_mapList($foo);
-    $this->recvImpl_mapList($currentseqid);
-  }
 
   /**
    * Original thrift definition:-
    * void
    *   mapList(1: map<i32, list<i32>> foo);
    */
-  public async function gen_mapList(\Indexish<int, \Indexish<int, int>> $foo): Awaitable<void> {
+  public async function mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "mapList");
     $currentseqid = $this->sendImpl_mapList($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_mapList($currentseqid);
-  }
-
-  <<__Deprecated('use gen_mapSet()')>>
-  public function mapSet(\Indexish<int, Set<int>> $foo): void {
-    $currentseqid = $this->sendImpl_mapSet($foo);
-    $this->recvImpl_mapSet($currentseqid);
   }
 
   /**
@@ -653,16 +839,26 @@ class NestedContainersClient extends ThriftClientBase implements NestedContainer
    * void
    *   mapSet(1: map<i32, set<i32>> foo);
    */
-  public async function gen_mapSet(\Indexish<int, Set<int>> $foo): Awaitable<void> {
+  public async function mapSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "mapSet");
     $currentseqid = $this->sendImpl_mapSet($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_mapSet($currentseqid);
-  }
-
-  <<__Deprecated('use gen_listMap()')>>
-  public function listMap(\Indexish<int, \Indexish<int, int>> $foo): void {
-    $currentseqid = $this->sendImpl_listMap($foo);
-    $this->recvImpl_listMap($currentseqid);
   }
 
   /**
@@ -670,16 +866,26 @@ class NestedContainersClient extends ThriftClientBase implements NestedContainer
    * void
    *   listMap(1: list<map<i32, i32>> foo);
    */
-  public async function gen_listMap(\Indexish<int, \Indexish<int, int>> $foo): Awaitable<void> {
+  public async function listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "listMap");
     $currentseqid = $this->sendImpl_listMap($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_listMap($currentseqid);
-  }
-
-  <<__Deprecated('use gen_listSet()')>>
-  public function listSet(\Indexish<int, Set<int>> $foo): void {
-    $currentseqid = $this->sendImpl_listSet($foo);
-    $this->recvImpl_listSet($currentseqid);
   }
 
   /**
@@ -687,16 +893,26 @@ class NestedContainersClient extends ThriftClientBase implements NestedContainer
    * void
    *   listSet(1: list<set<i32>> foo);
    */
-  public async function gen_listSet(\Indexish<int, Set<int>> $foo): Awaitable<void> {
+  public async function listSet(KeyedContainer<int, Set<int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "listSet");
     $currentseqid = $this->sendImpl_listSet($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_listSet($currentseqid);
-  }
-
-  <<__Deprecated('use gen_turtles()')>>
-  public function turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): void {
-    $currentseqid = $this->sendImpl_turtles($foo);
-    $this->recvImpl_turtles($currentseqid);
   }
 
   /**
@@ -704,38 +920,54 @@ class NestedContainersClient extends ThriftClientBase implements NestedContainer
    * void
    *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
    */
-  public async function gen_turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): Awaitable<void> {
+  public async function turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "turtles");
     $currentseqid = $this->sendImpl_turtles($foo);
-    await $this->asyncHandler_->genWait($currentseqid);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse(new \RpcOptions(), $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
     $this->recvImpl_turtles($currentseqid);
   }
 
   /* send and recv functions */
-  public function send_mapList(\Indexish<int, \Indexish<int, int>> $foo): int {
+  public function send_mapList(KeyedContainer<int, KeyedContainer<int, int>> $foo): int {
     return $this->sendImpl_mapList($foo);
   }
   public function recv_mapList(?int $expectedsequenceid = null): void {
     $this->recvImpl_mapList($expectedsequenceid);
   }
-  public function send_mapSet(\Indexish<int, Set<int>> $foo): int {
+  public function send_mapSet(KeyedContainer<int, Set<int>> $foo): int {
     return $this->sendImpl_mapSet($foo);
   }
   public function recv_mapSet(?int $expectedsequenceid = null): void {
     $this->recvImpl_mapSet($expectedsequenceid);
   }
-  public function send_listMap(\Indexish<int, \Indexish<int, int>> $foo): int {
+  public function send_listMap(KeyedContainer<int, KeyedContainer<int, int>> $foo): int {
     return $this->sendImpl_listMap($foo);
   }
   public function recv_listMap(?int $expectedsequenceid = null): void {
     $this->recvImpl_listMap($expectedsequenceid);
   }
-  public function send_listSet(\Indexish<int, Set<int>> $foo): int {
+  public function send_listSet(KeyedContainer<int, Set<int>> $foo): int {
     return $this->sendImpl_listSet($foo);
   }
   public function recv_listSet(?int $expectedsequenceid = null): void {
     $this->recvImpl_listSet($expectedsequenceid);
   }
-  public function send_turtles(\Indexish<int, \Indexish<int, \Indexish<int, \Indexish<int, Set<int>>>>> $foo): int {
+  public function send_turtles(KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): int {
     return $this->sendImpl_turtles($foo);
   }
   public function recv_turtles(?int $expectedsequenceid = null): void {
@@ -743,7 +975,147 @@ class NestedContainersClient extends ThriftClientBase implements NestedContainer
   }
 }
 
-abstract class NestedContainersAsyncProcessorBase extends ThriftAsyncProcessor {
+class NestedContainersAsyncRpcOptionsClient extends \ThriftClientBase implements NestedContainersAsyncRpcOptionsIf {
+  use NestedContainersClientBase;
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   mapList(1: map<i32, list<i32>> foo);
+   */
+  public async function mapList(\RpcOptions $rpc_options, KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "mapList");
+    $currentseqid = $this->sendImpl_mapList($foo);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse($rpc_options, $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
+    $this->recvImpl_mapList($currentseqid);
+  }
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   mapSet(1: map<i32, set<i32>> foo);
+   */
+  public async function mapSet(\RpcOptions $rpc_options, KeyedContainer<int, Set<int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "mapSet");
+    $currentseqid = $this->sendImpl_mapSet($foo);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse($rpc_options, $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
+    $this->recvImpl_mapSet($currentseqid);
+  }
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   listMap(1: list<map<i32, i32>> foo);
+   */
+  public async function listMap(\RpcOptions $rpc_options, KeyedContainer<int, KeyedContainer<int, int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "listMap");
+    $currentseqid = $this->sendImpl_listMap($foo);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse($rpc_options, $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
+    $this->recvImpl_listMap($currentseqid);
+  }
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   listSet(1: list<set<i32>> foo);
+   */
+  public async function listSet(\RpcOptions $rpc_options, KeyedContainer<int, Set<int>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "listSet");
+    $currentseqid = $this->sendImpl_listSet($foo);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse($rpc_options, $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
+    $this->recvImpl_listSet($currentseqid);
+  }
+
+  /**
+   * Original thrift definition:-
+   * void
+   *   turtles(1: list<list<map<i32, map<i32, set<i32>>>>> foo);
+   */
+  public async function turtles(\RpcOptions $rpc_options, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, KeyedContainer<int, Set<int>>>>> $foo): Awaitable<void> {
+    $hh_frame_metadata = $this->getHHFrameMetadata();
+    if ($hh_frame_metadata !== null) {
+      \HH\set_frame_metadata($hh_frame_metadata);
+    }
+    await $this->asyncHandler_->genBefore("NestedContainers", "turtles");
+    $currentseqid = $this->sendImpl_turtles($foo);
+    $channel = $this->channel_;
+    $out_transport = $this->output_->getTransport();
+    $in_transport = $this->input_->getTransport();
+    if ($channel !== null && $out_transport is \TMemoryBuffer && $in_transport is \TMemoryBuffer) {
+      $msg = $out_transport->getBuffer();
+      $out_transport->resetBuffer();
+      list($result_msg, $_read_headers) = await $channel->genSendRequestResponse($rpc_options, $msg);
+      $in_transport->resetBuffer();
+      $in_transport->write($result_msg);
+    } else {
+      await $this->asyncHandler_->genWait($currentseqid);
+    }
+    $this->recvImpl_turtles($currentseqid);
+  }
+
+}
+
+abstract class NestedContainersAsyncProcessorBase extends \ThriftAsyncProcessor {
   abstract const type TThriftIf as NestedContainersAsyncIf;
   protected async function process_mapList(int $seqid, \TProtocol $input, \TProtocol $output): Awaitable<void> {
     $handler_ctx = $this->eventHandler_->getHandlerContext('mapList');
@@ -751,34 +1123,34 @@ abstract class NestedContainersAsyncProcessorBase extends ThriftAsyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'mapList', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_mapList_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_mapList_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_mapList_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_mapList_args');
     } else {
-      $args = new NestedContainers_mapList_args();
+      $args = NestedContainers_mapList_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'mapList', $args);
-    $result = new NestedContainers_mapList_result();
+    $result = NestedContainers_mapList_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'mapList', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'mapList', $args);
       await $this->handler->mapList($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'mapList', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'mapList', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'mapList', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'mapList', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'mapList', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'mapList', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'mapList', $reply_type, $result, $seqid);
     }
     else
     {
@@ -795,34 +1167,34 @@ abstract class NestedContainersAsyncProcessorBase extends ThriftAsyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'mapSet', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_mapSet_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_mapSet_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_mapSet_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_mapSet_args');
     } else {
-      $args = new NestedContainers_mapSet_args();
+      $args = NestedContainers_mapSet_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'mapSet', $args);
-    $result = new NestedContainers_mapSet_result();
+    $result = NestedContainers_mapSet_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'mapSet', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'mapSet', $args);
       await $this->handler->mapSet($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'mapSet', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'mapSet', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'mapSet', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'mapSet', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'mapSet', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'mapSet', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'mapSet', $reply_type, $result, $seqid);
     }
     else
     {
@@ -839,34 +1211,34 @@ abstract class NestedContainersAsyncProcessorBase extends ThriftAsyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'listMap', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_listMap_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_listMap_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_listMap_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_listMap_args');
     } else {
-      $args = new NestedContainers_listMap_args();
+      $args = NestedContainers_listMap_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'listMap', $args);
-    $result = new NestedContainers_listMap_result();
+    $result = NestedContainers_listMap_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'listMap', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'listMap', $args);
       await $this->handler->listMap($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'listMap', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'listMap', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'listMap', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'listMap', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'listMap', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'listMap', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'listMap', $reply_type, $result, $seqid);
     }
     else
     {
@@ -883,34 +1255,34 @@ abstract class NestedContainersAsyncProcessorBase extends ThriftAsyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'listSet', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_listSet_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_listSet_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_listSet_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_listSet_args');
     } else {
-      $args = new NestedContainers_listSet_args();
+      $args = NestedContainers_listSet_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'listSet', $args);
-    $result = new NestedContainers_listSet_result();
+    $result = NestedContainers_listSet_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'listSet', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'listSet', $args);
       await $this->handler->listSet($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'listSet', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'listSet', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'listSet', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'listSet', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'listSet', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'listSet', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'listSet', $reply_type, $result, $seqid);
     }
     else
     {
@@ -927,34 +1299,34 @@ abstract class NestedContainersAsyncProcessorBase extends ThriftAsyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'turtles', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_turtles_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_turtles_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_turtles_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_turtles_args');
     } else {
-      $args = new NestedContainers_turtles_args();
+      $args = NestedContainers_turtles_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'turtles', $args);
-    $result = new NestedContainers_turtles_result();
+    $result = NestedContainers_turtles_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'turtles', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'turtles', $args);
       await $this->handler->turtles($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'turtles', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'turtles', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'turtles', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'turtles', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'turtles', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'turtles', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'turtles', $reply_type, $result, $seqid);
     }
     else
     {
@@ -970,7 +1342,7 @@ class NestedContainersAsyncProcessor extends NestedContainersAsyncProcessorBase 
   const type TThriftIf = NestedContainersAsyncIf;
 }
 
-abstract class NestedContainersSyncProcessorBase extends ThriftSyncProcessor {
+abstract class NestedContainersSyncProcessorBase extends \ThriftSyncProcessor {
   abstract const type TThriftIf as NestedContainersIf;
   protected function process_mapList(int $seqid, \TProtocol $input, \TProtocol $output): void {
     $handler_ctx = $this->eventHandler_->getHandlerContext('mapList');
@@ -978,34 +1350,34 @@ abstract class NestedContainersSyncProcessorBase extends ThriftSyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'mapList', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_mapList_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_mapList_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_mapList_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_mapList_args');
     } else {
-      $args = new NestedContainers_mapList_args();
+      $args = NestedContainers_mapList_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'mapList', $args);
-    $result = new NestedContainers_mapList_result();
+    $result = NestedContainers_mapList_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'mapList', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'mapList', $args);
       $this->handler->mapList($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'mapList', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'mapList', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'mapList', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'mapList', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'mapList', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'mapList', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'mapList', $reply_type, $result, $seqid);
     }
     else
     {
@@ -1022,34 +1394,34 @@ abstract class NestedContainersSyncProcessorBase extends ThriftSyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'mapSet', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_mapSet_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_mapSet_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_mapSet_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_mapSet_args');
     } else {
-      $args = new NestedContainers_mapSet_args();
+      $args = NestedContainers_mapSet_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'mapSet', $args);
-    $result = new NestedContainers_mapSet_result();
+    $result = NestedContainers_mapSet_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'mapSet', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'mapSet', $args);
       $this->handler->mapSet($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'mapSet', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'mapSet', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'mapSet', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'mapSet', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'mapSet', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'mapSet', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'mapSet', $reply_type, $result, $seqid);
     }
     else
     {
@@ -1066,34 +1438,34 @@ abstract class NestedContainersSyncProcessorBase extends ThriftSyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'listMap', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_listMap_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_listMap_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_listMap_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_listMap_args');
     } else {
-      $args = new NestedContainers_listMap_args();
+      $args = NestedContainers_listMap_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'listMap', $args);
-    $result = new NestedContainers_listMap_result();
+    $result = NestedContainers_listMap_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'listMap', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'listMap', $args);
       $this->handler->listMap($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'listMap', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'listMap', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'listMap', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'listMap', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'listMap', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'listMap', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'listMap', $reply_type, $result, $seqid);
     }
     else
     {
@@ -1110,34 +1482,34 @@ abstract class NestedContainersSyncProcessorBase extends ThriftSyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'listSet', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_listSet_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_listSet_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_listSet_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_listSet_args');
     } else {
-      $args = new NestedContainers_listSet_args();
+      $args = NestedContainers_listSet_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'listSet', $args);
-    $result = new NestedContainers_listSet_result();
+    $result = NestedContainers_listSet_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'listSet', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'listSet', $args);
       $this->handler->listSet($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'listSet', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'listSet', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'listSet', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'listSet', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'listSet', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'listSet', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'listSet', $reply_type, $result, $seqid);
     }
     else
     {
@@ -1154,34 +1526,34 @@ abstract class NestedContainersSyncProcessorBase extends ThriftSyncProcessor {
 
     $this->eventHandler_->preRead($handler_ctx, 'turtles', dict[]);
 
-    if ($input instanceof \TBinaryProtocolAccelerated) {
-      $args = thrift_protocol_read_binary_struct($input, 'NestedContainers_turtles_args');
-    } else if ($input instanceof \TCompactProtocolAccelerated) {
-      $args = thrift_protocol_read_compact_struct($input, 'NestedContainers_turtles_args');
+    if ($input is \TBinaryProtocolAccelerated) {
+      $args = \thrift_protocol_read_binary_struct($input, 'NestedContainers_turtles_args');
+    } else if ($input is \TCompactProtocolAccelerated) {
+      $args = \thrift_protocol_read_compact_struct($input, 'NestedContainers_turtles_args');
     } else {
-      $args = new NestedContainers_turtles_args();
+      $args = NestedContainers_turtles_args::withDefaultValues();
       $args->read($input);
     }
     $input->readMessageEnd();
     $this->eventHandler_->postRead($handler_ctx, 'turtles', $args);
-    $result = new NestedContainers_turtles_result();
+    $result = NestedContainers_turtles_result::withDefaultValues();
     try {
-      $this->eventHandler_->preExec($handler_ctx, 'turtles', $args);
+      $this->eventHandler_->preExec($handler_ctx, 'NestedContainers', 'turtles', $args);
       $this->handler->turtles($args->foo);
       $this->eventHandler_->postExec($handler_ctx, 'turtles', $result);
-    } catch (Exception $ex) {
+    } catch (\Exception $ex) {
       $reply_type = \TMessageType::EXCEPTION;
       $this->eventHandler_->handlerError($handler_ctx, 'turtles', $ex);
       $result = new \TApplicationException($ex->getMessage()."\n".$ex->getTraceAsString());
     }
     $this->eventHandler_->preWrite($handler_ctx, 'turtles', $result);
-    if ($output instanceof \TBinaryProtocolAccelerated)
+    if ($output is \TBinaryProtocolAccelerated)
     {
-      thrift_protocol_write_binary($output, 'turtles', $reply_type, $result, $seqid, $output->isStrictWrite());
+      \thrift_protocol_write_binary($output, 'turtles', $reply_type, $result, $seqid, $output->isStrictWrite());
     }
-    else if ($output instanceof \TCompactProtocolAccelerated)
+    else if ($output is \TCompactProtocolAccelerated)
     {
-      thrift_protocol_write_compact($output, 'turtles', $reply_type, $result, $seqid);
+      \thrift_protocol_write_compact($output, 'turtles', $reply_type, $result, $seqid);
     }
     else
     {
@@ -1204,29 +1576,34 @@ class NestedContainersProcessor extends NestedContainersSyncProcessor {}
 class NestedContainers_mapList_args implements \IThriftStruct, \IThriftShapishStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'foo',
       'type' => \TType::MAP,
       'ktype' => \TType::I32,
       'vtype' => \TType::LST,
-      'key' => dict[
+      'key' => shape(
         'type' => \TType::I32,
-      ],
-      'val' => dict[
+      ),
+      'val' => shape(
         'type' => \TType::LST,
         'etype' => \TType::I32,
-        'elem' => dict[
+        'elem' => shape(
           'type' => \TType::I32,
-          ],
-          'format' => 'collection',
-        ],
+        ),
         'format' => 'collection',
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+      ),
+      'format' => 'collection',
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'foo' => 1,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'foo' => ?Map<int, Vector<int>>,
+  );
+
   const type TShape = shape(
     'foo' => dict<int, vec<int>>,
     ...
@@ -1234,86 +1611,85 @@ class NestedContainers_mapList_args implements \IThriftStruct, \IThriftShapishSt
   const int STRUCTURAL_ID = 860610040470759468;
   public Map<int, Vector<int>> $foo;
 
-  public function __construct(?Map<int, Vector<int>> $foo = null  ) {
-    if ($foo === null) {
-      $this->foo = Map {};
-    } else {
-      $this->foo = $foo;
-    }
+  public function __construct(?Map<int, Vector<int>> $foo = null  )[] {
+    $this->foo = $foo ?? Map {};
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'foo'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_mapList_args';
   }
 
-  public static function __jsonArrayToShape(
-    dict<arraykey, mixed> $json_data,
-  ): ?self::TShape {
-    $shape_data = $json_data;
-
-    if (!C\contains_key($shape_data, 'foo')) {
-      $shape_data['foo'] = Map {};
-    }
-    if (!is_array($shape_data['foo'])) {
-      return null;
-    }
-    foreach (/* HH_IGNORE_ERROR[4110] */$shape_data['foo'] as $key0 => $value1) {
-      if (!($key0 is int)) {
-        return null;
-      }
-      if (!is_array($value1)) {
-        return null;
-      }
-      foreach (/* HH_IGNORE_ERROR[4110] */$value1 as $key2 => $value3) {
-        if (!($key2 is int)) {
-          return null;
-        }
-        if (!($value3 is int)) {
-          return null;
-        }
-        /* HH_IGNORE_ERROR[4005] */
-        /* HH_IGNORE_ERROR[4063] */
-        $value1[$key2] = $value3;
-      }
-      /* HH_IGNORE_ERROR[4005] */
-      /* HH_IGNORE_ERROR[4063] */
-      $shape_data['foo'][$key0] = $value1;
-    }
-
-    return /* HH_IGNORE_ERROR[4110] */ $shape_data;
-  }
-
-  public static function __fromShape(self::TShape $shape): this {
-    $me = /* HH_IGNORE_ERROR[4060] */ new static();
-    $me->foo = (new Map($shape['foo']))->map(
-      $val4 ==> (new Vector($val4)),
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
     );
-    return $me;
   }
 
-  public function __toShape(): self::TShape {
+  public static function __fromShape(self::TShape $shape)[]: this {
+    return new static(
+      (new Map($shape['foo']))->map(
+        $val0 ==> (new Vector($val0)),
+      ),
+    );
+  }
+
+  public function __toShape()[]: self::TShape {
     return shape(
       'foo' => $this->foo->map(
-        $_val0 ==> $_val0->toVec(),
-      )->toDict(),
+        ($_val0) ==> vec($_val0),
+      )
+        |> dict($$),
     );
   }
 }
 
-class NestedContainers_mapList_result implements \IThriftStruct, \IThriftShapishStruct {
+class NestedContainers_mapList_result implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
-  };
+  const dict<int, this::TFieldSpec> SPEC = dict[
+  ];
+  const dict<string, int> FIELDMAP = dict[
+  ];
+
+  const type TConstructorShape = shape(
+  );
+
   const int STRUCTURAL_ID = 957977401221134810;
 
-  public function __construct(  ) {
+  public function __construct(  )[] {
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_mapList_result';
+  }
+
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
 }
@@ -1321,29 +1697,34 @@ class NestedContainers_mapList_result implements \IThriftStruct, \IThriftShapish
 class NestedContainers_mapSet_args implements \IThriftStruct, \IThriftShapishStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'foo',
       'type' => \TType::MAP,
       'ktype' => \TType::I32,
       'vtype' => \TType::SET,
-      'key' => dict[
+      'key' => shape(
         'type' => \TType::I32,
-      ],
-      'val' => dict[
+      ),
+      'val' => shape(
         'type' => \TType::SET,
         'etype' => \TType::I32,
-        'elem' => dict[
+        'elem' => shape(
           'type' => \TType::I32,
-          ],
-          'format' => 'collection',
-        ],
+        ),
         'format' => 'collection',
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+      ),
+      'format' => 'collection',
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'foo' => 1,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'foo' => ?Map<int, Set<int>>,
+  );
+
   const type TShape = shape(
     'foo' => dict<int, dict<int, bool>>,
     ...
@@ -1351,83 +1732,85 @@ class NestedContainers_mapSet_args implements \IThriftStruct, \IThriftShapishStr
   const int STRUCTURAL_ID = 860610040470759468;
   public Map<int, Set<int>> $foo;
 
-  public function __construct(?Map<int, Set<int>> $foo = null  ) {
-    if ($foo === null) {
-      $this->foo = Map {};
-    } else {
-      $this->foo = $foo;
-    }
+  public function __construct(?Map<int, Set<int>> $foo = null  )[] {
+    $this->foo = $foo ?? Map {};
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'foo'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_mapSet_args';
   }
 
-  public static function __jsonArrayToShape(
-    dict<arraykey, mixed> $json_data,
-  ): ?self::TShape {
-    $shape_data = $json_data;
-
-    if (!C\contains_key($shape_data, 'foo')) {
-      $shape_data['foo'] = Map {};
-    }
-    if (!is_array($shape_data['foo'])) {
-      return null;
-    }
-    foreach (/* HH_IGNORE_ERROR[4110] */$shape_data['foo'] as $key0 => $value1) {
-      if (!($key0 is int)) {
-        return null;
-      }
-      if (!is_array($value1)) {
-        return null;
-      }
-      $the_set4 = dict[];
-      foreach (/* HH_IGNORE_ERROR[4110] */ $value1 as $key2 => $shape_data3) {
-        if (!($shape_data3 is int)) {
-          return null;
-        }
-        $the_set4[$shape_data3] = true;
-      }
-      $value1 = $the_set4;
-      /* HH_IGNORE_ERROR[4005] */
-      /* HH_IGNORE_ERROR[4063] */
-      $shape_data['foo'][$key0] = $value1;
-    }
-
-    return /* HH_IGNORE_ERROR[4110] */ $shape_data;
-  }
-
-  public static function __fromShape(self::TShape $shape): this {
-    $me = /* HH_IGNORE_ERROR[4060] */ new static();
-    $me->foo = (new Map($shape['foo']))->map(
-      $val5 ==> new Set(Keyset\keys($val5)),
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
     );
-    return $me;
   }
 
-  public function __toShape(): self::TShape {
+  public static function __fromShape(self::TShape $shape)[]: this {
+    return new static(
+      (new Map($shape['foo']))->map(
+        $val0 ==> new Set(Keyset\keys($val0)),
+      ),
+    );
+  }
+
+  public function __toShape()[]: self::TShape {
     return shape(
       'foo' => $this->foo->map(
-        $_val0 ==> darray(Dict\fill_keys($_val0, true)),
-      )->toDict(),
+        ($_val0) ==> ThriftUtil::toDArray(Dict\fill_keys($_val0, true)),
+      )
+        |> dict($$),
     );
   }
 }
 
-class NestedContainers_mapSet_result implements \IThriftStruct, \IThriftShapishStruct {
+class NestedContainers_mapSet_result implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
-  };
+  const dict<int, this::TFieldSpec> SPEC = dict[
+  ];
+  const dict<string, int> FIELDMAP = dict[
+  ];
+
+  const type TConstructorShape = shape(
+  );
+
   const int STRUCTURAL_ID = 957977401221134810;
 
-  public function __construct(  ) {
+  public function __construct(  )[] {
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_mapSet_result';
+  }
+
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
 }
@@ -1435,29 +1818,34 @@ class NestedContainers_mapSet_result implements \IThriftStruct, \IThriftShapishS
 class NestedContainers_listMap_args implements \IThriftStruct, \IThriftShapishStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'foo',
       'type' => \TType::LST,
       'etype' => \TType::MAP,
-      'elem' => dict[
+      'elem' => shape(
         'type' => \TType::MAP,
         'ktype' => \TType::I32,
         'vtype' => \TType::I32,
-        'key' => dict[
+        'key' => shape(
           'type' => \TType::I32,
-        ],
-        'val' => dict[
+        ),
+        'val' => shape(
           'type' => \TType::I32,
-          ],
-          'format' => 'collection',
-        ],
+        ),
         'format' => 'collection',
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+      ),
+      'format' => 'collection',
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'foo' => 1,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'foo' => ?Vector<Map<int, int>>,
+  );
+
   const type TShape = shape(
     'foo' => vec<dict<int, int>>,
     ...
@@ -1465,86 +1853,85 @@ class NestedContainers_listMap_args implements \IThriftStruct, \IThriftShapishSt
   const int STRUCTURAL_ID = 860610040470759468;
   public Vector<Map<int, int>> $foo;
 
-  public function __construct(?Vector<Map<int, int>> $foo = null  ) {
-    if ($foo === null) {
-      $this->foo = Vector {};
-    } else {
-      $this->foo = $foo;
-    }
+  public function __construct(?Vector<Map<int, int>> $foo = null  )[] {
+    $this->foo = $foo ?? Vector {};
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'foo'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_listMap_args';
   }
 
-  public static function __jsonArrayToShape(
-    dict<arraykey, mixed> $json_data,
-  ): ?self::TShape {
-    $shape_data = $json_data;
-
-    if (!C\contains_key($shape_data, 'foo')) {
-      $shape_data['foo'] = Vector {};
-    }
-    if (!is_array($shape_data['foo'])) {
-      return null;
-    }
-    foreach (/* HH_IGNORE_ERROR[4110] */$shape_data['foo'] as $key0 => $value1) {
-      if (!($key0 is int)) {
-        return null;
-      }
-      if (!is_array($value1)) {
-        return null;
-      }
-      foreach (/* HH_IGNORE_ERROR[4110] */$value1 as $key2 => $value3) {
-        if (!($key2 is int)) {
-          return null;
-        }
-        if (!($value3 is int)) {
-          return null;
-        }
-        /* HH_IGNORE_ERROR[4005] */
-        /* HH_IGNORE_ERROR[4063] */
-        $value1[$key2] = $value3;
-      }
-      /* HH_IGNORE_ERROR[4005] */
-      /* HH_IGNORE_ERROR[4063] */
-      $shape_data['foo'][$key0] = $value1;
-    }
-
-    return /* HH_IGNORE_ERROR[4110] */ $shape_data;
-  }
-
-  public static function __fromShape(self::TShape $shape): this {
-    $me = /* HH_IGNORE_ERROR[4060] */ new static();
-    $me->foo = (new Vector($shape['foo']))->map(
-      $val4 ==> (new Map($val4)),
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
     );
-    return $me;
   }
 
-  public function __toShape(): self::TShape {
+  public static function __fromShape(self::TShape $shape)[]: this {
+    return new static(
+      (new Vector($shape['foo']))->map(
+        $val0 ==> (new Map($val0)),
+      ),
+    );
+  }
+
+  public function __toShape()[]: self::TShape {
     return shape(
       'foo' => $this->foo->map(
-        $_val0 ==> $_val0->toDict(),
-      )->toVec(),
+        ($_val0) ==> dict($_val0),
+      )
+        |> vec($$),
     );
   }
 }
 
-class NestedContainers_listMap_result implements \IThriftStruct, \IThriftShapishStruct {
+class NestedContainers_listMap_result implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
-  };
+  const dict<int, this::TFieldSpec> SPEC = dict[
+  ];
+  const dict<string, int> FIELDMAP = dict[
+  ];
+
+  const type TConstructorShape = shape(
+  );
+
   const int STRUCTURAL_ID = 957977401221134810;
 
-  public function __construct(  ) {
+  public function __construct(  )[] {
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_listMap_result';
+  }
+
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
 }
@@ -1552,25 +1939,30 @@ class NestedContainers_listMap_result implements \IThriftStruct, \IThriftShapish
 class NestedContainers_listSet_args implements \IThriftStruct, \IThriftShapishStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'foo',
       'type' => \TType::LST,
       'etype' => \TType::SET,
-      'elem' => dict[
+      'elem' => shape(
         'type' => \TType::SET,
         'etype' => \TType::I32,
-        'elem' => dict[
+        'elem' => shape(
           'type' => \TType::I32,
-          ],
-          'format' => 'collection',
-        ],
+        ),
         'format' => 'collection',
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+      ),
+      'format' => 'collection',
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'foo' => 1,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'foo' => ?Vector<Set<int>>,
+  );
+
   const type TShape = shape(
     'foo' => vec<dict<int, bool>>,
     ...
@@ -1578,83 +1970,85 @@ class NestedContainers_listSet_args implements \IThriftStruct, \IThriftShapishSt
   const int STRUCTURAL_ID = 860610040470759468;
   public Vector<Set<int>> $foo;
 
-  public function __construct(?Vector<Set<int>> $foo = null  ) {
-    if ($foo === null) {
-      $this->foo = Vector {};
-    } else {
-      $this->foo = $foo;
-    }
+  public function __construct(?Vector<Set<int>> $foo = null  )[] {
+    $this->foo = $foo ?? Vector {};
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'foo'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_listSet_args';
   }
 
-  public static function __jsonArrayToShape(
-    dict<arraykey, mixed> $json_data,
-  ): ?self::TShape {
-    $shape_data = $json_data;
-
-    if (!C\contains_key($shape_data, 'foo')) {
-      $shape_data['foo'] = Vector {};
-    }
-    if (!is_array($shape_data['foo'])) {
-      return null;
-    }
-    foreach (/* HH_IGNORE_ERROR[4110] */$shape_data['foo'] as $key0 => $value1) {
-      if (!($key0 is int)) {
-        return null;
-      }
-      if (!is_array($value1)) {
-        return null;
-      }
-      $the_set4 = dict[];
-      foreach (/* HH_IGNORE_ERROR[4110] */ $value1 as $key2 => $shape_data3) {
-        if (!($shape_data3 is int)) {
-          return null;
-        }
-        $the_set4[$shape_data3] = true;
-      }
-      $value1 = $the_set4;
-      /* HH_IGNORE_ERROR[4005] */
-      /* HH_IGNORE_ERROR[4063] */
-      $shape_data['foo'][$key0] = $value1;
-    }
-
-    return /* HH_IGNORE_ERROR[4110] */ $shape_data;
-  }
-
-  public static function __fromShape(self::TShape $shape): this {
-    $me = /* HH_IGNORE_ERROR[4060] */ new static();
-    $me->foo = (new Vector($shape['foo']))->map(
-      $val5 ==> new Set(Keyset\keys($val5)),
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
     );
-    return $me;
   }
 
-  public function __toShape(): self::TShape {
+  public static function __fromShape(self::TShape $shape)[]: this {
+    return new static(
+      (new Vector($shape['foo']))->map(
+        $val0 ==> new Set(Keyset\keys($val0)),
+      ),
+    );
+  }
+
+  public function __toShape()[]: self::TShape {
     return shape(
       'foo' => $this->foo->map(
-        $_val0 ==> darray(Dict\fill_keys($_val0, true)),
-      )->toVec(),
+        ($_val0) ==> ThriftUtil::toDArray(Dict\fill_keys($_val0, true)),
+      )
+        |> vec($$),
     );
   }
 }
 
-class NestedContainers_listSet_result implements \IThriftStruct, \IThriftShapishStruct {
+class NestedContainers_listSet_result implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
-  };
+  const dict<int, this::TFieldSpec> SPEC = dict[
+  ];
+  const dict<string, int> FIELDMAP = dict[
+  ];
+
+  const type TConstructorShape = shape(
+  );
+
   const int STRUCTURAL_ID = 957977401221134810;
 
-  public function __construct(  ) {
+  public function __construct(  )[] {
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_listSet_result';
+  }
+
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
 }
@@ -1662,48 +2056,53 @@ class NestedContainers_listSet_result implements \IThriftStruct, \IThriftShapish
 class NestedContainers_turtles_args implements \IThriftStruct, \IThriftShapishStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    1 => dict[
+  const dict<int, this::TFieldSpec> SPEC = dict[
+    1 => shape(
       'var' => 'foo',
       'type' => \TType::LST,
       'etype' => \TType::LST,
-      'elem' => dict[
+      'elem' => shape(
         'type' => \TType::LST,
         'etype' => \TType::MAP,
-        'elem' => dict[
+        'elem' => shape(
           'type' => \TType::MAP,
           'ktype' => \TType::I32,
           'vtype' => \TType::MAP,
-          'key' => dict[
+          'key' => shape(
             'type' => \TType::I32,
-          ],
-          'val' => dict[
+          ),
+          'val' => shape(
             'type' => \TType::MAP,
             'ktype' => \TType::I32,
             'vtype' => \TType::SET,
-            'key' => dict[
+            'key' => shape(
               'type' => \TType::I32,
-            ],
-            'val' => dict[
+            ),
+            'val' => shape(
               'type' => \TType::SET,
               'etype' => \TType::I32,
-              'elem' => dict[
+              'elem' => shape(
                 'type' => \TType::I32,
-                ],
-                'format' => 'collection',
-              ],
+              ),
               'format' => 'collection',
-            ],
+            ),
             'format' => 'collection',
-          ],
+          ),
           'format' => 'collection',
-        ],
+        ),
         'format' => 'collection',
-      ],
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
+      ),
+      'format' => 'collection',
+    ),
+  ];
+  const dict<string, int> FIELDMAP = dict[
     'foo' => 1,
-  };
+  ];
+
+  const type TConstructorShape = shape(
+    ?'foo' => ?Vector<Vector<Map<int, Map<int, Set<int>>>>>,
+  );
+
   const type TShape = shape(
     'foo' => vec<vec<dict<int, dict<int, dict<int, bool>>>>>,
     ...
@@ -1711,129 +2110,364 @@ class NestedContainers_turtles_args implements \IThriftStruct, \IThriftShapishSt
   const int STRUCTURAL_ID = 860610040470759468;
   public Vector<Vector<Map<int, Map<int, Set<int>>>>> $foo;
 
-  public function __construct(?Vector<Vector<Map<int, Map<int, Set<int>>>>> $foo = null  ) {
-    if ($foo === null) {
-      $this->foo = Vector {};
-    } else {
-      $this->foo = $foo;
-    }
+  public function __construct(?Vector<Vector<Map<int, Map<int, Set<int>>>>> $foo = null  )[] {
+    $this->foo = $foo ?? Vector {};
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+      Shapes::idx($shape, 'foo'),
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_turtles_args';
   }
 
-  public static function __jsonArrayToShape(
-    dict<arraykey, mixed> $json_data,
-  ): ?self::TShape {
-    $shape_data = $json_data;
-
-    if (!C\contains_key($shape_data, 'foo')) {
-      $shape_data['foo'] = Vector {};
-    }
-    if (!is_array($shape_data['foo'])) {
-      return null;
-    }
-    foreach (/* HH_IGNORE_ERROR[4110] */$shape_data['foo'] as $key0 => $value1) {
-      if (!($key0 is int)) {
-        return null;
-      }
-      if (!is_array($value1)) {
-        return null;
-      }
-      foreach (/* HH_IGNORE_ERROR[4110] */$value1 as $key2 => $value3) {
-        if (!($key2 is int)) {
-          return null;
-        }
-        if (!is_array($value3)) {
-          return null;
-        }
-        foreach (/* HH_IGNORE_ERROR[4110] */$value3 as $key4 => $value5) {
-          if (!($key4 is int)) {
-            return null;
-          }
-          if (!is_array($value5)) {
-            return null;
-          }
-          foreach (/* HH_IGNORE_ERROR[4110] */$value5 as $key6 => $value7) {
-            if (!($key6 is int)) {
-              return null;
-            }
-            if (!is_array($value7)) {
-              return null;
-            }
-            $the_set10 = dict[];
-            foreach (/* HH_IGNORE_ERROR[4110] */ $value7 as $key8 => $shape_data9) {
-              if (!($shape_data9 is int)) {
-                return null;
-              }
-              $the_set10[$shape_data9] = true;
-            }
-            $value7 = $the_set10;
-            /* HH_IGNORE_ERROR[4005] */
-            /* HH_IGNORE_ERROR[4063] */
-            $value5[$key6] = $value7;
-          }
-          /* HH_IGNORE_ERROR[4005] */
-          /* HH_IGNORE_ERROR[4063] */
-          $value3[$key4] = $value5;
-        }
-        /* HH_IGNORE_ERROR[4005] */
-        /* HH_IGNORE_ERROR[4063] */
-        $value1[$key2] = $value3;
-      }
-      /* HH_IGNORE_ERROR[4005] */
-      /* HH_IGNORE_ERROR[4063] */
-      $shape_data['foo'][$key0] = $value1;
-    }
-
-    return /* HH_IGNORE_ERROR[4110] */ $shape_data;
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
   }
 
-  public static function __fromShape(self::TShape $shape): this {
-    $me = /* HH_IGNORE_ERROR[4060] */ new static();
-    $me->foo = (new Vector($shape['foo']))->map(
-      $val11 ==> (new Vector($val11))->map(
-        $val12 ==> (new Map($val12))->map(
-          $val13 ==> (new Map($val13))->map(
-            $val14 ==> new Set(Keyset\keys($val14)),
+  public static function __fromShape(self::TShape $shape)[]: this {
+    return new static(
+      (new Vector($shape['foo']))->map(
+        $val0 ==> (new Vector($val0))->map(
+          $val1 ==> (new Map($val1))->map(
+            $val2 ==> (new Map($val2))->map(
+              $val3 ==> new Set(Keyset\keys($val3)),
+            ),
           ),
         ),
       ),
     );
-    return $me;
   }
 
-  public function __toShape(): self::TShape {
+  public function __toShape()[]: self::TShape {
     return shape(
       'foo' => $this->foo->map(
-        $_val0 ==> $_val0->map(
-          $_val1 ==> $_val1->map(
-            $_val2 ==> $_val2->map(
-              $_val3 ==> darray(Dict\fill_keys($_val3, true)),
-            )->toDict(),
-          )->toDict(),
-        )->toVec(),
-      )->toVec(),
+        ($_val0) ==> $_val0->map(
+          ($_val1) ==> $_val1->map(
+            ($_val2) ==> $_val2->map(
+              ($_val3) ==> ThriftUtil::toDArray(Dict\fill_keys($_val3, true)),
+            )
+              |> dict($$),
+          )
+            |> dict($$),
+        )
+          |> vec($$),
+      )
+        |> vec($$),
     );
   }
 }
 
-class NestedContainers_turtles_result implements \IThriftStruct, \IThriftShapishStruct {
+class NestedContainers_turtles_result implements \IThriftStruct {
   use \ThriftSerializationTrait;
 
-  public static dict<int, dict<string, mixed>> $_TSPEC = dict[
-    ];
-  public static Map<string, int> $_TFIELDMAP = Map {
-  };
+  const dict<int, this::TFieldSpec> SPEC = dict[
+  ];
+  const dict<string, int> FIELDMAP = dict[
+  ];
+
+  const type TConstructorShape = shape(
+  );
+
   const int STRUCTURAL_ID = 957977401221134810;
 
-  public function __construct(  ) {
+  public function __construct(  )[] {
   }
 
-  public function getName(): string {
+  public static function withDefaultValues()[]: this {
+    return new static();
+  }
+
+  public static function fromShape(self::TConstructorShape $shape)[]: this {
+    return new static(
+    );
+  }
+
+  public function getName()[]: string {
     return 'NestedContainers_turtles_result';
   }
 
+  public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
+    return shape(
+      'struct' => dict[],
+      'fields' => dict[
+      ],
+    );
+  }
+
+}
+
+class NestedContainersStaticMetadata implements \IThriftServiceStaticMetadata {
+  public static function getServiceMetadata()[]: \tmeta_ThriftService {
+    return tmeta_ThriftService::fromShape(
+      shape(
+        "name" => "NestedContainers",
+        "functions" => vec[
+          tmeta_ThriftFunction::fromShape(
+            shape(
+              "name" => "mapList",
+              "return_type" => tmeta_ThriftType::fromShape(
+                shape(
+                  "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_VOID_TYPE,
+                )
+              ),
+              "arguments" => vec[
+                tmeta_ThriftField::fromShape(
+                  shape(
+                    "id" => 1,
+                    "type" => tmeta_ThriftType::fromShape(
+                      shape(
+                        "t_map" => tmeta_ThriftMapType::fromShape(
+                          shape(
+                            "keyType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                              )
+                            ),
+                            "valueType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_list" => tmeta_ThriftListType::fromShape(
+                                  shape(
+                                    "valueType" => tmeta_ThriftType::fromShape(
+                                      shape(
+                                        "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                      )
+                                    ),
+                                  )
+                                ),
+                              )
+                            ),
+                          )
+                        ),
+                      )
+                    ),
+                    "name" => "foo",
+                  )
+                ),
+              ],
+            )
+          ),
+          tmeta_ThriftFunction::fromShape(
+            shape(
+              "name" => "mapSet",
+              "return_type" => tmeta_ThriftType::fromShape(
+                shape(
+                  "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_VOID_TYPE,
+                )
+              ),
+              "arguments" => vec[
+                tmeta_ThriftField::fromShape(
+                  shape(
+                    "id" => 1,
+                    "type" => tmeta_ThriftType::fromShape(
+                      shape(
+                        "t_map" => tmeta_ThriftMapType::fromShape(
+                          shape(
+                            "keyType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                              )
+                            ),
+                            "valueType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_set" => tmeta_ThriftSetType::fromShape(
+                                  shape(
+                                    "valueType" => tmeta_ThriftType::fromShape(
+                                      shape(
+                                        "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                      )
+                                    ),
+                                  )
+                                ),
+                              )
+                            ),
+                          )
+                        ),
+                      )
+                    ),
+                    "name" => "foo",
+                  )
+                ),
+              ],
+            )
+          ),
+          tmeta_ThriftFunction::fromShape(
+            shape(
+              "name" => "listMap",
+              "return_type" => tmeta_ThriftType::fromShape(
+                shape(
+                  "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_VOID_TYPE,
+                )
+              ),
+              "arguments" => vec[
+                tmeta_ThriftField::fromShape(
+                  shape(
+                    "id" => 1,
+                    "type" => tmeta_ThriftType::fromShape(
+                      shape(
+                        "t_list" => tmeta_ThriftListType::fromShape(
+                          shape(
+                            "valueType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_map" => tmeta_ThriftMapType::fromShape(
+                                  shape(
+                                    "keyType" => tmeta_ThriftType::fromShape(
+                                      shape(
+                                        "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                      )
+                                    ),
+                                    "valueType" => tmeta_ThriftType::fromShape(
+                                      shape(
+                                        "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                      )
+                                    ),
+                                  )
+                                ),
+                              )
+                            ),
+                          )
+                        ),
+                      )
+                    ),
+                    "name" => "foo",
+                  )
+                ),
+              ],
+            )
+          ),
+          tmeta_ThriftFunction::fromShape(
+            shape(
+              "name" => "listSet",
+              "return_type" => tmeta_ThriftType::fromShape(
+                shape(
+                  "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_VOID_TYPE,
+                )
+              ),
+              "arguments" => vec[
+                tmeta_ThriftField::fromShape(
+                  shape(
+                    "id" => 1,
+                    "type" => tmeta_ThriftType::fromShape(
+                      shape(
+                        "t_list" => tmeta_ThriftListType::fromShape(
+                          shape(
+                            "valueType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_set" => tmeta_ThriftSetType::fromShape(
+                                  shape(
+                                    "valueType" => tmeta_ThriftType::fromShape(
+                                      shape(
+                                        "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                      )
+                                    ),
+                                  )
+                                ),
+                              )
+                            ),
+                          )
+                        ),
+                      )
+                    ),
+                    "name" => "foo",
+                  )
+                ),
+              ],
+            )
+          ),
+          tmeta_ThriftFunction::fromShape(
+            shape(
+              "name" => "turtles",
+              "return_type" => tmeta_ThriftType::fromShape(
+                shape(
+                  "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_VOID_TYPE,
+                )
+              ),
+              "arguments" => vec[
+                tmeta_ThriftField::fromShape(
+                  shape(
+                    "id" => 1,
+                    "type" => tmeta_ThriftType::fromShape(
+                      shape(
+                        "t_list" => tmeta_ThriftListType::fromShape(
+                          shape(
+                            "valueType" => tmeta_ThriftType::fromShape(
+                              shape(
+                                "t_list" => tmeta_ThriftListType::fromShape(
+                                  shape(
+                                    "valueType" => tmeta_ThriftType::fromShape(
+                                      shape(
+                                        "t_map" => tmeta_ThriftMapType::fromShape(
+                                          shape(
+                                            "keyType" => tmeta_ThriftType::fromShape(
+                                              shape(
+                                                "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                              )
+                                            ),
+                                            "valueType" => tmeta_ThriftType::fromShape(
+                                              shape(
+                                                "t_map" => tmeta_ThriftMapType::fromShape(
+                                                  shape(
+                                                    "keyType" => tmeta_ThriftType::fromShape(
+                                                      shape(
+                                                        "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                                      )
+                                                    ),
+                                                    "valueType" => tmeta_ThriftType::fromShape(
+                                                      shape(
+                                                        "t_set" => tmeta_ThriftSetType::fromShape(
+                                                          shape(
+                                                            "valueType" => tmeta_ThriftType::fromShape(
+                                                              shape(
+                                                                "t_primitive" => tmeta_ThriftPrimitiveType::THRIFT_I32_TYPE,
+                                                              )
+                                                            ),
+                                                          )
+                                                        ),
+                                                      )
+                                                    ),
+                                                  )
+                                                ),
+                                              )
+                                            ),
+                                          )
+                                        ),
+                                      )
+                                    ),
+                                  )
+                                ),
+                              )
+                            ),
+                          )
+                        ),
+                      )
+                    ),
+                    "name" => "foo",
+                  )
+                ),
+              ],
+            )
+          ),
+        ],
+      )
+    );
+  }
+  public static function getAllStructuredAnnotations()[]: \TServiceAnnotations {
+    return shape(
+      'service' => dict[],
+      'functions' => dict[
+      ],
+    );
+  }
 }
 

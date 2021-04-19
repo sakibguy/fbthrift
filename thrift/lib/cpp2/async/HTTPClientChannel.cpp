@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,7 @@
 
 #include <utility>
 
-#include <folly/Format.h>
+#include <fmt/core.h>
 #include <proxygen/lib/http/HTTPCommonHeaders.h>
 #include <proxygen/lib/http/HTTPMethod.h>
 #include <proxygen/lib/http/codec/HTTP1xCodec.h>
@@ -35,7 +35,6 @@ using std::make_unique;
 using std::pair;
 using std::unique_ptr;
 using namespace apache::thrift::transport;
-using apache::thrift::async::TAsyncTransport;
 using apache::thrift::transport::THeader;
 using folly::EventBase;
 using HResClock = std::chrono::high_resolution_clock;
@@ -49,21 +48,8 @@ namespace thrift {
 const std::chrono::milliseconds HTTPClientChannel::kDefaultTransactionTimeout =
     std::chrono::milliseconds(500);
 
-HTTPClientChannel::Ptr HTTPClientChannel::newHTTP1xChannel(
-    async::TAsyncTransport::UniquePtr transport,
-    const std::string& httpHost,
-    const std::string& httpUrl) {
-  HTTPClientChannel::Ptr channel(new HTTPClientChannel(
-      std::move(transport),
-      std::make_unique<proxygen::HTTP1xCodec>(
-          proxygen::TransportDirection::UPSTREAM)));
-  channel->setHTTPHost(httpHost);
-  channel->setHTTPUrl(httpUrl);
-  return channel;
-}
-
 HTTPClientChannel::Ptr HTTPClientChannel::newHTTP2Channel(
-    async::TAsyncTransport::UniquePtr transport) {
+    folly::AsyncTransport::UniquePtr transport) {
   return HTTPClientChannel::Ptr(new HTTPClientChannel(
       std::move(transport),
       std::make_unique<proxygen::HTTP2Codec>(
@@ -71,7 +57,7 @@ HTTPClientChannel::Ptr HTTPClientChannel::newHTTP2Channel(
 }
 
 HTTPClientChannel::HTTPClientChannel(
-    async::TAsyncTransport::UniquePtr transport,
+    folly::AsyncTransport::UniquePtr transport,
     std::unique_ptr<proxygen::HTTPCodec> codec)
     : evb_(transport->getEventBase()) {
   auto localAddress = transport->getLocalAddress();
@@ -162,47 +148,45 @@ void HTTPClientChannel::destroy() {
 
 // apache::thrift::RequestChannel methods
 
-uint32_t HTTPClientChannel::sendOnewayRequest(
-    RpcOptions& rpcOptions,
-    std::unique_ptr<RequestCallback> cb,
-    std::unique_ptr<apache::thrift::ContextStack> ctx,
-    std::unique_ptr<IOBuf> buf,
-    std::shared_ptr<THeader> header) {
+void HTTPClientChannel::sendRequestNoResponse(
+    const RpcOptions& rpcOptions,
+    ManagedStringView&& methodName,
+    SerializedRequest&& serializedRequest,
+    std::shared_ptr<THeader> header,
+    RequestClientCallback::Ptr cb) {
+  auto buf = LegacySerializedRequest(
+                 header->getProtocolId(),
+                 methodName.view(),
+                 std::move(serializedRequest))
+                 .buffer;
+
   sendRequest_(
-      rpcOptions,
-      true,
-      std::move(cb),
-      std::move(ctx),
-      std::move(buf),
-      std::move(header));
-  return ResponseChannel::ONEWAY_REQUEST_ID;
+      rpcOptions, true, std::move(buf), std::move(header), std::move(cb));
 }
 
-uint32_t HTTPClientChannel::sendRequest(
-    RpcOptions& rpcOptions,
-    std::unique_ptr<RequestCallback> cb,
-    std::unique_ptr<apache::thrift::ContextStack> ctx,
-    std::unique_ptr<IOBuf> buf,
-    std::shared_ptr<THeader> header) {
-  return sendRequest_(
-      rpcOptions,
-      false,
-      std::move(cb),
-      std::move(ctx),
-      std::move(buf),
-      std::move(header));
+void HTTPClientChannel::sendRequestResponse(
+    const RpcOptions& rpcOptions,
+    ManagedStringView&& methodName,
+    SerializedRequest&& serializedRequest,
+    std::shared_ptr<THeader> header,
+    RequestClientCallback::Ptr cb) {
+  auto buf = LegacySerializedRequest(
+                 header->getProtocolId(),
+                 methodName.view(),
+                 std::move(serializedRequest))
+                 .buffer;
+
+  sendRequest_(
+      rpcOptions, false, std::move(buf), std::move(header), std::move(cb));
 }
 
-uint32_t HTTPClientChannel::sendRequest_(
-    RpcOptions& rpcOptions,
+void HTTPClientChannel::sendRequest_(
+    const RpcOptions& rpcOptions,
     bool oneway,
-    std::unique_ptr<RequestCallback> cb,
-    std::unique_ptr<apache::thrift::ContextStack> ctx,
     unique_ptr<IOBuf> buf,
-    std::shared_ptr<THeader> header) {
+    std::shared_ptr<THeader> header,
+    RequestClientCallback::Ptr cb) {
   DestructorGuard dg(this);
-
-  cb->context_ = RequestContext::saveContext();
 
   std::chrono::milliseconds timeout(timeout_);
   if (rpcOptions.getTimeout() > std::chrono::milliseconds(0)) {
@@ -212,8 +196,7 @@ uint32_t HTTPClientChannel::sendRequest_(
   // Do not try to keep the raw pointer of this out of this function,
   // it is a self-destruct-object, it can dangle at some time later,
   // instead, only react to its callback
-  auto httpCallback = new HTTPTransactionCallback(
-      oneway, std::move(cb), std::move(ctx), isSecurityActive(), protocolId_);
+  auto httpCallback = new HTTPTransactionCallback(oneway, std::move(cb));
 
   if (!httpSession_) {
     TTransportException ex(
@@ -221,27 +204,25 @@ uint32_t HTTPClientChannel::sendRequest_(
     httpCallback->messageSendError(
         folly::make_exception_wrapper<TTransportException>(std::move(ex)));
     delete httpCallback;
-    return -1;
+    return;
   }
 
-  auto txn = httpSession_->newTransaction(httpCallback);
+  auto res = httpSession_->newTransactionWithError(httpCallback);
 
-  if (!txn) {
-    TTransportException ex(
-        TTransportException::NOT_OPEN,
-        "Too many active requests on connection");
+  if (res.hasError()) {
+    TTransportException ex(TTransportException::NOT_OPEN, res.error());
     // Might be able to create another transaction soon
     ex.setOptions(TTransportException::CHANNEL_IS_VALID);
     httpCallback->messageSendError(
         folly::make_exception_wrapper<TTransportException>(std::move(ex)));
     delete httpCallback;
-    return -1;
+    return;
   }
+  auto& txn = res.value();
 
   if (timeout.count()) {
     txn->setIdleTimeout(timeout);
   }
-  auto streamId = txn->getID();
 
   setRequestHeaderOptions(header.get());
   addRpcOptionHeaders(header.get(), rpcOptions);
@@ -251,8 +232,6 @@ uint32_t HTTPClientChannel::sendRequest_(
   txn->sendHeaders(msg);
   txn->sendBody(std::move(buf));
   txn->sendEOM();
-
-  return (uint32_t)streamId;
 }
 
 // end apache::thrift::RequestChannel methods
@@ -367,17 +346,8 @@ void HTTPClientChannel::setFlowControl(
 // HTTPTransactionCallback methods
 
 HTTPClientChannel::HTTPTransactionCallback::HTTPTransactionCallback(
-    bool oneway,
-    std::unique_ptr<RequestCallback> cb,
-    std::unique_ptr<apache::thrift::ContextStack> ctx,
-    bool isSecurityActive,
-    uint16_t protoId)
-    : oneway_(oneway),
-      cb_(std::move(cb)),
-      ctx_(std::move(ctx)),
-      isSecurityActive_(isSecurityActive),
-      protoId_(protoId),
-      txn_(nullptr) {}
+    bool oneway, RequestClientCallback::Ptr cb)
+    : oneway_(oneway), cb_(std::move(cb)), txn_(nullptr) {}
 
 HTTPClientChannel::HTTPTransactionCallback::~HTTPTransactionCallback() {
   if (txn_) {
@@ -390,8 +360,7 @@ HTTPClientChannel::HTTPTransactionCallback::~HTTPTransactionCallback() {
 
 void HTTPClientChannel::HTTPTransactionCallback::messageSent() {
   if (cb_) {
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->requestSent();
+    (oneway_ ? cb_.release() : cb_.get())->onRequestSent();
   }
 }
 
@@ -403,10 +372,7 @@ void HTTPClientChannel::HTTPTransactionCallback::messageSendError(
 void HTTPClientChannel::HTTPTransactionCallback::requestError(
     folly::exception_wrapper ex) {
   if (cb_) {
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->requestError(
-        ClientReceiveState(std::move(ex), std::move(ctx_), isSecurityActive_));
-    cb_ = nullptr;
+    cb_.release()->onResponseError(std::move(ex));
   }
 }
 
@@ -449,7 +415,7 @@ void HTTPClientChannel::HTTPTransactionCallback::onEOM() noexcept {
   if (!oneway_ && cb_) {
     if (!body_) {
       requestError(folly::make_exception_wrapper<
-                   transport::TTransportException>(folly::sformat(
+                   transport::TTransportException>(fmt::format(
           "Empty HTTP response, {}",
           (msg_ ? folly::to<std::string>(
                       msg_->getStatusCode(), ", ", msg_->getStatusMessage())
@@ -465,17 +431,10 @@ void HTTPClientChannel::HTTPTransactionCallback::onEOM() noexcept {
           readHeaders[key] = val;
         });
     header->setReadHeaders(std::move(readHeaders));
-    folly::RequestContextScopeGuard rctx(cb_->context_);
     auto body = body_->move();
     body_.reset();
-    cb_->replyReceived(ClientReceiveState(
-        protoId_,
-        std::move(body),
-        std::move(header),
-        std::move(ctx_),
-        isSecurityActive_,
-        true));
-    cb_ = nullptr;
+    cb_.release()->onResponse(
+        ClientReceiveState(-1, std::move(body), std::move(header), nullptr));
   }
 }
 
@@ -501,8 +460,7 @@ void HTTPClientChannel::HTTPTransactionCallback::onError(
 
 void HTTPClientChannel::HTTPTransactionCallback::lastByteFlushed() noexcept {
   if (cb_) {
-    folly::RequestContextScopeGuard rctx(cb_->context_);
-    cb_->requestSent();
+    (oneway_ ? cb_.release() : cb_.get())->onRequestSent();
   }
 }
 

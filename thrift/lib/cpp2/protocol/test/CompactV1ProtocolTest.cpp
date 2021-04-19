@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/protocol/CompactV1Protocol.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
@@ -75,9 +75,13 @@ TEST_F(CompactV1ProtocolTest, double_byteswap) {
   EXPECT_EQ(serialized.size(), get<1>(deserialized_size));
   uint64_t double_rep;
   std::memcpy(
-      &double_rep, &get<0>(deserialized_size).myDouble, sizeof(double_rep));
+      &double_rep,
+      &(*get<0>(deserialized_size).myDouble_ref()),
+      sizeof(double_rep));
   double_rep = folly::Endian::swap(double_rep);
   std::memcpy(
-      &get<0>(deserialized_size).myDouble, &double_rep, sizeof(double_rep));
+      &(*get<0>(deserialized_size).myDouble_ref()),
+      &double_rep,
+      sizeof(double_rep));
   EXPECT_EQ(orig, get<0>(deserialized_size));
 }

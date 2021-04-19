@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -53,9 +53,7 @@ std::unique_ptr<folly::IOBuf> PargsPresultSerialize(
 
 template <typename ProtocolReader, typename T>
 std::pair<std::string, int> PargsPresultDeserialize(
-    T& valuep,
-    const folly::IOBuf* iobuf,
-    MessageType messageType) {
+    T& valuep, const folly::IOBuf* iobuf, MessageType messageType) {
   ProtocolReader reader;
   reader.setInput(iobuf);
   std::string methodName;
@@ -69,7 +67,7 @@ std::pair<std::string, int> PargsPresultDeserialize(
     }
     valuep.read(&reader);
     reader.readMessageEnd();
-  } catch (const std::out_of_range& e) {
+  } catch (const std::out_of_range&) {
     throw transport::TTransportException(
         transport::TTransportException::END_OF_FILE);
   }
@@ -94,7 +92,7 @@ std::unique_ptr<folly::IOBuf> PargsPresultProtoSerialize(
       throw TProtocolException(
           TProtocolException::NOT_IMPLEMENTED,
           "PargsPresultProtoSerialize doesn't implement this protocol: " +
-              std::to_string(protocol));
+              folly::to<std::string>(protocol));
   }
 }
 
@@ -115,7 +113,7 @@ std::pair<std::string, int> PargsPresultProtoDeserialize(
       throw TProtocolException(
           TProtocolException::NOT_IMPLEMENTED,
           "PargsPresultProtoDeserialize doesn't implement this protocol: " +
-              std::to_string(protocol));
+              folly::to<std::string>(protocol));
   }
 }
 

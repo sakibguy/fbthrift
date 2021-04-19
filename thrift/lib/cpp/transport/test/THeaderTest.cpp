@@ -1,39 +1,36 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp/util/THttpParser.h>
 
 #include <memory>
+#include <folly/Random.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
-#include <folly/Random.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace apache::thrift;
 using namespace folly;
 using namespace apache::thrift::transport;
 
-namespace apache { namespace thrift { namespace transport {
+namespace apache {
+namespace thrift {
+namespace transport {
 
 TEST(THeaderTest, largetransform) {
   THeader header;
@@ -44,9 +41,9 @@ TEST(THeaderTest, largetransform) {
   // Make the data compressible, but not totally random
   for (size_t i = 0; i < buf_size / 4; i++) {
     buf->writableData()[i] = (int8_t)folly::Random::rand32(256);
-    buf->writableData()[i+1] = buf->writableData()[i];
-    buf->writableData()[i+2] = buf->writableData()[i];
-    buf->writableData()[i+3] = (int8_t)folly::Random::rand32(256);
+    buf->writableData()[i + 1] = buf->writableData()[i];
+    buf->writableData()[i + 2] = buf->writableData()[i];
+    buf->writableData()[i + 3] = (int8_t)folly::Random::rand32(256);
   }
   buf->append(buf_size);
 
@@ -57,10 +54,10 @@ TEST(THeaderTest, largetransform) {
   std::unique_ptr<IOBufQueue> queue(new IOBufQueue);
   std::unique_ptr<IOBufQueue> queue2(new IOBufQueue);
   queue->append(std::move(buf));
-  queue2->append(queue->split(buf_size/4));
-  queue2->append(queue->split(buf_size/4));
+  queue2->append(queue->split(buf_size / 4));
+  queue2->append(queue->split(buf_size / 4));
   queue2->append(IOBuf::create(0)); // Empty buffer should work
-  queue2->append(queue->split(buf_size/4));
+  queue2->append(queue->split(buf_size / 4));
   queue2->append(queue->move());
 
   size_t needed;
@@ -88,7 +85,7 @@ TEST(THeaderTest, http_clear_header) {
 TEST(THeaderTest, transform) {
   // Simple test for TRANSFORMS enum to string conversion
   EXPECT_EQ(
-    THeader::getStringTransform(THeader::TRANSFORMS::ZLIB_TRANSFORM), "zlib");
+      THeader::getStringTransform(THeader::TRANSFORMS::ZLIB_TRANSFORM), "zlib");
 }
 
 TEST(THeaderTest, eraseReadHeader) {
@@ -149,4 +146,49 @@ TEST(THeaderTest, defaultTimeoutAndPriority) {
   EXPECT_EQ(std::chrono::milliseconds(0), header.getClientQueueTimeout());
   EXPECT_EQ(concurrency::PRIORITY::N_PRIORITIES, header.getCallPriority());
 }
-}}}
+
+void testAsciiHeaderData(const std::string& data, const std::string& expected) {
+  auto buf = folly::IOBuf::copyBuffer(data);
+  std::map<std::string, std::string> persistentHeaders;
+  THeader header;
+  std::unique_ptr<IOBufQueue> queue(new IOBufQueue);
+  queue->append(std::move(buf));
+
+  size_t needed;
+  try {
+    buf = header.removeHeader(queue.get(), needed, persistentHeaders);
+    ASSERT_TRUE(false);
+  } catch (TTransportException& e) {
+    ASSERT_EQ(e.what(), expected);
+  }
+}
+
+TEST(THeaderTest, asciiData1) {
+  std::string data = "llocations statistics!";
+  auto expected = "The Thrift server received an ASCII request '" + data +
+      "' and safely ignored it. In all likelihood, "
+      "this isn't the reason of your problem (probably a local daemon "
+      "sending HTTP content to all listening ports).";
+
+  testAsciiHeaderData(data, expected);
+}
+
+TEST(THeaderTest, asciiData2) {
+  std::string data = "ap Here for more details";
+  auto expected = "The Thrift server received an ASCII request '" + data +
+      "' and safely ignored it. In all likelihood, "
+      "this isn't the reason of your problem (probably a local daemon "
+      "sending HTTP content to all listening ports).";
+  testAsciiHeaderData(data, expected);
+}
+
+TEST(THeaderTest, asciiData3) {
+  auto expected =
+      "Header transport frame is too large: 1918987876 "
+      "(hex 0x72616e64, ascii 'rand')";
+  testAsciiHeaderData("random data", expected);
+}
+
+} // namespace transport
+} // namespace thrift
+} // namespace apache

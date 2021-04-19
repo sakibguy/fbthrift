@@ -1,14 +1,21 @@
 <?hh
-
-/**
-* Copyright (c) 2006- Facebook
-* Distributed under the Thrift Software License
-*
-* See accompanying file LICENSE or visit the Thrift site at:
-* http://developers.facebook.com/thrift/
-*
-* @package thrift.transport
-*/
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @package thrift.transport
+ */
 
 /**
  * Server socket class
@@ -33,16 +40,24 @@ class TServerSocket {
   }
 
   public function listen(): void {
-    foreach (array('[::]', '0.0.0.0') as $addr) {
+    foreach (varray['[::]', '0.0.0.0'] as $addr) {
       $errno = 0;
       $errstr = '';
-      $this->handle = stream_socket_server(
+      $this->handle = PHP\stream_socket_server(
         'tcp://'.$addr.':'.$this->port,
-        $errno,
-        $errstr,
+        &$errno,
+        &$errstr,
         STREAM_SERVER_BIND | STREAM_SERVER_LISTEN,
       );
+
       if ($this->handle !== false) {
+        if ($this->port === 0) {
+          $address = Str\split(
+            PHP\stream_socket_get_name($this->handle, false),
+            ':',
+          );
+          $this->port = PHP\intval($address[PHP\count($address) - 1]);
+        }
         break;
       }
     }
@@ -50,9 +65,15 @@ class TServerSocket {
 
   public function accept(int $timeout = -1): ?TBufferedTransport {
     if ($timeout !== 0) {
-      $client = stream_socket_accept($this->handle, $timeout);
+      $client = PHP\stream_socket_accept(
+        nullthrows($this->handle),
+        (float)$timeout,
+      );
     } else {
-      $client = @stream_socket_accept($this->handle, $timeout);
+      $client = @PHP\stream_socket_accept(
+        nullthrows($this->handle),
+        (float)$timeout,
+      );
     }
 
     if (!$client) {
@@ -75,9 +96,14 @@ class TServerSocket {
   }
 
   public function close(): void {
+    /* HH_FIXME[4016] Exposed by banning unset and isset in partial mode */
     if (isset($this->handle)) {
-      fclose($this->handle);
+      PHP\fclose($this->handle);
       $this->handle = null;
     }
+  }
+
+  public function port(): int {
+    return $this->port;
   }
 }

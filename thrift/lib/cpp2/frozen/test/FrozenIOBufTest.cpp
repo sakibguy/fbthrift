@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/frozen/Frozen.h>
 #include <thrift/lib/cpp2/frozen/test/gen-cpp2/Binary_layouts.h>
@@ -34,12 +34,12 @@ ByteRange test2Range(test2, sizeof(test2));
 
 TEST(FrozenIOBuf, Thrift2) {
   Binaries b2;
-  b2.normal = testString.str();
-  b2.iobuf = IOBuf::copyBuffer(testRange.data(), testRange.size());
+  *b2.normal_ref() = testString.str();
+  *b2.iobufptr_ref() = IOBuf::copyBuffer(testRange.data(), testRange.size());
 
   auto fb2 = freeze(b2);
   EXPECT_EQ(testString, fb2.normal());
-  EXPECT_EQ(testRange, fb2.iobuf());
+  EXPECT_EQ(testRange, fb2.iobufptr());
 }
 
 TEST(FrozenIOBuf, IOBufChain) {
@@ -47,12 +47,23 @@ TEST(FrozenIOBuf, IOBufChain) {
   auto buf1 = IOBuf::copyBuffer(testRange.data(), testRange.size());
   auto buf2 = IOBuf::copyBuffer(test2Range.data(), test2Range.size());
   buf1->appendChain(std::move(buf2));
-  b2.iobuf = std::move(buf1);
+  *b2.iobufptr_ref() = std::move(buf1);
 
   auto fb2 = freeze(b2);
   EXPECT_EQ(0, fb2.normal().size());
-  EXPECT_EQ(9, fb2.iobuf().size());
-  auto combined = fb2.iobuf();
+  EXPECT_EQ(9, fb2.iobufptr().size());
+  auto combined = fb2.iobufptr();
   EXPECT_TRUE(combined.startsWith(testRange));
   EXPECT_TRUE(combined.endsWith(test2Range));
+}
+
+TEST(FrozenIOBuf, IOBufValue) {
+  std::string input = "hello";
+  Binaries bin;
+  *bin.iobuf_ref() = IOBuf(IOBuf::COPY_BUFFER, input);
+
+  auto fbin = freeze(bin);
+  EXPECT_EQ(input.size(), fbin.iobuf().size());
+  auto fstr = fbin.iobuf();
+  EXPECT_EQ(fstr.str(), input);
 }

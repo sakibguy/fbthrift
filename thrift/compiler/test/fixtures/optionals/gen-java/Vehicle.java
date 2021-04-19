@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -42,13 +40,13 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
   public static final int DESCRIPTION = 3;
   public static final int NAME = 4;
   public static final int HASAC = 5;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
   private static final int __HASAC_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(COLOR, new FieldMetaData("color", TFieldRequirementType.DEFAULT, 
@@ -74,19 +72,17 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
   }
 
   public Vehicle(
-    Color color)
-  {
+      Color color) {
     this();
     this.color = color;
   }
 
   public Vehicle(
-    Color color,
-    String licensePlate,
-    String description,
-    String name,
-    boolean hasAC)
-  {
+      Color color,
+      String licensePlate,
+      String description,
+      String name,
+      boolean hasAC) {
     this();
     this.color = color;
     this.licensePlate = licensePlate;
@@ -94,6 +90,61 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     this.name = name;
     this.hasAC = hasAC;
     setHasACIsSet(true);
+  }
+
+  public static class Builder {
+    private Color color;
+    private String licensePlate;
+    private String description;
+    private String name;
+    private boolean hasAC;
+
+    BitSet __optional_isset = new BitSet(1);
+
+    public Builder() {
+    }
+
+    public Builder setColor(final Color color) {
+      this.color = color;
+      return this;
+    }
+
+    public Builder setLicensePlate(final String licensePlate) {
+      this.licensePlate = licensePlate;
+      return this;
+    }
+
+    public Builder setDescription(final String description) {
+      this.description = description;
+      return this;
+    }
+
+    public Builder setName(final String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Builder setHasAC(final boolean hasAC) {
+      this.hasAC = hasAC;
+      __optional_isset.set(__HASAC_ISSET_ID, true);
+      return this;
+    }
+
+    public Vehicle build() {
+      Vehicle result = new Vehicle();
+      result.setColor(this.color);
+      result.setLicensePlate(this.licensePlate);
+      result.setDescription(this.description);
+      result.setName(this.name);
+      if (__optional_isset.get(__HASAC_ISSET_ID)) {
+        result.setHasAC(this.hasAC);
+      }
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -121,12 +172,7 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     return new Vehicle(this);
   }
 
-  @Deprecated
-  public Vehicle clone() {
-    return new Vehicle(this);
-  }
-
-  public Color  getColor() {
+  public Color getColor() {
     return this.color;
   }
 
@@ -144,13 +190,13 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     return this.color != null;
   }
 
-  public void setColorIsSet(boolean value) {
-    if (!value) {
+  public void setColorIsSet(boolean __value) {
+    if (!__value) {
       this.color = null;
     }
   }
 
-  public String  getLicensePlate() {
+  public String getLicensePlate() {
     return this.licensePlate;
   }
 
@@ -168,13 +214,13 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     return this.licensePlate != null;
   }
 
-  public void setLicensePlateIsSet(boolean value) {
-    if (!value) {
+  public void setLicensePlateIsSet(boolean __value) {
+    if (!__value) {
       this.licensePlate = null;
     }
   }
 
-  public String  getDescription() {
+  public String getDescription() {
     return this.description;
   }
 
@@ -192,13 +238,13 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     return this.description != null;
   }
 
-  public void setDescriptionIsSet(boolean value) {
-    if (!value) {
+  public void setDescriptionIsSet(boolean __value) {
+    if (!__value) {
       this.description = null;
     }
   }
 
-  public String  getName() {
+  public String getName() {
     return this.name;
   }
 
@@ -216,13 +262,13 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     return this.name != null;
   }
 
-  public void setNameIsSet(boolean value) {
-    if (!value) {
+  public void setNameIsSet(boolean __value) {
+    if (!__value) {
       this.name = null;
     }
   }
 
-  public boolean  isHasAC() {
+  public boolean isHasAC() {
     return this.hasAC;
   }
 
@@ -241,49 +287,49 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     return __isset_bit_vector.get(__HASAC_ISSET_ID);
   }
 
-  public void setHasACIsSet(boolean value) {
-    __isset_bit_vector.set(__HASAC_ISSET_ID, value);
+  public void setHasACIsSet(boolean __value) {
+    __isset_bit_vector.set(__HASAC_ISSET_ID, __value);
   }
 
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case COLOR:
-      if (value == null) {
+      if (__value == null) {
         unsetColor();
       } else {
-        setColor((Color)value);
+        setColor((Color)__value);
       }
       break;
 
     case LICENSEPLATE:
-      if (value == null) {
+      if (__value == null) {
         unsetLicensePlate();
       } else {
-        setLicensePlate((String)value);
+        setLicensePlate((String)__value);
       }
       break;
 
     case DESCRIPTION:
-      if (value == null) {
+      if (__value == null) {
         unsetDescription();
       } else {
-        setDescription((String)value);
+        setDescription((String)__value);
       }
       break;
 
     case NAME:
-      if (value == null) {
+      if (__value == null) {
         unsetName();
       } else {
-        setName((String)value);
+        setName((String)__value);
       }
       break;
 
     case HASAC:
-      if (value == null) {
+      if (__value == null) {
         unsetHasAC();
       } else {
-        setHasAC((Boolean)value);
+        setHasAC((Boolean)__value);
       }
       break;
 
@@ -314,90 +360,32 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case COLOR:
-      return isSetColor();
-    case LICENSEPLATE:
-      return isSetLicensePlate();
-    case DESCRIPTION:
-      return isSetDescription();
-    case NAME:
-      return isSetName();
-    case HASAC:
-      return isSetHasAC();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof Vehicle)
-      return this.equals((Vehicle)that);
-    return false;
-  }
-
-  public boolean equals(Vehicle that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof Vehicle))
+      return false;
+    Vehicle that = (Vehicle)_that;
 
-    boolean this_present_color = true && this.isSetColor();
-    boolean that_present_color = true && that.isSetColor();
-    if (this_present_color || that_present_color) {
-      if (!(this_present_color && that_present_color))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.color, that.color))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetColor(), that.isSetColor(), this.color, that.color)) { return false; }
 
-    boolean this_present_licensePlate = true && this.isSetLicensePlate();
-    boolean that_present_licensePlate = true && that.isSetLicensePlate();
-    if (this_present_licensePlate || that_present_licensePlate) {
-      if (!(this_present_licensePlate && that_present_licensePlate))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.licensePlate, that.licensePlate))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetLicensePlate(), that.isSetLicensePlate(), this.licensePlate, that.licensePlate)) { return false; }
 
-    boolean this_present_description = true && this.isSetDescription();
-    boolean that_present_description = true && that.isSetDescription();
-    if (this_present_description || that_present_description) {
-      if (!(this_present_description && that_present_description))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.description, that.description))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetDescription(), that.isSetDescription(), this.description, that.description)) { return false; }
 
-    boolean this_present_name = true && this.isSetName();
-    boolean that_present_name = true && that.isSetName();
-    if (this_present_name || that_present_name) {
-      if (!(this_present_name && that_present_name))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.name, that.name))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetName(), that.isSetName(), this.name, that.name)) { return false; }
 
-    boolean this_present_hasAC = true && this.isSetHasAC();
-    boolean that_present_hasAC = true && that.isSetHasAC();
-    if (this_present_hasAC || that_present_hasAC) {
-      if (!(this_present_hasAC && that_present_hasAC))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.hasAC, that.hasAC))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetHasAC(), that.isSetHasAC(), this.hasAC, that.hasAC)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {color, licensePlate, description, name, hasAC});
   }
 
   @Override
@@ -417,7 +405,7 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(color, other.color);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetLicensePlate()).compareTo(other.isSetLicensePlate());
@@ -425,7 +413,7 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(licensePlate, other.licensePlate);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetDescription()).compareTo(other.isSetDescription());
@@ -433,7 +421,7 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(description, other.description);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetName()).compareTo(other.isSetName());
@@ -441,7 +429,7 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(name, other.name);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetHasAC()).compareTo(other.isSetHasAC());
@@ -449,62 +437,62 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(hasAC, other.hasAC);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case COLOR:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.color = new Color();
             this.color.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case LICENSEPLATE:
-          if (field.type == TType.STRING) {
+          if (__field.type == TType.STRING) {
             this.licensePlate = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case DESCRIPTION:
-          if (field.type == TType.STRING) {
+          if (__field.type == TType.STRING) {
             this.description = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case NAME:
-          if (field.type == TType.STRING) {
+          if (__field.type == TType.STRING) {
             this.name = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case HASAC:
-          if (field.type == TType.BOOL) {
+          if (__field.type == TType.BOOL) {
             this.hasAC = iprot.readBool();
             setHasACIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -557,19 +545,14 @@ public class Vehicle implements TBase, java.io.Serializable, Cloneable, Comparab
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("Vehicle");
     sb.append(space);
     sb.append("(");
@@ -580,10 +563,10 @@ String space = prettyPrint ? " " : "";
     sb.append("color");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getColor() == null) {
+    if (this.getColor() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getColor(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getColor(), indent + 1, prettyPrint));
     }
     first = false;
     if (isSetLicensePlate())
@@ -593,10 +576,10 @@ String space = prettyPrint ? " " : "";
       sb.append("licensePlate");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getLicensePlate() == null) {
+      if (this.getLicensePlate() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getLicensePlate(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getLicensePlate(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -607,10 +590,10 @@ String space = prettyPrint ? " " : "";
       sb.append("description");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getDescription() == null) {
+      if (this.getDescription() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getDescription(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getDescription(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -621,10 +604,10 @@ String space = prettyPrint ? " " : "";
       sb.append("name");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getName() == null) {
+      if (this.getName() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getName(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getName(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -635,7 +618,7 @@ String space = prettyPrint ? " " : "";
       sb.append("hasAC");
       sb.append(space);
       sb.append(":").append(space);
-      sb.append(TBaseHelper.toString(this. isHasAC(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.isHasAC(), indent + 1, prettyPrint));
       first = false;
     }
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
@@ -645,7 +628,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
   }
 
 }

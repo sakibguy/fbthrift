@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@
 #include <limits>
 
 #include <folly/json.h>
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <folly/io/async/EventBaseManager.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
@@ -29,72 +29,73 @@ using namespace cpp2;
 using namespace std;
 using namespace folly;
 using namespace apache::thrift;
-using namespace apache::thrift::async;
-using namespace apache::thrift::concurrency;
-using namespace apache::thrift::transport;
 
 static dynamic kDynamics[] = {
-  // NULL
-  nullptr,
+    // NULL
+    nullptr,
 
-  // BOOL
-  false,
-  true,
+    // BOOL
+    false,
+    true,
 
-  // INT
-  numeric_limits<int64_t>::min(),
-  -1,
-  0,
-  1,
-  numeric_limits<int64_t>::max(),
+    // INT
+    numeric_limits<int64_t>::min(),
+    -1,
+    0,
+    1,
+    numeric_limits<int64_t>::max(),
 
-  // DOUBLE
-  numeric_limits<double>::lowest(),
-  numeric_limits<double>::min(),
-  -1.0,
-  0.0,
-  1.0,
-  numeric_limits<double>::max(),
-  numeric_limits<double>::epsilon(),
+    // DOUBLE
+    numeric_limits<double>::lowest(),
+    numeric_limits<double>::min(),
+    -1.0,
+    0.0,
+    1.0,
+    numeric_limits<double>::max(),
+    numeric_limits<double>::epsilon(),
 
-  // STRING
-  "",
-  std::string(10, '\0'),
-  "Hello World",
+    // STRING
+    "",
+    std::string(10, '\0'),
+    "Hello World",
 
-  // ARRAY
-  dynamic::array,
-  dynamic::array(nullptr),
-  dynamic::array(0),
-  dynamic::array(nullptr, 0, false, 0.0, "",
-                 dynamic::array(), dynamic::object()),
-  dynamic::array(1, true, 3.14, "Goodnight Moon",
-                 dynamic::array(1), dynamic::object("a", "A")),
+    // ARRAY
+    dynamic::array,
+    dynamic::array(nullptr),
+    dynamic::array(0),
+    dynamic::array(
+        nullptr, 0, false, 0.0, "", dynamic::array(), dynamic::object()),
+    dynamic::array(
+        1,
+        true,
+        3.14,
+        "Goodnight Moon",
+        dynamic::array(1),
+        dynamic::object("a", "A")),
 
-  // OBJECT
-  dynamic::object,
+    // OBJECT
+    dynamic::object,
 
-  dynamic::object
+    dynamic::object //
     (std::string(10, '\0'), nullptr),
 
-  dynamic::object
-    ("a", nullptr)
-    ("b", false)
-    ("c", 0)
-    ("d", 0.0)
-    ("e", "")
-    ("f", dynamic::array)
+    dynamic::object //
+    ("a", nullptr) //
+    ("b", false) //
+    ("c", 0) //
+    ("d", 0.0) //
+    ("e", "") //
+    ("f", dynamic::array) //
     ("g", dynamic::object),
 
-  dynamic::object
-    ("b", true)
-    ("c", 1)
-    ("d", 3.14)
-    ("e", "Goodnight Moon")
-    ("f", dynamic::array(1))
+    dynamic::object //
+    ("b", true) //
+    ("c", 1) //
+    ("d", 3.14) //
+    ("e", "Goodnight Moon") //
+    ("f", dynamic::array(1)) //
     ("g", dynamic::object("a", "A")),
 };
-
 
 class TestServiceHandler : public DynamicTestServiceSvIf {
  public:
@@ -103,17 +104,15 @@ class TestServiceHandler : public DynamicTestServiceSvIf {
   }
 };
 
-
-class RoundtripTestFixture : public ::testing::TestWithParam<dynamic> {
-};
+class RoundtripTestFixture : public ::testing::TestWithParam<dynamic> {};
 
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_P(RoundtripTestFixture, RoundtripDynamics) {
   const SerializableDynamic expected = GetParam();
   BinaryProtocolWriter protWriter;
-  size_t bufSize = Cpp2Ops<SerializableDynamic>::serializedSize(
-      &protWriter, &expected);
+  size_t bufSize =
+      Cpp2Ops<SerializableDynamic>::serializedSize(&protWriter, &expected);
   folly::IOBufQueue queue;
   protWriter.setOutput(&queue, bufSize);
   Cpp2Ops<SerializableDynamic>::write(&protWriter, &expected);
@@ -123,17 +122,16 @@ TEST_P(RoundtripTestFixture, RoundtripDynamics) {
   protReader.setInput(buf.get());
   SerializableDynamic actual;
   Cpp2Ops<SerializableDynamic>::read(&protReader, &actual);
-  EXPECT_EQ(expected, actual) << "Expected: " << toJson(*expected)
-                              << " Actual: " << toJson(*actual);
+  EXPECT_EQ(expected, actual)
+      << "Expected: " << toJson(*expected) << " Actual: " << toJson(*actual);
 }
 
 TEST_P(RoundtripTestFixture, RoundtripContainer) {
   Container expected;
-  expected.data = GetParam();
+  *expected.data_ref() = GetParam();
 
   BinaryProtocolWriter protWriter;
-  size_t bufSize = Cpp2Ops<Container>::serializedSize(
-      &protWriter, &expected);
+  size_t bufSize = Cpp2Ops<Container>::serializedSize(&protWriter, &expected);
   folly::IOBufQueue queue;
   protWriter.setOutput(&queue, bufSize);
   Cpp2Ops<Container>::write(&protWriter, &expected);
@@ -143,8 +141,8 @@ TEST_P(RoundtripTestFixture, RoundtripContainer) {
   protReader.setInput(buf.get());
   Container actual;
   Cpp2Ops<Container>::read(&protReader, &actual);
-  EXPECT_EQ(expected, actual) << "Expected: " << toJson(*expected.data)
-                              << " Actual: " << toJson(*actual.data);
+  EXPECT_EQ(expected, actual) << "Expected: " << toJson(**expected.data_ref())
+                              << " Actual: " << toJson(**actual.data_ref());
 }
 
 TEST_P(RoundtripTestFixture, SerializeOverHandler) {
@@ -155,10 +153,9 @@ TEST_P(RoundtripTestFixture, SerializeOverHandler) {
   const SerializableDynamic expected = GetParam();
   SerializableDynamic actual;
   client->sync_echo(actual, expected);
-  EXPECT_EQ(expected, actual) << "Expected: " << toJson(*expected)
-                              << " Actual: " << toJson(*actual);
+  EXPECT_EQ(expected, actual)
+      << "Expected: " << toJson(*expected) << " Actual: " << toJson(*actual);
 }
 
-INSTANTIATE_TEST_CASE_P(All,
-                        RoundtripTestFixture,
-                        ::testing::ValuesIn(kDynamics));
+INSTANTIATE_TEST_CASE_P(
+    All, RoundtripTestFixture, ::testing::ValuesIn(kDynamics));

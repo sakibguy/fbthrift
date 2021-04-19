@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@
 #include <thrift/test/gen-cpp2/test_constants.h>
 #include <thrift/test/gen-cpp2/test_types.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace apache::thrift::test;
 
@@ -40,6 +40,7 @@ TEST(constants, examples) {
   EXPECT_EQ(std::string("world"), test_constants::str_2());
   EXPECT_EQ(std::string("'"), test_constants::str_3());
   EXPECT_EQ(std::string("\"foo\""), test_constants::str_4());
+  EXPECT_EQ(std::string("line 1\nline 2\n"), test_constants::str_5());
 
   EXPECT_TRUE(test_constants::l_e().empty());
   EXPECT_EQ((std::vector<std::int32_t>{23, 42, 56}), test_constants::l_1());
@@ -66,41 +67,41 @@ TEST(constants, examples) {
   EXPECT_EQ(struct1(), test_constants::pod_0());
 
   struct1 pod1;
-  pod1.set_a(10);
-  pod1.set_b("foo");
+  pod1.a_ref() = 10;
+  pod1.b_ref() = "foo";
 
   auto const& pod_1 = test_constants::pod_1();
-  EXPECT_TRUE(pod_1.__isset.a);
-  EXPECT_TRUE(pod_1.__isset.b);
+  EXPECT_TRUE(pod_1.a_ref().is_set());
+  EXPECT_TRUE(pod_1.b_ref().is_set());
   EXPECT_EQ(pod1, pod_1);
 
   struct2 pod2;
-  pod2.set_a(98);
-  pod2.set_b("gaz");
-  auto& pod2_c = pod2.set_c(struct1());
-  pod2_c.set_a(12);
-  pod2_c.set_b("bar");
-  pod2.set_d(std::vector<std::int32_t>{11, 22, 33});
+  pod2.a_ref() = 98;
+  pod2.b_ref() = "gaz";
+  auto& pod2_c = pod2.c_ref().emplace(struct1());
+  pod2_c.a_ref() = 12;
+  pod2_c.b_ref() = "bar";
+  pod2.d_ref() = std::vector<std::int32_t>{11, 22, 33};
 
   auto const& pod_2 = test_constants::pod_2();
-  EXPECT_TRUE(pod_2.__isset.a);
-  EXPECT_TRUE(pod_2.__isset.b);
-  EXPECT_TRUE(pod_2.__isset.c);
-  EXPECT_TRUE(pod_2.__isset.d);
-  EXPECT_TRUE(pod_2.c.__isset.a);
-  EXPECT_TRUE(pod_2.c.__isset.b);
+  EXPECT_TRUE(pod_2.a_ref().is_set());
+  EXPECT_TRUE(pod_2.b_ref().is_set());
+  EXPECT_TRUE(pod_2.c_ref().is_set());
+  EXPECT_TRUE(pod_2.d_ref().is_set());
+  EXPECT_TRUE(pod_2.c_ref()->a_ref().is_set());
+  EXPECT_TRUE(pod_2.c_ref()->b_ref().is_set());
   EXPECT_EQ(pod2, pod_2);
 
   auto const& pod_3 = test_constants::pod_3();
-  EXPECT_TRUE(pod_3.__isset.a);
-  EXPECT_TRUE(pod_3.__isset.b);
-  EXPECT_TRUE(pod_3.__isset.c);
-  EXPECT_TRUE(pod_3.c.__isset.a);
-  EXPECT_FALSE(pod_3.c.__isset.b);
-  EXPECT_TRUE(pod_3.c.__isset.c);
-  EXPECT_FALSE(pod_3.c.__isset.d);
-  EXPECT_FALSE(pod_3.c.c.__isset.a);
-  EXPECT_TRUE(pod_3.c.c.__isset.b);
+  EXPECT_TRUE(pod_3.a_ref().is_set());
+  EXPECT_TRUE(pod_3.b_ref().is_set());
+  EXPECT_TRUE(pod_3.c_ref().is_set());
+  EXPECT_TRUE(pod_3.c_ref()->a_ref().is_set());
+  EXPECT_FALSE(pod_3.c_ref()->b_ref().is_set());
+  EXPECT_TRUE(pod_3.c_ref()->c_ref().is_set());
+  EXPECT_FALSE(pod_3.c_ref()->d_ref().is_set());
+  EXPECT_FALSE(pod_3.c_ref()->c_ref()->a_ref().is_set());
+  EXPECT_TRUE(pod_3.c_ref()->c_ref()->b_ref().is_set());
 
   EXPECT_EQ(union1::Type::i, test_constants::u_1_1().getType());
   EXPECT_EQ(97, test_constants::u_1_1().get_i());

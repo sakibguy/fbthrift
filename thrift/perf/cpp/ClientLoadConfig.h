@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,41 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef THRIFT_TEST_PERF_CLIENTLOADCONFIG_H_
 #define THRIFT_TEST_PERF_CLIENTLOADCONFIG_H_ 1
 
-#include <thrift/lib/cpp/test/loadgen/WeightedLoadConfig.h>
 #include <folly/SocketAddress.h>
+#include <thrift/lib/cpp/test/loadgen/WeightedLoadConfig.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 namespace test {
 
 class ClientLoadConfig : public loadgen::WeightedLoadConfig {
  public:
-   enum OperationEnum {
-     OP_NOOP = 0,
-     OP_ONEWAY_NOOP,
-     OP_ASYNC_NOOP,
-     OP_SLEEP,
-     OP_ONEWAY_SLEEP,
-     OP_BURN,
-     OP_ONEWAY_BURN,
-     OP_BAD_SLEEP,
-     OP_BAD_BURN,
-     OP_THROW_ERROR,
-     OP_THROW_UNEXPECTED,
-     OP_ONEWAY_THROW,
-     OP_SEND,
-     OP_ONEWAY_SEND,
-     OP_RECV,
-     OP_SENDRECV,
-     OP_ECHO,
-     OP_ADD,
-     OP_LARGE_CONTAINER,
-     OP_ITER_ALL_FIELDS,
-     NUM_OPS
-   };
+  enum OperationEnum {
+    OP_NOOP = 0,
+    OP_ONEWAY_NOOP,
+    OP_ASYNC_NOOP,
+    OP_SLEEP,
+    OP_ONEWAY_SLEEP,
+    OP_BURN,
+    OP_ONEWAY_BURN,
+    OP_BAD_SLEEP,
+    OP_BAD_BURN,
+    OP_THROW_ERROR,
+    OP_THROW_UNEXPECTED,
+    OP_ONEWAY_THROW,
+    OP_SEND,
+    OP_ONEWAY_SEND,
+    OP_RECV,
+    OP_SENDRECV,
+    OP_ECHO,
+    OP_ADD,
+    OP_LARGE_CONTAINER,
+    OP_ITER_ALL_FIELDS,
+    NUM_OPS,
+  };
 
   ClientLoadConfig();
 
@@ -90,11 +92,12 @@ class ClientLoadConfig : public loadgen::WeightedLoadConfig {
   /**
    * Make a big struct with 100 string fields
    */
-  template<typename T>
+  template <typename T>
   void makeBigStruct(T& bigstruct) {
-    bigstruct.stringField = std::string(this->pickStructFieldSize(), 'a');
+    *bigstruct.stringField_ref() =
+        std::string(this->pickStructFieldSize(), 'a');
     for (int i = 0; i < 100; i++) {
-      bigstruct.stringList.push_back(
+      bigstruct.stringList_ref()->push_back(
           std::string(this->pickStructFieldSize(), 'a'));
     }
   }
@@ -102,7 +105,7 @@ class ClientLoadConfig : public loadgen::WeightedLoadConfig {
   /**
    * Make a large container with several bigstruct objects
    */
-  template<typename T>
+  template <typename T>
   void makeBigContainer(std::vector<T>& items) {
     for (auto i = 0u; i < this->pickContainerSize(); i++) {
       T item;
@@ -111,13 +114,9 @@ class ClientLoadConfig : public loadgen::WeightedLoadConfig {
     }
   }
 
-  const folly::SocketAddress* getAddress() const {
-    return &address_;
-  }
+  const folly::SocketAddress* getAddress() const { return &address_; }
 
-  std::string getAddressHostname() const {
-    return addressHostname_;
-  }
+  std::string getAddressHostname() const { return addressHostname_; }
 
   bool useFramedTransport() const;
 
@@ -148,6 +147,8 @@ class ClientLoadConfig : public loadgen::WeightedLoadConfig {
   std::string addressHostname_;
 };
 
-}}} // apache::thrift::test
+} // namespace test
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_TEST_PERF_CLIENTLOADCONFIG_H_

@@ -8,11 +8,13 @@
 #pragma once
 #include <src/gen-cpp2/MyService.h>
 #include <src/gen-cpp2/MyServiceFast.h>
+#include <src/gen-cpp2/DbMixedStackArguments.h>
 
 #include <folly/futures/Future.h>
 #include <folly/futures/Promise.h>
 #include <folly/Unit.h>
 #include <thrift/lib/py3/clientcallbacks.h>
+#include <thrift/lib/py3/client_wrapper.h>
 
 #include <cstdint>
 #include <functional>
@@ -23,19 +25,9 @@
 
 namespace cpp2 {
 
-class MyServiceClientWrapper {
-  protected:
-    std::shared_ptr<cpp2::MyServiceAsyncClient> async_client;
-    std::shared_ptr<apache::thrift::RequestChannel> channel_;
+class MyServiceClientWrapper : public ::thrift::py3::ClientWrapper {
   public:
-    explicit MyServiceClientWrapper(
-      std::shared_ptr<cpp2::MyServiceAsyncClient> async_client,
-      std::shared_ptr<apache::thrift::RequestChannel> channel);
-    virtual ~MyServiceClientWrapper();
-
-    folly::Future<folly::Unit> disconnect();
-    void disconnectInLoop();
-    void setPersistentHeader(const std::string& key, const std::string& value);
+    using ::thrift::py3::ClientWrapper::ClientWrapper;
 
     folly::Future<bool> hasDataById(
       apache::thrift::RpcOptions& rpcOptions,
@@ -54,19 +46,9 @@ class MyServiceClientWrapper {
 };
 
 
-class MyServiceFastClientWrapper {
-  protected:
-    std::shared_ptr<cpp2::MyServiceFastAsyncClient> async_client;
-    std::shared_ptr<apache::thrift::RequestChannel> channel_;
+class MyServiceFastClientWrapper : public ::thrift::py3::ClientWrapper {
   public:
-    explicit MyServiceFastClientWrapper(
-      std::shared_ptr<cpp2::MyServiceFastAsyncClient> async_client,
-      std::shared_ptr<apache::thrift::RequestChannel> channel);
-    virtual ~MyServiceFastClientWrapper();
-
-    folly::Future<folly::Unit> disconnect();
-    void disconnectInLoop();
-    void setPersistentHeader(const std::string& key, const std::string& value);
+    using ::thrift::py3::ClientWrapper::ClientWrapper;
 
     folly::Future<bool> hasDataById(
       apache::thrift::RpcOptions& rpcOptions,
@@ -82,6 +64,19 @@ class MyServiceFastClientWrapper {
       apache::thrift::RpcOptions& rpcOptions,
       int64_t arg_id,
       std::string arg_data);
+};
+
+
+class DbMixedStackArgumentsClientWrapper : public ::thrift::py3::ClientWrapper {
+  public:
+    using ::thrift::py3::ClientWrapper::ClientWrapper;
+
+    folly::Future<std::string> getDataByKey0(
+      apache::thrift::RpcOptions& rpcOptions,
+      std::string arg_key);
+    folly::Future<std::string> getDataByKey1(
+      apache::thrift::RpcOptions& rpcOptions,
+      std::string arg_key);
 };
 
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,96 +18,56 @@
 #define THRIFT_TCONNECTIONCONTEXT_H_ 1
 
 #include <stddef.h>
-
 #include <memory>
-#include <folly/io/async/EventBaseManager.h>
-#include <thrift/lib/cpp/protocol/TProtocol.h>
-#include <thrift/lib/cpp/transport/THeader.h>
+
+#include <folly/Memory.h>
 #include <folly/SocketAddress.h>
+#include <folly/io/async/EventBaseManager.h>
+#include <thrift/lib/cpp/transport/THeader.h>
 
-namespace apache { namespace thrift {
-
-namespace protocol {
-class TProtocol;
-}
+namespace apache {
+namespace thrift {
 
 namespace server {
 
 class TConnectionContext {
  public:
-  TConnectionContext()
-    : userData_(nullptr)
-    , destructor_(nullptr) {}
+  TConnectionContext(transport::THeader* header = nullptr) : header_(header) {}
 
-  virtual ~TConnectionContext() {
-    cleanupUserData();
-  }
+  virtual ~TConnectionContext() = default;
 
-  virtual const folly::SocketAddress* getPeerAddress() const {
-    return &peerAddress_;
-  }
-
-  void reset() {
-    peerAddress_.reset();
-    localAddress_.reset();
-    cleanupUserData();
-  }
-
-  virtual std::shared_ptr<protocol::TProtocol> getInputProtocol() const {
-    return nullptr;
-  }
-
-  virtual std::shared_ptr<protocol::TProtocol> getOutputProtocol() const {
-    return nullptr;
-  }
+  virtual const folly::SocketAddress* getPeerAddress() const { return nullptr; }
 
   // Expose the THeader to read headers or other flags
-  virtual transport::THeader* getHeader() const {
-    if (getOutputProtocol()) {
-      return dynamic_cast<apache::thrift::transport::THeader*>(
-          getOutputProtocol()->getTransport().get());
-    }
-    return nullptr;
-  }
+  transport::THeader* getHeader() const { return header_; }
 
-  virtual bool setHeader(const std::string& key, const std::string& value) {
-    auto header = getHeader();
-    if (header) {
-      header->setHeader(key, value);
+  bool setHeader(const std::string& key, const std::string& value) {
+    if (header_) {
+      header_->setHeader(key, value);
       return true;
     } else {
       return false;
     }
   }
 
-  virtual std::map<std::string, std::string> getHeaders() const {
-    auto header = getHeader();
-    if (header) {
-      return header->getHeaders();
+  std::map<std::string, std::string> getHeaders() const {
+    if (header_) {
+      return header_->getHeaders();
     } else {
       return std::map<std::string, std::string>();
     }
   }
 
-  virtual const std::map<std::string, std::string>* getHeadersPtr() {
-    auto header = getHeader();
-    if (header) {
-      return &header->getHeaders();
-    } else {
-      return nullptr;
-    }
+  const std::map<std::string, std::string>* getHeadersPtr() const {
+    return header_ ? &header_->getHeaders() : nullptr;
   }
 
-  virtual folly::EventBaseManager* getEventBaseManager() {
-    return nullptr;
-  }
+  virtual folly::EventBaseManager* getEventBaseManager() { return nullptr; }
 
   /**
    * Get the user data field.
    */
-  virtual void* getUserData() const {
-    return userData_;
-  }
+  virtual void* getUserData() const { return nullptr; }
 
   /**
    * Set the user data field.
@@ -119,30 +79,22 @@ class TConnectionContext {
    *
    * @return Returns the old user data value.
    */
-  virtual void* setUserData(void* data, void (*destructor)(void*) = nullptr) {
-    void* oldData = userData_;
-    userData_  = data;
-    destructor_ = destructor;
-    return oldData;
+  void* setUserData(void* data, void (*destructor)(void*) = nullptr) {
+    return setUserData({data, destructor ? destructor : no_op_destructor});
+  }
+  virtual void* setUserData(folly::erased_unique_ptr) {
+    throw std::runtime_error(
+        "setUserData is not implemented by this connection context type");
   }
 
  protected:
-  folly::SocketAddress peerAddress_;
-  folly::SocketAddress localAddress_;
+  apache::thrift::transport::THeader* header_;
 
-  void cleanupUserData() {
-    if (destructor_) {
-      destructor_(userData_);
-      destructor_ = nullptr;
-    }
-    userData_ = nullptr;
-  }
-
- private:
-  void* userData_;
-  void (*destructor_)(void*);
+  static void no_op_destructor(void* /*ptr*/) {}
 };
 
-}}} // apache::thrift::server
+} // namespace server
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_TCONNECTIONCONTEXT_H_

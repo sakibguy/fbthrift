@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 enum Color {
   RED = 0xFF0000,
   ORANGE = 0xFF6600,
@@ -70,19 +86,27 @@ exception EmptyData {
 }
 
 service TestService {
-  string lookup (
-    1: BTree root;
-    2: i32 key;
-  ) throws (
-    1: KeyNotFound e;
-    2: EmptyData f;
-  ),
+  string lookup(1: BTree root, 2: i32 key) throws (
+    1: KeyNotFound e,
+    2: EmptyData f,
+  );
 
-  void nested (
-    1: NestedStructs ns;
-  ),
+  void nested(1: NestedStructs ns);
 
-  void listStruct (
-    1: ListStruct ls;
-  )
+  void listStruct(1: ListStruct ls);
 }
+
+service DerivedTestService extends TestService {
+}
+
+union EmptyUnion {
+}
+
+union NumberUnion {
+  1: i32 my_integer;
+  2: float my_float;
+} (final)
+
+struct NumberUnionStruct {
+  1: NumberUnion nu = {'my_integer': 100};
+} (final)

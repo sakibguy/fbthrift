@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/compiler/ast/t_program.h>
 
@@ -54,42 +54,6 @@ TEST(TProgram, GetNamespace) {
   EXPECT_EQ(expect_3, program.get_namespace("Non existent"));
 }
 
-TEST(TProgram, SetOutPath) {
-  auto program = t_program_fake("");
-
-  const bool absolute_path = true;
-  const bool non_absolute_path = false;
-  const std::string out_dir_1 = "";
-  const std::string out_dir_2 = ".";
-  const std::string out_dir_3 = "./";
-  const std::string out_dir_4 = "./dir";
-  const std::string out_dir_5 = "./dir/";
-  const std::string out_dir_6 = "/this/is/a/dir";
-  const std::string out_dir_7 = "/this/is/a/dir/";
-
-  const std::string expect_1 = "";
-  program.set_out_path(out_dir_1, non_absolute_path);
-  EXPECT_EQ(expect_1, program.get_out_path());
-
-  const std::string expect_2 = "./";
-  program.set_out_path(out_dir_2, non_absolute_path);
-  EXPECT_EQ(expect_2, program.get_out_path());
-  program.set_out_path(out_dir_3, non_absolute_path);
-  EXPECT_EQ(expect_2, program.get_out_path());
-
-  const std::string expect_3 = "./dir/";
-  program.set_out_path(out_dir_4, non_absolute_path);
-  EXPECT_EQ(expect_3, program.get_out_path());
-  program.set_out_path(out_dir_5, non_absolute_path);
-  EXPECT_EQ(expect_3, program.get_out_path());
-
-  const std::string expect_4 = "/this/is/a/dir/";
-  program.set_out_path(out_dir_6, absolute_path);
-  EXPECT_EQ(expect_4, program.get_out_path());
-  program.set_out_path(out_dir_7, absolute_path);
-  EXPECT_EQ(expect_4, program.get_out_path());
-}
-
 TEST(TProgram, AddInclude) {
   auto program = t_program_fake("");
 
@@ -100,13 +64,13 @@ TEST(TProgram, AddInclude) {
   const std::string full_file_path_2 = "/this/is/a/dir/" + expect_2 + ".thrift";
   const auto expect = std::vector<std::string>{expect_1, expect_2};
 
-  program.add_include(full_file_path_1, rel_file_path_1, 0);
-  program.add_include(full_file_path_2, full_file_path_2, 0);
+  auto program_1 = program.add_include(full_file_path_1, rel_file_path_1, 0);
+  auto program_2 = program.add_include(full_file_path_2, full_file_path_2, 0);
   const auto& includes = program.get_included_programs();
 
   auto included_names = std::vector<std::string>();
   for (auto include : includes) {
-    included_names.push_back(include->get_name());
+    included_names.push_back(include->name());
   }
   EXPECT_EQ(expect, included_names);
 }
@@ -120,9 +84,9 @@ TEST(TProgram, SetIncludePrefix) {
   const std::string expect = "/this/is/a/dir/";
 
   program.set_include_prefix(dir_path_1);
-  EXPECT_EQ(expect, program.get_include_prefix());
+  EXPECT_EQ(expect, program.include_prefix());
   program.set_include_prefix(dir_path_2);
-  EXPECT_EQ(expect, program.get_include_prefix());
+  EXPECT_EQ(expect, program.include_prefix());
 }
 
 TEST(TProgram, ComputeNameFromFilePath) {

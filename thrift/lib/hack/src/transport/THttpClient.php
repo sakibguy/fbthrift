@@ -1,14 +1,21 @@
 <?hh // strict
-
-/**
-* Copyright (c) 2006- Facebook
-* Distributed under the Thrift Software License
-*
-* See accompanying file LICENSE or visit the Thrift site at:
-* http://developers.facebook.com/thrift/
-*
-* @package thrift.transport
-*/
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @package thrift.transport
+ */
 
 /**
  * HTTP client for Thrift
@@ -78,7 +85,7 @@ class THttpClient extends TTransport implements IThriftRemoteConn {
    *
    * @var array
    */
-  protected ?Indexish<string, string> $custom_headers_;
+  protected ?KeyedContainer<string, string> $custom_headers_;
 
   /**
    * Debugging on?
@@ -162,7 +169,7 @@ class THttpClient extends TTransport implements IThriftRemoteConn {
    * @param array of key value pairs of custom headers
    */
   public function setCustomHeaders(
-    Indexish<string, string> $custom_headers,
+    KeyedContainer<string, string> $custom_headers,
   ): void {
     $this->custom_headers_ = $custom_headers;
   }
@@ -172,7 +179,7 @@ class THttpClient extends TTransport implements IThriftRemoteConn {
    *
    * @return array key value pairs of custom headers
    */
-  public function getCustomHeaders(): ?Indexish<string, string> {
+  public function getCustomHeaders(): ?KeyedContainer<string, string> {
     return $this->custom_headers_;
   }
 

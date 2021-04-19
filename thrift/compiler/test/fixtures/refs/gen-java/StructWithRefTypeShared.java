@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -36,11 +34,11 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
   public static final int DEF_FIELD = 1;
   public static final int OPT_FIELD = 2;
   public static final int REQ_FIELD = 3;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(DEF_FIELD, new FieldMetaData("def_field", TFieldRequirementType.DEFAULT, 
@@ -60,30 +58,63 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
   }
 
   public StructWithRefTypeShared(
-    Empty req_field)
-  {
+      Empty req_field) {
     this();
     this.req_field = req_field;
   }
 
   public StructWithRefTypeShared(
-    Empty def_field,
-    Empty req_field)
-  {
+      Empty def_field,
+      Empty req_field) {
     this();
     this.def_field = def_field;
     this.req_field = req_field;
   }
 
   public StructWithRefTypeShared(
-    Empty def_field,
-    Empty opt_field,
-    Empty req_field)
-  {
+      Empty def_field,
+      Empty opt_field,
+      Empty req_field) {
     this();
     this.def_field = def_field;
     this.opt_field = opt_field;
     this.req_field = req_field;
+  }
+
+  public static class Builder {
+    private Empty def_field;
+    private Empty opt_field;
+    private Empty req_field;
+
+    public Builder() {
+    }
+
+    public Builder setDef_field(final Empty def_field) {
+      this.def_field = def_field;
+      return this;
+    }
+
+    public Builder setOpt_field(final Empty opt_field) {
+      this.opt_field = opt_field;
+      return this;
+    }
+
+    public Builder setReq_field(final Empty req_field) {
+      this.req_field = req_field;
+      return this;
+    }
+
+    public StructWithRefTypeShared build() {
+      StructWithRefTypeShared result = new StructWithRefTypeShared();
+      result.setDef_field(this.def_field);
+      result.setOpt_field(this.opt_field);
+      result.setReq_field(this.req_field);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -105,12 +136,7 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
     return new StructWithRefTypeShared(this);
   }
 
-  @Deprecated
-  public StructWithRefTypeShared clone() {
-    return new StructWithRefTypeShared(this);
-  }
-
-  public Empty  getDef_field() {
+  public Empty getDef_field() {
     return this.def_field;
   }
 
@@ -128,13 +154,13 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
     return this.def_field != null;
   }
 
-  public void setDef_fieldIsSet(boolean value) {
-    if (!value) {
+  public void setDef_fieldIsSet(boolean __value) {
+    if (!__value) {
       this.def_field = null;
     }
   }
 
-  public Empty  getOpt_field() {
+  public Empty getOpt_field() {
     return this.opt_field;
   }
 
@@ -152,13 +178,13 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
     return this.opt_field != null;
   }
 
-  public void setOpt_fieldIsSet(boolean value) {
-    if (!value) {
+  public void setOpt_fieldIsSet(boolean __value) {
+    if (!__value) {
       this.opt_field = null;
     }
   }
 
-  public Empty  getReq_field() {
+  public Empty getReq_field() {
     return this.req_field;
   }
 
@@ -176,35 +202,35 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
     return this.req_field != null;
   }
 
-  public void setReq_fieldIsSet(boolean value) {
-    if (!value) {
+  public void setReq_fieldIsSet(boolean __value) {
+    if (!__value) {
       this.req_field = null;
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case DEF_FIELD:
-      if (value == null) {
+      if (__value == null) {
         unsetDef_field();
       } else {
-        setDef_field((Empty)value);
+        setDef_field((Empty)__value);
       }
       break;
 
     case OPT_FIELD:
-      if (value == null) {
+      if (__value == null) {
         unsetOpt_field();
       } else {
-        setOpt_field((Empty)value);
+        setOpt_field((Empty)__value);
       }
       break;
 
     case REQ_FIELD:
-      if (value == null) {
+      if (__value == null) {
         unsetReq_field();
       } else {
-        setReq_field((Empty)value);
+        setReq_field((Empty)__value);
       }
       break;
 
@@ -229,68 +255,28 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case DEF_FIELD:
-      return isSetDef_field();
-    case OPT_FIELD:
-      return isSetOpt_field();
-    case REQ_FIELD:
-      return isSetReq_field();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof StructWithRefTypeShared)
-      return this.equals((StructWithRefTypeShared)that);
-    return false;
-  }
-
-  public boolean equals(StructWithRefTypeShared that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof StructWithRefTypeShared))
+      return false;
+    StructWithRefTypeShared that = (StructWithRefTypeShared)_that;
 
-    boolean this_present_def_field = true && this.isSetDef_field();
-    boolean that_present_def_field = true && that.isSetDef_field();
-    if (this_present_def_field || that_present_def_field) {
-      if (!(this_present_def_field && that_present_def_field))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.def_field, that.def_field))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetDef_field(), that.isSetDef_field(), this.def_field, that.def_field)) { return false; }
 
-    boolean this_present_opt_field = true && this.isSetOpt_field();
-    boolean that_present_opt_field = true && that.isSetOpt_field();
-    if (this_present_opt_field || that_present_opt_field) {
-      if (!(this_present_opt_field && that_present_opt_field))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.opt_field, that.opt_field))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetOpt_field(), that.isSetOpt_field(), this.opt_field, that.opt_field)) { return false; }
 
-    boolean this_present_req_field = true && this.isSetReq_field();
-    boolean that_present_req_field = true && that.isSetReq_field();
-    if (this_present_req_field || that_present_req_field) {
-      if (!(this_present_req_field && that_present_req_field))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.req_field, that.req_field))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetReq_field(), that.isSetReq_field(), this.req_field, that.req_field)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {def_field, opt_field, req_field});
   }
 
   @Override
@@ -310,7 +296,7 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(def_field, other.def_field);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetOpt_field()).compareTo(other.isSetOpt_field());
@@ -318,7 +304,7 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(opt_field, other.opt_field);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetReq_field()).compareTo(other.isSetReq_field());
@@ -326,49 +312,49 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(req_field, other.req_field);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case DEF_FIELD:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.def_field = new Empty();
             this.def_field.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case OPT_FIELD:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.opt_field = new Empty();
             this.opt_field.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case REQ_FIELD:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.req_field = new Empty();
             this.req_field.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -407,19 +393,14 @@ public class StructWithRefTypeShared implements TBase, java.io.Serializable, Clo
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("StructWithRefTypeShared");
     sb.append(space);
     sb.append("(");
@@ -430,10 +411,10 @@ String space = prettyPrint ? " " : "";
     sb.append("def_field");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getDef_field() == null) {
+    if (this.getDef_field() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getDef_field(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getDef_field(), indent + 1, prettyPrint));
     }
     first = false;
     if (isSetOpt_field())
@@ -443,10 +424,10 @@ String space = prettyPrint ? " " : "";
       sb.append("opt_field");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getOpt_field() == null) {
+      if (this.getOpt_field() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getOpt_field(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getOpt_field(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -455,10 +436,10 @@ String space = prettyPrint ? " " : "";
     sb.append("req_field");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getReq_field() == null) {
+    if (this.getReq_field() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getReq_field(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getReq_field(), indent + 1, prettyPrint));
     }
     first = false;
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
@@ -471,7 +452,6 @@ String space = prettyPrint ? " " : "";
     if (req_field == null) {
       throw new TProtocolException(TProtocolException.MISSING_REQUIRED_FIELD, "Required field 'req_field' was not present! Struct: " + toString());
     }
-    // check that fields of type enum have valid values
   }
 
 }

@@ -1,4 +1,17 @@
 #!/usr/bin/env/ python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import json
 import os
@@ -22,37 +35,40 @@ def ascend_find_exe(path, target):
             return None
         path = parent
 
+
 exe = os.path.join(os.getcwd(), sys.argv[0])
-thrift = ascend_find_exe(exe, 'thrift')
+thrift = ascend_find_exe(exe, "thrift")
 
 
 def read_file(path):
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         return f.read()
 
 
 def write_file(path, content):
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(content)
 
 
-def check_run_thrift(*args):
-    argsx = [thrift, "--gen", "json"] + list(args)
+def check_run_thrift(annotate, *args):
+    gen_str = "json"
+    if annotate:
+        gen_str = "json:annotate"
+    argsx = [thrift, "--gen", gen_str] + list(args)
     pipe = subprocess.PIPE
     return subprocess.check_call(argsx, stdout=pipe, stderr=pipe)
 
 
-def gen(path, content):
+def gen(path, content, annotate=False):
     base, ext = os.path.splitext(path)
     if ext != ".thrift":
         raise Exception("bad path: {}".format(path))
     write_file(path, content)
-    check_run_thrift("foo.thrift")
+    check_run_thrift(annotate, "foo.thrift")
     return json.loads(read_file(os.path.join("gen-json", base + ".json")))
 
 
 class JsonCompilerTest(unittest.TestCase):
-
     def setUp(self):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
@@ -62,136 +78,249 @@ class JsonCompilerTest(unittest.TestCase):
         self.maxDiff = None
 
     def test_empty(self):
-        obj = gen("foo.thrift", textwrap.dedent("""\
-        """))
-        self.assertEqual(obj, {
-            "thrift_module": "foo",
-        })
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+        """
+            ),
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+            },
+        )
 
     def test_one_struct_empty(self):
-        obj = gen("foo.thrift", textwrap.dedent("""\
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
             struct DataHolder {
             }
-        """))
-        self.assertEqual(obj, {
-            "thrift_module": "foo",
-            "structs": {
-                "DataHolder": {
-                    "fields": {
+        """
+            ),
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+                "structs": {
+                    "DataHolder": {
+                        "fields": {},
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 1,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 1,
                 },
             },
-        })
+        )
 
     def test_one_struct_one_field_dep_struct(self):
-        obj = gen("foo.thrift", textwrap.dedent("""\
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
             struct DataItem {
             }
             struct DataHolder {
                 1: DataItem item,
             }
-        """))
-        self.assertEqual(obj, {
-            "thrift_module": "foo",
-            "structs": {
-                "DataItem": {
-                    "fields": {
+        """
+            ),
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+                "structs": {
+                    "DataItem": {
+                        "fields": {},
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 1,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 1,
-                },
-                "DataHolder": {
-                    "fields": {
-                        "item": {
-                            "required": True,
-                            "type_enum": "STRUCT",
-                            "spec_args": "DataItem",
+                    "DataHolder": {
+                        "fields": {
+                            "item": {
+                                "required": True,
+                                "type_enum": "STRUCT",
+                                "spec_args": "DataItem",
+                            },
                         },
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 3,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 3,
                 },
             },
-        })
+        )
 
     def test_one_struct_one_field_dep_coll_struct(self):
-        obj = gen("foo.thrift", textwrap.dedent("""\
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
             struct DataItem {
             }
             struct DataHolder {
                 1: map<string, DataItem> item,
             }
-        """))
-        self.assertEqual(obj, {
-            "thrift_module": "foo",
-            "structs": {
-                "DataItem": {
-                    "fields": {
+        """
+            ),
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+                "structs": {
+                    "DataItem": {
+                        "fields": {},
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 1,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 1,
-                },
-                "DataHolder": {
-                    "fields": {
-                        "item": {
-                            "required": True,
-                            "type_enum": "MAP",
-                            "spec_args": {
-                                "key_type": {
-                                    "type_enum": "STRING",
-                                    "spec_args": None,
-                                },
-                                "val_type": {
-                                    "type_enum": "STRUCT",
-                                    "spec_args": "DataItem",
+                    "DataHolder": {
+                        "fields": {
+                            "item": {
+                                "required": True,
+                                "type_enum": "MAP",
+                                "spec_args": {
+                                    "key_type": {
+                                        "type_enum": "STRING",
+                                        "spec_args": None,
+                                    },
+                                    "val_type": {
+                                        "type_enum": "STRUCT",
+                                        "spec_args": "DataItem",
+                                    },
                                 },
                             },
                         },
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 3,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 3,
                 },
             },
-        })
+        )
 
     def test_one_struct_one_field_dep_struct_bug_out_of_order(self):
         # when a field appeared with an unknown type, it is listed as typedef
         # in spec_args, even if later that type was defined as struct
-        obj = gen("foo.thrift", textwrap.dedent("""\
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
             struct DataHolder {
                 1: DataItem item,
             }
             struct DataItem {
             }
-        """))
-        self.assertEqual(obj, {
-            "thrift_module": "foo",
-            "structs": {
-                "DataItem": {
-                    "fields": {
+        """
+            ),
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+                "structs": {
+                    "DataItem": {
+                        "fields": {},
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 4,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 4,
-                },
-                "DataHolder": {
-                    "fields": {
-                        "item": {
-                            "required": True,
-                            "type_enum": "STRUCT",
-                            "spec_args": "DataItem",
+                    "DataHolder": {
+                        "fields": {
+                            "item": {
+                                "required": True,
+                                "type_enum": "STRUCT",
+                                "spec_args": "DataItem",
+                            },
                         },
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 1,
+                        "annotation_last_lineno": -1,
                     },
-                    "is_exception": False,
-                    "is_union": False,
-                    "lineno": 1,
                 },
             },
-        })
+        )
+
+    def test_struct_field_annotate(self):
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+            struct Annotation {
+              1: string name;
+            }
+
+            @Annotation{name="aba"}
+            struct DataHolder {
+              1: string data (foo="bar", ignore)
+            } (my_annotation_key = "my_annotation_value")
+        """
+            ),
+            annotate=True,
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+                "structs": {
+                    "Annotation": {
+                        "annotation_last_lineno": -1,
+                        "fields": {
+                            "name": {
+                                "required": True,
+                                "spec_args": None,
+                                "type_enum": "STRING",
+                            },
+                        },
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 1,
+                    },
+                    "DataHolder": {
+                        "fields": {
+                            "data": {
+                                "required": True,
+                                "type_enum": "STRING",
+                                "spec_args": None,
+                                "annotations": {
+                                    "foo": "bar",
+                                    "ignore": "1",
+                                },
+                            },
+                        },
+                        "is_exception": False,
+                        "is_union": False,
+                        "lineno": 6,
+                        "annotation_last_lineno": 8,
+                        "annotations": {
+                            "my_annotation_key": "my_annotation_value",
+                        },
+                        "structured_annotations": {
+                            "Annotation": {
+                                "name": "aba",
+                            },
+                        },
+                    },
+                },
+            },
+        )

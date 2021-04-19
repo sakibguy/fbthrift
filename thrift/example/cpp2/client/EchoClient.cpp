@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,6 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/example/cpp2/server/EchoService.h>
 #include <thrift/example/if/gen-cpp2/Echo.h>
-#include <thrift/lib/cpp2/transport/core/testutil/ServerConfigsMock.h>
 #include <thrift/perf/cpp2/util/Util.h>
 
 DEFINE_string(host, "::1", "EchoServer host");
@@ -29,13 +28,14 @@ DEFINE_string(
     "header",
     "Transport to use: header, rsocket, http2, or inmemory");
 
-using apache::thrift::server::ServerConfigsMock;
 using example::chatroom::EchoAsyncClient;
-using example::chatroom::EchoHandler;
 
 int main(int argc, char* argv[]) {
   FLAGS_logtostderr = true;
   folly::init(&argc, &argv);
+
+  // create eventbase first so no dangling stack refs on 'client' dealloc
+  folly::EventBase evb;
 
   // Create a thrift client
   auto addr = folly::SocketAddress(FLAGS_host, FLAGS_port);
@@ -43,17 +43,8 @@ int main(int argc, char* argv[]) {
   auto client = ct->newSyncClient(addr, FLAGS_transport);
 
   // For header transport
-  folly::EventBase evb;
   if (FLAGS_transport == "header") {
     client = newHeaderClient<EchoAsyncClient>(&evb, addr);
-  }
-
-  // For inmemory transport
-  auto handler = std::make_shared<EchoHandler>();
-  ServerConfigsMock serverConfigs;
-  if (FLAGS_transport == "inmemory") {
-    client =
-        newInMemoryClient<EchoAsyncClient, EchoHandler>(handler, serverConfigs);
   }
 
   // Prepare thrift request

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <gmock/gmock.h>
+#include <folly/portability/GMock.h>
 
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
@@ -44,8 +44,8 @@ class SampleServer {
   void connectToServer(
       std::string transport,
       folly::Function<void(
-          std::shared_ptr<RequestChannel>,
-          std::shared_ptr<ClientConnectionIf>)> callMe);
+          std::shared_ptr<RequestChannel>, std::shared_ptr<ClientConnectionIf>)>
+          callMe);
 
  protected:
   void setupServer();
@@ -77,6 +77,11 @@ class TransportCompatibilityTest {
 
   void addRoutingHandler(
       std::unique_ptr<TransportRoutingHandler> routingHandler);
+
+  void setTransportUpgrade(bool upgradeToRocket) {
+    upgradeToRocket_ = upgradeToRocket;
+  }
+
   ThriftServer* getServer();
 
   void connectToServer(
@@ -92,12 +97,15 @@ class TransportCompatibilityTest {
   void TestRequestResponse_UnexpectedException();
   void TestRequestResponse_Timeout();
   void TestRequestResponse_Header();
+  void TestRequestResponse_Header_Load();
   void TestRequestResponse_Header_ExpectedException();
   void TestRequestResponse_Header_UnexpectedException();
   void TestRequestResponse_Saturation();
+  void TestRequestResponse_IsOverloaded();
   void TestRequestResponse_Connection_CloseNow();
   void TestRequestResponse_ServerQueueTimeout();
   void TestRequestResponse_ResponseSizeTooBig();
+  void TestRequestResponse_Checksumming();
 
   void TestOneway_Simple();
   void TestOneway_WithDelay();
@@ -105,6 +113,7 @@ class TransportCompatibilityTest {
   void TestOneway_UnexpectedException();
   void TestOneway_Connection_CloseNow();
   void TestOneway_ServerQueueTimeout();
+  void TestOneway_Checksumming();
 
   void TestRequestContextIsPreserved();
   void TestBadPayload();
@@ -115,6 +124,10 @@ class TransportCompatibilityTest {
   void TestConnectionStats();
   void TestObserverSendReceiveRequests();
   void TestConnectionContext();
+  void TestClientIdentityHook();
+
+  void TestCustomAsyncProcessor();
+  void TestOnWriteQuiescence();
 
  protected:
   void connectToServer(
@@ -132,6 +145,7 @@ class TransportCompatibilityTest {
 
  protected:
   std::unique_ptr<SampleServer<testutil::testservice::TestServiceMock>> server_;
+  bool upgradeToRocket_{false};
 };
 
 } // namespace thrift

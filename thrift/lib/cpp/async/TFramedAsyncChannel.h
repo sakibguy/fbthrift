@@ -1,47 +1,50 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_ASYNC_TFRAMEDASYNCCHANNEL_H_
 #define THRIFT_ASYNC_TFRAMEDASYNCCHANNEL_H_ 1
 
+#include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp/async/TStreamAsyncChannel.h>
 
-namespace apache { namespace thrift { namespace async {
+namespace apache {
+namespace thrift {
+namespace async {
 
 namespace detail {
 
 /**
  * Encapsulation of one outstanding write request on a TFramedAsyncChannel.
  */
-class TFramedACWriteRequest :
-      public TAsyncChannelWriteRequestBase<TFramedACWriteRequest> {
+class TFramedACWriteRequest
+    : public TAsyncChannelWriteRequestBase<TFramedACWriteRequest> {
  public:
-  TFramedACWriteRequest(const VoidCallback& callback,
-                        const VoidCallback& errorCallback,
-                        transport::TMemoryBuffer* message,
-                        TAsyncEventChannel* channel);
+  TFramedACWriteRequest(
+      const VoidCallback& callback,
+      const VoidCallback& errorCallback,
+      transport::TMemoryBuffer* message,
+      TAsyncEventChannel* channel);
 
-  void write(TAsyncTransport* transport,
-             TAsyncTransport::WriteCallback* callback) noexcept;
+  void write(
+      folly::AsyncTransport* transport,
+      folly::AsyncTransport::WriteCallback* callback) noexcept;
 
   void writeSuccess() noexcept;
-  void writeError(size_t bytesWritten,
-                  const transport::TTransportException& ex) noexcept;
+  void writeError(
+      size_t bytesWritten, const transport::TTransportException& ex) noexcept;
 
  private:
   union {
@@ -65,30 +68,22 @@ class TFramedACReadState {
     buffer_ = buffer;
     bytesRead_ = 0;
   }
-  void unsetCallbackBuffer() {
-    buffer_ = nullptr;
-  }
+  void unsetCallbackBuffer() { buffer_ = nullptr; }
 
   bool hasReadAheadData() {
     assert(bytesRead_ == 0);
     return false;
   }
-  bool hasPartialMessage() {
-    return (bytesRead_ > 0);
-  }
+  bool hasPartialMessage() { return (bytesRead_ > 0); }
 
   void getReadBuffer(void** bufReturn, size_t* lenReturn);
   bool readDataAvailable(size_t len);
 
   // Other methods specifict to TFramedAsyncChannel
 
-  void setMaxFrameSize(uint32_t size) {
-    maxFrameSize_ = size;
-  }
+  void setMaxFrameSize(uint32_t size) { maxFrameSize_ = size; }
 
-  uint32_t getMaxFrameSize() const {
-    return maxFrameSize_;
-  }
+  uint32_t getMaxFrameSize() const { return maxFrameSize_; }
 
  private:
   /// maximum frame size accepted
@@ -120,18 +115,20 @@ class TFramedACReadState {
  *
  * Its messages are compatible with TFramedTransport.
  */
-class TFramedAsyncChannel :
-  public TStreamAsyncChannel<detail::TFramedACWriteRequest,
-                             detail::TFramedACReadState> {
+class TFramedAsyncChannel
+    : public TStreamAsyncChannel<
+          apache::thrift::async::detail::TFramedACWriteRequest,
+          apache::thrift::async::detail::TFramedACReadState> {
  private:
-  typedef TStreamAsyncChannel<detail::TFramedACWriteRequest,
-                              detail::TFramedACReadState> Parent;
+  typedef TStreamAsyncChannel<
+      apache::thrift::async::detail::TFramedACWriteRequest,
+      apache::thrift::async::detail::TFramedACReadState>
+      Parent;
 
  public:
   explicit TFramedAsyncChannel(
-    const std::shared_ptr<TAsyncTransport>& transport
-    )
-    : Parent(transport) {}
+      const std::shared_ptr<folly::AsyncTransport>& transport)
+      : Parent(transport) {}
 
   /**
    * Helper function to create a shared_ptr<TFramedAsyncChannel>.
@@ -140,19 +137,15 @@ class TFramedAsyncChannel :
    * destructor is protected and cannot be invoked directly.
    */
   static std::shared_ptr<TFramedAsyncChannel> newChannel(
-      const std::shared_ptr<TAsyncTransport>& transport) {
+      const std::shared_ptr<folly::AsyncTransport>& transport) {
     return std::shared_ptr<TFramedAsyncChannel>(
         new TFramedAsyncChannel(transport), Destructor());
   }
 
   /// size in bytes beyond which we'll reject a given frame size.
-  void setMaxFrameSize(uint32_t size) {
-    readState_.setMaxFrameSize(size);
-  }
+  void setMaxFrameSize(uint32_t size) { readState_.setMaxFrameSize(size); }
 
-  uint32_t getMaxFrameSize() const {
-    return readState_.getMaxFrameSize();
-  }
+  uint32_t getMaxFrameSize() const { return readState_.getMaxFrameSize(); }
 
  protected:
   /**
@@ -167,24 +160,16 @@ class TFramedAsyncChannel :
 class TFramedAsyncChannelFactory : public TStreamAsyncChannelFactory {
  public:
   TFramedAsyncChannelFactory()
-    : maxFrameSize_(0x7fffffff)
-    , recvTimeout_(0)
-    , sendTimeout_(0) {}
+      : maxFrameSize_(0x7fffffff), recvTimeout_(0), sendTimeout_(0) {}
 
-  void setMaxFrameSize(uint32_t bytes) {
-    maxFrameSize_ = bytes;
-  }
+  void setMaxFrameSize(uint32_t bytes) { maxFrameSize_ = bytes; }
 
-  void setRecvTimeout(uint32_t milliseconds) {
-    recvTimeout_ = milliseconds;
-  }
+  void setRecvTimeout(uint32_t milliseconds) { recvTimeout_ = milliseconds; }
 
-  void setSendTimeout(uint32_t milliseconds) {
-    sendTimeout_ = milliseconds;
-  }
+  void setSendTimeout(uint32_t milliseconds) { sendTimeout_ = milliseconds; }
 
   std::shared_ptr<TAsyncEventChannel> newChannel(
-      const std::shared_ptr<TAsyncTransport>& transport) override {
+      const std::shared_ptr<folly::AsyncTransport>& transport) override {
     std::shared_ptr<TFramedAsyncChannel> channel(
         TFramedAsyncChannel::newChannel(transport));
     transport->setSendTimeout(sendTimeout_);
@@ -199,6 +184,8 @@ class TFramedAsyncChannelFactory : public TStreamAsyncChannelFactory {
   uint32_t sendTimeout_;
 };
 
-}}} // apache::thrift::async
+} // namespace async
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_ASYNC_TFRAMEDASYNCCHANNEL_H_

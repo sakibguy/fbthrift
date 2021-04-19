@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,24 +23,26 @@ structures, some work is required.
 
 This template assumes that the Python object is in a variable named <field>.
 
-}}{{#type:iobuf?}}deref((<__iobuf.IOBuf>{{field:name}}).c_clone()){{/type:iobuf?}}{{!
-}}{{#type:iobufRef?}}((<__iobuf.IOBuf>{{field:name}}).c_clone()){{/type:iobufRef?}}{{!
+}}{{#type:iobuf?}}deref((<_fbthrift_iobuf.IOBuf>{{field:py_name}}).c_clone()){{/type:iobuf?}}{{!
+}}{{#type:iobufRef?}}((<_fbthrift_iobuf.IOBuf>{{field:py_name}}).c_clone()){{/type:iobufRef?}}{{!
+}}{{#type:flexibleBinary?}}{{!
+  }}{{> types/CythonCppType}}(cmove(<string>{{field:py_name}})){{!
+}}{{/type:flexibleBinary?}}{{!
 }}{{^type:hasCustomTypeBehavior?}}{{!
-}}{{#type:bool?}}{{field:name}}{{/type:bool?}}{{!
-}}{{#type:byte?}}{{field:name}}{{/type:byte?}}{{!
-}}{{#type:i16?}}{{field:name}}{{/type:i16?}}{{!
-}}{{#type:i32?}}{{field:name}}{{/type:i32?}}{{!
-}}{{#type:i64?}}{{field:name}}{{/type:i64?}}{{!
-}}{{#type:double?}}{{field:name}}{{/type:double?}}{{!
-}}{{#type:float?}}{{field:name}}{{/type:float?}}{{!
-}}{{#type:string?}}{{field:name}}.encode('UTF-8'){{/type:string?}}{{!
-}}{{#type:binary?}}{{field:name}}{{/type:binary?}}{{!
+}}{{#type:bool?}}{{field:py_name}}{{/type:bool?}}{{!
+}}{{#type:byte?}}{{field:py_name}}{{/type:byte?}}{{!
+}}{{#type:i16?}}{{field:py_name}}{{/type:i16?}}{{!
+}}{{#type:i32?}}{{field:py_name}}{{/type:i32?}}{{!
+}}{{#type:i64?}}{{field:py_name}}{{/type:i64?}}{{!
+}}{{#type:double?}}{{field:py_name}}{{/type:double?}}{{!
+}}{{#type:float?}}{{field:py_name}}{{/type:float?}}{{!
+}}{{#type:string?}}{{field:py_name}}.encode('UTF-8'){{/type:string?}}{{!
+}}{{#type:binary?}}{{field:py_name}}{{/type:binary?}}{{!
 }}{{#type:struct}}{{!
-  }}deref((<{{> types/CythonPythonType}}>{{field:name}})._cpp_obj){{!
+  }}deref((<{{> types/CythonPythonType}}>{{field:py_name}})._cpp_obj){{!
 }}{{/type:struct}}{{!
 }}{{#type:container?}}{{!
-  }}{{> types/CythonCppType}}({{!
-  }}deref({{> types/CythonPythonType}}({{field:name}})._cpp_obj.get())){{!
+  }}deref((<{{> types/CythonPythonType}}>{{field:py_name}})._cpp_obj){{!
 }}{{/type:container?}}{{!
-}}{{#type:enum}}{{> types/CythonPythonType}}_to_cpp({{field:name}}){{/type:enum}}{{!
+}}{{#type:enum?}}<{{> types/CythonCppType}}><int>{{field:py_name}}{{/type:enum?}}{{!
 }}{{/type:hasCustomTypeBehavior?}}

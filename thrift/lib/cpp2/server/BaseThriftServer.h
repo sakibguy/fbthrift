@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,35 +20,56 @@
 #include <chrono>
 #include <cstdlib>
 #include <map>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 #include <folly/Memory.h>
 #include <folly/SocketAddress.h>
+#include <folly/Synchronized.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
+
 #include <thrift/lib/cpp/concurrency/Thread.h>
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 #include <thrift/lib/cpp/server/TServerEventHandler.h>
 #include <thrift/lib/cpp/server/TServerObserver.h>
 #include <thrift/lib/cpp/transport/THeader.h>
+#include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
+#include <thrift/lib/cpp2/server/MonitoringServerInterface.h>
 #include <thrift/lib/cpp2/server/ServerAttribute.h>
 #include <thrift/lib/cpp2/server/ServerConfigs.h>
+
+THRIFT_FLAG_DECLARE_int64(server_default_socket_queue_timeout_ms);
+
+namespace wangle {
+class ConnectionManager;
+}
 
 namespace apache {
 namespace thrift {
 
+class AdmissionStrategy;
+
 typedef std::function<void(
     folly::EventBase*,
-    std::shared_ptr<apache::thrift::async::TAsyncTransport>,
+    wangle::ConnectionManager*,
+    std::shared_ptr<folly::AsyncTransport>,
     std::unique_ptr<folly::IOBuf>)>
     getHandlerFunc;
 
 typedef std::function<void(
-    const apache::thrift::transport::THeader*,
-    const folly::SocketAddress*)>
+    const apache::thrift::transport::THeader*, const folly::SocketAddress*)>
     GetHeaderHandlerFunc;
+
+using IsOverloadedFunc = folly::Function<bool(
+    const transport::THeader::StringToStringMap*, const std::string*) const>;
+
+using PreprocessFunc =
+    folly::Function<PreprocessResult(const server::PreprocessParams&) const>;
 
 template <typename T>
 class ThriftServerAsyncProcessorFactory : public AsyncProcessorFactory {
@@ -98,61 +119,112 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
     }
   };
 
+  struct Metadata {
+    std::string configPath;
+    std::optional<std::string> serviceFramework;
+    std::optional<std::string> wrapper;
+    std::optional<std::string> languageFramework;
+    std::optional<std::set<std::string>> modules;
+    std::optional<std::string> tlsConfigSource;
+
+    void addModule(std::string_view name) {
+      if (!modules) {
+        modules.emplace();
+      }
+
+      modules->emplace(name);
+    }
+  };
+
+  /**
+   * Tag type for ServerAttributeStatic setters. Setters marked with this tag
+   * type should only be called before the server has started processing
+   * requests.
+   */
+  struct StaticAttributeTag {};
+  /**
+   * Tag type for ServerAttributeDynamic setters. Setters marked with this tag
+   * type can be called even after the server has started processing requests.
+   * The corresponding value will be dynamically updated.
+   */
+  struct DynamicAttributeTag {};
+
  private:
   //! Default number of worker threads (should be # of processor cores).
   static const size_t T_ASYNC_DEFAULT_WORKER_THREADS;
 
-  static const uint32_t T_MAX_NUM_PENDING_CONNECTIONS_PER_WORKER = 4096;
+  static constexpr uint32_t T_MAX_NUM_PENDING_CONNECTIONS_PER_WORKER = 4096;
 
-  static const std::chrono::milliseconds DEFAULT_TIMEOUT;
+  static constexpr std::chrono::milliseconds DEFAULT_TIMEOUT =
+      std::chrono::milliseconds(60000);
 
-  static const std::chrono::milliseconds DEFAULT_TASK_EXPIRE_TIME;
+  static constexpr std::chrono::milliseconds DEFAULT_TASK_EXPIRE_TIME =
+      std::chrono::milliseconds(5000);
 
-  static const std::chrono::milliseconds DEFAULT_STREAM_EXPIRE_TIME;
+  static constexpr std::chrono::milliseconds DEFAULT_STREAM_EXPIRE_TIME =
+      std::chrono::milliseconds(60000);
 
-  static const std::chrono::milliseconds DEFAULT_QUEUE_TIMEOUT;
+  static constexpr std::chrono::milliseconds DEFAULT_QUEUE_TIMEOUT =
+      std::chrono::milliseconds(0);
 
   /// Listen backlog
-  static const int DEFAULT_LISTEN_BACKLOG = 1024;
+  static constexpr int DEFAULT_LISTEN_BACKLOG = 1024;
 
   //! Prefix for pool thread names
-  std::string poolThreadName_;
+  ServerAttributeStatic<std::string> poolThreadName_{""};
 
   // Cpp2 ProcessorFactory.
   std::shared_ptr<apache::thrift::AsyncProcessorFactory> cpp2Pfac_;
 
+  // Explicitly set monitoring service interface handler
+  std::shared_ptr<MonitoringServerInterface> monitoringServiceHandler_;
+
   //! Number of io worker threads (may be set) (should be # of CPU cores)
-  size_t nWorkers_ = T_ASYNC_DEFAULT_WORKER_THREADS;
+  ServerAttributeStatic<size_t> nWorkers_{T_ASYNC_DEFAULT_WORKER_THREADS};
 
   //! Number of SSL handshake worker threads (may be set)
-  size_t nSSLHandshakeWorkers_ = 0;
+  ServerAttributeStatic<size_t> nSSLHandshakeWorkers_{0};
 
-  //! Number of sync pool threads (may be set) (should be set to expected
-  //  sync load)
-  size_t nPoolThreads_ = 0;
+  //! Number of CPU worker threads
+  ServerAttributeStatic<size_t> nPoolThreads_{T_ASYNC_DEFAULT_WORKER_THREADS};
 
-  bool enableCodel_ = false;
+  ServerAttributeDynamic<bool> enableCodel_{false};
 
   //! Milliseconds we'll wait for data to appear (0 = infinity)
-  std::chrono::milliseconds timeout_ = DEFAULT_TIMEOUT;
+  ServerAttributeStatic<std::chrono::milliseconds> timeout_{DEFAULT_TIMEOUT};
 
   /**
    * The time in milliseconds before an unperformed task expires
    * (0 == infinite)
    */
-  std::chrono::milliseconds taskExpireTime_ = DEFAULT_TASK_EXPIRE_TIME;
+  ServerAttributeDynamic<std::chrono::milliseconds> taskExpireTime_{
+      DEFAULT_TASK_EXPIRE_TIME};
 
   /**
    * The time in milliseconds before a stream starves of having no request.
    * (0 == infinite)
    */
-  std::chrono::milliseconds streamExpireTime_ = DEFAULT_STREAM_EXPIRE_TIME;
+  ServerAttributeDynamic<std::chrono::milliseconds> streamExpireTime_{
+      DEFAULT_STREAM_EXPIRE_TIME};
 
   /**
    * The time we'll allow a task to wait on the queue and still perform it
    * (0 == infinite)
    */
-  std::chrono::milliseconds queueTimeout_ = DEFAULT_QUEUE_TIMEOUT;
+  ServerAttributeDynamic<std::chrono::milliseconds> queueTimeout_{
+      DEFAULT_QUEUE_TIMEOUT};
+
+  /**
+   * The time we'll allow a new connection socket to wait on the queue before
+   * closing the connection. See `folly::AsyncServerSocket::setQueueTimeout`.
+   */
+  ServerAttributeDynamic<std::chrono::nanoseconds> socketQueueTimeout_{
+      folly::observer::makeObserver(
+          [timeoutMs =
+               THRIFT_FLAG_OBSERVE(server_default_socket_queue_timeout_ms)]()
+              -> std::chrono::nanoseconds {
+            return std::chrono::milliseconds(**timeoutMs);
+          })};
 
   /**
    * The number of incoming connections the TCP stack will buffer up while
@@ -165,34 +237,83 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * implementation, and it may be further limited or even ignored on some
    * systems. See manpage for listen(2) for details.
    */
-  int listenBacklog_ = DEFAULT_LISTEN_BACKLOG;
+  ServerAttributeStatic<int> listenBacklog_{DEFAULT_LISTEN_BACKLOG};
 
   /**
    * The maximum number of pending connections each io worker thread can hold.
    */
-  uint32_t maxNumPendingConnectionsPerWorker_ =
-      T_MAX_NUM_PENDING_CONNECTIONS_PER_WORKER;
+  ServerAttributeStatic<uint32_t> maxNumPendingConnectionsPerWorker_{
+      T_MAX_NUM_PENDING_CONNECTIONS_PER_WORKER};
 
   // Max number of active connections
-  ServerAttribute<uint32_t> maxConnections_{0};
+  ServerAttributeDynamic<uint32_t> maxConnections_{0};
 
   // Max active requests
-  ServerAttribute<uint32_t> maxRequests_{
+  ServerAttributeDynamic<uint32_t> maxRequests_{
       concurrency::ThreadManager::DEFAULT_MAX_QUEUE_SIZE};
 
   // If it is set true, server will check and use client timeout header
-  bool useClientTimeout_ = true;
+  ServerAttributeDynamic<bool> useClientTimeout_{true};
 
   // Max response size allowed. This is the size of the serialized and
   // transformed response, headers not included. 0 (default) means no limit.
-  ServerAttribute<uint64_t> maxResponseSize_{0};
+  ServerAttributeDynamic<uint64_t> maxResponseSize_{0};
+
+  // Admission strategy use for accepting new requests
+  ServerAttributeDynamic<std::shared_ptr<AdmissionStrategy>> admissionStrategy_;
+
+  /**
+   * The maximum memory usage (in bytes) by each request debug payload.
+   * Payloads larger than this value will be simply dropped by instrumentation.
+   */
+  ServerAttributeStatic<uint64_t> maxDebugPayloadMemoryPerRequest_{
+      0x1000000}; // 16MB
+
+  /**
+   * The maximum memory usage by each worker to keep track of debug payload.
+   * Each time a request payload is added for tracking, the tracker should check
+   * whether it's using memory beyond this value and evict payloads based on
+   * its policies.
+   */
+  ServerAttributeStatic<uint64_t> maxDebugPayloadMemoryPerWorker_{
+      0x1000000}; // 16MB
+
+  /**
+   * The maximum number of debug payloads to track after request has finished.
+   */
+  ServerAttributeStatic<uint16_t> maxFinishedDebugPayloadsPerWorker_{10};
+
+  /**
+   * Batch all writes withing given time interval.
+   * (0 == disabled)
+   */
+  ServerAttributeDynamic<std::chrono::milliseconds> writeBatchingInterval_{
+      std::chrono::milliseconds::zero()};
+
+  /**
+   * Trigger early flush when this number of writes are queued.
+   * Ignored if write batching interval is not set.
+   * (0 == disabled)
+   */
+  ServerAttributeDynamic<size_t> writeBatchingSize_{0};
+
+  ServerAttributeStatic<folly::sorted_vector_set<std::string>>
+      methodsBypassMaxRequestsLimit_{{}};
+
+  Metadata metadata_;
+
+  ServerAttributeDynamic<int64_t> ingressMemoryLimit_{0};
+  ServerAttributeDynamic<size_t> minPayloadSizeToEnforceIngressMemoryLimit_{
+      512 * 1024};
 
  protected:
-  //! The server's listening address
-  folly::SocketAddress address_;
+  //! The server's listening addresses
+  std::vector<folly::SocketAddress> addresses_;
 
   //! The server's listening port
   int port_ = -1;
+
+  std::shared_ptr<server::TServerEventHandler> eventHandler_;
 
   /**
    * The thread manager used for sync calls.
@@ -200,17 +321,17 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   std::mutex threadManagerMutex_;
   std::shared_ptr<apache::thrift::concurrency::ThreadManager> threadManager_;
 
-  std::shared_ptr<server::TServerEventHandler> eventHandler_;
+  // If set, the thread factory that should be used to create worker threads.
+  std::shared_ptr<concurrency::ThreadFactory> threadFactory_;
 
-  // Notification of various server events
-  std::shared_ptr<apache::thrift::server::TServerObserver> observer_;
+  // Notification of various server events. Note that once observer_ has been
+  // set, it cannot be set again and will remain alive for (at least) the
+  // lifetime of *this.
+  folly::Synchronized<std::shared_ptr<server::TServerObserver>> observer_;
+  std::atomic<server::TServerObserver*> observerPtr_{nullptr};
 
-  // Track # of active requests for this server
-  std::atomic<int32_t> activeRequests_{0};
-
-  std::string overloadedErrorCode_ = kOverloadedErrorCode;
-  folly::Function<bool(const transport::THeader*)> isOverloaded_ =
-      [](const transport::THeader*) { return false; };
+  IsOverloadedFunc isOverloaded_;
+  PreprocessFunc preprocess_;
   std::function<int64_t(const std::string&)> getLoad_;
 
   enum class InjectedFailure { NONE, ERROR, DROP, DISCONNECT };
@@ -251,13 +372,33 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   // setters.
   std::atomic<bool> configMutable_{true};
 
-  BaseThriftServer() {}
+  template <typename T>
+  void setStaticAttribute(
+      ServerAttributeStatic<T>& staticAttribute,
+      T&& value,
+      AttributeSource source) {
+    CHECK(configMutable());
+    staticAttribute.set(std::move(value), source);
+  }
 
+  BaseThriftServer();
   ~BaseThriftServer() override {}
 
  public:
   std::shared_ptr<server::TServerEventHandler> getEventHandler() {
     return eventHandler_;
+  }
+
+  /**
+   * If a view of the event handler is needed that does not need to extend its
+   * lifetime beyond that of the BaseThriftServer, this method allows obtaining
+   * the raw pointer rather than the more expensive shared_ptr.
+   * Since unsynchronized setServerEventHandler / getEventHandler calls are not
+   * permitted, use cases that get the handler, inform it of some action, and
+   * then discard the handle immediately can use getEventHandlerUnsafe.
+   */
+  server::TServerEventHandler* getEventHandlerUnsafe() {
+    return eventHandler_.get();
   }
 
   void setServerEventHandler(
@@ -272,8 +413,18 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @return true if the configuration can be modified, false otherwise
    */
-  bool configMutable() {
-    return configMutable_;
+  bool configMutable() { return configMutable_; }
+
+  /**
+   * Set the ThreadFactory that will be used to create worker threads for the
+   * service.  If not set, a default factory will be used.  Must be called
+   * before the thread manager is started.
+   */
+  void setThreadFactory(
+      std::shared_ptr<concurrency::ThreadFactory> threadFactory) {
+    CHECK(configMutable());
+    CHECK(!threadManager_);
+    threadFactory_ = std::move(threadFactory);
   }
 
   /**
@@ -281,19 +432,7 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @return current setting.
    */
-  const std::string& getCPUWorkerThreadName() const {
-    return poolThreadName_;
-  }
-
-  /**
-   * DEPRECATED: Get the prefix for naming the CPU (pool) threads.
-   * Use getCPUWorkerThreadName instead.
-   *
-   * @return current setting.
-   */
-  inline const std::string& getPoolThreadName() const {
-    return getCPUWorkerThreadName();
-  }
+  std::string getCPUWorkerThreadName() const { return poolThreadName_.get(); }
 
   /**
    * Set the prefix for naming the CPU (pool) threads. Not set by default.
@@ -302,20 +441,12 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @param cpuWorkerThreadName thread name prefix
    */
-  void setCPUWorkerThreadName(const std::string& cpuWorkerThreadName) {
-    poolThreadName_ = cpuWorkerThreadName;
-  }
-
-  /**
-   * DEPRECATED: Set the prefix for naming the CPU (pool) threads. Not set by
-   * default. Must be called before serve() for it to take effect
-   * ignored if setThreadManager() is called.
-   * Use setCPUWorkerThreadName instead.
-   *
-   * @param poolThreadName thread name prefix
-   */
-  inline void setPoolThreadName(const std::string& poolThreadName) {
-    setCPUWorkerThreadName(poolThreadName);
+  void setCPUWorkerThreadName(
+      const std::string& cpuWorkerThreadName,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        poolThreadName_, std::string{cpuWorkerThreadName}, source);
   }
 
   /**
@@ -330,6 +461,19 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
     CHECK(configMutable());
     std::lock_guard<std::mutex> lock(threadManagerMutex_);
     threadManager_ = threadManager;
+  }
+
+  /**
+   * Set Thread Manager by using the executor (for Python server).
+   *
+   * @param executor folly::Executor to be set as the threadManager
+   */
+  void setThreadManagerFromExecutor(folly::Executor* executor) {
+    CHECK(configMutable());
+    std::lock_guard<std::mutex> lock(threadManagerMutex_);
+    threadManager_ =
+        std::make_shared<concurrency::ThreadManagerExecutorAdapter>(
+            folly::getKeepAliveToken(executor));
   }
 
   /**
@@ -348,9 +492,7 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @return current setting.
    */
-  uint32_t getMaxConnections() const {
-    return maxConnections_.get();
-  }
+  uint32_t getMaxConnections() const { return maxConnections_.get(); }
 
   /**
    * Set the maximum # of connections allowed before overload.
@@ -359,18 +501,17 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    */
   void setMaxConnections(
       uint32_t maxConnections,
-      AttributeSource source = AttributeSource::OVERRIDE) {
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
     maxConnections_.set(maxConnections, source);
   }
 
   /**
-   * Get the maximum # of connections waiting in handler/task before overload.
+   * Get the maximum # of requests being processed in handler before overload.
    *
    * @return current setting.
    */
-  uint32_t getMaxRequests() const {
-    return maxRequests_.get();
-  }
+  uint32_t getMaxRequests() const { return maxRequests_.get(); }
 
   /**
    * Set the maximum # of requests being processed in handler before overload.
@@ -379,63 +520,49 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    */
   void setMaxRequests(
       uint32_t maxRequests,
-      AttributeSource source = AttributeSource::OVERRIDE) {
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
     maxRequests_.set(maxRequests, source);
   }
 
-  uint64_t getMaxResponseSize() const override {
-    return maxResponseSize_.get();
-  }
+  uint64_t getMaxResponseSize() const final { return maxResponseSize_.get(); }
 
   void setMaxResponseSize(
       uint64_t size,
-      AttributeSource source = AttributeSource::OVERRIDE) {
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
     maxResponseSize_.set(size, source);
   }
 
-  /**
-   * NOTE: low hanging perf fruit. In a test this was roughly a 10%
-   * regression at 2 million QPS (noops). High performance servers can override
-   * this with a noop at the expense of poor load metrics. To my knowledge
-   * no current thrift server does even close to this QPS.
-   */
-  void incActiveRequests(int32_t numRequests = 1) {
-    activeRequests_ += numRequests;
-  }
+  bool getUseClientTimeout() const { return useClientTimeout_.get(); }
 
-  void decActiveRequests(int32_t numRequests = 1) {
-    activeRequests_ -= numRequests;
+  void setUseClientTimeout(
+      bool useClientTimeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    useClientTimeout_.set(useClientTimeout, source);
   }
-
-  int32_t getActiveRequests() const {
-    return activeRequests_;
-  }
-
-  bool getUseClientTimeout() const {
-    return useClientTimeout_;
-  }
-
-  void setUseClientTimeout(bool useClientTimeout) {
-    useClientTimeout_ = useClientTimeout;
-  }
-
-  virtual bool isOverloaded(
-      const apache::thrift::transport::THeader* header = nullptr) = 0;
 
   // Get load of the server.
-  int64_t getLoad(const std::string& counter = "", bool check_custom = true);
-  virtual int64_t getRequestLoad();
-  virtual std::string getLoadInfo(int64_t load);
+  int64_t getLoad(
+      const std::string& counter = "", bool check_custom = true) const final;
+  virtual std::string getLoadInfo(int64_t load) const;
 
-  void setObserver(
-      const std::shared_ptr<apache::thrift::server::TServerObserver>&
-          observer) {
-    observer_ = observer;
+  void setObserver(const std::shared_ptr<server::TServerObserver>& observer) {
+    auto locked = observer_.wlock();
+    if (*locked) {
+      throw std::logic_error("Server already has an observer installed");
+    }
+    *locked = observer;
+    observerPtr_.store(locked->get());
   }
 
-  const std::shared_ptr<apache::thrift::server::TServerObserver>& getObserver()
-      const override {
-    return observer_;
+  server::TServerObserver* getObserver() const final {
+    return observerPtr_.load(std::memory_order_relaxed);
+  }
+
+  std::shared_ptr<server::TServerObserver> getObserverShared() const {
+    return observer_.copy();
   }
 
   std::unique_ptr<apache::thrift::AsyncProcessor> getCpp2Processor() {
@@ -443,29 +570,29 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   }
 
   /**
-   * Set the address to listen on.
+   * Set the address(es) to listen on.
    */
   void setAddress(const folly::SocketAddress& address) {
-    CHECK(configMutable());
-    port_ = -1;
-    address_ = address;
+    setAddresses({address});
   }
 
   void setAddress(folly::SocketAddress&& address) {
-    CHECK(configMutable());
-    port_ = -1;
-    address_ = std::move(address);
+    setAddresses({std::move(address)});
   }
 
   void setAddress(const char* ip, uint16_t port) {
-    CHECK(configMutable());
-    port_ = -1;
-    address_.setFromIpPort(ip, port);
+    setAddresses({folly::SocketAddress(ip, port)});
   }
+
   void setAddress(const std::string& ip, uint16_t port) {
+    setAddresses({folly::SocketAddress(ip, port)});
+  }
+
+  void setAddresses(std::vector<folly::SocketAddress> addresses) {
+    CHECK(!addresses.empty());
     CHECK(configMutable());
     port_ = -1;
-    setAddress(ip.c_str(), port);
+    addresses_ = std::move(addresses);
   }
 
   /**
@@ -478,8 +605,10 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * for providing their own synchronization to ensure that setup() is not
    * modifying the address while they are using it.)
    */
-  const folly::SocketAddress& getAddress() const {
-    return address_;
+  const folly::SocketAddress& getAddress() const { return addresses_.at(0); }
+
+  const std::vector<folly::SocketAddress>& getAddresses() const {
+    return addresses_;
   }
 
   /**
@@ -495,7 +624,7 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * hold.
    */
   uint32_t getMaxNumPendingConnectionsPerWorker() const {
-    return maxNumPendingConnectionsPerWorker_;
+    return maxNumPendingConnectionsPerWorker_.get();
   }
   /**
    * Set the maximum number of pending connections each io worker thread can
@@ -503,9 +632,12 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * are more than such number of unprocessed connections in that queue. If
    * every io worker thread's queue is full the connection will be dropped.
    */
-  void setMaxNumPendingConnectionsPerWorker(uint32_t num) {
-    CHECK(configMutable());
-    maxNumPendingConnectionsPerWorker_ = num;
+  void setMaxNumPendingConnectionsPerWorker(
+      uint32_t num,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        maxNumPendingConnectionsPerWorker_, std::move(num), source);
   }
 
   /**
@@ -517,18 +649,18 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    *  @return number of milliseconds, or 0 if no timeout set.
    */
-  std::chrono::milliseconds getIdleTimeout() const {
-    return timeout_;
-  }
+  std::chrono::milliseconds getIdleTimeout() const { return timeout_.get(); }
 
   /** Set maximum number of milliseconds we'll wait for data (0 = infinity).
    *  Note: existing connections are unaffected by this call.
    *
    *  @param timeout number of milliseconds, or 0 to disable timeouts.
    */
-  void setIdleTimeout(std::chrono::milliseconds timeout) {
-    CHECK(configMutable());
-    timeout_ = timeout;
+  void setIdleTimeout(
+      std::chrono::milliseconds timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(timeout_, std::move(timeout), source);
   }
 
   /**
@@ -536,19 +668,11 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @param number of IO worker threads
    */
-  void setNumIOWorkerThreads(size_t numIOWorkerThreads) override {
-    CHECK(configMutable());
-    nWorkers_ = numIOWorkerThreads;
-  }
-
-  /**
-   * DEPRECATED: Set the number of IO worker threads
-   * Use setNumIOWorkerThreads instead.
-   *
-   * @param number of IO worker threads
-   */
-  inline void setNWorkerThreads(size_t nWorkers) {
-    setNumIOWorkerThreads(nWorkers);
+  void setNumIOWorkerThreads(
+      size_t numIOWorkerThreads,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(nWorkers_, std::move(numIOWorkerThreads), source);
   }
 
   /**
@@ -556,42 +680,24 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @return number of IO worker threads
    */
-  size_t getNumIOWorkerThreads() const override {
-    return nWorkers_;
-  }
-
-  /**
-   * DEPRECATED: Get the number of IO worker threads
-   * Use getNumIOWorkerThreads instead.
-   *
-   * @return number of IO worker threads
-   */
-  inline size_t getNWorkerThreads() {
-    return getNumIOWorkerThreads();
-  }
+  size_t getNumIOWorkerThreads() const final { return nWorkers_.get(); }
 
   /**
    * Set the number of CPU (pool) threads.
-   * Only valid if you do not also set a threadmanager.
+   * Only valid if you do not also set a threadmanager. This controls the number
+   * of normal priority threads; the Thrift thread manager can create additional
+   * threads for other priorities.
+   * If set to 0, the number of normal priority threads will be the same as
+   * number of CPU cores.
    *
    * @param number of CPU (pool) threads
    */
-  void setNumCPUWorkerThreads(size_t numCPUWorkerThreads) {
-    CHECK(configMutable());
+  void setNumCPUWorkerThreads(
+      size_t numCPUWorkerThreads,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
     CHECK(!threadManager_);
-
-    nPoolThreads_ = numCPUWorkerThreads;
-  }
-
-  /**
-   * DEPRECATED: Set the number of CPU (pool) threads
-   * Only valid if you do not also set a threadmanager.
-   * Use setNumCPUWorkerThreads instead.
-   *
-   * @param number of CPU (pool) threads
-   */
-  inline void setNPoolThreads(size_t nPoolThreads) {
-    setNumCPUWorkerThreads(nPoolThreads);
+    setStaticAttribute(nPoolThreads_, std::move(numCPUWorkerThreads), source);
   }
 
   /**
@@ -600,45 +706,40 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * @return number of CPU (pool) threads
    */
   size_t getNumCPUWorkerThreads() const {
-    return nPoolThreads_;
-  }
-
-  /**
-   * DEPRECATED: Get the number of CPU (pool) threads
-   * Use getNumCPUWorkerThreads instead.
-   *
-   * @return number of CPU (pool) threads
-   */
-  inline size_t getNPoolThreads() {
-    return getNumCPUWorkerThreads();
+    auto nCPUWorkers = nPoolThreads_.get();
+    return nCPUWorkers ? nCPUWorkers : T_ASYNC_DEFAULT_WORKER_THREADS;
   }
 
   /**
    * Set the number of SSL handshake worker threads.
    */
-  void setNumSSLHandshakeWorkerThreads(size_t nSSLHandshakeThreads) {
-    CHECK(configMutable());
-    nSSLHandshakeWorkers_ = nSSLHandshakeThreads;
+  void setNumSSLHandshakeWorkerThreads(
+      size_t nSSLHandshakeThreads,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        nSSLHandshakeWorkers_, std::move(nSSLHandshakeThreads), source);
   }
 
   /**
    * Get the number of threads used to perform SSL handshakes
    */
   size_t getNumSSLHandshakeWorkerThreads() const {
-    return nSSLHandshakeWorkers_;
+    return nSSLHandshakeWorkers_.get();
   }
 
   /**
    * Codel queuing timeout - limit queueing time before overload
    * http://en.wikipedia.org/wiki/CoDel
    */
-  void setEnableCodel(bool enableCodel) {
-    enableCodel_ = enableCodel;
+  void setEnableCodel(
+      bool enableCodel,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    enableCodel_.set(enableCodel, source);
   }
 
-  bool getEnableCodel() {
-    return enableCodel_;
-  }
+  bool getEnableCodel() { return enableCodel_.get(); }
 
   /**
    * Set the processor factory as the one built into the
@@ -669,11 +770,27 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   }
 
   /**
+   * Sets the interface that will be used for monitoring connections only.
+   */
+  void setMonitoringInterface(
+      std::shared_ptr<MonitoringServerInterface> iface) {
+    monitoringServiceHandler_ = std::move(iface);
+  }
+
+  std::shared_ptr<apache::thrift::AsyncProcessorFactory>
+  getMonitoringProcessorFactory() {
+    return monitoringServiceHandler_;
+  }
+
+  /**
    * Set the task expire time
    *
    */
-  void setTaskExpireTime(std::chrono::milliseconds timeout) {
-    taskExpireTime_ = timeout;
+  void setTaskExpireTime(
+      std::chrono::milliseconds timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    taskExpireTime_.set(timeout, source);
   }
 
   /**
@@ -682,23 +799,26 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * @return task expire time
    */
   std::chrono::milliseconds getTaskExpireTime() const {
-    return taskExpireTime_;
+    return taskExpireTime_.get();
   }
 
   /**
    * Set the stream starvation time
    *
    */
-  void setStreamExpireTime(std::chrono::milliseconds timeout) {
-    streamExpireTime_ = timeout;
+  void setStreamExpireTime(
+      std::chrono::milliseconds timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    streamExpireTime_.set(timeout, source);
   }
 
   /**
    * If there is no request for the stream for the given time period, then the
    * stream will create timeout error.
    */
-  std::chrono::milliseconds getStreamExpireTime() const override {
-    return streamExpireTime_;
+  std::chrono::milliseconds getStreamExpireTime() const final {
+    return streamExpireTime_.get();
   }
 
   /**
@@ -709,8 +829,11 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @return queue timeout
    */
-  void setQueueTimeout(std::chrono::milliseconds timeout) {
-    queueTimeout_ = timeout;
+  void setQueueTimeout(
+      std::chrono::milliseconds timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    queueTimeout_.set(timeout, source);
   }
 
   /**
@@ -719,7 +842,45 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * @return queue timeout
    */
   std::chrono::milliseconds getQueueTimeout() const {
-    return queueTimeout_;
+    return queueTimeout_.get();
+  }
+
+  /**
+   * Sets the duration before which new connections waiting on a socket's queue
+   * are closed. A value of 0 represents an infinite duration.
+   * See `folly::AsyncServerSocket::setQueueTimeout`.
+   */
+  void setSocketQueueTimeout(
+      folly::observer::Observer<std::chrono::nanoseconds> timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    socketQueueTimeout_.set(timeout, source);
+  }
+  void setSocketQueueTimeout(
+      folly::Optional<std::chrono::nanoseconds> timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    if (timeout) {
+      socketQueueTimeout_.set(*timeout, source);
+    } else {
+      socketQueueTimeout_.unset(source);
+    }
+  }
+  void setSocketQueueTimeout(
+      std::chrono::nanoseconds timeout,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    socketQueueTimeout_.set(timeout, source);
+  }
+
+  /**
+   * Gets an observer representing the socket queue timeout. If no value is
+   * set, this falls back to the thrift flag,
+   * server_default_socket_queue_timeout_ms.
+   */
+  const folly::observer::Observer<std::chrono::nanoseconds>&
+  getSocketQueueTimeout() const {
+    return socketQueueTimeout_.getObserver();
   }
 
   /**
@@ -751,14 +912,17 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
       std::chrono::milliseconds clientQueueTimeoutMs,
       std::chrono::milliseconds clientTimeoutMs,
       std::chrono::milliseconds& queueTimeout,
-      std::chrono::milliseconds& taskTimeout) const override;
+      std::chrono::milliseconds& taskTimeout) const final;
 
   /**
    * Set the listen backlog. Refer to the comment on listenBacklog_ member for
    * details.
    */
-  void setListenBacklog(int listenBacklog) {
-    listenBacklog_ = listenBacklog;
+  void setListenBacklog(
+      int listenBacklog,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(listenBacklog_, std::move(listenBacklog), source);
   }
 
   /**
@@ -766,31 +930,36 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    *
    * @return listen backlog.
    */
-  int getListenBacklog() const {
-    return listenBacklog_;
-  }
+  int getListenBacklog() const { return listenBacklog_.get(); }
 
-  void setOverloadedErrorCode(const std::string& errorCode) {
-    overloadedErrorCode_ = errorCode;
-  }
-
-  const std::string& getOverloadedErrorCode() {
-    return overloadedErrorCode_;
-  }
-
-  void setIsOverloaded(
-      folly::Function<bool(const apache::thrift::transport::THeader*)>
-          isOverloaded) {
+  void setIsOverloaded(IsOverloadedFunc isOverloaded) {
     isOverloaded_ = std::move(isOverloaded);
+  }
+
+  void setPreprocess(PreprocessFunc preprocess) {
+    preprocess_ = std::move(preprocess);
+  }
+
+  void setMethodsBypassMaxRequestsLimit(
+      const std::vector<std::string>& methods,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        methodsBypassMaxRequestsLimit_,
+        folly::sorted_vector_set<std::string>{methods.begin(), methods.end()},
+        source);
+  }
+
+  const folly::sorted_vector_set<std::string>&
+  getMethodsBypassMaxRequestsLimit() const {
+    return methodsBypassMaxRequestsLimit_.get();
   }
 
   void setGetLoad(std::function<int64_t(const std::string&)> getLoad) {
     getLoad_ = getLoad;
   }
 
-  std::function<int64_t(const std::string&)> getGetLoad() {
-    return getLoad_;
-  }
+  std::function<int64_t(const std::string&)> getGetLoad() { return getLoad_; }
 
   /**
    * Set failure injection parameters.
@@ -799,21 +968,15 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
     failureInjection_.set(fi);
   }
 
-  void setGetHandler(getHandlerFunc func) {
-    getHandler_ = func;
-  }
+  void setGetHandler(getHandlerFunc func) { getHandler_ = func; }
 
-  getHandlerFunc getGetHandler() {
-    return getHandler_;
-  }
+  getHandlerFunc getGetHandler() { return getHandler_; }
 
   void setGetHeaderHandler(GetHeaderHandlerFunc func) {
     getHeaderHandler_ = func;
   }
 
-  GetHeaderHandlerFunc getGetHeaderHandler() {
-    return getHeaderHandler_;
-  }
+  GetHeaderHandlerFunc getGetHeaderHandler() { return getHeaderHandler_; }
 
   /**
    * Set the client identity hook for the server, which will be called in
@@ -824,9 +987,7 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
     clientIdentityHook_ = func;
   }
 
-  ClientIdentityHook getClientIdentityHook() {
-    return clientIdentityHook_;
-  }
+  ClientIdentityHook getClientIdentityHook() { return clientIdentityHook_; }
 
   virtual void serve() = 0;
 
@@ -839,8 +1000,153 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   virtual void stopListening() = 0;
 
   // Allows running the server as a Runnable thread
-  void run() override {
-    serve();
+  void run() override { serve(); }
+
+  /**
+   * Set the admission strategy used by the Thrift Server
+   */
+  void setAdmissionStrategy(
+      std::shared_ptr<AdmissionStrategy> admissionStrategy,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    admissionStrategy_.set(std::move(admissionStrategy), source);
+  }
+
+  /**
+   * Return the admission strategy associated with the Thrift Server
+   */
+  std::shared_ptr<AdmissionStrategy> getAdmissionStrategy() const {
+    return admissionStrategy_.get();
+  }
+
+  /**
+   * Return the maximum memory usage by each debug payload.
+   */
+  uint64_t getMaxDebugPayloadMemoryPerRequest() {
+    return maxDebugPayloadMemoryPerRequest_.get();
+  }
+
+  /**
+   * Set the maximum memory usage by each debug payload.
+   */
+  void setMaxDebugPayloadMemoryPerRequest(
+      uint64_t limit,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        maxDebugPayloadMemoryPerRequest_, std::move(limit), source);
+  }
+
+  /**
+   * Return the maximum memory usage by each worker to keep track of debug
+   * payloads.
+   */
+  uint64_t getMaxDebugPayloadMemoryPerWorker() {
+    return maxDebugPayloadMemoryPerWorker_.get();
+  }
+
+  /**
+   * Set the maximum memory usage by each worker to keep track of debug
+   * payloads.
+   */
+  void setMaxDebugPayloadMemoryPerWorker(
+      uint64_t limit,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        maxDebugPayloadMemoryPerWorker_, std::move(limit), source);
+  }
+
+  /**
+   * Return the maximum memory usage by each worker to keep track of debug
+   * payloads.
+   */
+  uint16_t getMaxFinishedDebugPayloadsPerWorker() {
+    return maxFinishedDebugPayloadsPerWorker_.get();
+  }
+
+  /**
+   * Set the maximum memory usage by each worker to keep track of debug
+   * payloads.
+   */
+  void setMaxFinishedDebugPayloadsPerWorker(
+      uint16_t limit,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      StaticAttributeTag = StaticAttributeTag{}) {
+    setStaticAttribute(
+        maxFinishedDebugPayloadsPerWorker_, std::move(limit), source);
+  }
+
+  /**
+   * Set write batching interval
+   */
+  void setWriteBatchingInterval(
+      std::chrono::milliseconds interval,
+      AttributeSource source = AttributeSource::OVERRIDE) {
+    writeBatchingInterval_.set(interval, source);
+  }
+
+  /**
+   * Get write batching interval
+   */
+  std::chrono::milliseconds getWriteBatchingInterval() const {
+    return writeBatchingInterval_.get();
+  }
+
+  /**
+   * Set write batching size. Ignored if write batching interval is not set.
+   */
+  void setWriteBatchingSize(
+      size_t batchingSize, AttributeSource source = AttributeSource::OVERRIDE) {
+    writeBatchingSize_.set(batchingSize, source);
+  }
+
+  /**
+   * Get write batching size
+   */
+  size_t getWriteBatchingSize() const { return writeBatchingSize_.get(); }
+
+  const Metadata& metadata() const { return metadata_; }
+
+  Metadata& metadata() { return metadata_; }
+
+  /**
+   * Ingress memory is the total memory used for receiving inflight requests.
+   * If the memory limit is hit, the connection along with the violating request
+   * will be closed
+   */
+  void setIngressMemoryLimit(
+      int64_t ingressMemoryLimit,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    ingressMemoryLimit_.set(ingressMemoryLimit, source);
+  }
+
+  int64_t getIngressMemoryLimit() const { return ingressMemoryLimit_.get(); }
+
+  folly::observer::Observer<int64_t> getIngressMemoryLimitObserver() {
+    return ingressMemoryLimit_.getObserver();
+  }
+
+  /**
+   * Connection close will only be enforced and triggered on those requests with
+   * size greater or equal than this attribute
+   */
+  void setMinPayloadSizeToEnforceIngressMemoryLimit(
+      size_t minPayloadSizeToEnforceIngressMemoryLimit,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    minPayloadSizeToEnforceIngressMemoryLimit_.set(
+        minPayloadSizeToEnforceIngressMemoryLimit, source);
+  }
+
+  size_t getMinPayloadSizeToEnforceIngressMemoryLimit() const {
+    return minPayloadSizeToEnforceIngressMemoryLimit_.get();
+  }
+
+  folly::observer::Observer<size_t>
+  getMinPayloadSizeToEnforceIngressMemoryLimitObserver() {
+    return minPayloadSizeToEnforceIngressMemoryLimit_.getObserver();
   }
 };
 } // namespace thrift

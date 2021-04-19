@@ -1,24 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-#ifndef T_MAP_H
-#define T_MAP_H
+#pragma once
 
 #include <thrift/compiler/ast/t_container.h>
 
@@ -33,49 +29,33 @@ namespace compiler {
  */
 class t_map : public t_container {
  public:
-  t_map(t_type* key_type, t_type* val_type, bool unordered)
-      : key_type_(key_type), val_type_(val_type), is_unordered_(unordered) {}
+  t_map(t_type_ref key_type, t_type_ref val_type)
+      : key_type_(std::move(key_type)), val_type_(std::move(val_type)) {}
 
-  t_type* get_key_type() const {
-    return key_type_;
-  }
+  const t_type* get_key_type() const { return key_type_.type(); }
 
-  t_type* get_val_type() const {
-    return val_type_;
-  }
-
-  bool is_map() const override {
-    return true;
-  }
-
-  bool is_unordered() const {
-    return is_unordered_;
-  }
+  const t_type* get_val_type() const { return val_type_.type(); }
 
   std::string get_full_name() const override {
     return (
-        "map<" + key_type_->get_full_name() + ", " +
-        val_type_->get_full_name() + ">");
+        "map<" + key_type_.type()->get_full_name() + ", " +
+        val_type_.type()->get_full_name() + ">");
   }
 
-  std::string get_impl_full_name() const override {
-    return (
-        "map<" + key_type_->get_impl_full_name() + ", " +
-        val_type_->get_impl_full_name() + ">");
-  }
-
-  TypeValue get_type_value() const override {
-    return TypeValue::TYPE_MAP;
-  }
+  t_type::type get_type_value() const override { return t_type::type::t_map; }
 
  private:
-  t_type* key_type_;
-  t_type* val_type_;
-  bool is_unordered_;
+  t_type_ref key_type_;
+  t_type_ref val_type_;
+
+ public:
+  // TODO(afuller): Delete everything below here. It is only provided for
+  // backwards compatibility.
+
+  t_map(const t_type* key_type, const t_type* val_type)
+      : t_map(t_type_ref(key_type), t_type_ref(val_type)) {}
 };
 
 } // namespace compiler
 } // namespace thrift
 } // namespace apache
-
-#endif

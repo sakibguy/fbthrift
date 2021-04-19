@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,9 +13,93 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 namespace apache {
 namespace thrift {
 namespace frozen {
+
+/**
+ * A view of an optional Frozen field. It provides a std::optional-like API
+ * and intentionally disallows folly::Optional extensions.
+ */
+template <typename T>
+class OptionalFieldView : private folly::Optional<T> {
+ private:
+  const folly::Optional<T>& toFolly() const { return *this; }
+
+ public:
+  using folly::Optional<T>::operator->;
+  using folly::Optional<T>::operator*;
+  using folly::Optional<T>::operator bool;
+  using folly::Optional<T>::has_value;
+  using folly::Optional<T>::value;
+  using folly::Optional<T>::value_or;
+  using folly::Optional<T>::reset;
+  using folly::Optional<T>::emplace;
+
+  template <typename L, typename R>
+  friend bool operator==(
+      const OptionalFieldView<L>& lhs, const OptionalFieldView<R>& rhs);
+  template <typename L, typename R>
+  friend bool operator!=(
+      const OptionalFieldView<L>& lhs, const OptionalFieldView<R>& rhs);
+
+  template <typename L, typename R>
+  friend bool operator==(const L& lhs, const OptionalFieldView<R>& rhs);
+  template <typename L, typename R>
+  friend bool operator==(const OptionalFieldView<L>& lhs, const R& rhs);
+  template <typename L, typename R>
+  friend bool operator!=(const L& lhs, const OptionalFieldView<R>& rhs);
+  template <typename L, typename R>
+  friend bool operator!=(const OptionalFieldView<L>& lhs, const R& rhs);
+
+  template <typename U>
+  friend bool operator==(
+      const OptionalFieldView<U>& lhs, const folly::Optional<U>& rhs);
+  template <typename U>
+  friend bool operator==(
+      const folly::Optional<U>& lhs, const OptionalFieldView<U>& rhs);
+};
+
+template <typename L, typename R>
+bool operator==(
+    const OptionalFieldView<L>& lhs, const OptionalFieldView<R>& rhs) {
+  return lhs.toFolly() == rhs.toFolly();
+}
+template <typename L, typename R>
+bool operator!=(
+    const OptionalFieldView<L>& lhs, const OptionalFieldView<R>& rhs) {
+  return lhs.toFolly() != rhs.toFolly();
+}
+
+template <typename L, typename R>
+bool operator==(const L& lhs, const OptionalFieldView<R>& rhs) {
+  return lhs == rhs.toFolly();
+}
+template <typename L, typename R>
+bool operator==(const OptionalFieldView<L>& lhs, const R& rhs) {
+  return lhs.toFolly() == rhs;
+}
+template <typename L, typename R>
+bool operator!=(const L& lhs, const OptionalFieldView<R>& rhs) {
+  return lhs != rhs.toFolly();
+}
+template <typename L, typename R>
+bool operator!=(const OptionalFieldView<L>& lhs, const R& rhs) {
+  return lhs.toFolly() != rhs;
+}
+
+template <typename U>
+[[deprecated("comparison with folly::Optional is deprecated")]] bool operator==(
+    const OptionalFieldView<U>& lhs, const folly::Optional<U>& rhs) {
+  return lhs.toFolly() == rhs;
+}
+template <typename U>
+[[deprecated("comparison with folly::Optional is deprecated")]] bool operator==(
+    const folly::Optional<U>& lhs, const OptionalFieldView<U>& rhs) {
+  return lhs == rhs.toFolly();
+}
+
 namespace detail {
 
 /**
@@ -38,8 +122,8 @@ struct OptionalLayout : public LayoutBase {
     return pos;
   }
 
-  FieldPosition
-  layout(LayoutRoot& root, const folly::Optional<T>& o, LayoutPosition self) {
+  FieldPosition layout(
+      LayoutRoot& root, const folly::Optional<T>& o, LayoutPosition self) {
     FieldPosition pos = startFieldPosition();
     pos = root.layoutField(self, pos, issetField, o.hasValue());
     if (o) {
@@ -79,14 +163,14 @@ struct OptionalLayout : public LayoutBase {
     }
   }
 
-  typedef folly::Optional<typename Layout<T>::View> View;
+  using View = OptionalFieldView<typename Layout<T>::View>;
 
   View view(ViewPosition self) const {
     View v;
     bool set;
     thawField(self, issetField, set);
     if (set) {
-      v.assign(valueField.layout.view(self(valueField.pos)));
+      v.emplace(valueField.layout.view(self(valueField.pos)));
     }
     return v;
   }
@@ -110,7 +194,8 @@ struct OptionalLayout : public LayoutBase {
 } // namespace detail
 
 template <class T>
-struct Layout<folly::Optional<T>> : public detail::OptionalLayout<T> {};
+struct Layout<folly::Optional<T>>
+    : public apache::thrift::frozen::detail::OptionalLayout<T> {};
 
 } // namespace frozen
 } // namespace thrift

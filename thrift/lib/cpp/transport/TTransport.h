@@ -1,58 +1,57 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_TRANSPORT_TTRANSPORT_H
 #define THRIFT_TRANSPORT_TTRANSPORT_H 1
 
-#include <thrift/lib/cpp/Thrift.h>
 #include <memory>
-#include <thrift/lib/cpp/transport/TTransportException.h>
 #include <string>
-#include <folly/Conv.h>
 
-namespace apache { namespace thrift { namespace transport {
+#include <folly/Conv.h>
+#include <thrift/lib/cpp/Thrift.h>
+#include <thrift/lib/cpp/transport/TTransportException.h>
+
+namespace apache {
+namespace thrift {
+namespace transport {
 
 /**
  * Helper template to hoist readAll implementation out of TTransport
  */
 template <class Transport_>
-uint32_t readAll(Transport_ &trans, uint8_t* buf, uint32_t len) {
+uint32_t readAll(Transport_& trans, uint8_t* buf, uint32_t len) {
   uint32_t have = 0;
   uint32_t get = 0;
 
   while (have < len) {
-    get = trans.read(buf+have, len-have);
+    get = trans.read(buf + have, len - have);
     if (get <= 0) {
       throw TTransportException(
           TTransportException::END_OF_FILE,
           folly::to<std::string>(
-            "No more data to read. Attempted blocking readAll for ",
-            len,
-            " bytes, but only able to fetch ",
-            have));
+              "No more data to read. Attempted blocking readAll for ",
+              len,
+              " bytes, but only able to fetch ",
+              have));
     }
     have += get;
   }
 
   return have;
 }
-
 
 /**
  * Generic interface for a method of transporting data. A TTransport may be
@@ -69,9 +68,7 @@ class TTransport {
   /**
    * Whether this transport is open.
    */
-  virtual bool isOpen() {
-    return false;
-  }
+  virtual bool isOpen() { return false; }
 
   /**
    * Tests whether there is more data to read or if the remote side is
@@ -81,9 +78,7 @@ class TTransport {
    * This is used by a server to check if it should listen for another
    * request.
    */
-  virtual bool peek() {
-    return isOpen();
-  }
+  virtual bool peek() { return isOpen(); }
 
   /**
    * Opens the transport for communications.
@@ -92,14 +87,16 @@ class TTransport {
    * @throws TTransportException if opening failed
    */
   virtual void open() {
-    throw TTransportException(TTransportException::NOT_OPEN, "Cannot open base TTransport.");
+    throw TTransportException(
+        TTransportException::NOT_OPEN, "Cannot open base TTransport.");
   }
 
   /**
    * Closes the transport.
    */
   virtual void close() {
-    throw TTransportException(TTransportException::NOT_OPEN, "Cannot close base TTransport.");
+    throw TTransportException(
+        TTransportException::NOT_OPEN, "Cannot close base TTransport.");
   }
 
   /**
@@ -110,13 +107,10 @@ class TTransport {
    * @return How many bytes were actually read
    * @throws TTransportException If an error occurs
    */
-  uint32_t read(uint8_t* buf, uint32_t len) {
-    T_VIRTUAL_CALL();
-    return read_virt(buf, len);
-  }
+  uint32_t read(uint8_t* buf, uint32_t len) { return read_virt(buf, len); }
   virtual uint32_t read_virt(uint8_t* /* buf */, uint32_t /* len */) {
-    throw TTransportException(TTransportException::NOT_OPEN,
-                              "Base TTransport cannot read.");
+    throw TTransportException(
+        TTransportException::NOT_OPEN, "Base TTransport cannot read.");
   }
 
   /**
@@ -128,7 +122,6 @@ class TTransport {
    * @throws TTransportException If insufficient data was read
    */
   uint32_t readAll(uint8_t* buf, uint32_t len) {
-    T_VIRTUAL_CALL();
     return readAll_virt(buf, len);
   }
   virtual uint32_t readAll_virt(uint8_t* buf, uint32_t len) {
@@ -159,13 +152,10 @@ class TTransport {
    * @param buf  The data to write out
    * @throws TTransportException if an error occurs
    */
-  void write(const uint8_t* buf, uint32_t len) {
-    T_VIRTUAL_CALL();
-    write_virt(buf, len);
-  }
+  void write(const uint8_t* buf, uint32_t len) { write_virt(buf, len); }
   virtual void write_virt(const uint8_t* /* buf */, uint32_t /* len */) {
-    throw TTransportException(TTransportException::NOT_OPEN,
-                              "Base TTransport cannot write.");
+    throw TTransportException(
+        TTransportException::NOT_OPEN, "Base TTransport cannot write.");
   }
 
   /**
@@ -231,7 +221,6 @@ class TTransport {
    * @throws TTransportException if an error occurs
    */
   const uint8_t* borrow(uint8_t* buf, uint32_t* len) {
-    T_VIRTUAL_CALL();
     return borrow_virt(buf, len);
   }
   virtual const uint8_t* borrow_virt(uint8_t* /* buf */, uint32_t* /* len */) {
@@ -247,13 +236,10 @@ class TTransport {
    * @param len  How many bytes to consume
    * @throws TTransportException If an error occurs
    */
-  void consume(uint32_t len) {
-    T_VIRTUAL_CALL();
-    consume_virt(len);
-  }
+  void consume(uint32_t len) { consume_virt(len); }
   virtual void consume_virt(uint32_t /* len */) {
-    throw TTransportException(TTransportException::NOT_OPEN,
-                              "Base TTransport cannot consume.");
+    throw TTransportException(
+        TTransportException::NOT_OPEN, "Base TTransport cannot consume.");
   }
 
  protected:
@@ -278,10 +264,10 @@ class TTransportFactory {
   /**
    * Default implementation does nothing, just returns the transport given.
    */
-  virtual std::shared_ptr<TTransport> getTransport(std::shared_ptr<TTransport> trans) {
+  virtual std::shared_ptr<TTransport> getTransport(
+      std::shared_ptr<TTransport> trans) {
     return trans;
   }
-
 };
 
 /**
@@ -292,8 +278,8 @@ class TTransportFactory {
  * TTransportPair.first = Input Transport
  * TTransportPair.second = Output Transport
  */
-typedef std::pair<std::shared_ptr<TTransport>,
-                  std::shared_ptr<TTransport> > TTransportPair;
+typedef std::pair<std::shared_ptr<TTransport>, std::shared_ptr<TTransport>>
+    TTransportPair;
 
 class TDuplexTransportFactory {
  public:
@@ -308,7 +294,6 @@ class TDuplexTransportFactory {
   virtual TTransportPair getTransport(TTransportPair transports) {
     return std::make_pair(transports.first, transports.second);
   }
-
 };
 
 /**
@@ -318,25 +303,23 @@ class TDuplexTransportFactory {
 template <class Factory_>
 class TSingleTransportFactory : public TDuplexTransportFactory {
  public:
-  TSingleTransportFactory() {
-    factory_.reset(new Factory_());
-  }
+  TSingleTransportFactory() { factory_.reset(new Factory_()); }
 
-  explicit TSingleTransportFactory(
-    std::shared_ptr<Factory_> factory) :
-      factory_(factory) {}
+  explicit TSingleTransportFactory(std::shared_ptr<Factory_> factory)
+      : factory_(factory) {}
 
   TTransportPair getTransport(std::shared_ptr<TTransport> trans) override {
-    return std::make_pair(factory_->getTransport(trans),
-                          factory_->getTransport(trans));
+    return std::make_pair(
+        factory_->getTransport(trans), factory_->getTransport(trans));
   }
 
   TTransportPair getTransport(TTransportPair transports) override {
-    return std::make_pair(factory_->getTransport(transports.first),
-                          factory_->getTransport(transports.second));
+    return std::make_pair(
+        factory_->getTransport(transports.first),
+        factory_->getTransport(transports.second));
   }
- private:
 
+ private:
   std::shared_ptr<Factory_> factory_;
 };
 
@@ -347,26 +330,29 @@ class TSingleTransportFactory : public TDuplexTransportFactory {
 class TDualTransportFactory : public TDuplexTransportFactory {
  public:
   TDualTransportFactory(
-    std::shared_ptr<TTransportFactory> inputFactory,
-    std::shared_ptr<TTransportFactory> outputFactory) :
-      inputFactory_(inputFactory),
-      outputFactory_(outputFactory) {}
+      std::shared_ptr<TTransportFactory> inputFactory,
+      std::shared_ptr<TTransportFactory> outputFactory)
+      : inputFactory_(inputFactory), outputFactory_(outputFactory) {}
 
   TTransportPair getTransport(std::shared_ptr<TTransport> trans) override {
-    return std::make_pair(inputFactory_->getTransport(trans),
-                          outputFactory_->getTransport(trans));
+    return std::make_pair(
+        inputFactory_->getTransport(trans),
+        outputFactory_->getTransport(trans));
   }
 
   TTransportPair getTransport(TTransportPair transports) override {
-    return std::make_pair(inputFactory_->getTransport(transports.first),
-                          outputFactory_->getTransport(transports.second));
+    return std::make_pair(
+        inputFactory_->getTransport(transports.first),
+        outputFactory_->getTransport(transports.second));
   }
- private:
 
+ private:
   std::shared_ptr<TTransportFactory> inputFactory_;
   std::shared_ptr<TTransportFactory> outputFactory_;
 };
 
-}}} // apache::thrift::transport
+} // namespace transport
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef THRIFT_TRANSPORT_TTRANSPORT_H

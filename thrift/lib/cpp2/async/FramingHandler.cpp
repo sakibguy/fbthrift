@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,14 +31,9 @@ void FramingHandler::read(Context* ctx, folly::IOBufQueue& q) {
   // frame length (if we're in the middle of a frame) or to readBufferSize_
   // (if we are exactly between frames)
   while (!closing_) {
-    DCHECK(protectionHandler_);
-    if (protectionHandler_->getProtectionState() ==
-        ProtectionHandler::ProtectionState::INPROGRESS) {
-      return;
-    }
     std::unique_ptr<folly::IOBuf> unframed;
     std::unique_ptr<apache::thrift::transport::THeader> header;
-    auto ex = folly::try_and_catch<std::exception>([&]() {
+    auto ex = folly::try_and_catch([&]() {
       // got a decrypted message
       std::tie(unframed, remaining, header) = removeFrame(&q);
     });

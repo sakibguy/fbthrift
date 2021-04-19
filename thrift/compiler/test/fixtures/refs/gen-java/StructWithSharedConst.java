@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -36,11 +34,11 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
   public static final int OPT_SHARED_CONST = 1;
   public static final int SHARED_CONST = 2;
   public static final int REQ_SHARED_CONST = 3;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(OPT_SHARED_CONST, new FieldMetaData("opt_shared_const", TFieldRequirementType.OPTIONAL, 
@@ -60,30 +58,63 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
   }
 
   public StructWithSharedConst(
-    MyField req_shared_const)
-  {
+      MyField req_shared_const) {
     this();
     this.req_shared_const = req_shared_const;
   }
 
   public StructWithSharedConst(
-    MyField shared_const,
-    MyField req_shared_const)
-  {
+      MyField shared_const,
+      MyField req_shared_const) {
     this();
     this.shared_const = shared_const;
     this.req_shared_const = req_shared_const;
   }
 
   public StructWithSharedConst(
-    MyField opt_shared_const,
-    MyField shared_const,
-    MyField req_shared_const)
-  {
+      MyField opt_shared_const,
+      MyField shared_const,
+      MyField req_shared_const) {
     this();
     this.opt_shared_const = opt_shared_const;
     this.shared_const = shared_const;
     this.req_shared_const = req_shared_const;
+  }
+
+  public static class Builder {
+    private MyField opt_shared_const;
+    private MyField shared_const;
+    private MyField req_shared_const;
+
+    public Builder() {
+    }
+
+    public Builder setOpt_shared_const(final MyField opt_shared_const) {
+      this.opt_shared_const = opt_shared_const;
+      return this;
+    }
+
+    public Builder setShared_const(final MyField shared_const) {
+      this.shared_const = shared_const;
+      return this;
+    }
+
+    public Builder setReq_shared_const(final MyField req_shared_const) {
+      this.req_shared_const = req_shared_const;
+      return this;
+    }
+
+    public StructWithSharedConst build() {
+      StructWithSharedConst result = new StructWithSharedConst();
+      result.setOpt_shared_const(this.opt_shared_const);
+      result.setShared_const(this.shared_const);
+      result.setReq_shared_const(this.req_shared_const);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -105,12 +136,7 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
     return new StructWithSharedConst(this);
   }
 
-  @Deprecated
-  public StructWithSharedConst clone() {
-    return new StructWithSharedConst(this);
-  }
-
-  public MyField  getOpt_shared_const() {
+  public MyField getOpt_shared_const() {
     return this.opt_shared_const;
   }
 
@@ -128,13 +154,13 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
     return this.opt_shared_const != null;
   }
 
-  public void setOpt_shared_constIsSet(boolean value) {
-    if (!value) {
+  public void setOpt_shared_constIsSet(boolean __value) {
+    if (!__value) {
       this.opt_shared_const = null;
     }
   }
 
-  public MyField  getShared_const() {
+  public MyField getShared_const() {
     return this.shared_const;
   }
 
@@ -152,13 +178,13 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
     return this.shared_const != null;
   }
 
-  public void setShared_constIsSet(boolean value) {
-    if (!value) {
+  public void setShared_constIsSet(boolean __value) {
+    if (!__value) {
       this.shared_const = null;
     }
   }
 
-  public MyField  getReq_shared_const() {
+  public MyField getReq_shared_const() {
     return this.req_shared_const;
   }
 
@@ -176,35 +202,35 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
     return this.req_shared_const != null;
   }
 
-  public void setReq_shared_constIsSet(boolean value) {
-    if (!value) {
+  public void setReq_shared_constIsSet(boolean __value) {
+    if (!__value) {
       this.req_shared_const = null;
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case OPT_SHARED_CONST:
-      if (value == null) {
+      if (__value == null) {
         unsetOpt_shared_const();
       } else {
-        setOpt_shared_const((MyField)value);
+        setOpt_shared_const((MyField)__value);
       }
       break;
 
     case SHARED_CONST:
-      if (value == null) {
+      if (__value == null) {
         unsetShared_const();
       } else {
-        setShared_const((MyField)value);
+        setShared_const((MyField)__value);
       }
       break;
 
     case REQ_SHARED_CONST:
-      if (value == null) {
+      if (__value == null) {
         unsetReq_shared_const();
       } else {
-        setReq_shared_const((MyField)value);
+        setReq_shared_const((MyField)__value);
       }
       break;
 
@@ -229,68 +255,28 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case OPT_SHARED_CONST:
-      return isSetOpt_shared_const();
-    case SHARED_CONST:
-      return isSetShared_const();
-    case REQ_SHARED_CONST:
-      return isSetReq_shared_const();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof StructWithSharedConst)
-      return this.equals((StructWithSharedConst)that);
-    return false;
-  }
-
-  public boolean equals(StructWithSharedConst that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof StructWithSharedConst))
+      return false;
+    StructWithSharedConst that = (StructWithSharedConst)_that;
 
-    boolean this_present_opt_shared_const = true && this.isSetOpt_shared_const();
-    boolean that_present_opt_shared_const = true && that.isSetOpt_shared_const();
-    if (this_present_opt_shared_const || that_present_opt_shared_const) {
-      if (!(this_present_opt_shared_const && that_present_opt_shared_const))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.opt_shared_const, that.opt_shared_const))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetOpt_shared_const(), that.isSetOpt_shared_const(), this.opt_shared_const, that.opt_shared_const)) { return false; }
 
-    boolean this_present_shared_const = true && this.isSetShared_const();
-    boolean that_present_shared_const = true && that.isSetShared_const();
-    if (this_present_shared_const || that_present_shared_const) {
-      if (!(this_present_shared_const && that_present_shared_const))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.shared_const, that.shared_const))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetShared_const(), that.isSetShared_const(), this.shared_const, that.shared_const)) { return false; }
 
-    boolean this_present_req_shared_const = true && this.isSetReq_shared_const();
-    boolean that_present_req_shared_const = true && that.isSetReq_shared_const();
-    if (this_present_req_shared_const || that_present_req_shared_const) {
-      if (!(this_present_req_shared_const && that_present_req_shared_const))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.req_shared_const, that.req_shared_const))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetReq_shared_const(), that.isSetReq_shared_const(), this.req_shared_const, that.req_shared_const)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {opt_shared_const, shared_const, req_shared_const});
   }
 
   @Override
@@ -310,7 +296,7 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(opt_shared_const, other.opt_shared_const);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetShared_const()).compareTo(other.isSetShared_const());
@@ -318,7 +304,7 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(shared_const, other.shared_const);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetReq_shared_const()).compareTo(other.isSetReq_shared_const());
@@ -326,49 +312,49 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(req_shared_const, other.req_shared_const);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case OPT_SHARED_CONST:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.opt_shared_const = new MyField();
             this.opt_shared_const.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case SHARED_CONST:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.shared_const = new MyField();
             this.shared_const.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case REQ_SHARED_CONST:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.req_shared_const = new MyField();
             this.req_shared_const.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -407,19 +393,14 @@ public class StructWithSharedConst implements TBase, java.io.Serializable, Clone
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("StructWithSharedConst");
     sb.append(space);
     sb.append("(");
@@ -432,10 +413,10 @@ String space = prettyPrint ? " " : "";
       sb.append("opt_shared_const");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getOpt_shared_const() == null) {
+      if (this.getOpt_shared_const() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getOpt_shared_const(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getOpt_shared_const(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -444,10 +425,10 @@ String space = prettyPrint ? " " : "";
     sb.append("shared_const");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getShared_const() == null) {
+    if (this.getShared_const() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getShared_const(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getShared_const(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -455,10 +436,10 @@ String space = prettyPrint ? " " : "";
     sb.append("req_shared_const");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getReq_shared_const() == null) {
+    if (this.getReq_shared_const() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getReq_shared_const(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getReq_shared_const(), indent + 1, prettyPrint));
     }
     first = false;
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
@@ -471,7 +452,6 @@ String space = prettyPrint ? " " : "";
     if (req_shared_const == null) {
       throw new TProtocolException(TProtocolException.MISSING_REQUIRED_FIELD, "Required field 'req_shared_const' was not present! Struct: " + toString());
     }
-    // check that fields of type enum have valid values
   }
 
 }

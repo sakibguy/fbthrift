@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,70 +30,44 @@ thread that will pass data to the cython callback.
 
 
 {{#program:services}}
-{{service:name}}ClientWrapper::{{service:name}}ClientWrapper(
-    std::shared_ptr<{{#service:cppNamespaces}}{{value}}::{{/service:cppNamespaces}}{{service:name}}AsyncClient> async_client,
-    std::shared_ptr<apache::thrift::RequestChannel> channel) : {{!
-    }}
-    {{#service:extends?}}{{#service:extends}}{{service:name}}ClientWrapper(async_client, channel),
-    {{/service:extends}}{{/service:extends?}}{{!
-    }}async_client(async_client),
-      channel_(channel) {}
-
-{{^service:extends?}}
-{{service:name}}ClientWrapper::~{{service:name}}ClientWrapper() {}
-{{/service:extends?}}
-
-{{! We need the destructor to run in the correct thread or assert happens }}
-folly::Future<folly::Unit> {{service:name}}ClientWrapper::disconnect() {
-  return folly::via(
-    this->async_client->getChannel()->getEventBase(),
-    [this] { disconnectInLoop(); });
-}
-
-void {{service:name}}ClientWrapper::disconnectInLoop() {
-    channel_.reset();
-    async_client.reset();
-    {{#service:extends}}
-    {{#service:cppNamespaces}}{{value}}::{{/service:cppNamespaces}}{{service:name}}ClientWrapper::disconnectInLoop();
-    {{/service:extends}}
-}
-
-{{^service:extends?}}
-void {{service:name}}ClientWrapper::setPersistentHeader(const std::string& key, const std::string& value) {
-    auto headerChannel = async_client->getHeaderChannel();
-    if (headerChannel != nullptr) {
-        headerChannel->setPersistentHeader(key, value);
-    }
-}
-{{/service:extends?}}
-
-
-{{#service:functions}}
-folly::Future<{{#function:returnType}}{{> types/CppValueType}}{{/function:returnType}}>
-{{service:name}}ClientWrapper::{{function:name}}(
+{{#service:supportedFunctions}}
+folly::Future<{{#function:return_type}}{{> clients/CppReturnType}}{{/function:return_type}}>
+{{service:name}}ClientWrapper::{{function:cppName}}(
     apache::thrift::RpcOptions& rpcOptions{{#function:args}},
-    {{#field:type}}{{> types/CppValueType}}{{/field:type}} arg_{{field:name}}{{/function:args}}) {
-  folly::Promise<{{#function:returnType}}{{> types/CppValueType}}{{/function:returnType}}> _promise;
-  auto _future = _promise.getFuture();
-  {{^function:oneway?}}
-  auto callback = std::make_unique<::thrift::py3::FutureCallback<{{#function:returnType}}{{> types/CppValueType}}{{/function:returnType}}>>(
-    std::move(_promise), rpcOptions, async_client->recv_wrapped_{{function:name}}, channel_);
-  {{/function:oneway?}}
-  {{#function:oneway?}}
-  {{! oneway functions have no recv they are special cased}}
-  auto callback = std::make_unique<::apache::thrift::OneWayFutureCallback>(
-    std::move(_promise), channel_);
-  {{/function:oneway?}}
-  async_client->{{function:name}}(
-    rpcOptions,
-    std::move(callback){{#function:args}},
-    arg_{{field:name}}{{/function:args}}
-  );
-  return _future;
+    {{#field:type}}{{> types/CppValueType}}{{/field:type}} arg_{{field:py_name}}{{/function:args}}) {
+  auto* client = static_cast<::{{#service:cppNamespaces}}{{value}}::{{/service:cppNamespaces}}{{service:name}}AsyncClient*>(async_client_.get());
+  {{> clients/clients_wrapper.cpp_func_body}}
+
 }
 
-{{/service:functions}}
+{{/service:supportedFunctions}}
+{{#service:interactions}}
 
+folly::Future<std::unique_ptr<thrift::py3::ClientWrapper>>
+{{service:parent_service_name}}ClientWrapper::create{{service:name}}() {
+  return folly::via(
+      channel_->getEventBase(),
+      [=]() -> std::unique_ptr<thrift::py3::ClientWrapper> {
+        auto interaction_client = static_cast<std::unique_ptr<apache::thrift::GeneratedAsyncClient>>(std::make_unique<{{service:parent_service_name}}AsyncClient::{{service:name}}>((({{service:parent_service_name}}AsyncClient*)async_client_.get())->create{{service:name}}()));
+        return static_cast<std::unique_ptr<thrift::py3::ClientWrapper>>(std::make_unique<{{service:name}}InteractionWrapper>(std::move(interaction_client), channel_));
+      }
+  );
+}
+
+{{/service:interactions}}
+{{#service:interactions}}
+{{#service:supportedFunctions}}
+folly::Future<{{#function:return_type}}{{> clients/CppReturnType}}{{/function:return_type}}>
+{{service:parent_service_name}}ClientWrapper::{{service:name}}InteractionWrapper::{{function:cppName}}(
+    apache::thrift::RpcOptions& rpcOptions{{#function:args}},
+    {{#field:type}}{{> types/CppValueType}}{{/field:type}} arg_{{field:py_name}}{{/function:args}}) {
+  auto* client = static_cast<::{{#service:cppNamespaces}}{{value}}::{{/service:cppNamespaces}}{{service:parent_service_name}}AsyncClient::{{service:name}}*>(async_client_.get());
+  {{> clients/clients_wrapper.cpp_func_body}}
+
+}
+
+{{/service:supportedFunctions}}
+{{/service:interactions}}
 {{/program:services}}{{!
 }}{{#program:cppNamespaces}}} // namespace {{value}}
 {{/program:cppNamespaces}}

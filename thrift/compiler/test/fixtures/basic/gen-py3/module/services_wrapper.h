@@ -7,10 +7,7 @@
 
 #pragma once
 #include <src/gen-cpp2/MyService.h>
-#include <src/gen-cpp2/MyServiceFast.h>
-#include <src/gen-cpp2/MyServiceEmpty.h>
-#include <src/gen-cpp2/MyServicePrioParent.h>
-#include <src/gen-cpp2/MyServicePrioChild.h>
+#include <src/gen-cpp2/DbMixedStackArguments.h>
 #include <folly/python/futures.h>
 #include <Python.h>
 
@@ -24,87 +21,46 @@ class MyServiceWrapper : virtual public MyServiceSvIf {
     folly::Executor *executor;
   public:
     explicit MyServiceWrapper(PyObject *if_object, folly::Executor *exc);
-    virtual ~MyServiceWrapper();
-    folly::Future<folly::Unit> future_ping() override;
-    folly::Future<std::unique_ptr<std::string>> future_getRandomData() override;
-    folly::Future<bool> future_hasDataById(
-        int64_t id
+    void async_tm_ping(std::unique_ptr<apache::thrift::HandlerCallback<void>> callback) override;
+    void async_tm_getRandomData(std::unique_ptr<apache::thrift::HandlerCallback<std::unique_ptr<std::string>>> callback) override;
+    void async_tm_sink(std::unique_ptr<apache::thrift::HandlerCallback<void>> callback
+        , int64_t sink
     ) override;
-    folly::Future<std::unique_ptr<std::string>> future_getDataById(
-        int64_t id
+    void async_tm_putDataById(std::unique_ptr<apache::thrift::HandlerCallback<void>> callback
+        , int64_t id
+        , std::unique_ptr<std::string> data
     ) override;
-    folly::Future<folly::Unit> future_putDataById(
-        int64_t id,
-        std::unique_ptr<std::string> data
+    void async_tm_hasDataById(std::unique_ptr<apache::thrift::HandlerCallback<bool>> callback
+        , int64_t id
     ) override;
-    folly::Future<folly::Unit> future_lobDataById(
-        int64_t id,
-        std::unique_ptr<std::string> data
+    void async_tm_getDataById(std::unique_ptr<apache::thrift::HandlerCallback<std::unique_ptr<std::string>>> callback
+        , int64_t id
+    ) override;
+    void async_tm_deleteDataById(std::unique_ptr<apache::thrift::HandlerCallback<void>> callback
+        , int64_t id
+    ) override;
+    void async_tm_lobDataById(std::unique_ptr<apache::thrift::HandlerCallbackBase> callback
+        , int64_t id
+        , std::unique_ptr<std::string> data
     ) override;
 };
 
 std::shared_ptr<apache::thrift::ServerInterface> MyServiceInterface(PyObject *if_object, folly::Executor *exc);
 
 
-class MyServiceFastWrapper : virtual public MyServiceFastSvIf {
+class DbMixedStackArgumentsWrapper : virtual public DbMixedStackArgumentsSvIf {
   protected:
     PyObject *if_object;
     folly::Executor *executor;
   public:
-    explicit MyServiceFastWrapper(PyObject *if_object, folly::Executor *exc);
-    virtual ~MyServiceFastWrapper();
-    folly::Future<folly::Unit> future_ping() override;
-    folly::Future<std::unique_ptr<std::string>> future_getRandomData() override;
-    folly::Future<bool> future_hasDataById(
-        int64_t id
+    explicit DbMixedStackArgumentsWrapper(PyObject *if_object, folly::Executor *exc);
+    void async_tm_getDataByKey0(std::unique_ptr<apache::thrift::HandlerCallback<std::unique_ptr<std::string>>> callback
+        , std::unique_ptr<std::string> key
     ) override;
-    folly::Future<std::unique_ptr<std::string>> future_getDataById(
-        int64_t id
-    ) override;
-    folly::Future<folly::Unit> future_putDataById(
-        int64_t id,
-        std::unique_ptr<std::string> data
-    ) override;
-    folly::Future<folly::Unit> future_lobDataById(
-        int64_t id,
-        std::unique_ptr<std::string> data
+    void async_tm_getDataByKey1(std::unique_ptr<apache::thrift::HandlerCallback<std::unique_ptr<std::string>>> callback
+        , std::unique_ptr<std::string> key
     ) override;
 };
 
-std::shared_ptr<apache::thrift::ServerInterface> MyServiceFastInterface(PyObject *if_object, folly::Executor *exc);
-
-
-class MyServiceEmptyWrapper : virtual public MyServiceEmptySvIf {
-  protected:
-    PyObject *if_object;
-    folly::Executor *executor;
-  public:
-    explicit MyServiceEmptyWrapper(PyObject *if_object, folly::Executor *exc);
-    virtual ~MyServiceEmptyWrapper();
-};
-
-std::shared_ptr<apache::thrift::ServerInterface> MyServiceEmptyInterface(PyObject *if_object, folly::Executor *exc);
-
-
-class MyServicePrioParentWrapper : virtual public MyServicePrioParentSvIf {
-  protected:
-    PyObject *if_object;
-    folly::Executor *executor;
-  public:
-    explicit MyServicePrioParentWrapper(PyObject *if_object, folly::Executor *exc);
-    virtual ~MyServicePrioParentWrapper();
-    folly::Future<folly::Unit> future_ping() override;
-    folly::Future<folly::Unit> future_pong() override;
-};
-
-std::shared_ptr<apache::thrift::ServerInterface> MyServicePrioParentInterface(PyObject *if_object, folly::Executor *exc);
-
-
-class MyServicePrioChildWrapper : public cpp2::MyServicePrioParentWrapper, virtual public MyServicePrioChildSvIf {
-  public:
-    explicit MyServicePrioChildWrapper(PyObject *if_object, folly::Executor *exc);
-    folly::Future<folly::Unit> future_pang() override;
-};
-
-std::shared_ptr<apache::thrift::ServerInterface> MyServicePrioChildInterface(PyObject *if_object, folly::Executor *exc);
+std::shared_ptr<apache::thrift::ServerInterface> DbMixedStackArgumentsInterface(PyObject *if_object, folly::Executor *exc);
 } // namespace cpp2

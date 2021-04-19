@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef CPP2_PROTOCOL_PROTOCOLREADER_WITHREFILL_H_
 #define CPP2_PROTOCOL_PROTOCOLREADER_WITHREFILL_H_ 1
 
@@ -85,15 +86,13 @@ class CompactProtocolReaderWithRefill : public VirtualCompactReader {
   }
 
   inline void readFieldBegin(
-      std::string& name,
-      TType& fieldType,
-      int16_t& fieldId) override {
+      std::string& name, TType& fieldType, int16_t& fieldId) override {
     ensureFieldBegin();
     protocol_.readFieldBegin(name, fieldType, fieldId);
   }
 
-  inline void readMapBegin(TType& keyType, TType& valType, uint32_t& size)
-      override {
+  inline void readMapBegin(
+      TType& keyType, TType& valType, uint32_t& size) override {
     ensureMapBegin();
     protocol_.readMapBegin(keyType, valType, size);
   }
@@ -146,19 +145,15 @@ class CompactProtocolReaderWithRefill : public VirtualCompactReader {
     protocol_.readFloat(flt);
   }
 
-  inline void readString(std::string& str) override {
-    readStringImpl(str);
-  }
+  inline void readString(std::string& str) override { readStringImpl(str); }
 
-  inline void readString(folly::fbstring& str) override {
-    readStringImpl(str);
-  }
+  inline void readString(folly::fbstring& str) override { readStringImpl(str); }
 
-  inline void readBinary(std::string& str) override {
-    readStringImpl(str);
-  }
+  inline void readBinary(std::string& str) override { readStringImpl(str); }
 
-  inline void readBinary(folly::fbstring& str) override {
+  inline void readBinary(folly::fbstring& str) override { readStringImpl(str); }
+
+  inline void readBinary(apache::thrift::detail::SkipNoopString& str) override {
     readStringImpl(str);
   }
 
@@ -170,9 +165,7 @@ class CompactProtocolReaderWithRefill : public VirtualCompactReader {
     readBinaryIOBufImpl(str);
   }
 
-  inline void skip(TType type) override {
-    apache::thrift::skip(*this, type);
-  }
+  inline void skip(TType type) override { apache::thrift::skip(*this, type); }
 
  private:
   /**
@@ -305,9 +298,7 @@ class BinaryProtocolReaderWithRefill : public VirtualBinaryReader {
   }
 
   inline void readFieldBegin(
-      std::string& /*name*/,
-      TType& fieldType,
-      int16_t& fieldId) override {
+      std::string& /*name*/, TType& fieldType, int16_t& fieldId) override {
     int8_t type;
     readByte(type);
     fieldType = (TType)type;
@@ -318,8 +309,8 @@ class BinaryProtocolReaderWithRefill : public VirtualBinaryReader {
     readI16(fieldId);
   }
 
-  inline void readMapBegin(TType& keyType, TType& valType, uint32_t& size)
-      override {
+  inline void readMapBegin(
+      TType& keyType, TType& valType, uint32_t& size) override {
     ensureBuffer(6);
     protocol_.readMapBegin(keyType, valType, size);
   }
@@ -373,19 +364,15 @@ class BinaryProtocolReaderWithRefill : public VirtualBinaryReader {
     protocol_.readFloat(flt);
   }
 
-  inline void readString(std::string& str) override {
-    readStringImpl(str);
-  }
+  inline void readString(std::string& str) override { readStringImpl(str); }
 
-  inline void readString(folly::fbstring& str) override {
-    readStringImpl(str);
-  }
+  inline void readString(folly::fbstring& str) override { readStringImpl(str); }
 
-  inline void readBinary(std::string& str) override {
-    readStringImpl(str);
-  }
+  inline void readBinary(std::string& str) override { readStringImpl(str); }
 
-  inline void readBinary(folly::fbstring& str) override {
+  inline void readBinary(folly::fbstring& str) override { readStringImpl(str); }
+
+  inline void readBinary(apache::thrift::detail::SkipNoopString& str) override {
     readStringImpl(str);
   }
 
@@ -397,9 +384,7 @@ class BinaryProtocolReaderWithRefill : public VirtualBinaryReader {
     readBinaryIOBufImpl(str);
   }
 
-  inline void skip(TType type) override {
-    apache::thrift::skip(*this, type);
-  }
+  inline void skip(TType type) override { apache::thrift::skip(*this, type); }
 
  private:
   template <typename StrType>
@@ -422,6 +407,22 @@ class BinaryProtocolReaderWithRefill : public VirtualBinaryReader {
     protocol_.in_.clone(str, size);
   }
 };
+
+template <>
+inline bool canReadNElements(
+    CompactProtocolReaderWithRefill& /* prot */,
+    uint32_t /* n */,
+    std::initializer_list<TType> /* types */) {
+  return true;
+}
+
+template <>
+inline bool canReadNElements(
+    BinaryProtocolReaderWithRefill& /* prot */,
+    uint32_t /* n */,
+    std::initializer_list<TType> /* types */) {
+  return true;
+}
 
 } // namespace thrift
 } // namespace apache

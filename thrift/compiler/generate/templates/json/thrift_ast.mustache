@@ -1,7 +1,29 @@
 <%={{ }}=%>
 {
-  "thrift_module" : "{{program:name}}",
-  {{#program:enums?}}
+  "__fbthrift": "@{{%!%}}generated",
+  "thrift_module" : "{{program:name}}",{{%!
+  %}}{{#program:namespaces?}}
+  "namespaces": {
+    {{#program:namespaces}}
+    "{{key}}": "{{value}}"{{^last?}},{{/last?}}
+    {{/program:namespaces}}
+  },{{/program:namespaces?}}{{#program:docstring?}}
+  "global_docstring": {{program:docstring}},{{/program:docstring?}}{{%!
+  %}}{{#program:constants?}}
+  "constants": {
+      {{#program:constants}}
+      {{#constant:type}}{{#constant:value}}
+      "{{constant:name}}": {
+        "name": "{{constant:name}}",
+        "type": "{{value:typeName}}",
+        "value": {{value:stringValueAny}},{{%!
+        %}}{{#value:docstring?}}
+        "docstring": {{value:docstring}},{{/value:docstring?}}
+        "lineno": {{value:lineno}}
+      }{{/constant:value}}{{/constant:type}}{{^last?}},{{/last?}}
+      {{/program:constants}}
+  },{{/program:constants?}}{{%!
+  %}}{{#program:enums?}}
   "enumerations" :
   {
     {{> enums}}
@@ -21,6 +43,5 @@
   {{/program:services?}}
   {{! rearrange to avoid trailing comma issue}}
   "source_path" : "{{program:normalizedIncludePrefix}}{{program:name}}",
-  "py_namespace" : "{{program:py_namespace}}",
-  "wiki_address" : "{{program:wiki_address}}"
+  "py_namespace" : "{{program:py_namespace}}"
 }

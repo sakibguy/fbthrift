@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,22 +20,25 @@
 #define THRIFT_UTIL_ENUMUTILS_H_ 1
 
 #include <cstring>
-#include <string>
+
+#include <folly/Conv.h>
+
 #include <thrift/lib/cpp/Thrift.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 namespace util {
 
 /**
  * Parses an enum name to the enum type
  */
-template<typename String, typename EnumType>
+template <typename String, typename EnumType>
 bool tryParseEnum(const String& name, EnumType* out) {
   return TEnumTraits<EnumType>::findValue(name.c_str(), out);
 }
 
-template<typename EnumType>
+template <typename EnumType>
 bool tryParseEnum(const char* name, EnumType* out) {
   return TEnumTraits<EnumType>::findValue(name, out);
 }
@@ -44,11 +47,11 @@ bool tryParseEnum(const char* name, EnumType* out) {
  * Returns the human-readable name for an Enum type.
  * WARNING! By default it returns nullptr if the value is not in enum.
  */
-template<typename EnumType>
-const char* enumName(EnumType value,
-                     const char* defaultName = nullptr) {
+template <typename EnumType>
+const char* enumName(EnumType value, const char* defaultName = nullptr) {
   const char* name = TEnumTraits<EnumType>::findName(value);
-  if (!name) return defaultName;
+  if (!name)
+    return defaultName;
   return name;
 }
 
@@ -59,9 +62,11 @@ const char* enumName(EnumType value,
 template <typename EnumType>
 std::string enumNameSafe(EnumType value) {
   const char* name = enumName(value);
-  return name ? name : std::to_string(static_cast<int32_t>(value));
+  return name ? name : folly::to<std::string>(static_cast<int32_t>(value));
 }
 
-}}} // apache::thrift::util
+} // namespace util
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_UTIL_ENUMUTILS_H_ 1

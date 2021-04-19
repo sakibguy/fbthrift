@@ -7,8 +7,9 @@
 
 from __future__ import absolute_import
 import six
+import sys
 from thrift.util.Recursive import fix_spec
-from thrift.Thrift import *
+from thrift.Thrift import TType, TMessageType, TPriority, TRequestContext, TProcessorEventHandler, TServerInterface, TProcessor, TException, TApplicationException, UnimplementedTypedef
 from thrift.protocol.TProtocol import TProtocolException
 
 from json import loads
@@ -25,15 +26,14 @@ from thrift.protocol import TBinaryProtocol
 from thrift.protocol import TCompactProtocol
 from thrift.protocol import THeaderProtocol
 fastproto = None
-if not '__pypy__' in sys.builtin_module_names:
-  try:
-    from thrift.protocol import fastproto
-  except:
-    pass
+try:
+  from thrift.protocol import fastproto
+except ImportError:
+  pass
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3
 
-__all__ = ['UTF8STRINGS', 'MyEnum', 'MyStruct', 'MyDataItem']
+__all__ = ['UTF8STRINGS', 'MyEnum', 'MyStruct', 'MyDataItem', 'MyUnion']
 
 class MyEnum:
   MyValue1 = 0
@@ -55,8 +55,10 @@ class MyStruct:
    - MyIntField
    - MyStringField
    - MyDataField
-   - major
    - myEnum
+   - oneway
+   - readonly
+   - idempotent
   """
 
   thrift_spec = None
@@ -70,11 +72,9 @@ class MyStruct:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -98,23 +98,29 @@ class MyStruct:
         else:
           iprot.skip(ftype)
       elif fid == 4:
-        if ftype == TType.I64:
-          self.major = iprot.readI64()
+        if ftype == TType.I32:
+          self.myEnum = iprot.readI32()
         else:
           iprot.skip(ftype)
       elif fid == 5:
-        if ftype == TType.I32:
-          self.myEnum = iprot.readI32()
+        if ftype == TType.BOOL:
+          self.oneway = iprot.readBool()
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.BOOL:
+          self.readonly = iprot.readBool()
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.BOOL:
+          self.idempotent = iprot.readBool()
         else:
           iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -136,18 +142,34 @@ class MyStruct:
       oprot.writeFieldBegin('MyDataField', TType.STRUCT, 3)
       self.MyDataField.write(oprot)
       oprot.writeFieldEnd()
-    if self.major != None:
-      oprot.writeFieldBegin('major', TType.I64, 4)
-      oprot.writeI64(self.major)
-      oprot.writeFieldEnd()
     if self.myEnum != None:
-      oprot.writeFieldBegin('myEnum', TType.I32, 5)
+      oprot.writeFieldBegin('myEnum', TType.I32, 4)
       oprot.writeI32(self.myEnum)
+      oprot.writeFieldEnd()
+    if self.oneway != None:
+      oprot.writeFieldBegin('oneway', TType.BOOL, 5)
+      oprot.writeBool(self.oneway)
+      oprot.writeFieldEnd()
+    if self.readonly != None:
+      oprot.writeFieldBegin('readonly', TType.BOOL, 6)
+      oprot.writeBool(self.readonly)
+      oprot.writeFieldEnd()
+    if self.idempotent != None:
+      oprot.writeFieldBegin('idempotent', TType.BOOL, 7)
+      oprot.writeBool(self.idempotent)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
-  def readFromJson(self, json, is_text=True):
+  def readFromJson(self, json, is_text=True, **kwargs):
+    relax_enum_validation = bool(kwargs.pop('relax_enum_validation', False))
+    set_cls = kwargs.pop('custom_set_cls', set)
+    dict_cls = kwargs.pop('custom_dict_cls', dict)
+    if kwargs:
+        extra_kwargs = ', '.join(kwargs.keys())
+        raise ValueError(
+            'Unexpected keyword arguments: ' + extra_kwargs
+        )
     json_obj = json
     if is_text:
       json_obj = loads(json)
@@ -157,13 +179,21 @@ class MyStruct:
       self.MyStringField = json_obj['MyStringField']
     if 'MyDataField' in json_obj and json_obj['MyDataField'] is not None:
       self.MyDataField = MyDataItem()
-      self.MyDataField.readFromJson(json_obj['MyDataField'], is_text=False)
-    if 'major' in json_obj and json_obj['major'] is not None:
-      self.major = long(json_obj['major'])
+      self.MyDataField.readFromJson(json_obj['MyDataField'], is_text=False, relax_enum_validation=relax_enum_validation, custom_set_cls=set_cls, custom_dict_cls=dict_cls)
     if 'myEnum' in json_obj and json_obj['myEnum'] is not None:
       self.myEnum = json_obj['myEnum']
       if not self.myEnum in MyEnum._VALUES_TO_NAMES:
-        raise TProtocolException(TProtocolException.INVALID_DATA, 'Integer value ''%s'' is not a recognized value of enum type MyEnum' % self.myEnum)
+        msg = 'Integer value ''%s'' is not a recognized value of enum type MyEnum' % self.myEnum
+        if relax_enum_validation:
+            warnings.warn(msg)
+        else:
+            raise TProtocolException(TProtocolException.INVALID_DATA, msg)
+    if 'oneway' in json_obj and json_obj['oneway'] is not None:
+      self.oneway = json_obj['oneway']
+    if 'readonly' in json_obj and json_obj['readonly'] is not None:
+      self.readonly = json_obj['readonly']
+    if 'idempotent' in json_obj and json_obj['idempotent'] is not None:
+      self.idempotent = json_obj['idempotent']
 
   def __repr__(self):
     L = []
@@ -180,14 +210,22 @@ class MyStruct:
       value = pprint.pformat(self.MyDataField, indent=0)
       value = padding.join(value.splitlines(True))
       L.append('    MyDataField=%s' % (value))
-    if self.major is not None:
-      value = pprint.pformat(self.major, indent=0)
-      value = padding.join(value.splitlines(True))
-      L.append('    major=%s' % (value))
     if self.myEnum is not None:
       value = pprint.pformat(self.myEnum, indent=0)
       value = padding.join(value.splitlines(True))
       L.append('    myEnum=%s' % (value))
+    if self.oneway is not None:
+      value = pprint.pformat(self.oneway, indent=0)
+      value = padding.join(value.splitlines(True))
+      L.append('    oneway=%s' % (value))
+    if self.readonly is not None:
+      value = pprint.pformat(self.readonly, indent=0)
+      value = padding.join(value.splitlines(True))
+      L.append('    readonly=%s' % (value))
+    if self.idempotent is not None:
+      value = pprint.pformat(self.idempotent, indent=0)
+      value = padding.join(value.splitlines(True))
+      L.append('    idempotent=%s' % (value))
     return "%s(%s)" % (self.__class__.__name__, "\n" + ",\n".join(L) if L else '')
 
   def __eq__(self, other):
@@ -215,11 +253,9 @@ class MyDataItem:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -230,10 +266,6 @@ class MyDataItem:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -246,7 +278,15 @@ class MyDataItem:
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
-  def readFromJson(self, json, is_text=True):
+  def readFromJson(self, json, is_text=True, **kwargs):
+    relax_enum_validation = bool(kwargs.pop('relax_enum_validation', False))
+    set_cls = kwargs.pop('custom_set_cls', set)
+    dict_cls = kwargs.pop('custom_dict_cls', dict)
+    if kwargs:
+        extra_kwargs = ', '.join(kwargs.keys())
+        raise ValueError(
+            'Unexpected keyword arguments: ' + extra_kwargs
+        )
     json_obj = json
     if is_text:
       json_obj = loads(json)
@@ -269,14 +309,193 @@ class MyDataItem:
   if not six.PY2:
     __hash__ = object.__hash__
 
+class MyUnion(object):
+  """
+  Attributes:
+   - myEnum
+   - myStruct
+   - myDataItem
+  """
+
+  thrift_spec = None
+  __init__ = None
+
+  __EMPTY__ = 0
+  MYENUM = 1
+  MYSTRUCT = 2
+  MYDATAITEM = 3
+  
+  @staticmethod
+  def isUnion():
+    return True
+
+  def get_myEnum(self):
+    assert self.field == 1
+    return self.value
+
+  def get_myStruct(self):
+    assert self.field == 2
+    return self.value
+
+  def get_myDataItem(self):
+    assert self.field == 3
+    return self.value
+
+  def set_myEnum(self, value):
+    self.field = 1
+    self.value = value
+
+  def set_myStruct(self, value):
+    self.field = 2
+    self.value = value
+
+  def set_myDataItem(self, value):
+    self.field = 3
+    self.value = value
+
+  def getType(self):
+    return self.field
+
+  def __repr__(self):
+    value = pprint.pformat(self.value)
+    member = ''
+    if self.field == 1:
+      padding = ' ' * 7
+      value = padding.join(value.splitlines(True))
+      member = '\n    %s=%s' % ('myEnum', value)
+    if self.field == 2:
+      padding = ' ' * 9
+      value = padding.join(value.splitlines(True))
+      member = '\n    %s=%s' % ('myStruct', value)
+    if self.field == 3:
+      padding = ' ' * 11
+      value = padding.join(value.splitlines(True))
+      member = '\n    %s=%s' % ('myDataItem', value)
+    return "%s(%s)" % (self.__class__.__name__, member)
+
+  def read(self, iprot):
+    self.field = 0
+    self.value = None
+    if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
+      fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, True], utf8strings=UTF8STRINGS, protoid=0)
+      return
+    if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
+      fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, True], utf8strings=UTF8STRINGS, protoid=2)
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+
+      if fid == 1:
+        if ftype == TType.I32:
+          myEnum = iprot.readI32()
+          assert self.field == 0 and self.value is None
+          self.set_myEnum(myEnum)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          myStruct = MyStruct()
+          myStruct.read(iprot)
+          assert self.field == 0 and self.value is None
+          self.set_myStruct(myStruct)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          myDataItem = MyDataItem()
+          myDataItem.read(iprot)
+          assert self.field == 0 and self.value is None
+          self.set_myDataItem(myDataItem)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
+      oprot.trans.write(fastproto.encode(self, [self.__class__, self.thrift_spec, True], utf8strings=UTF8STRINGS, protoid=0))
+      return
+    if (isinstance(oprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
+      oprot.trans.write(fastproto.encode(self, [self.__class__, self.thrift_spec, True], utf8strings=UTF8STRINGS, protoid=2))
+      return
+    oprot.writeUnionBegin('MyUnion')
+    if self.field == 1:
+      oprot.writeFieldBegin('myEnum', TType.I32, 1)
+      myEnum = self.value
+      oprot.writeI32(myEnum)
+      oprot.writeFieldEnd()
+    if self.field == 2:
+      oprot.writeFieldBegin('myStruct', TType.STRUCT, 2)
+      myStruct = self.value
+      myStruct.write(oprot)
+      oprot.writeFieldEnd()
+    if self.field == 3:
+      oprot.writeFieldBegin('myDataItem', TType.STRUCT, 3)
+      myDataItem = self.value
+      myDataItem.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeUnionEnd()
+  
+  def readFromJson(self, json, is_text=True, **kwargs):
+    relax_enum_validation = bool(kwargs.pop('relax_enum_validation', False))
+    set_cls = kwargs.pop('custom_set_cls', set)
+    dict_cls = kwargs.pop('custom_dict_cls', dict)
+    if kwargs:
+        extra_kwargs = ', '.join(kwargs.keys())
+        raise ValueError(
+            'Unexpected keyword arguments: ' + extra_kwargs
+        )
+    self.field = 0
+    self.value = None
+    obj = json
+    if is_text:
+      obj = loads(json)
+    if not isinstance(obj, dict) or len(obj) > 1:
+      raise TProtocolException(TProtocolException.INVALID_DATA, 'Can not parse')
+    
+    if 'myEnum' in obj:
+      myEnum = obj['myEnum']
+      if not myEnum in MyEnum._VALUES_TO_NAMES:
+        msg = 'Integer value ''%s'' is not a recognized value of enum type MyEnum' % myEnum
+        if relax_enum_validation:
+            warnings.warn(msg)
+        else:
+            raise TProtocolException(TProtocolException.INVALID_DATA, msg)
+      self.set_myEnum(myEnum)
+    if 'myStruct' in obj:
+      myStruct = MyStruct()
+      myStruct.readFromJson(obj['myStruct'], is_text=False, relax_enum_validation=relax_enum_validation, custom_set_cls=set_cls, custom_dict_cls=dict_cls)
+      self.set_myStruct(myStruct)
+    if 'myDataItem' in obj:
+      myDataItem = MyDataItem()
+      myDataItem.readFromJson(obj['myDataItem'], is_text=False, relax_enum_validation=relax_enum_validation, custom_set_cls=set_cls, custom_dict_cls=dict_cls)
+      self.set_myDataItem(myDataItem)
+
+  def __eq__(self, other):
+    if not isinstance(other, self.__class__):
+      return False
+
+    return self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 all_structs.append(MyStruct)
 MyStruct.thrift_spec = (
   None, # 0
   (1, TType.I64, 'MyIntField', None, None, 2, ), # 1
   (2, TType.STRING, 'MyStringField', True, None, 2, ), # 2
   (3, TType.STRUCT, 'MyDataField', [MyDataItem, MyDataItem.thrift_spec, False], None, 2, ), # 3
-  (4, TType.I64, 'major', None, None, 2, ), # 4
-  (5, TType.I32, 'myEnum', MyEnum, None, 2, ), # 5
+  (4, TType.I32, 'myEnum', MyEnum, None, 2, ), # 4
+  (5, TType.BOOL, 'oneway', None, None, 2, ), # 5
+  (6, TType.BOOL, 'readonly', None, None, 2, ), # 6
+  (7, TType.BOOL, 'idempotent', None, None, 2, ), # 7
 )
 
 MyStruct.thrift_struct_annotations = {
@@ -284,12 +503,14 @@ MyStruct.thrift_struct_annotations = {
 MyStruct.thrift_field_annotations = {
 }
 
-def MyStruct__init__(self, MyIntField=None, MyStringField=None, MyDataField=None, major=None, myEnum=None,):
+def MyStruct__init__(self, MyIntField=None, MyStringField=None, MyDataField=None, myEnum=None, oneway=None, readonly=None, idempotent=None,):
   self.MyIntField = MyIntField
   self.MyStringField = MyStringField
   self.MyDataField = MyDataField
-  self.major = major
   self.myEnum = myEnum
+  self.oneway = oneway
+  self.readonly = readonly
+  self.idempotent = idempotent
 
 MyStruct.__init__ = MyStruct__init__
 
@@ -297,8 +518,10 @@ def MyStruct__setstate__(self, state):
   state.setdefault('MyIntField', None)
   state.setdefault('MyStringField', None)
   state.setdefault('MyDataField', None)
-  state.setdefault('major', None)
   state.setdefault('myEnum', None)
+  state.setdefault('oneway', None)
+  state.setdefault('readonly', None)
+  state.setdefault('idempotent', None)
   self.__dict__ = state
 
 MyStruct.__getstate__ = lambda self: self.__dict__.copy()
@@ -312,6 +535,37 @@ MyDataItem.thrift_struct_annotations = {
 }
 MyDataItem.thrift_field_annotations = {
 }
+
+all_structs.append(MyUnion)
+MyUnion.thrift_spec = (
+  None, # 0
+  (1, TType.I32, 'myEnum', MyEnum, None, 2, ), # 1
+  (2, TType.STRUCT, 'myStruct', [MyStruct, MyStruct.thrift_spec, False], None, 2, ), # 2
+  (3, TType.STRUCT, 'myDataItem', [MyDataItem, MyDataItem.thrift_spec, False], None, 2, ), # 3
+)
+
+MyUnion.thrift_struct_annotations = {
+}
+MyUnion.thrift_field_annotations = {
+}
+
+def MyUnion__init__(self, myEnum=None, myStruct=None, myDataItem=None,):
+  self.field = 0
+  self.value = None
+  if myEnum is not None:
+    assert self.field == 0 and self.value is None
+    self.field = 1
+    self.value = myEnum
+  if myStruct is not None:
+    assert self.field == 0 and self.value is None
+    self.field = 2
+    self.value = myStruct
+  if myDataItem is not None:
+    assert self.field == 0 and self.value is None
+    self.field = 3
+    self.value = myDataItem
+
+MyUnion.__init__ = MyUnion__init__
 
 fix_spec(all_structs)
 del all_structs

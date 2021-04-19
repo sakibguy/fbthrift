@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -85,19 +85,19 @@ void visitor::visit_and_recurse(t_const* const tconst) {
 }
 
 void visitor::recurse(t_program* const program) {
-  for (auto* const service : program->get_services()) {
+  for (auto* const service : program->services()) {
     visit_and_recurse(service);
   }
-  for (auto* const tenum : program->get_enums()) {
+  for (auto* const tenum : program->enums()) {
     visit_and_recurse(tenum);
   }
-  for (auto* tstruct : program->get_structs()) {
+  for (auto* tstruct : program->structs()) {
     visit_and_recurse(tstruct);
   }
-  for (auto* txception : program->get_xceptions()) {
-    visit_and_recurse(txception);
+  for (auto* texception : program->exceptions()) {
+    visit_and_recurse(texception);
   }
-  for (auto* tconst : program->get_consts()) {
+  for (auto* tconst : program->consts()) {
     visit_and_recurse(tconst);
   }
 }

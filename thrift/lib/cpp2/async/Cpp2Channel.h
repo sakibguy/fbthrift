@@ -1,23 +1,19 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_ASYNC_CPP2CHANNEL_H_
 #define THRIFT_ASYNC_CPP2CHANNEL_H_ 1
 
@@ -26,16 +22,12 @@
 #include <vector>
 
 #include <folly/io/IOBufQueue.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp/async/TAsyncTransport.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/async/FramingHandler.h>
 #include <thrift/lib/cpp2/async/MessageChannel.h>
-#include <thrift/lib/cpp2/async/PcapLoggingHandler.h>
-#include <thrift/lib/cpp2/async/ProtectionHandler.h>
-#include <thrift/lib/cpp2/async/SaslEndpoint.h>
-#include <thrift/lib/cpp2/async/SaslNegotiationHandler.h>
 #include <thrift/lib/cpp2/async/TAsyncTransportHandler.h>
 #include <wangle/channel/Handler.h>
 #include <wangle/channel/OutputBufferingHandler.h>
@@ -56,10 +48,8 @@ class Cpp2Channel
           std::pair<std::unique_ptr<folly::IOBuf>, THeader*>> {
  public:
   explicit Cpp2Channel(
-      const std::shared_ptr<apache::thrift::async::TAsyncTransport>& transport,
-      std::unique_ptr<FramingHandler> framingHandler,
-      std::unique_ptr<ProtectionHandler> protectionHandler = nullptr,
-      std::unique_ptr<SaslNegotiationHandler> saslNegotiationHandler = nullptr);
+      const std::shared_ptr<folly::AsyncTransport>& transport,
+      std::unique_ptr<FramingHandler> framingHandler);
 
   // TODO(jsedgwick) This should be protected, but wangle::StaticPipeline
   // will encase this in a folly::Optional, which requires a public destructor.
@@ -68,24 +58,24 @@ class Cpp2Channel
 
   static std::unique_ptr<Cpp2Channel, folly::DelayedDestruction::Destructor>
   newChannel(
-      const std::shared_ptr<apache::thrift::async::TAsyncTransport>& transport,
-      std::unique_ptr<FramingHandler> framingHandler,
-      std::unique_ptr<SaslNegotiationHandler> saslHandler = nullptr) {
+      const std::shared_ptr<folly::AsyncTransport>& transport,
+      std::unique_ptr<FramingHandler> framingHandler) {
     return std::unique_ptr<Cpp2Channel, folly::DelayedDestruction::Destructor>(
-        new Cpp2Channel(
-            transport,
-            std::move(framingHandler),
-            nullptr,
-            std::move(saslHandler)));
+        new Cpp2Channel(transport, std::move(framingHandler)));
   }
   void closeNow();
 
-  void setTransport(const std::shared_ptr<async::TAsyncTransport>& transport) {
+  void setTransport(const std::shared_ptr<folly::AsyncTransport>& transport) {
     transport_ = transport;
     transportHandler_->setTransport(transport);
+    // swapped transports must be attached to same EventBase
+    DCHECK(!transport_ || evb_ == transport->getEventBase());
   }
-  async::TAsyncTransport* getTransport() {
-    return transport_.get();
+  folly::AsyncTransport* getTransport() { return transport_.get(); }
+
+  // Return a shared_ptr of the AsyncTransport
+  std::shared_ptr<folly::AsyncTransport> getTransportShared() {
+    return transport_;
   }
 
   // DelayedDestruction methods
@@ -136,10 +126,6 @@ class Cpp2Channel
     }
   }
 
-  ProtectionHandler* getProtectionHandler() const {
-    return protectionHandler_.get();
-  }
-
   /**
    * Set read buffer size.
    *
@@ -152,18 +138,15 @@ class Cpp2Channel
   }
 
  private:
-  std::shared_ptr<apache::thrift::async::TAsyncTransport> transport_;
+  std::shared_ptr<folly::AsyncTransport> transport_;
+  folly::EventBase* evb_;
   std::deque<SendCallback*> sendCallbacks_;
 
   RecvCallback* recvCallback_;
   bool eofInvoked_;
 
-  std::unique_ptr<RecvCallback::sample> sample_;
-
   std::shared_ptr<wangle::OutputBufferingHandler> outputBufferingHandler_;
-  std::shared_ptr<ProtectionHandler> protectionHandler_;
   std::shared_ptr<FramingHandler> framingHandler_;
-  std::shared_ptr<SaslNegotiationHandler> saslNegotiationHandler_;
 
   typedef wangle::StaticPipeline<
       folly::IOBufQueue&,
@@ -172,10 +155,7 @@ class Cpp2Channel
           apache::thrift::transport::THeader*>,
       TAsyncTransportHandler,
       wangle::OutputBufferingHandler,
-      ProtectionHandler,
-      PcapLoggingHandler,
       FramingHandler,
-      SaslNegotiationHandler,
       Cpp2Channel>
       Pipeline;
   std::shared_ptr<Pipeline> pipeline_;

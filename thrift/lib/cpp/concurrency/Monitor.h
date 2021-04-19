@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_CONCURRENCY_MONITOR_H_
@@ -23,9 +20,9 @@
 #include <thrift/lib/cpp/concurrency/Exception.h>
 #include <thrift/lib/cpp/concurrency/Mutex.h>
 
-#include <boost/noncopyable.hpp>
-
-namespace apache { namespace thrift { namespace concurrency {
+namespace apache {
+namespace thrift {
+namespace concurrency {
 
 /**
  * A monitor is a combination mutex and condition-event.  Waiting and
@@ -45,7 +42,7 @@ namespace apache { namespace thrift { namespace concurrency {
  *
  * @version $Id:$
  */
-class Monitor : boost::noncopyable {
+class Monitor {
  public:
   /** Creates a new mutex, and takes ownership of it. */
   Monitor();
@@ -55,6 +52,9 @@ class Monitor : boost::noncopyable {
 
   /** Uses the mutex inside the provided Monitor without taking ownership. */
   explicit Monitor(Monitor* monitor);
+
+  Monitor(const Monitor&) = delete;
+  Monitor& operator=(const Monitor&) = delete;
 
   /** Deallocates the mutex only if we own it. */
   virtual ~Monitor();
@@ -94,7 +94,6 @@ class Monitor : boost::noncopyable {
    */
   void wait(int64_t timeout_ms = 0LL) const;
 
-
   /** Wakes up one thread waiting on this monitor. */
   virtual void notify() const;
 
@@ -102,7 +101,6 @@ class Monitor : boost::noncopyable {
   virtual void notifyAll() const;
 
  private:
-
   class Impl;
 
   Impl* impl_;
@@ -110,13 +108,15 @@ class Monitor : boost::noncopyable {
 
 class Synchronized {
  public:
- explicit Synchronized(const Monitor* monitor) : g(monitor->mutex()) { }
- explicit Synchronized(const Monitor& monitor) : g(monitor.mutex()) { }
+  explicit Synchronized(const Monitor* monitor) : g(monitor->mutex()) {}
+  explicit Synchronized(const Monitor& monitor) : g(monitor.mutex()) {}
 
  private:
   Guard g;
 };
 
-}}} // apache::thrift::concurrency
+} // namespace concurrency
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef THRIFT_CONCURRENCY_MONITOR_H_

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,10 +15,12 @@
  */
 
 #include <unordered_set>
-#include <thrift/test/gen-cpp2/EnumTest_types.h>
-#include <thrift/lib/cpp/util/EnumUtils.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
+
+#include <thrift/lib/cpp/util/EnumUtils.h>
+#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/test/gen-cpp2/EnumTest_types.h>
 
 using apache::thrift::TEnumTraits;
 using namespace apache::thrift::util;
@@ -46,8 +48,6 @@ TEST(EnumTestCpp2, test_enum) {
   EXPECT_EQ(int(MyEnum3::ME3_1), 1);
   EXPECT_EQ(int(MyEnum3::ME3_N2), -2);
   EXPECT_EQ(int(MyEnum3::ME3_N1), -1);
-  EXPECT_EQ(int(MyEnum3::ME3_D0), 0);
-  EXPECT_EQ(int(MyEnum3::ME3_D1), 1);
   EXPECT_EQ(int(MyEnum3::ME3_9), 9);
   EXPECT_EQ(int(MyEnum3::ME3_10), 10);
   EXPECT_TRUE(TEnumTraits<MyEnum3>::max() == MyEnum3::ME3_10);
@@ -61,9 +61,8 @@ TEST(EnumTestCpp2, test_enum) {
 
 TEST(EnumTestCpp2, test_enum_constant) {
   MyStruct ms;
-  EXPECT_TRUE(ms.me2_2 == MyEnum2::ME2_2);
-  EXPECT_TRUE(ms.me3_n2 == MyEnum3::ME3_N2);
-  EXPECT_TRUE(ms.me3_d1 == MyEnum3::ME3_D1);
+  EXPECT_TRUE(*ms.me2_2_ref() == MyEnum2::ME2_2);
+  EXPECT_TRUE(*ms.me3_n2_ref() == MyEnum3::ME3_N2);
 }
 
 TEST(EnumTestCpp2, test_enum_names) {
@@ -113,8 +112,43 @@ TEST(EnumTestCpp2, test_unscoped) {
   EXPECT_EQ(int(MEU_A), value) << "implicit conversion";
 }
 
-TEST(EnumTest, test_enum_forward_reference) {
+TEST(EnumTestCpp2, test_enum_forward_reference) {
   MyStructWithForwardRefEnum obj;
-  EXPECT_EQ(MyForwardRefEnum::NONZERO, obj.a);
-  EXPECT_EQ(MyForwardRefEnum::NONZERO, obj.b);
+  EXPECT_EQ(MyForwardRefEnum::NONZERO, *obj.a_ref());
+  EXPECT_EQ(MyForwardRefEnum::NONZERO, *obj.b_ref());
+}
+
+TEST(EnumTestCpp2, test_enum_invalid) {
+  MyStruct ms;
+  ms.me1_t1_ref() = static_cast<MyEnum1>(42); // out of range
+  ms.me1_nodefault_ref() = static_cast<MyEnum1>(42);
+  ms.me1_optional_ref() = static_cast<MyEnum1>(42);
+  auto str = apache::thrift::CompactSerializer::serialize<std::string>(ms);
+  auto ms2 = apache::thrift::CompactSerializer::deserialize<MyStruct>(str);
+  EXPECT_EQ(*ms2.me1_t1_ref(), static_cast<MyEnum1>(42));
+  EXPECT_EQ(*ms2.me1_nodefault_ref(), static_cast<MyEnum1>(42));
+  EXPECT_TRUE(ms2.me1_optional_ref().has_value());
+  EXPECT_EQ(*ms2.me1_optional_ref(), static_cast<MyEnum1>(42));
+}
+
+namespace {
+
+enum NonThriftEnum {};
+
+struct HasType {
+  using type = void;
+};
+
+template <typename T, typename = folly::void_t<>>
+struct has_type_member : std::false_type {};
+
+template <typename T>
+struct has_type_member<T, folly::void_t<typename T::type>> : std::true_type {};
+
+} // namespace
+
+TEST(EnumTestCpp2, test_non_thrift_enum_trait) {
+  EXPECT_EQ(true, has_type_member<HasType>::value);
+  EXPECT_EQ(false, has_type_member<TEnumTraits<NonThriftEnum>>::value);
+  EXPECT_EQ(true, has_type_member<TEnumTraits<MyEnum1>>::value);
 }

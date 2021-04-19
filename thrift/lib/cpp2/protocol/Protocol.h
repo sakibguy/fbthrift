@@ -1,22 +1,17 @@
 /*
- * Copyright 2011-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef CPP2_PROTOCOL_PROTOCOL_H_
@@ -35,8 +30,8 @@
 #include <thrift/lib/cpp/protocol/TProtocol.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
-#include <thrift/lib/cpp/util/BitwiseCast.h>
 #include <thrift/lib/cpp2/CloneableIOBuf.h>
+#include <thrift/lib/cpp2/protocol/ProtocolReaderWireTypeInfo.h>
 
 /**
  * Protocol Readers and Writers are ducktyped in cpp2.
@@ -80,13 +75,27 @@ typedef apache::thrift::protocol::PROTOCOL_TYPES ProtocolType;
  */
 enum MessageType { T_CALL = 1, T_REPLY = 2, T_EXCEPTION = 3, T_ONEWAY = 4 };
 
+namespace detail {
+struct SkipNoopString {
+  void append(char const*, size_t) {}
+  void clear() {}
+  void reserve(size_t) {}
+};
+} // namespace detail
+
+/* forward declaration */
+template <class Protocol_, class WireType>
+void skip_n(Protocol_& prot, uint32_t n, std::initializer_list<WireType> types);
+
 /**
  * Helper template for implementing Protocol::skip().
  *
- * Templatized to avoid having to make virtual function calls.
+ * Templatized to avoid having to make virtual function calls. Protocols with
+ * their own opinions about skipping implementation can specialize, although
+ * currently only Nimble does.
  */
-template <class Protocol_>
-void skip(Protocol_& prot, TType arg_type) {
+template <class Protocol_, class WireType>
+void skip(Protocol_& prot, WireType arg_type) {
   switch (arg_type) {
     case TType::T_BOOL: {
       bool boolv;
@@ -124,7 +133,7 @@ void skip(Protocol_& prot, TType arg_type) {
       return;
     }
     case TType::T_STRING: {
-      std::string str;
+      apache::thrift::detail::SkipNoopString str;
       prot.readBinary(str);
       return;
     }
@@ -147,49 +156,83 @@ void skip(Protocol_& prot, TType arg_type) {
     case TType::T_MAP: {
       TType keyType;
       TType valType;
-      uint32_t i, size;
+      uint32_t size;
       prot.readMapBegin(keyType, valType, size);
-      for (i = 0; i < size; i++) {
-        apache::thrift::skip(prot, keyType);
-        apache::thrift::skip(prot, valType);
-      }
+      skip_n(prot, size, {keyType, valType});
       prot.readMapEnd();
       return;
     }
     case TType::T_SET: {
       TType elemType;
-      uint32_t i, size;
+      uint32_t size;
       prot.readSetBegin(elemType, size);
-      for (i = 0; i < size; i++) {
-        apache::thrift::skip(prot, elemType);
-      }
+      skip_n(prot, size, {elemType});
       prot.readSetEnd();
       return;
     }
     case TType::T_LIST: {
       TType elemType;
-      uint32_t i, size;
+      uint32_t size;
       prot.readListBegin(elemType, size);
-      for (i = 0; i < size; i++) {
-        apache::thrift::skip(prot, elemType);
-      }
+      skip_n(prot, size, {elemType});
       prot.readListEnd();
       return;
     }
-    default:
-      return;
+    default: {
+      TProtocolException::throwInvalidSkipType(arg_type);
+    }
+  }
+}
+
+/**
+ * Check if the remaining part of buffers contain least necessary amount of
+ * bytes to encode N elements of given type.
+ *
+ * Note: this is a lightweight lower bound check, it doesn't necessary mean
+ *       that we would actually succeed at reading N items.
+ */
+template <class Protocol_>
+inline bool canReadNElements(
+    Protocol_& prot,
+    uint32_t n,
+    std::initializer_list<
+        typename apache::thrift::detail::ProtocolReaderWireTypeInfo<
+            Protocol_>::WireType> types) {
+  return prot.getCursor().canAdvance(n * types.size());
+}
+
+/*
+ * Skip n tuples - used for skpping lists, sets, maps.
+ *
+ * As with skip(), protocols can specialize.
+ */
+template <class Protocol_, class WireType>
+void skip_n(
+    Protocol_& prot, uint32_t n, std::initializer_list<WireType> types) {
+  size_t sum = 0;
+  bool allFixedSizes = true;
+  for (auto type : types) {
+    auto size = prot.fixedSizeInContainer(type);
+    sum += size;
+    allFixedSizes = allFixedSizes && size;
+  }
+  if (allFixedSizes) {
+    prot.skipBytes(sum * n);
+    return;
+  }
+
+  for (uint32_t i = 0; i < n; i++) {
+    for (auto type : types) {
+      apache::thrift::skip(prot, type);
+    }
   }
 }
 
 template <class StrType>
 struct StringTraits {
-  static StrType fromStringLiteral(const char* str) {
-    return StrType(str);
-  }
+  static StrType fromStringLiteral(const char* str) { return StrType(str); }
 
-  static bool isEmpty(const StrType& str) {
-    return str.empty();
-  }
+  static bool isEmpty(const StrType& str) { return str.empty(); }
 
   static bool isEqual(const StrType& lhs, const StrType& rhs) {
     return lhs == rhs;
@@ -207,9 +250,7 @@ struct StringTraits<folly::IOBuf> {
     return folly::IOBuf::wrapBufferAsValue(str, strlen(str));
   }
 
-  static bool isEmpty(const folly::IOBuf& str) {
-    return str.empty();
-  }
+  static bool isEmpty(const folly::IOBuf& str) { return str.empty(); }
 
   static bool isEqual(const folly::IOBuf& lhs, const folly::IOBuf& rhs) {
     return folly::IOBufEqualTo{}(lhs, rhs);

@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,7 @@ class ContextStack {
 
  public:
   explicit ContextStack(const char* method)
-      : ctxs_(), handlers_(), method_(method) {}
+      : serviceName_(""), method_(method) {}
 
   ContextStack(
       const std::shared_ptr<
@@ -38,14 +38,14 @@ class ContextStack {
       const char* serviceName,
       const char* method,
       TConnectionContext* connectionContext)
-      : ctxs_(),
-        handlers_(handlers),
-        serviceName_(serviceName),
-        method_(method) {
-    ctxs_.reserve(handlers->size());
-    for (auto handler : *handlers) {
-      ctxs_.push_back(
-          handler->getServiceContext(serviceName, method, connectionContext));
+      : serviceName_(serviceName), method_(method) {
+    if (handlers && !handlers->empty()) {
+      handlers_ = handlers;
+      ctxs_.reserve(handlers->size());
+      for (const auto& handler : *handlers) {
+        ctxs_.push_back(handler->getServiceContext(
+            serviceName_, method_, connectionContext));
+      }
     }
   }
 
@@ -54,11 +54,20 @@ class ContextStack {
           std::vector<std::shared_ptr<TProcessorEventHandler>>>& handlers,
       const char* method,
       TConnectionContext* connectionContext)
-      : ctxs_(), handlers_(handlers), method_(method) {
-    for (auto handler : *handlers) {
-      ctxs_.push_back(handler->getContext(method, connectionContext));
+      : serviceName_(""), method_(method) {
+    if (handlers && !handlers->empty()) {
+      handlers_ = handlers;
+      ctxs_.reserve(handlers->size());
+      for (const auto& handler : *handlers) {
+        ctxs_.push_back(handler->getContext(method_, connectionContext));
+      }
     }
   }
+
+  ContextStack(ContextStack&&) = delete;
+  ContextStack& operator=(ContextStack&&) = delete;
+  ContextStack(const ContextStack&) = delete;
+  ContextStack& operator=(const ContextStack&) = delete;
 
   ~ContextStack() {
     if (handlers_) {
@@ -80,30 +89,21 @@ class ContextStack {
 
   void postRead(apache::thrift::transport::THeader* header, uint32_t bytes);
 
-  void handlerError();
-
   void handlerErrorWrapped(const folly::exception_wrapper& ew);
-
-  void userException(const std::string& ex, const std::string& ex_what);
-
   void userExceptionWrapped(bool declared, const folly::exception_wrapper& ew);
 
   void asyncComplete();
 
-  const char* getServiceName() {
-    return serviceName_.c_str();
-  }
+  const char* getServiceName() const { return serviceName_; }
 
-  const char* getMethod() {
-    return method_.c_str();
-  }
+  const char* getMethod() const { return method_; }
 
  private:
   std::vector<void*> ctxs_;
   std::shared_ptr<std::vector<std::shared_ptr<TProcessorEventHandler>>>
       handlers_;
-  std::string serviceName_;
-  std::string method_;
+  const char* const serviceName_;
+  const char* const method_;
 };
 
 } // namespace thrift

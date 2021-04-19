@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
 #include <future>
@@ -31,24 +32,31 @@ class RetryingRequestChannel : public apache::thrift::RequestChannel {
   using UniquePtr = std::
       unique_ptr<RetryingRequestChannel, folly::DelayedDestruction::Destructor>;
 
-  static UniquePtr
-  newChannel(folly::EventBase& evb, int numRetries, ImplPtr impl) {
+  static UniquePtr newChannel(
+      folly::EventBase& evb, int numRetries, ImplPtr impl) {
     return {new RetryingRequestChannel(evb, numRetries, std::move(impl)), {}};
   }
 
-  uint32_t sendRequest(
-      apache::thrift::RpcOptions& options,
-      std::unique_ptr<apache::thrift::RequestCallback> cob,
-      std::unique_ptr<apache::thrift::ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) override;
+  void sendRequestStream(
+      const apache::thrift::RpcOptions& rpcOptions,
+      ManagedStringView&& methodName,
+      apache::thrift::SerializedRequest&& request,
+      std::shared_ptr<apache::thrift::transport::THeader> header,
+      apache::thrift::StreamClientCallback* clientCallback) override;
 
-  uint32_t sendOnewayRequest(
-      apache::thrift::RpcOptions&,
-      std::unique_ptr<apache::thrift::RequestCallback>,
-      std::unique_ptr<apache::thrift::ContextStack>,
-      std::unique_ptr<folly::IOBuf>,
-      std::shared_ptr<apache::thrift::transport::THeader>) override {
+  void sendRequestResponse(
+      const apache::thrift::RpcOptions& options,
+      ManagedStringView&& methodName,
+      SerializedRequest&& request,
+      std::shared_ptr<apache::thrift::transport::THeader> header,
+      RequestClientCallback::Ptr cob) override;
+
+  void sendRequestNoResponse(
+      const apache::thrift::RpcOptions&,
+      ManagedStringView&&,
+      SerializedRequest&&,
+      std::shared_ptr<apache::thrift::transport::THeader>,
+      RequestClientCallback::Ptr) override {
     LOG(FATAL) << "Not supported";
   }
 
@@ -56,13 +64,9 @@ class RetryingRequestChannel : public apache::thrift::RequestChannel {
     LOG(FATAL) << "Not supported";
   }
 
-  folly::EventBase* getEventBase() const override {
-    return &evb_;
-  }
+  folly::EventBase* getEventBase() const override { return &evb_; }
 
-  uint16_t getProtocolId() override {
-    return impl_->getProtocolId();
-  }
+  uint16_t getProtocolId() override { return impl_->getProtocolId(); }
 
  protected:
   ~RetryingRequestChannel() override = default;
@@ -70,7 +74,9 @@ class RetryingRequestChannel : public apache::thrift::RequestChannel {
   RetryingRequestChannel(folly::EventBase& evb, int numRetries, ImplPtr impl)
       : impl_(std::move(impl)), numRetries_(numRetries), evb_(evb) {}
 
+  class RequestCallbackBase;
   class RequestCallback;
+  class StreamCallback;
 
   ImplPtr impl_;
   int numRetries_;

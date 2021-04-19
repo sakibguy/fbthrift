@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,9 +17,13 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/compiler/generate/common.h>
+
+namespace apache {
+namespace thrift {
+namespace compiler {
 
 TEST(GenerateCommon, SplitNamespace) {
   const std::vector<std::string> namespaces{
@@ -37,6 +41,7 @@ TEST(GenerateCommon, SplitNamespace) {
   };
 
   std::vector<std::vector<std::string>> splits;
+  splits.reserve(namespaces.size());
   for (const auto& ns : namespaces) {
     splits.push_back(split_namespace(ns));
   }
@@ -44,48 +49,39 @@ TEST(GenerateCommon, SplitNamespace) {
   EXPECT_EQ(expected, splits);
 }
 
-TEST(GenerateCommon, EscapeQuotes) {
-  std::vector<std::string> quotedstrings{
-      R"(no quotes)",
-      R"("quotes")",
-      R"({"a": 1, "b": -2, "c": -3})",
+TEST(GenerateCommon, StripCppCommentsAndNewlines) {
+  std::vector<std::string> validCases{
+      {},
+      {"no comments"},
+      {"two\nlines"},
+      {"/*foo*/"},
+      {"one/*foo*/comment"},
+      {"this/*foo*/has/*bar*/three/*baz*/comments"},
+      {"three/*before*/\nlines\n/*after*/with/*mid\ndle*/comments"},
+      {"//foo\na//bar\nlot/*\n//baz*/\ncomments\n//foo"},
   };
 
   const std::vector<std::string> expected{
-      R"(no quotes)",
-      R"(\"quotes\")",
-      R"({\"a\": 1, \"b\": -2, \"c\": -3})",
+      {},
+      {"no comments"},
+      {"two lines"},
+      {""},
+      {"onecomment"},
+      {"thishasthreecomments"},
+      {"three lines withcomments"},
+      {" a lot comments "},
   };
 
-  std::vector<std::string> escaped;
-  for (auto& s : quotedstrings) {
-    escape_quotes_cpp(s);
-    escaped.push_back(s);
+  for (auto& s : validCases) {
+    strip_cpp_comments_and_newlines(s);
   }
 
-  EXPECT_EQ(expected, escaped);
+  EXPECT_EQ(expected, validCases);
+
+  std::string unpaired{"unpaired/*foo*/comments/*baz* /"};
+  EXPECT_THROW(strip_cpp_comments_and_newlines(unpaired), std::runtime_error);
 }
 
-TEST(GenerateCommon, TrimWhitespace) {
-  std::vector<std::string> whitespaces{
-      "    ",
-      "   left",
-      "right ",
-      "   both spaces ",
-  };
-
-  const std::vector<std::string> expected{
-      "",
-      "left",
-      "right",
-      "both spaces",
-  };
-
-  std::vector<std::string> trimmed;
-  for (auto& s : whitespaces) {
-    trim_whitespace(s);
-    trimmed.push_back(s);
-  }
-
-  EXPECT_EQ(expected, trimmed);
-}
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,12 +23,13 @@ import com.facebook.swift.codec.*;
 import com.google.common.collect.*;
 import java.util.*;
 
-public final class Constants
-{
-    private Constants() {
-    }
-    {{#program:sortedConstants}}
+@SwiftGenerated
+public final class {{program:constantClassName}} {
+    private {{program:constantClassName}}() {}
+    {{#program:constants}}
 
-    public static final {{#constant:type}}{{> Type}}{{/constant:type}} {{constant:name}} = {{#constant:type}}{{#constant:value}}{{> ConstantValue}}{{/constant:value}}{{/constant:type}};
-    {{/program:sortedConstants}}
+    {{^constant:javaIgnoreConstant?}}
+    public static final {{#constant:type}}{{> Type}}{{/constant:type}} {{constant:javaCapitalName}} = {{#constant:type}}{{#constant:value}}{{> DefaultValue}}{{/constant:value}}{{/constant:type}};
+    {{/constant:javaIgnoreConstant?}}
+    {{/program:constants}}
 }

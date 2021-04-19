@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <folly/ExceptionWrapper.h>
+
+#include <thrift/lib/cpp/SerializedMessage.h>
 #include <thrift/lib/cpp/server/TConnectionContext.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 
@@ -48,8 +51,7 @@ class TProcessorEventHandler {
     return getContext(fn_name, connectionContext);
   }
   virtual void* getContext(
-      const char* /*fn_name*/,
-      TConnectionContext* /*connectionContext*/) {
+      const char* /*fn_name*/, TConnectionContext* /*connectionContext*/) {
     return nullptr;
   }
 
@@ -108,8 +110,8 @@ class TProcessorEventHandler {
   /**
    * Called after writing the response.
    */
-  virtual void
-  postWrite(void* /*ctx*/, const char* /*fn_name*/, uint32_t /*bytes*/) {}
+  virtual void postWrite(
+      void* /*ctx*/, const char* /*fn_name*/, uint32_t /*bytes*/) {}
 
   /**
    * Called when an async function call completes successfully.
@@ -121,9 +123,7 @@ class TProcessorEventHandler {
    */
   virtual void handlerError(void* /*ctx*/, const char* /*fn_name*/) {}
   virtual void handlerErrorWrapped(
-      void* ctx,
-      const char* fn_name,
-      const folly::exception_wrapper& /*ew*/) {
+      void* ctx, const char* fn_name, const folly::exception_wrapper& /*ew*/) {
     handlerError(ctx, fn_name);
   }
 
@@ -142,9 +142,8 @@ class TProcessorEventHandler {
       const char* fn_name,
       bool declared,
       const folly::exception_wrapper& ew_) {
-    auto ew = ew_; // make a local, mutable copy
-    const auto type = ew.class_name();
-    const auto what = ew.what();
+    const auto type = ew_.class_name();
+    const auto what = ew_.what();
     folly::StringPiece whatsp(what);
     if (declared) {
       CHECK(whatsp.removePrefix(type)) << "weird format: '" << what << "'";

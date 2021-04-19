@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2017 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,7 @@
 Trivial mapping to type annotation field types. Depends on an import in the
 form:
 
-  import typing as t
+  import typing as __T
 
 Recursive.
 
@@ -34,9 +34,9 @@ Recursive.
 }}{{#type:string?}}str{{/type:string?}}{{!
 }}{{#type:binary?}}bytes{{/type:binary?}}{{!
 }}{{#type:struct}}{{#type:externalProgram?}}{{> common/ModulePath}}.{{/type:externalProgram?}}{{struct:name}}{{/type:struct}}{{!
-}}{{#type:list?}}t.List[{{#type:listElemType}}{{> common/FieldType}}{{/type:listElemType}}]{{/type:list?}}{{!
-}}{{#type:set?}}t.Set[{{#type:setElemType}}{{> common/FieldType}}{{/type:setElemType}}]{{/type:set?}}{{!
-}}{{#type:map?}}t.Dict[{{#type:keyType}}{{> common/FieldType}}{{/type:keyType}},{{!
-}} {{#type:valueType}}{{> common/FieldType}}{{/type:valueType}}]{{/type:map?}}{{!
+}}{{#type:list?}}__T.List[{{#type:list_elem_type}}{{> common/FieldType}}{{/type:list_elem_type}}]{{/type:list?}}{{!
+}}{{#type:set?}}__T.Set[{{#type:set_elem_type}}{{> common/FieldType}}{{/type:set_elem_type}}]{{/type:set?}}{{!
+}}{{#type:map?}}__T.Dict[{{#type:key_type}}{{> common/FieldType}}{{/type:key_type}},{{!
+}} {{#type:value_type}}{{> common/FieldType}}{{/type:value_type}}]{{/type:map?}}{{!
 }}{{#type:enum}}{{#type:externalProgram?}}{{> common/ModulePath}}.{{/type:externalProgram?}}{{enum:name}}{{/type:enum}}{{!
-}}{{#type:typedef?}}{{#type:typedefType}}{{> common/FieldType}}{{/type:typedefType}}{{/type:typedef?}}
+}}{{#type:typedef?}}{{#type:typedef_type}}{{> common/FieldType}}{{/type:typedef_type}}{{/type:typedef?}}

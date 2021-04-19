@@ -1,31 +1,34 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_TEST_LOADGEN_INTERVALTIMER_H_
 #define THRIFT_TEST_LOADGEN_INTERVALTIMER_H_ 1
 
-#include <thrift/lib/cpp/concurrency/Util.h>
-#include <thrift/lib/cpp/concurrency/Mutex.h>
 #include <thrift/lib/cpp/TLogging.h>
+#include <thrift/lib/cpp/concurrency/Mutex.h>
+#include <thrift/lib/cpp/concurrency/Util.h>
 
 #include <folly/portability/Unistd.h>
 
-namespace apache { namespace thrift { namespace loadgen {
+#include <chrono>
+#include <thread>
+
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
 /**
  * IntervalTimer helps perform tasks at a desired rate.
@@ -50,18 +53,20 @@ class IntervalTimer {
    *                      timer goes too fast in order to catch up to the
    *                      average rate.
    */
-  IntervalTimer(uint64_t intervalNsec,
-                uint64_t maxBacklog = 3 * concurrency::Util::US_PER_S)
-    : numTimes_(0)
-    , intervalNsec_(intervalNsec)
-    , intervalStart_(0)
-    , maxBacklog_(maxBacklog) { }
+  explicit IntervalTimer(
+      uint64_t intervalNsec,
+      std::chrono::microseconds maxBacklog = std::chrono::seconds{3})
+      : numTimes_(0),
+        intervalNsec_(intervalNsec),
+        intervalStart_(),
+        maxBacklog_(maxBacklog) {}
 
   void setIntervalNsec(uint64_t interval) {
     concurrency::Guard guard(mutex_);
     intervalNsec_ = interval;
-    intervalStart_ = intervalStart_ ? concurrency::Util::currentTimeUsec()
-                                    : 0;
+    if (intervalStart_ > std::chrono::steady_clock::time_point{}) {
+      intervalStart_ = std::chrono::steady_clock::now();
+    }
     numTimes_ = 0;
   }
 
@@ -70,10 +75,13 @@ class IntervalTimer {
    */
   void setRatePerSec(uint64_t rate) {
     concurrency::Guard guard(mutex_);
-    if (rate == 0) intervalNsec_ = 0;
-    else intervalNsec_ = concurrency::Util::NS_PER_S / rate;
-    intervalStart_ = intervalStart_ ? concurrency::Util::currentTimeUsec()
-                                    : 0;
+    if (rate == 0)
+      intervalNsec_ = 0;
+    else
+      intervalNsec_ = concurrency::Util::NS_PER_S / rate;
+    if (intervalStart_ > std::chrono::steady_clock::time_point{}) {
+      intervalStart_ = std::chrono::steady_clock::now();
+    }
     numTimes_ = 0;
   }
 
@@ -84,7 +92,7 @@ class IntervalTimer {
    */
   void start() {
     concurrency::Guard guard(mutex_);
-    intervalStart_ = concurrency::Util::currentTimeUsec();
+    intervalStart_ = std::chrono::steady_clock::now();
   }
 
   /**
@@ -99,8 +107,7 @@ class IntervalTimer {
       return true;
     }
 
-
-    uint64_t waitUntil, now;
+    std::chrono::steady_clock::time_point waitUntil, now;
     {
       concurrency::Guard guard(mutex_);
 
@@ -110,9 +117,10 @@ class IntervalTimer {
       //
       // Update it to be when the next interval is supposed to start
       numTimes_++;
-      now = concurrency::Util::currentTimeUsec();
+      now = std::chrono::steady_clock::now();
 
-      waitUntil = intervalStart_ + (intervalNsec_ * numTimes_) / 1000;
+      waitUntil =
+          intervalStart_ + std::chrono::nanoseconds(intervalNsec_ * numTimes_);
 
       if (now > waitUntil) {
         // If we can't keep up with the requested rate, we'll keep falling
@@ -122,7 +130,7 @@ class IntervalTimer {
         // the current time.  This way, if the operations eventually do speed up
         // and we are able to meet the requested rate, we won't exceed it for
         // too long trying to catch up.
-        uint64_t delta = now - waitUntil;
+        auto delta = now - waitUntil;
         if (delta > maxBacklog_) {
           intervalStart_ = now;
           numTimes_ = 0;
@@ -132,18 +140,21 @@ class IntervalTimer {
       }
     }
 
-    usleep(waitUntil - now);
+    std::this_thread::sleep_for(waitUntil - now);
+
     return true;
   }
 
  private:
   uint64_t numTimes_;
   uint64_t intervalNsec_;
-  uint64_t intervalStart_;
-  uint64_t maxBacklog_;
+  std::chrono::steady_clock::time_point intervalStart_;
+  std::chrono::microseconds maxBacklog_;
   concurrency::Mutex mutex_;
 };
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_TEST_LOADGEN_INTERVALTIMER_H_

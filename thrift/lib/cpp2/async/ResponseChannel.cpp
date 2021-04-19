@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@
 
 #include <folly/io/IOBuf.h>
 
+const std::string kUnknownErrorCode{"0"};
 const std::string kOverloadedErrorCode{"1"};
 const std::string kTaskExpiredErrorCode{"2"};
 const std::string kProxyTransportExceptionErrorCode{"3"};
@@ -39,3 +40,13 @@ const std::string kProxyAclCheckExceptionErrorCode{"18"};
 const std::string kProxyOverloadedErrorCode{"19"};
 const std::string kProxyLoopbackErrorCode{"20"};
 const std::string kRequestTypeDoesntMatchServiceFunctionType{"21"};
+const std::string kAppOverloadedErrorCode{"22"};
+const std::string kAppClientErrorCode{"23"};
+const std::string kAppServerErrorCode{"24"};
+const std::string kMethodUnknownErrorCode{"25"};
+const std::string kInteractionIdUnknownErrorCode{"26"};
+const std::string kInteractionConstructorErrorErrorCode{"27"};
+const std::string kRequestParsingErrorCode{"28"};
+const std::string kServerIngressMemoryLimitExceededErrorCode{"29"};
+const std::string kChecksumMismatchErrorCode{"30"};
+const std::string kConnectionClosingErrorCode{"-1"};

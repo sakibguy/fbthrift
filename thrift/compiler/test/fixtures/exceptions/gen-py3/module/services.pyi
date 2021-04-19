@@ -5,10 +5,10 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import typing as _typing
 from thrift.py3.server import RequestContext, ServiceInterface
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 
 import module.types as _module_types
 
@@ -16,18 +16,19 @@ _RaiserInterfaceT = _typing.TypeVar('_RaiserInterfaceT', bound='RaiserInterface'
 
 
 class RaiserInterface(
-    ServiceInterface
+    ServiceInterface,
+    metaclass=ABCMeta,
 ):
 
     @staticmethod
     def pass_context_doBland(
         fn: _typing.Callable[
                 [_RaiserInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_RaiserInterfaceT],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
@@ -39,11 +40,11 @@ class RaiserInterface(
     def pass_context_doRaise(
         fn: _typing.Callable[
                 [_RaiserInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_RaiserInterfaceT],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
@@ -55,11 +56,11 @@ class RaiserInterface(
     def pass_context_get200(
         fn: _typing.Callable[
                 [_RaiserInterfaceT, RequestContext],
-                _typing.Awaitable[str]
+                _typing.Coroutine[_typing.Any, _typing.Any, str]
         ]
     ) -> _typing.Callable[
         [_RaiserInterfaceT],
-        _typing.Awaitable[str]
+        _typing.Coroutine[_typing.Any, _typing.Any, str]
     ]: ...
 
     @abstractmethod
@@ -71,11 +72,11 @@ class RaiserInterface(
     def pass_context_get500(
         fn: _typing.Callable[
                 [_RaiserInterfaceT, RequestContext],
-                _typing.Awaitable[str]
+                _typing.Coroutine[_typing.Any, _typing.Any, str]
         ]
     ) -> _typing.Callable[
         [_RaiserInterfaceT],
-        _typing.Awaitable[str]
+        _typing.Coroutine[_typing.Any, _typing.Any, str]
     ]: ...
 
     @abstractmethod

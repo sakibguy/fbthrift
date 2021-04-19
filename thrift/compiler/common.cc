@@ -1,33 +1,25 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #include <thrift/compiler/common.h>
 #include <thrift/compiler/parse/parsing_driver.h>
 
-#ifdef _WIN32
-#include <windows.h> /* for GetFullPathName */
-#endif
+#include <cstdarg>
 
 #include <boost/filesystem.hpp>
-
-#include <thrift/compiler/platform.h>
 
 namespace apache {
 namespace thrift {
@@ -37,11 +29,6 @@ namespace compiler {
  * Current compilation stage. One of: arguments, parse, generation
  */
 std::string g_stage;
-
-/**
- * Directory containing template files
- */
-std::string g_template_dir;
 
 /**
  * Should C++ include statements use path prefixes for other thrift-generated
@@ -77,7 +64,7 @@ int g_doctext_lineno;
 std::string compute_absolute_path(const std::string& path) {
   boost::filesystem::path abspath{path};
   try {
-    abspath = boost::filesystem::canonical(abspath);
+    abspath = boost::filesystem::absolute(abspath);
     return abspath.string();
   } catch (const boost::filesystem::filesystem_error& e) {
     failure("Could not find file: %s. Error: %s", path.c_str(), e.what());
@@ -133,52 +120,34 @@ void dump_docstrings(t_program* program) {
   if (!progdoc.empty()) {
     printf("Whole program doc:\n%s\n", progdoc.c_str());
   }
-  const std::vector<t_typedef*>& typedefs = program->get_typedefs();
-  std::vector<t_typedef*>::const_iterator t_iter;
-  for (t_iter = typedefs.begin(); t_iter != typedefs.end(); ++t_iter) {
-    t_typedef* td = *t_iter;
+  for (auto* td : program->typedefs()) {
     if (td->has_doc()) {
       printf(
           "typedef %s:\n%s\n", td->get_name().c_str(), td->get_doc().c_str());
     }
   }
-  const std::vector<t_enum*>& enums = program->get_enums();
-  std::vector<t_enum*>::const_iterator e_iter;
-  for (e_iter = enums.begin(); e_iter != enums.end(); ++e_iter) {
-    t_enum* en = *e_iter;
+  for (auto* en : program->enums()) {
     if (en->has_doc()) {
       printf("enum %s:\n%s\n", en->get_name().c_str(), en->get_doc().c_str());
     }
   }
-  const std::vector<t_const*>& consts = program->get_consts();
-  std::vector<t_const*>::const_iterator c_iter;
-  for (c_iter = consts.begin(); c_iter != consts.end(); ++c_iter) {
-    t_const* co = *c_iter;
+  for (auto* co : program->consts()) {
     if (co->has_doc()) {
       printf("const %s:\n%s\n", co->get_name().c_str(), co->get_doc().c_str());
     }
   }
-  const std::vector<t_struct*>& structs = program->get_structs();
-  std::vector<t_struct*>::const_iterator s_iter;
-  for (s_iter = structs.begin(); s_iter != structs.end(); ++s_iter) {
-    t_struct* st = *s_iter;
+  for (auto* st : program->structs()) {
     if (st->has_doc()) {
       printf("struct %s:\n%s\n", st->get_name().c_str(), st->get_doc().c_str());
     }
   }
-  const std::vector<t_struct*>& xceptions = program->get_xceptions();
-  std::vector<t_struct*>::const_iterator x_iter;
-  for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
-    t_struct* xn = *x_iter;
+  for (auto* xn : program->xceptions()) {
     if (xn->has_doc()) {
       printf(
           "xception %s:\n%s\n", xn->get_name().c_str(), xn->get_doc().c_str());
     }
   }
-  const std::vector<t_service*>& services = program->get_services();
-  std::vector<t_service*>::const_iterator v_iter;
-  for (v_iter = services.begin(); v_iter != services.end(); ++v_iter) {
-    t_service* sv = *v_iter;
+  for (auto* sv : program->services()) {
     if (sv->has_doc()) {
       printf(
           "service %s:\n%s\n", sv->get_name().c_str(), sv->get_doc().c_str());
@@ -186,62 +155,66 @@ void dump_docstrings(t_program* program) {
   }
 }
 
-/**
- * Parse with the given parameters, and dump all the diagnostic messages
- * returned.
- *
- * If the parsing fails, this function will exit(1).
- */
-std::unique_ptr<t_program> parse_and_dump_diagnostics(
-    std::string path,
-    apache::thrift::parsing_params params) {
-  apache::thrift::parsing_driver driver{path, std::move(params)};
+std::unique_ptr<t_program_bundle> parse_and_dump_diagnostics(
+    std::string path, parsing_params params) {
+  parsing_driver driver{path, std::move(params)};
 
-  std::vector<apache::thrift::diagnostic_message> diagnostic_messages;
+  std::vector<diagnostic_message> diagnostic_messages;
   auto program = driver.parse(diagnostic_messages);
+  dump_diagnostics(diagnostic_messages);
 
+  return program;
+}
+
+void dump_diagnostics(
+    const std::vector<diagnostic_message>& diagnostic_messages) {
+  char lineno[16];
   for (auto const& message : diagnostic_messages) {
+    if (message.lineno > 0) {
+      sprintf(lineno, ":%d", message.lineno);
+    } else {
+      *lineno = '\0';
+    }
     switch (message.level) {
-      case apache::thrift::diagnostic_level::YY_ERROR:
+      case diagnostic_level::YY_ERROR:
         fprintf(
             stderr,
-            "[ERROR:%s:%d] (last token was '%s')\n%s\n",
+            "[ERROR:%s%s] (last token was '%s')\n%s\n",
             message.filename.c_str(),
-            message.lineno,
+            lineno,
             message.last_token.c_str(),
             message.message.c_str());
         break;
-      case apache::thrift::diagnostic_level::WARNING:
+      case diagnostic_level::WARNING:
         fprintf(
             stderr,
-            "[WARNING:%s:%d] %s\n",
+            "[WARNING:%s%s] %s\n",
             message.filename.c_str(),
-            message.lineno,
+            lineno,
             message.message.c_str());
         break;
-      case apache::thrift::diagnostic_level::VERBOSE:
+      case diagnostic_level::VERBOSE:
         fprintf(stderr, "%s", message.message.c_str());
         break;
-      case apache::thrift::diagnostic_level::DEBUG:
-        fprintf(
-            stderr, "[PARSE:%d] %s\n", message.lineno, message.message.c_str());
+      case diagnostic_level::DBG:
+        fprintf(stderr, "[PARSE%s] %s\n", lineno, message.message.c_str());
         break;
-      case apache::thrift::diagnostic_level::FAILURE:
+      case diagnostic_level::FAILURE:
         fprintf(
             stderr,
-            "[FAILURE:%s:%d] %s\n",
+            "[FAILURE:%s%s] %s\n",
             message.filename.c_str(),
-            message.lineno,
+            lineno,
             message.message.c_str());
         break;
     }
   }
+}
 
-  if (!program) {
-    exit(1);
-  }
-
-  return program;
+void mark_file_executable(std::string const& path) {
+  namespace fs = boost::filesystem;
+  fs::permissions(
+      path, fs::add_perms | fs::owner_exe | fs::group_exe | fs::others_exe);
 }
 
 } // namespace compiler

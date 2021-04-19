@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/compiler/ast/t_program.h>
 
 #include <map>
@@ -31,19 +32,9 @@ const std::string& t_program::get_namespace(const std::string& language) const {
   return (pos != namespaces_.end() ? pos->second : kEmpty);
 }
 
-void t_program::set_out_path(std::string out_path, bool out_path_is_absolute) {
-  out_path_ = std::move(out_path);
-  out_path_is_absolute_ = out_path_is_absolute;
-  if (!out_path_.empty()) {
-    if (!(out_path_.back() == '/' || out_path_.back() == '\\')) {
-      out_path_.push_back('/');
-    }
-  }
-}
-
-t_program*
-t_program::add_include(std::string path, std::string include_site, int lineno) {
-  t_program* program = new t_program(path);
+std::unique_ptr<t_program> t_program::add_include(
+    std::string path, std::string include_site, int lineno) {
+  auto program = std::make_unique<t_program>(path);
 
   std::string include_prefix;
   const auto last_slash = include_site.find_last_of("/\\");
@@ -53,9 +44,10 @@ t_program::add_include(std::string path, std::string include_site, int lineno) {
 
   program->set_include_prefix(include_prefix);
 
-  auto include = new t_include{program};
+  auto include = std::make_unique<t_include>(program.get());
   include->set_lineno(lineno);
-  includes_.push_back(include);
+
+  add_include(std::move(include));
 
   return program;
 }
@@ -74,7 +66,7 @@ std::string t_program::compute_name_from_file_path(std::string path) {
   if (slash != std::string::npos) {
     path = path.substr(slash + 1);
   }
-  std::string::size_type dot = path.rfind(".");
+  std::string::size_type dot = path.rfind('.');
   if (dot != std::string::npos) {
     path = path.substr(0, dot);
   }

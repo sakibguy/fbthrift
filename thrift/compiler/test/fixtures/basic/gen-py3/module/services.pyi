@@ -5,10 +5,10 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import typing as _typing
 from thrift.py3.server import RequestContext, ServiceInterface
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 
 import module.types as _module_types
 
@@ -16,18 +16,19 @@ _MyServiceInterfaceT = _typing.TypeVar('_MyServiceInterfaceT', bound='MyServiceI
 
 
 class MyServiceInterface(
-    ServiceInterface
+    ServiceInterface,
+    metaclass=ABCMeta,
 ):
 
     @staticmethod
     def pass_context_ping(
         fn: _typing.Callable[
                 [_MyServiceInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_MyServiceInterfaceT],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
@@ -39,11 +40,11 @@ class MyServiceInterface(
     def pass_context_getRandomData(
         fn: _typing.Callable[
                 [_MyServiceInterfaceT, RequestContext],
-                _typing.Awaitable[str]
+                _typing.Coroutine[_typing.Any, _typing.Any, str]
         ]
     ) -> _typing.Callable[
         [_MyServiceInterfaceT],
-        _typing.Awaitable[str]
+        _typing.Coroutine[_typing.Any, _typing.Any, str]
     ]: ...
 
     @abstractmethod
@@ -52,14 +53,49 @@ class MyServiceInterface(
     ) -> str: ...
 
     @staticmethod
-    def pass_context_hasDataById(
+    def pass_context_sink(
         fn: _typing.Callable[
                 [_MyServiceInterfaceT, RequestContext, int],
-                _typing.Awaitable[bool]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_MyServiceInterfaceT, int],
-        _typing.Awaitable[bool]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
+    ]: ...
+
+    @abstractmethod
+    async def sink(
+        self,
+        sink: int
+    ) -> None: ...
+
+    @staticmethod
+    def pass_context_putDataById(
+        fn: _typing.Callable[
+                [_MyServiceInterfaceT, RequestContext, int, str],
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
+        ]
+    ) -> _typing.Callable[
+        [_MyServiceInterfaceT, int, str],
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
+    ]: ...
+
+    @abstractmethod
+    async def putDataById(
+        self,
+        id: int,
+        data: str
+    ) -> None: ...
+
+    @staticmethod
+    def pass_context_hasDataById(
+        fn: _typing.Callable[
+                [_MyServiceInterfaceT, RequestContext, int],
+                _typing.Coroutine[_typing.Any, _typing.Any, bool]
+        ]
+    ) -> _typing.Callable[
+        [_MyServiceInterfaceT, int],
+        _typing.Coroutine[_typing.Any, _typing.Any, bool]
     ]: ...
 
     @abstractmethod
@@ -72,11 +108,11 @@ class MyServiceInterface(
     def pass_context_getDataById(
         fn: _typing.Callable[
                 [_MyServiceInterfaceT, RequestContext, int],
-                _typing.Awaitable[str]
+                _typing.Coroutine[_typing.Any, _typing.Any, str]
         ]
     ) -> _typing.Callable[
         [_MyServiceInterfaceT, int],
-        _typing.Awaitable[str]
+        _typing.Coroutine[_typing.Any, _typing.Any, str]
     ]: ...
 
     @abstractmethod
@@ -86,32 +122,31 @@ class MyServiceInterface(
     ) -> str: ...
 
     @staticmethod
-    def pass_context_putDataById(
+    def pass_context_deleteDataById(
         fn: _typing.Callable[
-                [_MyServiceInterfaceT, RequestContext, int, str],
-                _typing.Awaitable[None]
+                [_MyServiceInterfaceT, RequestContext, int],
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
-        [_MyServiceInterfaceT, int, str],
-        _typing.Awaitable[None]
+        [_MyServiceInterfaceT, int],
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
-    async def putDataById(
+    async def deleteDataById(
         self,
-        id: int,
-        data: str
+        id: int
     ) -> None: ...
 
     @staticmethod
     def pass_context_lobDataById(
         fn: _typing.Callable[
                 [_MyServiceInterfaceT, RequestContext, int, str],
-                _typing.Awaitable[None]
+                _typing.Coroutine[_typing.Any, _typing.Any, None]
         ]
     ) -> _typing.Callable[
         [_MyServiceInterfaceT, int, str],
-        _typing.Awaitable[None]
+        _typing.Coroutine[_typing.Any, _typing.Any, None]
     ]: ...
 
     @abstractmethod
@@ -123,189 +158,47 @@ class MyServiceInterface(
     pass
 
 
-_MyServiceFastInterfaceT = _typing.TypeVar('_MyServiceFastInterfaceT', bound='MyServiceFastInterface')
+_DbMixedStackArgumentsInterfaceT = _typing.TypeVar('_DbMixedStackArgumentsInterfaceT', bound='DbMixedStackArgumentsInterface')
 
 
-class MyServiceFastInterface(
-    ServiceInterface
+class DbMixedStackArgumentsInterface(
+    ServiceInterface,
+    metaclass=ABCMeta,
 ):
 
     @staticmethod
-    def pass_context_ping(
+    def pass_context_getDataByKey0(
         fn: _typing.Callable[
-                [_MyServiceFastInterfaceT, RequestContext],
-                _typing.Awaitable[None]
+                [_DbMixedStackArgumentsInterfaceT, RequestContext, str],
+                _typing.Coroutine[_typing.Any, _typing.Any, bytes]
         ]
     ) -> _typing.Callable[
-        [_MyServiceFastInterfaceT],
-        _typing.Awaitable[None]
+        [_DbMixedStackArgumentsInterfaceT, str],
+        _typing.Coroutine[_typing.Any, _typing.Any, bytes]
     ]: ...
 
     @abstractmethod
-    async def ping(
-        self
-    ) -> None: ...
-
-    @staticmethod
-    def pass_context_getRandomData(
-        fn: _typing.Callable[
-                [_MyServiceFastInterfaceT, RequestContext],
-                _typing.Awaitable[str]
-        ]
-    ) -> _typing.Callable[
-        [_MyServiceFastInterfaceT],
-        _typing.Awaitable[str]
-    ]: ...
-
-    @abstractmethod
-    async def getRandomData(
-        self
-    ) -> str: ...
-
-    @staticmethod
-    def pass_context_hasDataById(
-        fn: _typing.Callable[
-                [_MyServiceFastInterfaceT, RequestContext, int],
-                _typing.Awaitable[bool]
-        ]
-    ) -> _typing.Callable[
-        [_MyServiceFastInterfaceT, int],
-        _typing.Awaitable[bool]
-    ]: ...
-
-    @abstractmethod
-    async def hasDataById(
+    async def getDataByKey0(
         self,
-        id: int
-    ) -> bool: ...
+        key: str
+    ) -> bytes: ...
 
     @staticmethod
-    def pass_context_getDataById(
+    def pass_context_getDataByKey1(
         fn: _typing.Callable[
-                [_MyServiceFastInterfaceT, RequestContext, int],
-                _typing.Awaitable[str]
+                [_DbMixedStackArgumentsInterfaceT, RequestContext, str],
+                _typing.Coroutine[_typing.Any, _typing.Any, bytes]
         ]
     ) -> _typing.Callable[
-        [_MyServiceFastInterfaceT, int],
-        _typing.Awaitable[str]
+        [_DbMixedStackArgumentsInterfaceT, str],
+        _typing.Coroutine[_typing.Any, _typing.Any, bytes]
     ]: ...
 
     @abstractmethod
-    async def getDataById(
+    async def getDataByKey1(
         self,
-        id: int
-    ) -> str: ...
-
-    @staticmethod
-    def pass_context_putDataById(
-        fn: _typing.Callable[
-                [_MyServiceFastInterfaceT, RequestContext, int, str],
-                _typing.Awaitable[None]
-        ]
-    ) -> _typing.Callable[
-        [_MyServiceFastInterfaceT, int, str],
-        _typing.Awaitable[None]
-    ]: ...
-
-    @abstractmethod
-    async def putDataById(
-        self,
-        id: int,
-        data: str
-    ) -> None: ...
-
-    @staticmethod
-    def pass_context_lobDataById(
-        fn: _typing.Callable[
-                [_MyServiceFastInterfaceT, RequestContext, int, str],
-                _typing.Awaitable[None]
-        ]
-    ) -> _typing.Callable[
-        [_MyServiceFastInterfaceT, int, str],
-        _typing.Awaitable[None]
-    ]: ...
-
-    @abstractmethod
-    async def lobDataById(
-        self,
-        id: int,
-        data: str
-    ) -> None: ...
-    pass
-
-
-_MyServiceEmptyInterfaceT = _typing.TypeVar('_MyServiceEmptyInterfaceT', bound='MyServiceEmptyInterface')
-
-
-class MyServiceEmptyInterface(
-    ServiceInterface
-):
-    pass
-
-
-_MyServicePrioParentInterfaceT = _typing.TypeVar('_MyServicePrioParentInterfaceT', bound='MyServicePrioParentInterface')
-
-
-class MyServicePrioParentInterface(
-    ServiceInterface
-):
-
-    @staticmethod
-    def pass_context_ping(
-        fn: _typing.Callable[
-                [_MyServicePrioParentInterfaceT, RequestContext],
-                _typing.Awaitable[None]
-        ]
-    ) -> _typing.Callable[
-        [_MyServicePrioParentInterfaceT],
-        _typing.Awaitable[None]
-    ]: ...
-
-    @abstractmethod
-    async def ping(
-        self
-    ) -> None: ...
-
-    @staticmethod
-    def pass_context_pong(
-        fn: _typing.Callable[
-                [_MyServicePrioParentInterfaceT, RequestContext],
-                _typing.Awaitable[None]
-        ]
-    ) -> _typing.Callable[
-        [_MyServicePrioParentInterfaceT],
-        _typing.Awaitable[None]
-    ]: ...
-
-    @abstractmethod
-    async def pong(
-        self
-    ) -> None: ...
-    pass
-
-
-_MyServicePrioChildInterfaceT = _typing.TypeVar('_MyServicePrioChildInterfaceT', bound='MyServicePrioChildInterface')
-
-
-class MyServicePrioChildInterface(
-MyServicePrioParentInterface
-):
-
-    @staticmethod
-    def pass_context_pang(
-        fn: _typing.Callable[
-                [_MyServicePrioChildInterfaceT, RequestContext],
-                _typing.Awaitable[None]
-        ]
-    ) -> _typing.Callable[
-        [_MyServicePrioChildInterfaceT],
-        _typing.Awaitable[None]
-    ]: ...
-
-    @abstractmethod
-    async def pang(
-        self
-    ) -> None: ...
+        key: str
+    ) -> bytes: ...
     pass
 
 

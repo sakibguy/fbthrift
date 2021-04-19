@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <gtest/gtest.h>
+
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
@@ -114,7 +115,7 @@ void testAdvanceToNextFieldSuccess() {
   }
   EXPECT_TRUE(state.advanceToNextField(&reader, 16381, 0, T_STOP));
   state.readStructEnd(&reader);
-  EXPECT_TRUE(reader.getCurrentPosition().isAtEnd());
+  EXPECT_TRUE(reader.getCursor().isAtEnd());
 }
 
 template <class ProtocolReader>
@@ -169,7 +170,7 @@ void testAdvanceToNextFieldFail() {
   EXPECT_FALSE(state.advanceToNextField(&reader, 16381, 123, T_STRING));
   EXPECT_EQ(state.fieldType, T_STOP);
   state.readStructEnd(&reader);
-  EXPECT_TRUE(reader.getCurrentPosition().isAtEnd());
+  EXPECT_TRUE(reader.getCursor().isAtEnd());
 }
 
 TEST(BinaryProtocol, advanceToNextFieldSuccess) {

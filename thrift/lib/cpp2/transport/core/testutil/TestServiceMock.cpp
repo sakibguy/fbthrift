@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +19,9 @@
 #include <chrono>
 #include <thread>
 
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
-#include <thrift/lib/cpp2/async/RSocketClientChannel.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
+#include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/transport/core/ThriftClient.h>
 #include <thrift/lib/cpp2/transport/util/ConnectionManager.h>
 
@@ -30,7 +31,6 @@ namespace testutil {
 namespace testservice {
 
 using namespace apache::thrift;
-using namespace apache::thrift::async;
 
 int32_t TestServiceMock::sumTwoNumbers(int32_t x, int32_t y) {
   sumTwoNumbers_(x, y); // just inform that this function is called
@@ -58,7 +58,7 @@ void TestServiceMock::onewayThrowsUnexpectedException(int32_t delayMs) {
 
 void TestServiceMock::throwExpectedException(int32_t) {
   TestServiceException exception;
-  exception.message = "mock_service_method_exception";
+  *exception.message_ref() = "mock_service_method_exception";
   throw exception;
 }
 
@@ -85,21 +85,20 @@ void TestServiceMock::headers() {
 
   if (keyValue.find("expected_exception") != keyValue.end()) {
     TestServiceException exception;
-    exception.message = "expected exception";
+    *exception.message_ref() = "expected exception";
     throw exception;
   }
 
   if (keyValue.find("header_from_client") == keyValue.end() ||
       keyValue.find("header_from_client")->second != "2") {
     TestServiceException exception;
-    exception.message = "Expected key/value, foo:bar, is missing";
+    *exception.message_ref() = "Expected key/value, foo:bar, is missing";
     throw exception;
   }
 }
 
 void TestServiceMock::hello(
-    std::string& result,
-    std::unique_ptr<std::string> name) {
+    std::string& result, std::unique_ptr<std::string> name) {
   hello_(*name);
   result = "Hello, " + *name;
 }
@@ -109,14 +108,31 @@ void TestServiceMock::checkPort(int32_t port) {
   CHECK_EQ(port, getConnectionContext()->getPeerAddress()->getPort());
 }
 
+void TestServiceMock::echo(
+    std::string& result, std::unique_ptr<folly::IOBuf> val) {
+  echo_(*val);
+  folly::io::Cursor c(val.get());
+  result = c.readFixedString(val->computeChainDataLength());
+}
+
+void TestServiceMock::onewayLogBlob(std::unique_ptr<folly::IOBuf> val) {
+  onewayLogBlob_(*val);
+}
+
 IntermHeaderService::IntermHeaderService(
-    std::string const& host,
-    int16_t port) {
-  if (FLAGS_transport == "rsocket") {
-    RSocketClientChannel::Ptr channel;
+    std::string const& host, int16_t port) {
+  if (FLAGS_transport == "header") {
+    HeaderClientChannel::Ptr channel;
     evbThread_.getEventBase()->runInEventBaseThreadAndWait([&]() {
-      channel = RSocketClientChannel::newChannel(TAsyncSocket::UniquePtr(
-          new TAsyncSocket(evbThread_.getEventBase(), host, port)));
+      channel = HeaderClientChannel::newChannel(folly::AsyncSocket::UniquePtr(
+          new folly::AsyncSocket(evbThread_.getEventBase(), host, port)));
+    });
+    client_ = std::make_unique<TestServiceAsyncClient>(std::move(channel));
+  } else if (FLAGS_transport == "rocket") {
+    RocketClientChannel::Ptr channel;
+    evbThread_.getEventBase()->runInEventBaseThreadAndWait([&]() {
+      channel = RocketClientChannel::newChannel(folly::AsyncSocket::UniquePtr(
+          new folly::AsyncSocket(evbThread_.getEventBase(), host, port)));
     });
     client_ = std::make_unique<TestServiceAsyncClient>(std::move(channel));
   } else {

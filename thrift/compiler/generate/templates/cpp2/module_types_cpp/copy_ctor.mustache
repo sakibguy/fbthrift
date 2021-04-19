@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,18 +16,25 @@
 
 %><%struct:name%>::<%struct:name%>(const <%struct:name%>& srcObj) {
 <%#struct:fields%><%#field:type%>
+<%#field:lazy?%>
+  srcObj.<%field:cpp_name%>_ref();
+  __fbthrift_isDeserialized_.<%field:cpp_name%> = true;
+  __fbthrift_serializedData_.<%field:cpp_name%>.clear();
+<%/field:lazy?%>
 <%^field:cpp_ref_unique_either?%>
-  <%field:name%> = srcObj.<%field:name%>;
+  <%field:cpp_name%> = srcObj.<%field:cpp_name%>;
 <%/field:cpp_ref_unique_either?%>
 <%#field:cpp_ref_unique_either?%>
-  if (srcObj.<%field:name%>) <%#field:cpp_ref_unique?%><%!
-    %><%field:name%>.reset(new <% > types/type%>(*srcObj.<%field:name%>));
+  if (srcObj.<%field:cpp_name%>) <%#field:cpp_ref_unique?%><%!
+    %><%field:cpp_name%>.reset(new <%type:cpp_type%>(*srcObj.<%field:cpp_name%>));
 <%/field:cpp_ref_unique?%><%^field:cpp_ref_unique?%><%!
-    %><%field:name%> = srcObj.<%field:name%><%#type:optionals?%>.value()<%/type:optionals?%>->clone();
+    %><%field:cpp_name%> = srcObj.<%field:cpp_name%>->clone();
 <%/field:cpp_ref_unique?%>
 <%/field:cpp_ref_unique_either?%>
-<%^type:optionals?%><%^field:cpp_ref?%><%^field:required?%>
-  __isset.<%field:name%> = srcObj.__isset.<%field:name%>;
-<%/field:required?%><%/field:cpp_ref?%><%/type:optionals?%>
+<%^field:cpp_ref?%><%^field:required?%>
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  __isset.<%field:cpp_name%> = srcObj.__isset.<%field:cpp_name%>;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+<%/field:required?%><%/field:cpp_ref?%>
 <%/field:type%><%/struct:fields%>
 }

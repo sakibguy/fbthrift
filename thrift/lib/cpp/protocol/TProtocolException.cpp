@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,9 +16,11 @@
 
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
 
-#include <folly/Format.h>
+#include <fmt/core.h>
 
-namespace apache { namespace thrift { namespace protocol {
+namespace apache {
+namespace thrift {
+namespace protocol {
 
 [[noreturn]] void TProtocolException::throwUnionMissingStop() {
   throw TProtocolException(
@@ -40,21 +42,52 @@ namespace apache { namespace thrift { namespace protocol {
   throw TProtocolException(TProtocolException::SIZE_LIMIT);
 }
 
+[[noreturn]] void TProtocolException::throwExceededSizeLimit(
+    uint32_t size, uint32_t limit) {
+  throw TProtocolException(
+      TProtocolException::SIZE_LIMIT,
+      fmt::format("TProtocolException: {} exceeds size limit {}", size, limit));
+}
+
 [[noreturn]] void TProtocolException::throwMissingRequiredField(
-    folly::StringPiece field,
-    folly::StringPiece type) {
-  constexpr auto fmt =
-      "Required field '{}' was not found in serialized data! Struct: {}";
+    folly::StringPiece field, folly::StringPiece type) {
   throw TProtocolException(
       TProtocolException::MISSING_REQUIRED_FIELD,
-      folly::sformat(fmt, field, type));
+      fmt::format(
+          "Required field '{}' was not found in serialized data! Struct: {}",
+          field,
+          type));
 }
 
 [[noreturn]] void TProtocolException::throwBoolValueOutOfRange(uint8_t value) {
   throw TProtocolException(
       TProtocolException::INVALID_DATA,
-      folly::sformat(
-          "Attempt to interpret value {} as bool, probably the data is corrupted",
+      fmt::format(
+          "Attempt to interpret value {} as bool, probably the data is "
+          "corrupted",
           value));
 }
-}}}
+
+[[noreturn]] void TProtocolException::throwInvalidSkipType(TType type) {
+  throw TProtocolException(
+      TProtocolException::INVALID_DATA,
+      fmt::format(
+          "Encountered invalid field/element type ({}) during skipping",
+          static_cast<uint8_t>(type)));
+}
+
+[[noreturn]] void TProtocolException::throwInvalidFieldData() {
+  throw TProtocolException(
+      TProtocolException::INVALID_DATA,
+      "The field stream contains corrupted data");
+}
+
+[[noreturn]] void TProtocolException::throwTruncatedData() {
+  throw TProtocolException(
+      TProtocolException::INVALID_DATA,
+      "Not enough bytes to read the entire message, the data appears to be "
+      "truncated");
+}
+} // namespace protocol
+} // namespace thrift
+} // namespace apache

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <folly/Benchmark.h>
 #include <thrift/lib/cpp2/frozen/FrozenUtil.h>
 #include <thrift/lib/cpp2/frozen/test/gen-cpp2/Example_layouts.h>
@@ -25,18 +26,16 @@ using namespace apache::thrift::test;
 
 EveryLayout stressValue2 = [] {
   EveryLayout x;
-  x.aBool = true;
-  x.aInt = 2;
-  x.aList = {3, 5};
-  x.aSet = {7, 11};
-  x.aHashSet = {13, 17};
-  x.aMap = {{19, 23}, {29, 31}};
-  x.aHashMap = {{37, 41}, {43, 47}};
-  x.optInt = 53;
-  x.__isset.optInt = true;
-  x.aFloat = 59.61;
-  x.optMap = {{2, 4}, {3, 9}};
-  x.__isset.optMap = true;
+  *x.aBool_ref() = true;
+  *x.aInt_ref() = 2;
+  *x.aList_ref() = {3, 5};
+  *x.aSet_ref() = {7, 11};
+  *x.aHashSet_ref() = {13, 17};
+  *x.aMap_ref() = {{19, 23}, {29, 31}};
+  *x.aHashMap_ref() = {{37, 41}, {43, 47}};
+  x.optInt_ref() = 53;
+  *x.aFloat_ref() = 59.61;
+  x.optMap_ref() = {{2, 4}, {3, 9}};
   return x;
 }();
 

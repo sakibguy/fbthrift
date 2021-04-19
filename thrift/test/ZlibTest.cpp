@@ -1,22 +1,17 @@
 /*
- * Copyright 2009-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <cinttypes>
@@ -29,7 +24,7 @@
 #include <thrift/lib/cpp/transport/TBufferTransports.h>
 #include <thrift/lib/cpp/transport/TZlibTransport.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace std;
 using namespace apache::thrift::transport;
@@ -57,8 +52,7 @@ class ConstantSizeGenerator : public SizeGenerator {
 
 class LogNormalSizeGenerator : public SizeGenerator {
  public:
-  LogNormalSizeGenerator(double mean, double std_dev) :
-      dist_(mean, std_dev) {}
+  LogNormalSizeGenerator(double mean, double std_dev) : dist_(mean, std_dev) {}
 
   unsigned int getSize() override {
     // Loop until we get a size of 1 or more
@@ -121,13 +115,10 @@ vector<uint8_t> gen_random_buffer(uint32_t buf_len) {
   return buf;
 }
 
-constexpr uint32_t kBufLen = 1024*32;
-const auto kExampleUniformBuffer =
-  gen_uniform_buffer(kBufLen, 'a');
-const auto kExampleCompressibleBuffer =
-  gen_compressible_buffer(kBufLen);
-const auto kExampleRandomBuffer =
-  gen_random_buffer(kBufLen);
+constexpr uint32_t kBufLen = 1024 * 32;
+const auto kExampleUniformBuffer = gen_uniform_buffer(kBufLen, 'a');
+const auto kExampleCompressibleBuffer = gen_compressible_buffer(kBufLen);
+const auto kExampleRandomBuffer = gen_random_buffer(kBufLen);
 
 /*
  * Test functions
@@ -160,8 +151,8 @@ void test_separate_checksum(const vector<uint8_t>& buf) {
   string tmp_buf;
   membuf->appendBufferToString(tmp_buf);
   auto urbuf_size = TZlibTransport::DEFAULT_URBUF_SIZE;
-  zlib_trans = make_shared<TZlibTransport>(
-      membuf, urbuf_size, tmp_buf.length()-1);
+  zlib_trans =
+      make_shared<TZlibTransport>(membuf, urbuf_size, tmp_buf.length() - 1);
 
   vector<uint8_t> mirror(buf.size(), 0);
   uint32_t got = zlib_trans->readAll(mirror.data(), buf.size());
@@ -180,9 +171,9 @@ void test_incomplete_checksum(const vector<uint8_t>& buf) {
   string tmp_buf;
   membuf->appendBufferToString(tmp_buf);
   tmp_buf.erase(tmp_buf.length() - 1);
-  membuf->resetBuffer(const_cast<uint8_t*>(
-                        reinterpret_cast<const uint8_t*>(tmp_buf.data())),
-                      tmp_buf.length());
+  membuf->resetBuffer(
+      const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(tmp_buf.data())),
+      tmp_buf.length());
 
   vector<uint8_t> mirror(buf.size(), 0);
   uint32_t got = zlib_trans->readAll(mirror.data(), buf.size());
@@ -196,9 +187,10 @@ void test_incomplete_checksum(const vector<uint8_t>& buf) {
   }
 }
 
-void test_read_write_mix(const vector<uint8_t>& buf,
-                                const shared_ptr<SizeGenerator>& write_gen,
-                                const shared_ptr<SizeGenerator>& read_gen) {
+void test_read_write_mix(
+    const vector<uint8_t>& buf,
+    const shared_ptr<SizeGenerator>& write_gen,
+    const shared_ptr<SizeGenerator>& read_gen) {
   // Try it with a mix of read/write sizes.
   auto membuf = make_shared<TMemoryBuffer>();
   auto zlib_trans = make_shared<TZlibTransport>(membuf);
@@ -258,9 +250,9 @@ void test_invalid_checksum(const vector<uint8_t>& buf) {
   // error when only modifying checksum bytes.
   int index = tmp_buf.size() - 1;
   tmp_buf[index]++;
-  membuf->resetBuffer(const_cast<uint8_t*>(
-                        reinterpret_cast<const uint8_t*>(tmp_buf.data())),
-                      tmp_buf.length());
+  membuf->resetBuffer(
+      const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(tmp_buf.data())),
+      tmp_buf.length());
 
   vector<uint8_t> mirror(buf.size(), 0);
   try {
@@ -326,39 +318,44 @@ void test_no_write() {
 
 class ZlibTest : public testing::Test {
  public:
-  shared_ptr<SizeGenerator> size32k {
-    make_shared<ConstantSizeGenerator>(1<<15) };
-  shared_ptr<SizeGenerator> sizeLognormal {
-    make_shared<LogNormalSizeGenerator>(20, 30) };
-  shared_ptr<SizeGenerator> writeSizeGen {
-    make_shared<LogNormalSizeGenerator>(20, 30) };
-  shared_ptr<SizeGenerator> readSizeGen {
-    make_shared<LogNormalSizeGenerator>(20, 30) };
+  shared_ptr<SizeGenerator> size32k{
+      make_shared<ConstantSizeGenerator>(1 << 15)};
+  shared_ptr<SizeGenerator> sizeLognormal{
+      make_shared<LogNormalSizeGenerator>(20, 30)};
+  shared_ptr<SizeGenerator> writeSizeGen{
+      make_shared<LogNormalSizeGenerator>(20, 30)};
+  shared_ptr<SizeGenerator> readSizeGen{
+      make_shared<LogNormalSizeGenerator>(20, 30)};
 };
 
-}
+} // namespace
 
 #define ADD_TEST_CASE(name, function, ...) \
-  TEST_F(ZlibTest, name##_##function) { \
-    test_##function(__VA_ARGS__); \
-  } \
+  TEST_F(ZlibTest, name##_##function) { test_##function(__VA_ARGS__); }
 
-#define ADD_TESTS(name, buf) \
-  ADD_TEST_CASE(name, write_then_read, buf) \
-  ADD_TEST_CASE(name, separate_checksum, buf) \
-  ADD_TEST_CASE(name, incomplete_checksum, buf) \
-  ADD_TEST_CASE(name, invalid_checksum, buf) \
-  ADD_TEST_CASE(name, write_after_flush, buf) \
-  ADD_TEST_CASE(name##_constant, read_write_mix, \
-      buf, size32k, size32k) \
-  ADD_TEST_CASE(name##_lognormal_write, read_write_mix, \
-      buf, sizeLognormal, size32k) \
-  ADD_TEST_CASE(name##_lognormal_read, read_write_mix, \
-      buf, size32k, sizeLognormal) \
-  ADD_TEST_CASE(name##_lognormal_both, read_write_mix, \
-      buf, sizeLognormal, sizeLognormal) \
-  ADD_TEST_CASE(name##_lognormal_same_distribution, read_write_mix, \
-      buf, writeSizeGen, readSizeGen) \
+#define ADD_TESTS(name, buf)                                               \
+  ADD_TEST_CASE(name, write_then_read, buf)                                \
+  ADD_TEST_CASE(name, separate_checksum, buf)                              \
+  ADD_TEST_CASE(name, incomplete_checksum, buf)                            \
+  ADD_TEST_CASE(name, invalid_checksum, buf)                               \
+  ADD_TEST_CASE(name, write_after_flush, buf)                              \
+  ADD_TEST_CASE(name##_constant, read_write_mix, buf, size32k, size32k)    \
+  ADD_TEST_CASE(                                                           \
+      name##_lognormal_write, read_write_mix, buf, sizeLognormal, size32k) \
+  ADD_TEST_CASE(                                                           \
+      name##_lognormal_read, read_write_mix, buf, size32k, sizeLognormal)  \
+  ADD_TEST_CASE(                                                           \
+      name##_lognormal_both,                                               \
+      read_write_mix,                                                      \
+      buf,                                                                 \
+      sizeLognormal,                                                       \
+      sizeLognormal)                                                       \
+  ADD_TEST_CASE(                                                           \
+      name##_lognormal_same_distribution,                                  \
+      read_write_mix,                                                      \
+      buf,                                                                 \
+      writeSizeGen,                                                        \
+      readSizeGen)
 
 ADD_TESTS(uniform, kExampleUniformBuffer)
 ADD_TESTS(compressible, kExampleCompressibleBuffer)

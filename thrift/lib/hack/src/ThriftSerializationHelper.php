@@ -1,5 +1,19 @@
 <?hh
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
  * Generic Protocol Reader and Writer
@@ -14,12 +28,12 @@ class ThriftSerializationHelper {
     $field_id = 0;
 
     $tspec = $object::$_TSPEC;
-    $xfer = $protocol->readStructBegin(&$field_name);
+    $xfer = $protocol->readStructBegin(inout $field_name);
     while (true) {
       $xfer += $protocol->readFieldBegin(
-        &$field_name,
-        &$field_type,
-        &$field_id,
+        inout $field_name,
+        inout $field_type,
+        inout $field_id,
       );
 
       // Break once we reach the end of the struct.
@@ -85,12 +99,12 @@ class ThriftSerializationHelper {
     $tspec = $object::$_TSPEC;
     $union_enum_name = get_class($object) . "Enum";
     $union_enum = $union_enum_name::_EMPTY_;
-    $xfer = $protocol->readStructBegin(&$field_name);
+    $xfer = $protocol->readStructBegin(inout $field_name);
     while (true) {
       $xfer += $protocol->readFieldBegin(
-        &$field_name,
-        &$field_type,
-        &$field_id,
+        inout $field_name,
+        inout $field_type,
+        inout $field_id,
       );
 
       // Break once we reach the end of the struct.
@@ -133,12 +147,14 @@ class ThriftSerializationHelper {
         $field_id = $object::$_TFIELDMAP[$field_name];
       }
 
+      $field_name_tmp = $object->$field_name;
       $xfer += self::readStructHelper(
         $protocol,
         $tspec[$field_id]['type'],
-        &$object->$field_name,
+        &$field_name_tmp,
         $tspec[$field_id]
       );
+      $object->$field_name = $field_name_tmp;
       $union_enum = $union_enum_name::coerce($object::$_TFIELDMAP[$field_name]);
       $xfer += $protocol->readFieldEnd();
     }
@@ -281,7 +297,11 @@ class ThriftSerializationHelper {
         $size = 0;
         $key_type = 0;
         $value_type = 0;
-        $xfer += $protocol->readMapBegin(&$key_type, &$value_type, &$size);
+        $xfer += $protocol->readMapBegin(
+          inout $key_type,
+          inout $value_type,
+          inout $size,
+        );
 
         // Use the correct collection.
         $map = null;

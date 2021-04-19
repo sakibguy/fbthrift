@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,19 +30,6 @@ template<> struct equal_to<typename <% > common/namespace_cpp2%><%struct:name%>>
 <%/struct:cpp_declare_equal_to%>
 <%/struct:cpp_declare_hash%>
 <%/program:structs%>
-<%#program:typedefs%><%#typedef:type%>
-<%#type:cpp_declare_hash%>
-
-template<> struct hash<typename <% > common/namespace_cpp2%><%typedef:symbolic%>> {
-  size_t operator()(const <% > common/namespace_cpp2%><%typedef:symbolic%>&) const;
-};
-<%#type:cpp_declare_equal_to%>
-template<> struct equal_to<typename <% > common/namespace_cpp2%><%typedef:symbolic%>> {
-  bool operator()(const <% > common/namespace_cpp2%><%typedef:symbolic%>&,const <% > common/namespace_cpp2%><%typedef:symbolic%>&) const;
-};
-<%/type:cpp_declare_equal_to%>
-<%/type:cpp_declare_hash%>
-<%/typedef:type%><%/program:typedefs%>
 } // std
 <%/program:cpp_declare_hash?%>
 // END hash_and_equal_to

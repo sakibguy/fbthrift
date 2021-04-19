@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,13 +16,14 @@
 
 #include <thrift/lib/cpp/transport/THeader.h>
 
+#include <fmt/core.h>
 #include <folly/Conv.h>
 #include <folly/ExceptionString.h>
-#include <folly/Format.h>
 #include <folly/String.h>
 #include <folly/compression/Compression.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
+#include <folly/lang/Bits.h>
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp/concurrency/Thread.h>
 #include <thrift/lib/cpp/protocol/TBinaryProtocol.h>
@@ -31,6 +32,8 @@
 #include <thrift/lib/cpp/transport/TBufferTransports.h>
 #include <thrift/lib/cpp/util/THttpParser.h>
 #include <thrift/lib/cpp/util/VarintUtils.h>
+#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/lib/cpp2/transport/rocket/framing/Util.h>
 
 #include <algorithm>
 #include <cassert>
@@ -59,18 +62,26 @@ const string THeader::ID_VERSION = "1";
 const string THeader::PRIORITY_HEADER = "thrift_priority";
 const string& THeader::CLIENT_TIMEOUT_HEADER = *(new string("client_timeout"));
 const string THeader::QUEUE_TIMEOUT_HEADER = "queue_timeout";
+const string THeader::QUERY_LOAD_HEADER = "load";
+const string THeader::kClientId = "client_id";
+const string THeader::kServiceTraceMeta = "service_trace_meta";
 
-static constexpr StringPiece THRIFT_AUTH_HEADER = "thrift_auth";
+std::string getReadableChars(Cursor c, size_t limit) {
+  size_t size = 0;
+  return c.readWhile([&size, limit](char b) {
+    const auto isPrintable = 0x20 <= b && b < 0x7F;
+    size++;
+    return size <= limit && isPrintable;
+  });
+}
 
 THeader::THeader(int options)
-    : queue_(new folly::IOBufQueue),
-      protoId_(T_COMPACT_PROTOCOL),
+    : protoId_(T_COMPACT_PROTOCOL),
       protoVersion_(-1),
       clientType_(THRIFT_HEADER_CLIENT_TYPE),
       forceClientType_(false),
       seqId_(0),
       flags_(0),
-      minCompressBytes_(0),
       allowBigFrames_(options & ALLOW_BIG_FRAMES) {}
 
 THeader::~THeader() {}
@@ -90,7 +101,8 @@ bool THeader::compactFramed(uint32_t magic) {
 }
 
 template <
-    template <class BaseProt> class ProtocolClass,
+    template <class BaseProt>
+    class ProtocolClass,
     PROTOCOL_TYPES ProtocolID>
 unique_ptr<IOBuf> THeader::removeUnframed(IOBufQueue* queue, size_t& needed) {
   auto buf = queue->move();
@@ -196,20 +208,41 @@ CLIENT_TYPE THeader::analyzeSecond32bit(uint32_t w) {
     return THRIFT_FRAMED_COMPACT;
   }
   if ((w & HEADER_MASK) == HEADER_MAGIC) {
-    if ((w & HEADER_FLAG_SASL) != 0) {
-      return THRIFT_HEADER_SASL_CLIENT_TYPE;
-    }
     return THRIFT_HEADER_CLIENT_TYPE;
   }
   return THRIFT_UNKNOWN_CLIENT_TYPE;
 }
 
-CLIENT_TYPE THeader::getClientType(uint32_t f, uint32_t s) {
-  auto res = analyzeFirst32bit(f);
-  if (res) {
-    return *res;
+CLIENT_TYPE THeader::tryGetClientType(const folly::IOBuf& data) {
+  bool isRocket = apache::thrift::rocket::isMaybeRocketFrame(data);
+
+  folly::io::Cursor cursor(&data);
+  uint32_t word;
+  if (cursor.tryReadBE(word)) {
+    auto res = analyzeFirst32bit(word);
+    if (res) {
+      if (isRocket) {
+        if (*res == CLIENT_TYPE::THRIFT_HTTP_CLIENT_TYPE ||
+            *res == CLIENT_TYPE::THRIFT_HTTP_SERVER_TYPE) {
+          return CLIENT_TYPE::THRIFT_UNKNOWN_CLIENT_TYPE;
+        }
+        return CLIENT_TYPE::THRIFT_ROCKET_CLIENT_TYPE;
+      }
+      return *res;
+    }
   }
-  return analyzeSecond32bit(s);
+  if (cursor.tryReadBE(word)) {
+    auto res = analyzeSecond32bit(word);
+    if (isRocket) {
+      if (res == CLIENT_TYPE::THRIFT_HEADER_CLIENT_TYPE) {
+        return CLIENT_TYPE::THRIFT_UNKNOWN_CLIENT_TYPE;
+      }
+      return CLIENT_TYPE::THRIFT_ROCKET_CLIENT_TYPE;
+    }
+    return res;
+  }
+
+  return CLIENT_TYPE::THRIFT_UNKNOWN_CLIENT_TYPE;
 }
 
 bool THeader::isFramed(CLIENT_TYPE type) {
@@ -223,10 +256,7 @@ bool THeader::isFramed(CLIENT_TYPE type) {
 }
 
 unique_ptr<IOBuf> THeader::removeNonHeader(
-    IOBufQueue* queue,
-    size_t& needed,
-    CLIENT_TYPE type,
-    uint32_t sz) {
+    IOBufQueue* queue, size_t& needed, CLIENT_TYPE type, uint32_t sz) {
   switch (type) {
     case THRIFT_FRAMED_DEPRECATED:
       protoId_ = T_BINARY_PROTOCOL;
@@ -258,7 +288,12 @@ unique_ptr<IOBuf> THeader::removeHeader(
     return nullptr;
   }
   Cursor c(queue->front());
-  size_t remaining = queue->front()->computeChainDataLength();
+  size_t remaining;
+  if (queue->options().cacheChainLength) {
+    remaining = queue->chainLength();
+  } else {
+    remaining = queue->front()->computeChainDataLength();
+  }
   size_t frameSizeBytes = 4;
   needed = 0;
 
@@ -290,7 +325,7 @@ unique_ptr<IOBuf> THeader::removeHeader(
     return THeader::removeNonHeader(queue, needed, *clientT, sz32);
   }
 
-  size_t sz = sz32;
+  size_t sz;
   if (sz32 > MAX_FRAME_SIZE) {
     if (sz32 == BIG_FRAME_MAGIC) {
       if (!allowBigFrames_) {
@@ -304,6 +339,18 @@ unique_ptr<IOBuf> THeader::removeHeader(
       sz = c.readBE<uint64_t>();
       remaining -= 8;
       frameSizeBytes += 8;
+    } else if (
+        sz32 == *reinterpret_cast<const uint32_t*>("coll") ||
+        sz32 == *reinterpret_cast<const uint32_t*>("H pa")) {
+      // special case for the most common question in user-group
+      // this will probably saves hours of engineering effort.
+      c.retreat(4);
+      std::string err = "The Thrift server received an ASCII request '" +
+          getReadableChars(c, 32) +
+          "' and safely ignored it. "
+          "In all likelihood, this isn't the reason of your problem "
+          "(probably a local daemon sending HTTP content to all listening ports).";
+      throw TTransportException(TTransportException::INVALID_FRAME_SIZE, err);
     } else {
       std::string err = folly::stringPrintf(
           "Header transport frame is too large: %u (hex 0x%08x", sz32, sz32);
@@ -314,7 +361,7 @@ unique_ptr<IOBuf> THeader::removeHeader(
           ((sz32 >> 0) & 0xff) >= 0x20) {
         char buffer[5];
         uint32_t* asUint32 = reinterpret_cast<uint32_t*>(buffer);
-        *asUint32 = htonl(sz32);
+        *asUint32 = folly::Endian::big(sz32);
         buffer[4] = 0;
         folly::stringAppendf(&err, ", ascii '%s'", buffer);
       }
@@ -333,7 +380,6 @@ unique_ptr<IOBuf> THeader::removeHeader(
 
   // Could be header format or framed. Check next uint32
   uint32_t magic = c.readBE<uint32_t>();
-  remaining -= 4;
   clientType_ = analyzeSecond32bit(magic);
   unique_ptr<IOBuf> buf =
       THeader::removeNonHeader(queue, needed, clientType_, sz);
@@ -360,18 +406,6 @@ unique_ptr<IOBuf> THeader::removeHeader(
   queue->trimStart(frameSizeBytes);
   buf = readHeaderFormat(queue->split(sz), persistentReadHeaders);
 
-  // auth client?
-  auto auth_header = getHeaders().find(THRIFT_AUTH_HEADER.str());
-
-  // Correct client type if needed
-  if (auth_header != getHeaders().end()) {
-    if (auth_header->second == "1") {
-      clientType_ = THRIFT_HEADER_SASL_CLIENT_TYPE;
-    } else {
-      clientType_ = THRIFT_HEADER_CLIENT_TYPE;
-    }
-    readHeaders_.erase(auth_header);
-  }
   return buf;
 }
 
@@ -400,8 +434,7 @@ static string readString(RWPrivateCursor& c) {
 }
 
 static void readInfoHeaders(
-    RWPrivateCursor& c,
-    THeader::StringToStringMap& headers_) {
+    RWPrivateCursor& c, THeader::StringToStringMap& headers_) {
   // Process key-value headers
   uint32_t numKVHeaders = readVarint<int32_t>(c);
   // continue until we reach (paded) end of packet
@@ -416,8 +449,7 @@ static void readInfoHeaders(
 }
 
 unique_ptr<IOBuf> THeader::readHeaderFormat(
-    unique_ptr<IOBuf> buf,
-    StringToStringMap& persistentReadHeaders) {
+    unique_ptr<IOBuf> buf, StringToStringMap& persistentReadHeaders) {
   readTrans_.clear(); // Clear out any previous transforms.
   readHeaders_.clear(); // Clear out any previous headers.
 
@@ -503,8 +535,7 @@ unique_ptr<IOBuf> THeader::readHeaderFormat(
 }
 
 static unique_ptr<IOBuf> decompressCodec(
-    IOBuf const& buf,
-    folly::io::CodecType codec) {
+    IOBuf const& buf, folly::io::CodecType codec) {
   try {
     return folly::io::getCodec(codec)->uncompress(&buf);
   } catch (std::exception const& e) {
@@ -515,8 +546,7 @@ static unique_ptr<IOBuf> decompressCodec(
 }
 
 unique_ptr<IOBuf> THeader::untransform(
-    unique_ptr<IOBuf> buf,
-    std::vector<uint16_t>& readTrans) {
+    unique_ptr<IOBuf> buf, std::vector<uint16_t>& readTrans) {
   for (vector<uint16_t>::const_reverse_iterator it = readTrans.rbegin();
        it != readTrans.rend();
        ++it) {
@@ -544,7 +574,7 @@ unique_ptr<IOBuf> THeader::untransform(
       default:
         throw TApplicationException(
             TApplicationException::MISSING_RESULT,
-            folly::sformat("Unknown transform: {}", transId));
+            fmt::format("Unknown transform: {}", transId));
     }
   }
 
@@ -606,7 +636,7 @@ unique_ptr<IOBuf> THeader::transform(
       default:
         throw TTransportException(
             TTransportException::CORRUPTED_DATA,
-            folly::sformat("Unknown transform: {}", transId));
+            fmt::format("Unknown transform: {}", transId));
     }
     ++it;
   }
@@ -614,17 +644,13 @@ unique_ptr<IOBuf> THeader::transform(
   return buf;
 }
 
-std::unique_ptr<THeader> THeader::clone() {
-  auto clone = std::make_unique<THeader>();
-  clone->setProtocolId(protoId_);
-  clone->setTransforms(writeTrans_);
-  clone->setMinCompressBytes(minCompressBytes_);
-  clone->setSequenceNumber(seqId_);
-  clone->setClientType(clientType_);
-  clone->setFlags(flags_);
-  clone->forceClientType(forceClientType_);
-
-  return clone;
+void THeader::copyMetadataFrom(const THeader& src) {
+  setProtocolId(src.protoId_);
+  setTransforms(src.writeTrans_);
+  setSequenceNumber(src.seqId_);
+  setClientType(src.clientType_);
+  setFlags(src.flags_);
+  forceClientType(src.forceClientType_);
 }
 
 void THeader::resetProtocol() {
@@ -670,19 +696,16 @@ static void flushInfoHeaders(
   }
 }
 
-void THeader::setHeader(const string& key, const string& value) {
+void THeader::setHeader(const std::string& key, const std::string& value) {
   writeHeaders_[key] = value;
 }
 
-void THeader::setHeader(const string& key, string&& value) {
+void THeader::setHeader(const std::string& key, std::string&& value) {
   writeHeaders_[key] = std::move(value);
 }
 
 void THeader::setHeader(
-    const char* key,
-    size_t keyLength,
-    const char* value,
-    size_t valueLength) {
+    const char* key, size_t keyLength, const char* value, size_t valueLength) {
   writeHeaders_.emplace(std::make_pair(
       std::string(key, keyLength), std::string(value, valueLength)));
 }
@@ -748,10 +771,9 @@ unique_ptr<IOBuf> THeader::addHeader(
   // a copy here
   std::vector<uint16_t> writeTrans = writeTrans_;
 
-  if (clientType_ == THRIFT_HEADER_CLIENT_TYPE ||
-      clientType_ == THRIFT_HEADER_SASL_CLIENT_TYPE) {
+  if (clientType_ == THRIFT_HEADER_CLIENT_TYPE) {
     if (transform) {
-      buf = THeader::transform(std::move(buf), writeTrans, minCompressBytes_);
+      buf = THeader::transform(std::move(buf), writeTrans);
     }
   }
   size_t chainSize = buf->computeChainDataLength();
@@ -761,8 +783,7 @@ unique_ptr<IOBuf> THeader::addHeader(
         TTransportException::BAD_ARGS, "Trying to send JSON without HTTP");
   }
 
-  if (chainSize > MAX_FRAME_SIZE && clientType_ != THRIFT_HEADER_CLIENT_TYPE &&
-      clientType_ != THRIFT_HEADER_SASL_CLIENT_TYPE) {
+  if (chainSize > MAX_FRAME_SIZE && clientType_ != THRIFT_HEADER_CLIENT_TYPE) {
     throw TTransportException(
         TTransportException::INVALID_FRAME_SIZE,
         "Attempting to send non-header frame that is too large");
@@ -775,8 +796,7 @@ unique_ptr<IOBuf> THeader::addHeader(
     writeHeaders_[ID_VERSION_HEADER] = ID_VERSION;
   }
 
-  if (clientType_ == THRIFT_HEADER_CLIENT_TYPE ||
-      clientType_ == THRIFT_HEADER_SASL_CLIENT_TYPE) {
+  if (clientType_ == THRIFT_HEADER_CLIENT_TYPE) {
     // header size will need to be updated at the end because of varints.
     // Make it big enough here for max varint size, plus 4 for padding.
     int headerSize =
@@ -800,15 +820,13 @@ unique_ptr<IOBuf> THeader::addHeader(
 
     // Fixup szNbo later
     pkt += sizeof(szNbo);
-    uint16_t magicN = htons(HEADER_MAGIC >> 16);
+    uint16_t magicN = folly::Endian::big<uint16_t>(HEADER_MAGIC >> 16);
     memcpy(pkt, &magicN, sizeof(magicN));
     pkt += sizeof(magicN);
-    uint16_t flagsN = (clientType_ == THRIFT_HEADER_SASL_CLIENT_TYPE)
-        ? htons(flags_ | HEADER_FLAG_SASL)
-        : htons(flags_);
+    uint16_t flagsN = folly::Endian::big(flags_);
     memcpy(pkt, &flagsN, sizeof(flagsN));
     pkt += sizeof(flagsN);
-    uint32_t seqIdN = htonl(seqId_);
+    uint32_t seqIdN = folly::Endian::big(seqId_);
     memcpy(pkt, &seqIdN, sizeof(seqIdN));
     pkt += sizeof(seqIdN);
     headerSizePtr = pkt;
@@ -851,7 +869,7 @@ unique_ptr<IOBuf> THeader::addHeader(
     // Pkt size
     szHbo = headerSize + chainSize // thrift header + payload
         + (headerStart - pktStart - 4); // common header section
-    headerSizeN = htons(headerSize / 4);
+    headerSizeN = folly::Endian::big<uint16_t>(headerSize / 4);
     memcpy(headerSizePtr, &headerSizeN, sizeof(headerSizeN));
 
     // Set framing size.
@@ -862,12 +880,12 @@ unique_ptr<IOBuf> THeader::addHeader(
       }
       header->prepend(8);
       pktStart -= 8;
-      szNbo = htonl(BIG_FRAME_MAGIC);
+      szNbo = folly::Endian::big(BIG_FRAME_MAGIC);
       memcpy(pktStart, &szNbo, sizeof(szNbo));
       uint64_t s = folly::Endian::big<uint64_t>(szHbo);
       memcpy(pktStart + 4, &s, sizeof(s));
     } else {
-      szNbo = htonl(szHbo);
+      szNbo = folly::Endian::big<uint32_t>(szHbo);
       memcpy(pktStart, &szNbo, sizeof(szNbo));
     }
 
@@ -878,7 +896,7 @@ unique_ptr<IOBuf> THeader::addHeader(
       (clientType_ == THRIFT_FRAMED_DEPRECATED) ||
       (clientType_ == THRIFT_FRAMED_COMPACT)) {
     uint32_t szHbo = (uint32_t)chainSize;
-    uint32_t szNbo = htonl(szHbo);
+    uint32_t szNbo = folly::Endian::big<uint32_t>(szHbo);
 
     unique_ptr<IOBuf> header = IOBuf::create(4);
     header->append(4);
@@ -959,6 +977,13 @@ std::chrono::milliseconds THeader::getClientQueueTimeout() const {
   }
 }
 
+const folly::Optional<std::string>& THeader::clientId() const {
+  return clientId_;
+}
+const folly::Optional<std::string>& THeader::serviceTraceMeta() const {
+  return serviceTraceMeta_;
+}
+
 void THeader::setHttpClientParser(shared_ptr<THttpClientParser> parser) {
   CHECK(clientType_ == THRIFT_HTTP_CLIENT_TYPE);
   httpClientParser_ = parser;
@@ -974,6 +999,13 @@ void THeader::setClientQueueTimeout(std::chrono::milliseconds timeout) {
 
 void THeader::setCallPriority(apache::thrift::concurrency::PRIORITY priority) {
   priority_ = priority;
+}
+
+void THeader::setClientId(const std::string& clientId) {
+  clientId_ = clientId;
+}
+void THeader::setServiceTraceMeta(const std::string& serviceTraceMeta) {
+  serviceTraceMeta_ = serviceTraceMeta;
 }
 
 static constexpr folly::StringPiece TRANSFORMS_STRING_LIST[] = {
@@ -995,6 +1027,30 @@ const folly::StringPiece THeader::getStringTransform(
   return TRANSFORMS_STRING_LIST[transform];
 }
 
+void THeader::setClientMetadata(const ClientMetadata& clientMetadata) {
+  writeHeaders_[std::string{CLIENT_METADATA_HEADER}] =
+      apache::thrift::SimpleJSONSerializer::serialize<std::string>(
+          clientMetadata);
+}
+
+std::optional<ClientMetadata> THeader::extractClientMetadata() {
+  if (auto mdString = extractHeader(CLIENT_METADATA_HEADER)) {
+    return apache::thrift::SimpleJSONSerializer::deserialize<ClientMetadata>(
+        *mdString);
+  }
+
+  return {};
+}
+
+std::optional<std::string> THeader::extractHeader(std::string_view key) {
+  std::optional<std::string> res;
+  auto itr = readHeaders_.find(std::string{key});
+  if (itr != readHeaders_.end()) {
+    res = std::move(itr->second);
+    readHeaders_.erase(itr);
+  }
+  return res;
+}
 } // namespace transport
 } // namespace thrift
 } // namespace apache

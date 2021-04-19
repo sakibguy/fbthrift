@@ -5,98 +5,170 @@
 #  @generated
 #
 
+from libc.stdint cimport (
+    int8_t as cint8_t,
+    int16_t as cint16_t,
+    int32_t as cint32_t,
+    int64_t as cint64_t,
+    uint32_t as cuint32_t,
+)
 from libcpp.string cimport string
-from libcpp cimport bool as cbool
+from libcpp cimport bool as cbool, nullptr, nullptr_t
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 from libcpp.memory cimport shared_ptr, unique_ptr
+from libcpp.utility cimport move as cmove
 from libcpp.vector cimport vector
 from libcpp.set cimport set as cset
 from libcpp.map cimport map as cmap, pair as cpair
 from thrift.py3.exceptions cimport cTException
-cimport folly.iobuf as __iobuf
+cimport folly.iobuf as _fbthrift_iobuf
 cimport thrift.py3.exceptions
 cimport thrift.py3.types
-from folly.optional cimport cOptional
+from thrift.py3.types cimport (
+    bstring,
+    bytes_to_string,
+    field_ref as __field_ref,
+    optional_field_ref as __optional_field_ref,
+    required_field_ref as __required_field_ref,
+)
+from thrift.py3.common cimport (
+    RpcOptions as __RpcOptions,
+    Protocol as __Protocol,
+    cThriftMetadata as __fbthrift_cThriftMetadata,
+    MetadataBox as __MetadataBox,
+)
+from folly.optional cimport cOptional as __cOptional
+
+cimport module.types_fields as _fbthrift_types_fields
+
+cdef extern from "src/gen-py3/module/types.h":
+  pass
 
 
 
 
 
-cdef extern from "src/gen-cpp2/module_types_custom_protocol.h" namespace "cpp2":
-    # Forward Declaration
-    cdef cppclass cBanal "cpp2::Banal"(cTException)
-    # Forward Declaration
-    cdef cppclass cFiery "cpp2::Fiery"(cTException)
+cdef extern from "src/gen-cpp2/module_metadata.h" namespace "apache::thrift::detail::md":
+    cdef cppclass ExceptionMetadata[T]:
+        @staticmethod
+        void gen(__fbthrift_cThriftMetadata &metadata)
+cdef extern from "src/gen-cpp2/module_metadata.h" namespace "apache::thrift::detail::md":
+    cdef cppclass StructMetadata[T]:
+        @staticmethod
+        void gen(__fbthrift_cThriftMetadata &metadata)
+cdef extern from "src/gen-cpp2/module_types_custom_protocol.h" namespace "::cpp2":
 
-cdef extern from "src/gen-cpp2/module_types.h" namespace "cpp2":
-    cdef cppclass cBanal__isset "cpp2::Banal::__isset":
-        pass
-
-    cdef cppclass cBanal "cpp2::Banal"(cTException):
+    cdef cppclass cBanal "::cpp2::Banal"(cTException):
         cBanal() except +
         cBanal(const cBanal&) except +
         bint operator==(cBanal&)
-        cBanal__isset __isset
+        bint operator!=(cBanal&)
+        bint operator<(cBanal&)
+        bint operator>(cBanal&)
+        bint operator<=(cBanal&)
+        bint operator>=(cBanal&)
 
-    cdef cppclass cFiery__isset "cpp2::Fiery::__isset":
-        bint message
 
-    cdef cppclass cFiery "cpp2::Fiery"(cTException):
+    cdef cppclass cFiery "::cpp2::Fiery"(cTException):
         cFiery() except +
         cFiery(const cFiery&) except +
         bint operator==(cFiery&)
+        bint operator!=(cFiery&)
+        bint operator<(cFiery&)
+        bint operator>(cFiery&)
+        bint operator<=(cFiery&)
+        bint operator>=(cFiery&)
+        __required_field_ref[string] message_ref()
         string message
-        cFiery__isset __isset
 
 
-cdef extern from "<utility>" namespace "std" nogil:
-    cdef shared_ptr[cBanal] move(unique_ptr[cBanal])
-    cdef shared_ptr[cBanal] move_shared "std::move"(shared_ptr[cBanal])
-    cdef unique_ptr[cBanal] move_unique "std::move"(unique_ptr[cBanal])
-    cdef shared_ptr[cFiery] move(unique_ptr[cFiery])
-    cdef shared_ptr[cFiery] move_shared "std::move"(shared_ptr[cFiery])
-    cdef unique_ptr[cFiery] move_unique "std::move"(unique_ptr[cFiery])
-
-cdef extern from "<memory>" namespace "std" nogil:
-    cdef shared_ptr[const cBanal] const_pointer_cast "std::const_pointer_cast<const cpp2::Banal>"(shared_ptr[cBanal])
-    cdef shared_ptr[const cFiery] const_pointer_cast "std::const_pointer_cast<const cpp2::Fiery>"(shared_ptr[cFiery])
-
-# Forward Definition of the cython struct
-cdef class Banal(thrift.py3.exceptions.Error)
+    cdef cppclass cSerious "::cpp2::Serious"(cTException):
+        cSerious() except +
+        cSerious(const cSerious&) except +
+        bint operator==(cSerious&)
+        bint operator!=(cSerious&)
+        bint operator<(cSerious&)
+        bint operator>(cSerious&)
+        bint operator<=(cSerious&)
+        bint operator>=(cSerious&)
+        __optional_field_ref[string] sonnet_ref()
+        string sonnet
 
 
-cdef class Banal(thrift.py3.exceptions.Error):
-    cdef object __hash
-    cdef object __weakref__
+    cdef cppclass cComplexFieldNames "::cpp2::ComplexFieldNames"(cTException):
+        cComplexFieldNames() except +
+        cComplexFieldNames(const cComplexFieldNames&) except +
+        bint operator==(cComplexFieldNames&)
+        bint operator!=(cComplexFieldNames&)
+        bint operator<(cComplexFieldNames&)
+        bint operator>(cComplexFieldNames&)
+        bint operator<=(cComplexFieldNames&)
+        bint operator>=(cComplexFieldNames&)
+        __field_ref[string] error_message_ref()
+        __field_ref[string] internal_error_message_ref()
+        string error_message
+        string internal_error_message
+
+
+    cdef cppclass cCustomFieldNames "::cpp2::CustomFieldNames"(cTException):
+        cCustomFieldNames() except +
+        cCustomFieldNames(const cCustomFieldNames&) except +
+        bint operator==(cCustomFieldNames&)
+        bint operator!=(cCustomFieldNames&)
+        bint operator<(cCustomFieldNames&)
+        bint operator>(cCustomFieldNames&)
+        bint operator<=(cCustomFieldNames&)
+        bint operator>=(cCustomFieldNames&)
+        __field_ref[string] error_message_ref()
+        __field_ref[string] internal_error_message_ref()
+        string error_message
+        string internal_error_message
+
+
+
+
+cdef class Banal(thrift.py3.exceptions.GeneratedError):
     cdef shared_ptr[cBanal] _cpp_obj
-
-    @staticmethod
-    cdef unique_ptr[cBanal] _make_instance(
-        cBanal* base_instance
-    ) except *
+    cdef _fbthrift_types_fields.__Banal_FieldsSetter _fields_setter
 
     @staticmethod
     cdef create(shared_ptr[cBanal])
 
-# Forward Definition of the cython struct
-cdef class Fiery(thrift.py3.exceptions.Error)
 
 
-cdef class Fiery(thrift.py3.exceptions.Error):
-    cdef object __hash
-    cdef object __weakref__
+cdef class Fiery(thrift.py3.exceptions.GeneratedError):
     cdef shared_ptr[cFiery] _cpp_obj
-
-    @staticmethod
-    cdef unique_ptr[cFiery] _make_instance(
-        cFiery* base_instance,
-        object message
-    ) except *
+    cdef _fbthrift_types_fields.__Fiery_FieldsSetter _fields_setter
 
     @staticmethod
     cdef create(shared_ptr[cFiery])
 
+
+
+cdef class Serious(thrift.py3.exceptions.GeneratedError):
+    cdef shared_ptr[cSerious] _cpp_obj
+    cdef _fbthrift_types_fields.__Serious_FieldsSetter _fields_setter
+
+    @staticmethod
+    cdef create(shared_ptr[cSerious])
+
+
+
+cdef class ComplexFieldNames(thrift.py3.exceptions.GeneratedError):
+    cdef shared_ptr[cComplexFieldNames] _cpp_obj
+    cdef _fbthrift_types_fields.__ComplexFieldNames_FieldsSetter _fields_setter
+
+    @staticmethod
+    cdef create(shared_ptr[cComplexFieldNames])
+
+
+
+cdef class CustomFieldNames(thrift.py3.exceptions.GeneratedError):
+    cdef shared_ptr[cCustomFieldNames] _cpp_obj
+    cdef _fbthrift_types_fields.__CustomFieldNames_FieldsSetter _fields_setter
+
+    @staticmethod
+    cdef create(shared_ptr[cCustomFieldNames])
 
 
 

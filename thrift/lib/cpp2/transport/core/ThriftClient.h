@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@
 #include <memory>
 
 #include <folly/io/IOBuf.h>
+#include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
 #include <thrift/lib/cpp2/async/ClientChannel.h>
@@ -86,34 +87,19 @@ class ThriftClient : public ClientChannel {
   void setHTTPUrl(const std::string& url);
 
   // begin RequestChannel methods
+  void sendRequestResponse(
+      const RpcOptions& rpcOptions,
+      ManagedStringView&&,
+      SerializedRequest&&,
+      std::shared_ptr<apache::thrift::transport::THeader> header,
+      RequestClientCallback::Ptr cb) override;
 
-  uint32_t sendRequestSync(
-      RpcOptions& rpcOptions,
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<apache::thrift::ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) override;
-
-  uint32_t sendRequest(
-      RpcOptions& rpcOptions,
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) override;
-
-  uint32_t sendStreamRequest(
-      RpcOptions& rpcOptions,
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<apache::thrift::ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) override;
-
-  uint32_t sendOnewayRequest(
-      RpcOptions& rpcOptions,
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<ContextStack> ctx,
-      std::unique_ptr<folly::IOBuf> buf,
-      std::shared_ptr<apache::thrift::transport::THeader> header) override;
+  void sendRequestNoResponse(
+      const RpcOptions& rpcOptions,
+      ManagedStringView&&,
+      SerializedRequest&&,
+      std::shared_ptr<apache::thrift::transport::THeader> header,
+      RequestClientCallback::Ptr cb) override;
 
   folly::EventBase* getEventBase() const override;
 
@@ -133,13 +119,12 @@ class ThriftClient : public ClientChannel {
   //
   // TODO: Refactor this to be cleaner.
 
-  apache::thrift::async::TAsyncTransport* getTransport() override;
+  folly::AsyncTransport* getTransport() override;
   bool good() override;
   SaturationStatus getSaturationStatus() override;
   void attachEventBase(folly::EventBase* eventBase) override;
   void detachEventBase() override;
   bool isDetachable() override;
-  bool isSecurityActive() override;
   uint32_t getTimeout() override;
   void setTimeout(uint32_t ms) override;
   void closeNow() override;
@@ -161,20 +146,18 @@ class ThriftClient : public ClientChannel {
   // folly:DelayedDestruction.
   virtual ~ThriftClient();
 
-  std::unique_ptr<RequestRpcMetadata> createRequestRpcMetadata(
-      RpcOptions& rpcOptions,
+  std::unique_ptr<ThriftChannelIf::RequestMetadata> createRequestMetadata(
+      const RpcOptions& rpcOptions,
       RpcKind kind,
       apache::thrift::ProtocolId protocolId,
       transport::THeader* header);
 
-  uint32_t sendRequestHelper(
-      RpcOptions& rpcOptions,
+  void sendRequestHelper(
+      const RpcOptions& rpcOptions,
       RpcKind kind,
-      std::unique_ptr<RequestCallback> cb,
-      std::unique_ptr<ContextStack> ctx,
       std::unique_ptr<folly::IOBuf> buf,
       std::shared_ptr<apache::thrift::transport::THeader> header,
-      folly::EventBase* callbackEvb) noexcept;
+      RequestClientCallback::Ptr cb) noexcept;
 
   // Scheduled by sendRequestHelper in the connection thread.  Both
   // operations getChannel() and sendThriftRequest() can be scheduled
@@ -185,7 +168,7 @@ class ThriftClient : public ClientChannel {
   // channels.
   static void getChannelAndSendThriftRequest(
       ClientConnectionIf* connection,
-      std::unique_ptr<RequestRpcMetadata> metadata,
+      ThriftChannelIf::RequestMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload,
       std::unique_ptr<ThriftClientCallback> callback) noexcept;
 };

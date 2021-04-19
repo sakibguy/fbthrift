@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// IWYU pragma: private, include "thrift/lib/cpp2/frozen/Frozen.h"
+
 namespace apache {
 namespace thrift {
 namespace frozen {
@@ -60,14 +63,13 @@ struct BlockLayout : public LayoutBase {
     }
   };
 
-  View view(ViewPosition self) const {
-    return View(this, self);
-  }
+  View view(ViewPosition self) const { return View(this, self); }
 };
 } // namespace detail
 
 template <>
-struct Layout<detail::Block> : detail::BlockLayout {};
+struct Layout<apache::thrift::frozen::detail::Block>
+    : apache::thrift::frozen::detail::BlockLayout {};
 
 namespace detail {
 /**
@@ -97,7 +99,20 @@ struct HashTableLayout : public ArrayLayout<T, Item> {
     // 1.5 => 66% LF => 3 bpe, 3 probes expected
     // 2.0 => 50% LF => 4 bpe, 2 probes expected
     // 2.5 => 40% LF => 5 bpe, 1.6 probes expected
-    return size_t(size * 2.5 + Block::bits - 1) / Block::bits;
+    auto rv = size_t(size * 2.5 + Block::bits - 1) / Block::bits;
+
+    // For integer keys that don't have entropy in the bottom bits we
+    // will be in trouble if blockCount is a power of 2. If we always use
+    // an odd blockCount then that case degenerates to probes averaging
+    // Block::bits * LF / 2 = 12.8, which is quite bad but could be worse.
+    // The problem can also occur if the hash code doesn't have entropy
+    // in the top bits and the bucket count ends up being a multiple of 5,
+    // due to the multiplier applied to the hash.
+    rv |= 1;
+    if ((rv % 5) == 0) {
+      rv += 2;
+    }
+    return rv;
   }
 
   static void ensureDistinctKeys(
@@ -293,9 +308,7 @@ struct HashTableLayout : public ArrayLayout<T, Item> {
     }
   };
 
-  View view(ViewPosition self) const {
-    return View(this, self);
-  }
+  View view(ViewPosition self) const { return View(this, self); }
 };
 } // namespace detail
 } // namespace frozen

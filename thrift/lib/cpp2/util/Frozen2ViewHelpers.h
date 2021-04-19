@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,9 +30,7 @@ struct ViewHelper {
   using ViewType = ViewT;
   using ObjectType = decltype(std::declval<ViewT>().thaw());
 
-  static ObjectType thaw(ViewType v) {
-    return v.thaw();
-  }
+  static ObjectType thaw(ViewType v) { return v.thaw(); }
 };
 
 template <typename ViewT>
@@ -43,9 +41,7 @@ struct ViewHelper<
   using ViewType = ViewT;
   using ObjectType = ViewT;
 
-  static ObjectType thaw(ViewType v) {
-    return v;
-  }
+  static ObjectType thaw(ViewType v) { return v; }
 };
 
 template <>
@@ -53,10 +49,8 @@ struct ViewHelper<folly::Range<const char*>> {
   using ViewType = folly::Range<const char*>;
   using ObjectType = std::string;
 
-  static ObjectType thaw(ViewType v) {
-    return std::string(v.begin(), v.end());
-  }
+  static ObjectType thaw(ViewType v) { return std::string(v.begin(), v.end()); }
 };
-}
-}
-} // apache::thrift::frozen
+} // namespace frozen
+} // namespace thrift
+} // namespace apache

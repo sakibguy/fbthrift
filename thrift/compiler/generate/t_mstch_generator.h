@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
 #include <fstream>
@@ -21,25 +22,25 @@
 #include <stdexcept>
 
 #include <boost/filesystem.hpp>
-#include <mstch/mstch.hpp>
+#include <thrift/compiler/detail/mustache/mstch.h>
 
 #include <thrift/compiler/generate/t_generator.h>
 #include <thrift/compiler/generate/t_mstch_objects.h>
+
+namespace apache {
+namespace thrift {
+namespace compiler {
 
 class t_mstch_generator : public t_generator {
  public:
   t_mstch_generator(
       t_program* program,
+      t_generation_context context,
       boost::filesystem::path template_prefix,
       std::map<std::string, std::string> parsed_options,
       bool convert_delimiter = false);
 
  protected:
-  /**
-   *  Directory containing template files for generating code
-   */
-  boost::filesystem::path template_dir_;
-
   /**
    * Option pairs specified on command line for influencing generation behavior
    */
@@ -49,9 +50,7 @@ class t_mstch_generator : public t_generator {
    * If true, typedefs will be automatically resolved to their underlying
    * type.
    */
-  virtual bool should_resolve_typedefs() const {
-    return false;
-  }
+  virtual bool should_resolve_typedefs() const { return false; }
 
   /**
    * Fetches a particular template from the template map, throwing an error
@@ -71,16 +70,14 @@ class t_mstch_generator : public t_generator {
    * Render the mstch template with name `template_name` in the given context.
    */
   std::string render(
-      const std::string& template_name,
-      const mstch::node& context);
+      const std::string& template_name, const mstch::node& context);
 
   /**
    * Write an output file with the given contents to a path
    * under the output directory.
    */
   void write_output(
-      const boost::filesystem::path& path,
-      const std::string& data);
+      const boost::filesystem::path& path, const std::string& data);
 
   /**
    * Render the mstch template with name `template_name` in the given context
@@ -185,7 +182,7 @@ class t_mstch_generator : public t_generator {
   template <typename container>
   mstch::array dump_elems(const container& elems) {
     using T = typename container::value_type;
-    mstch::array result{};
+    mstch::array result;
     int32_t index = 0;
     for (auto itr = elems.begin(); itr != elems.end(); ++itr) {
       auto map =
@@ -205,17 +202,14 @@ class t_mstch_generator : public t_generator {
     }
   }
 
-  std::unique_ptr<std::string> get_option(const std::string& key);
-
-  const t_type& resolve_typedef(const t_type& type) const;
+  bool has_option(const std::string& option) const;
+  std::string get_option(const std::string& option);
 
  private:
-  std::map<std::string, std::string> template_map_{};
+  std::map<std::string, std::string> template_map_;
   bool convert_delimiter_;
 
-  void gen_template_map(
-      const boost::filesystem::path& root,
-      const std::string& sub_directory);
+  void gen_template_map(const boost::filesystem::path& root);
 
   /**
    * For every key in the map, prepends a prefix to that key for mstch.
@@ -235,4 +229,10 @@ class t_mstch_generator : public t_generator {
  protected:
   std::shared_ptr<mstch_generators> generators_;
   std::shared_ptr<mstch_cache> cache_;
+
+  const std::shared_ptr<mstch_base>& cached_program(t_program const* program);
 };
+
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +18,7 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
-
+#include <folly/portability/GTest.h>
 #include <thrift/compiler/ast/t_program.h>
 #include <thrift/compiler/ast/t_type.h>
 
@@ -37,17 +36,9 @@ class t_type_fake : public t_type {
   /**
    * Override abstract functions with fake implementations
    */
-  std::string get_full_name() const override {
-    return full_name_;
-  }
+  std::string get_full_name() const override { return full_name_; }
 
-  std::string get_impl_full_name() const override {
-    return {};
-  }
-
-  TypeValue get_type_value() const override {
-    return {};
-  }
+  type get_type_value() const override { return {}; }
 
   using t_type::make_full_name;
 
@@ -125,4 +116,26 @@ TEST(TType, GetTypeId) {
   }
 
   EXPECT_EQ(expect, hashes);
+}
+
+TEST(TType, TypeName) {
+  EXPECT_EQ(t_type::type_name(t_type::type::t_void), "void");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_string), "string");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_bool), "bool");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_byte), "byte");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_i16), "i16");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_i32), "i32");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_i64), "i64");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_double), "double");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_enum), "enum");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_list), "list");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_set), "set");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_map), "map");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_struct), "struct");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_service), "service");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_program), "program");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_float), "float");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_sink), "sink");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_stream), "stream");
+  EXPECT_EQ(t_type::type_name(t_type::type::t_binary), "binary");
 }

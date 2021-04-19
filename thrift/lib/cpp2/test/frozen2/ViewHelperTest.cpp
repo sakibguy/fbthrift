@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,25 +20,28 @@
 #include <thrift/lib/cpp2/frozen/FrozenUtil.h>
 #include <thrift/lib/cpp2/util/Frozen2ViewHelpers.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace ::apache::thrift::frozen;
 using namespace ::test::frozen2;
 
-#define ASSERT_VIEW_EQ(OBJ, MAPPED, NAME) \
-  ASSERT_EQ(ViewHelper<decltype(MAPPED.NAME())>::thaw(MAPPED.NAME()), OBJ.NAME)
+#define ASSERT_VIEW_EQ(OBJ, MAPPED, NAME)                       \
+  ASSERT_EQ(                                                    \
+      ViewHelper<decltype(MAPPED.NAME())>::thaw(MAPPED.NAME()), \
+      *OBJ.NAME##_ref())
 
 TEST(ViewHelperTest, TestThaw) {
   TestStruct strct;
-  strct.i32Field = 0xBAD;
-  strct.strField = "foo";
-  strct.doubleField = 1.5;
-  strct.boolField = true;
-  strct.listField = {"bar", "baz"};
-  strct.mapField = {
-      {0, "a"}, {1, "b"},
+  strct.i32Field_ref() = 0xBAD;
+  strct.strField_ref() = "foo";
+  strct.doubleField_ref() = 1.5;
+  strct.boolField_ref() = true;
+  strct.listField_ref() = {"bar", "baz"};
+  strct.mapField_ref() = {
+      {0, "a"},
+      {1, "b"},
   };
-  strct.enumField = TestEnum::Foo;
+  strct.enumField_ref() = TestEnum::Foo;
 
   std::string frozen;
   freezeToString(strct, frozen);

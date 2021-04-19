@@ -1,8 +1,25 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# distutils: language = c++
+
 from libcpp.string cimport string
 from cpython.ref cimport PyObject
 from folly cimport cFollyExceptionWrapper
 from libcpp.memory cimport shared_ptr
-from thrift.py3.common cimport RpcOptions
+from thrift.py3.common cimport RpcOptions, cThriftMetadata
+from thrift.py3.std_libcpp cimport string_view, sv_to_str
 
 cdef extern from * namespace "std":
     cdef cppclass cException "std:Exception":
@@ -71,7 +88,6 @@ cdef extern from "thrift/lib/cpp/transport/TTransportException.h" \
         cTTransportExceptionType__INVALID_FRAME_SIZE "apache::thrift::transport::TTransportException::INVALID_FRAME_SIZE"
         cTTransportExceptionType__SSL_ERROR "apache::thrift::transport::TTransportException::SSL_ERROR"
         cTTransportExceptionType__COULD_NOT_BIND "apache::thrift::transport::TTransportException::COULD_NOT_BIND"
-        cTTransportExceptionType__SASL_HANDSHAKE_TIMEOUT "apache::thrift::transport::TTransportException::SASL_HANDSHAKE_TIMEOUT"
         cTTransportExceptionType__NETWORK_ERROR "apache::thrift::transport::TTransportException::NETWORK_ERROR"
 
     enum cTTransportExceptionOptions "apache::thrift::transport::TTransportException::Options":
@@ -88,7 +104,7 @@ cdef extern from "Python.h":
         pass
 
 
-cdef extern from "thrift/lib/py3/exceptions.h" namespace "thrift::py3::exception":
+cdef extern from "thrift/lib/py3/exceptions.h" namespace "::thrift::py3::exception":
     cdef shared_ptr[T] try_make_shared_exception[T](
         const cFollyExceptionWrapper& excepton)
 
@@ -120,3 +136,11 @@ cdef class ApplicationError(Error):
 
 cdef class TransportError(LibraryError):
     pass
+
+cdef class GeneratedError(Error):
+    cdef object __weakref__
+    cdef size_t _fbthrift_struct_size
+    cdef object _fbthrift_isset(self)
+    cdef object _fbthrift_cmp_sametype(self, other, int op)
+    cdef void _fbthrift_set_field(self, str name, object value) except *
+    cdef string_view _fbthrift_get_field_name_by_index(self, size_t idx)

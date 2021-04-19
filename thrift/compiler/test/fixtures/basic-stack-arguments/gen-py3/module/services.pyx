@@ -5,14 +5,22 @@
 #  @generated
 #
 
+cimport cython
+from cpython.version cimport PY_VERSION_HEX
+from libc.stdint cimport (
+    int8_t as cint8_t,
+    int16_t as cint16_t,
+    int32_t as cint32_t,
+    int64_t as cint64_t,
+)
 from libcpp.memory cimport shared_ptr, make_shared, unique_ptr, make_unique
 from libcpp.string cimport string
 from libcpp cimport bool as cbool
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 from libcpp.vector cimport vector
 from libcpp.set cimport set as cset
 from libcpp.map cimport map as cmap
+from libcpp.utility cimport move as cmove
 from cython.operator cimport dereference as deref
 from cpython.ref cimport PyObject
 from thrift.py3.exceptions cimport (
@@ -24,17 +32,30 @@ from thrift.py3.server import RequestContext, pass_context
 from folly cimport (
   cFollyPromise,
   cFollyUnit,
-  c_unit
+  c_unit,
 )
+from thrift.py3.common cimport (
+    cThriftServiceContext as __fbthrift_cThriftServiceContext,
+    cThriftMetadata as __fbthrift_cThriftMetadata,
+    ServiceMetadata,
+    extractMetadataFromServiceContext,
+    MetadataBox as __MetadataBox,
+)
+
+if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+    from thrift.py3.server cimport THRIFT_REQUEST_CONTEXT as __THRIFT_REQUEST_CONTEXT
 
 cimport folly.futures
 from folly.executor cimport get_executor
-cimport folly.iobuf as __iobuf
-import folly.iobuf as __iobuf
+cimport folly.iobuf as _fbthrift_iobuf
+import folly.iobuf as _fbthrift_iobuf
 from folly.iobuf cimport move as move_iobuf
+from folly.memory cimport to_shared_ptr as __to_shared_ptr
 
 cimport module.types as _module_types
 import module.types as _module_types
+
+cimport module.services_reflection as _services_reflection
 
 import asyncio
 import functools
@@ -44,54 +65,72 @@ import types as _py_types
 
 from module.services_wrapper cimport cMyServiceInterface
 from module.services_wrapper cimport cMyServiceFastInterface
+from module.services_wrapper cimport cDbMixedStackArgumentsInterface
 
 
-cdef extern from "<utility>" namespace "std":
-    cdef cFollyPromise[cbool] move_promise_cbool "std::move"(
-        cFollyPromise[cbool])
-    cdef cFollyPromise[string] move_promise_string "std::move"(
-        cFollyPromise[string])
-    cdef cFollyPromise[cFollyUnit] move_promise_cFollyUnit "std::move"(
-        cFollyPromise[cFollyUnit])
 
-cdef class Promise_cbool:
-    cdef cFollyPromise[cbool] cPromise
+@cython.auto_pickle(False)
+cdef class Promise_binary:
+    cdef cFollyPromise[unique_ptr[string]] cPromise
 
     @staticmethod
-    cdef create(cFollyPromise[cbool] cPromise):
-        inst = <Promise_cbool>Promise_cbool.__new__(Promise_cbool)
-        inst.cPromise = move_promise_cbool(cPromise)
+    cdef create(cFollyPromise[unique_ptr[string]] cPromise):
+        cdef Promise_binary inst = Promise_binary.__new__(Promise_binary)
+        inst.cPromise = cmove(cPromise)
         return inst
 
-cdef class Promise_string:
+@cython.auto_pickle(False)
+cdef class Promise__sa_binary:
     cdef cFollyPromise[string] cPromise
 
     @staticmethod
     cdef create(cFollyPromise[string] cPromise):
-        inst = <Promise_string>Promise_string.__new__(Promise_string)
-        inst.cPromise = move_promise_string(cPromise)
+        cdef Promise__sa_binary inst = Promise__sa_binary.__new__(Promise__sa_binary)
+        inst.cPromise = cmove(cPromise)
         return inst
 
-cdef class Promise_cFollyUnit:
+@cython.auto_pickle(False)
+cdef class Promise__sa_cbool:
+    cdef cFollyPromise[cbool] cPromise
+
+    @staticmethod
+    cdef create(cFollyPromise[cbool] cPromise):
+        cdef Promise__sa_cbool inst = Promise__sa_cbool.__new__(Promise__sa_cbool)
+        inst.cPromise = cmove(cPromise)
+        return inst
+
+@cython.auto_pickle(False)
+cdef class Promise__sa_string:
+    cdef cFollyPromise[string] cPromise
+
+    @staticmethod
+    cdef create(cFollyPromise[string] cPromise):
+        cdef Promise__sa_string inst = Promise__sa_string.__new__(Promise__sa_string)
+        inst.cPromise = cmove(cPromise)
+        return inst
+
+@cython.auto_pickle(False)
+cdef class Promise__sa_cFollyUnit:
     cdef cFollyPromise[cFollyUnit] cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cFollyUnit] cPromise):
-        inst = <Promise_cFollyUnit>Promise_cFollyUnit.__new__(Promise_cFollyUnit)
-        inst.cPromise = move_promise_cFollyUnit(cPromise)
+        cdef Promise__sa_cFollyUnit inst = Promise__sa_cFollyUnit.__new__(Promise__sa_cFollyUnit)
+        inst.cPromise = cmove(cPromise)
         return inst
 
 cdef object _MyService_annotations = _py_types.MappingProxyType({
 })
 
 
+@cython.auto_pickle(False)
 cdef class MyServiceInterface(
     ServiceInterface
 ):
     annotations = _MyService_annotations
 
     def __cinit__(self):
-        self.interface_wrapper = cMyServiceInterface(
+        self._cpp_obj = cMyServiceInterface(
             <PyObject *> self,
             get_executor()
         )
@@ -133,17 +172,35 @@ cdef class MyServiceInterface(
             id,
             data):
         raise NotImplementedError("async def lobDataById is not implemented")
+
+    @classmethod
+    def __get_reflection__(cls):
+        return _services_reflection.get_reflection__MyService(for_clients=False)
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        cdef __fbthrift_cThriftServiceContext context
+        ServiceMetadata[_services_reflection.cMyServiceSvIf].gen(meta, context)
+        extractMetadataFromServiceContext(meta, context)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.MyService"
+
 cdef object _MyServiceFast_annotations = _py_types.MappingProxyType({
 })
 
 
+@cython.auto_pickle(False)
 cdef class MyServiceFastInterface(
     ServiceInterface
 ):
     annotations = _MyServiceFast_annotations
 
     def __cinit__(self):
-        self.interface_wrapper = cMyServiceFastInterface(
+        self._cpp_obj = cMyServiceFastInterface(
             <PyObject *> self,
             get_executor()
         )
@@ -186,20 +243,86 @@ cdef class MyServiceFastInterface(
             data):
         raise NotImplementedError("async def lobDataById is not implemented")
 
+    @classmethod
+    def __get_reflection__(cls):
+        return _services_reflection.get_reflection__MyServiceFast(for_clients=False)
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        cdef __fbthrift_cThriftServiceContext context
+        ServiceMetadata[_services_reflection.cMyServiceFastSvIf].gen(meta, context)
+        extractMetadataFromServiceContext(meta, context)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.MyServiceFast"
+
+cdef object _DbMixedStackArguments_annotations = _py_types.MappingProxyType({
+})
+
+
+@cython.auto_pickle(False)
+cdef class DbMixedStackArgumentsInterface(
+    ServiceInterface
+):
+    annotations = _DbMixedStackArguments_annotations
+
+    def __cinit__(self):
+        self._cpp_obj = cDbMixedStackArgumentsInterface(
+            <PyObject *> self,
+            get_executor()
+        )
+
+    @staticmethod
+    def pass_context_getDataByKey0(fn):
+        return pass_context(fn)
+
+    async def getDataByKey0(
+            self,
+            key):
+        raise NotImplementedError("async def getDataByKey0 is not implemented")
+
+    @staticmethod
+    def pass_context_getDataByKey1(fn):
+        return pass_context(fn)
+
+    async def getDataByKey1(
+            self,
+            key):
+        raise NotImplementedError("async def getDataByKey1 is not implemented")
+
+    @classmethod
+    def __get_reflection__(cls):
+        return _services_reflection.get_reflection__DbMixedStackArguments(for_clients=False)
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        cdef __fbthrift_cThriftServiceContext context
+        ServiceMetadata[_services_reflection.cDbMixedStackArgumentsSvIf].gen(meta, context)
+        extractMetadataFromServiceContext(meta, context)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.DbMixedStackArguments"
+
+
 
 cdef api void call_cy_MyService_hasDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cbool] cPromise,
-    int64_t id
+    cint64_t id
 ):
-    cdef MyServiceInterface __iface
-    __iface = self
-    __promise = Promise_cbool.create(move_promise_cbool(cPromise))
+    cdef Promise__sa_cbool __promise = Promise__sa_cbool.create(cmove(cPromise))
     arg_id = id
-    __context = None
-    if __iface._pass_context_hasDataById:
-        __context = RequestContext.create(ctx)
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyService_hasDataById_coro(
             self,
@@ -208,15 +331,17 @@ cdef api void call_cy_MyService_hasDataById(
             arg_id
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyService_hasDataById_coro(
     object self,
     object ctx,
-    Promise_cbool promise,
+    Promise__sa_cbool promise,
     id
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.hasDataById, "pass_context", False):
             result = await self.hasDataById(ctx,
                       id)
         else:
@@ -242,15 +367,14 @@ cdef api void call_cy_MyService_getDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[string] cPromise,
-    int64_t id
+    cint64_t id
 ):
-    cdef MyServiceInterface __iface
-    __iface = self
-    __promise = Promise_string.create(move_promise_string(cPromise))
+    cdef Promise__sa_string __promise = Promise__sa_string.create(cmove(cPromise))
     arg_id = id
-    __context = None
-    if __iface._pass_context_getDataById:
-        __context = RequestContext.create(ctx)
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyService_getDataById_coro(
             self,
@@ -259,15 +383,17 @@ cdef api void call_cy_MyService_getDataById(
             arg_id
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyService_getDataById_coro(
     object self,
     object ctx,
-    Promise_string promise,
+    Promise__sa_string promise,
     id
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.getDataById, "pass_context", False):
             result = await self.getDataById(ctx,
                       id)
         else:
@@ -293,17 +419,16 @@ cdef api void call_cy_MyService_putDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cFollyUnit] cPromise,
-    int64_t id,
+    cint64_t id,
     string data
 ):
-    cdef MyServiceInterface __iface
-    __iface = self
-    __promise = Promise_cFollyUnit.create(move_promise_cFollyUnit(cPromise))
+    cdef Promise__sa_cFollyUnit __promise = Promise__sa_cFollyUnit.create(cmove(cPromise))
     arg_id = id
-    arg_data = data.decode('UTF-8')
-    __context = None
-    if __iface._pass_context_putDataById:
-        __context = RequestContext.create(ctx)
+    arg_data = data.data().decode('UTF-8')
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyService_putDataById_coro(
             self,
@@ -313,16 +438,18 @@ cdef api void call_cy_MyService_putDataById(
             arg_data
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyService_putDataById_coro(
     object self,
     object ctx,
-    Promise_cFollyUnit promise,
+    Promise__sa_cFollyUnit promise,
     id,
     data
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.putDataById, "pass_context", False):
             result = await self.putDataById(ctx,
                       id,
                       data)
@@ -350,17 +477,16 @@ cdef api void call_cy_MyService_lobDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cFollyUnit] cPromise,
-    int64_t id,
+    cint64_t id,
     string data
 ):
-    cdef MyServiceInterface __iface
-    __iface = self
-    __promise = Promise_cFollyUnit.create(move_promise_cFollyUnit(cPromise))
+    cdef Promise__sa_cFollyUnit __promise = Promise__sa_cFollyUnit.create(cmove(cPromise))
     arg_id = id
-    arg_data = data.decode('UTF-8')
-    __context = None
-    if __iface._pass_context_lobDataById:
-        __context = RequestContext.create(ctx)
+    arg_data = data.data().decode('UTF-8')
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyService_lobDataById_coro(
             self,
@@ -370,16 +496,18 @@ cdef api void call_cy_MyService_lobDataById(
             arg_data
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyService_lobDataById_coro(
     object self,
     object ctx,
-    Promise_cFollyUnit promise,
+    Promise__sa_cFollyUnit promise,
     id,
     data
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.lobDataById, "pass_context", False):
             result = await self.lobDataById(ctx,
                       id,
                       data)
@@ -407,15 +535,14 @@ cdef api void call_cy_MyServiceFast_hasDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cbool] cPromise,
-    int64_t id
+    cint64_t id
 ):
-    cdef MyServiceFastInterface __iface
-    __iface = self
-    __promise = Promise_cbool.create(move_promise_cbool(cPromise))
+    cdef Promise__sa_cbool __promise = Promise__sa_cbool.create(cmove(cPromise))
     arg_id = id
-    __context = None
-    if __iface._pass_context_hasDataById:
-        __context = RequestContext.create(ctx)
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyServiceFast_hasDataById_coro(
             self,
@@ -424,15 +551,17 @@ cdef api void call_cy_MyServiceFast_hasDataById(
             arg_id
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyServiceFast_hasDataById_coro(
     object self,
     object ctx,
-    Promise_cbool promise,
+    Promise__sa_cbool promise,
     id
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.hasDataById, "pass_context", False):
             result = await self.hasDataById(ctx,
                       id)
         else:
@@ -458,15 +587,14 @@ cdef api void call_cy_MyServiceFast_getDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[string] cPromise,
-    int64_t id
+    cint64_t id
 ):
-    cdef MyServiceFastInterface __iface
-    __iface = self
-    __promise = Promise_string.create(move_promise_string(cPromise))
+    cdef Promise__sa_string __promise = Promise__sa_string.create(cmove(cPromise))
     arg_id = id
-    __context = None
-    if __iface._pass_context_getDataById:
-        __context = RequestContext.create(ctx)
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyServiceFast_getDataById_coro(
             self,
@@ -475,15 +603,17 @@ cdef api void call_cy_MyServiceFast_getDataById(
             arg_id
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyServiceFast_getDataById_coro(
     object self,
     object ctx,
-    Promise_string promise,
+    Promise__sa_string promise,
     id
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.getDataById, "pass_context", False):
             result = await self.getDataById(ctx,
                       id)
         else:
@@ -509,17 +639,16 @@ cdef api void call_cy_MyServiceFast_putDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cFollyUnit] cPromise,
-    int64_t id,
+    cint64_t id,
     string data
 ):
-    cdef MyServiceFastInterface __iface
-    __iface = self
-    __promise = Promise_cFollyUnit.create(move_promise_cFollyUnit(cPromise))
+    cdef Promise__sa_cFollyUnit __promise = Promise__sa_cFollyUnit.create(cmove(cPromise))
     arg_id = id
-    arg_data = data.decode('UTF-8')
-    __context = None
-    if __iface._pass_context_putDataById:
-        __context = RequestContext.create(ctx)
+    arg_data = data.data().decode('UTF-8')
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyServiceFast_putDataById_coro(
             self,
@@ -529,16 +658,18 @@ cdef api void call_cy_MyServiceFast_putDataById(
             arg_data
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyServiceFast_putDataById_coro(
     object self,
     object ctx,
-    Promise_cFollyUnit promise,
+    Promise__sa_cFollyUnit promise,
     id,
     data
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.putDataById, "pass_context", False):
             result = await self.putDataById(ctx,
                       id,
                       data)
@@ -566,17 +697,16 @@ cdef api void call_cy_MyServiceFast_lobDataById(
     object self,
     Cpp2RequestContext* ctx,
     cFollyPromise[cFollyUnit] cPromise,
-    int64_t id,
+    cint64_t id,
     string data
 ):
-    cdef MyServiceFastInterface __iface
-    __iface = self
-    __promise = Promise_cFollyUnit.create(move_promise_cFollyUnit(cPromise))
+    cdef Promise__sa_cFollyUnit __promise = Promise__sa_cFollyUnit.create(cmove(cPromise))
     arg_id = id
-    arg_data = data.decode('UTF-8')
-    __context = None
-    if __iface._pass_context_lobDataById:
-        __context = RequestContext.create(ctx)
+    arg_data = data.data().decode('UTF-8')
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
     asyncio.get_event_loop().create_task(
         MyServiceFast_lobDataById_coro(
             self,
@@ -586,16 +716,18 @@ cdef api void call_cy_MyServiceFast_lobDataById(
             arg_data
         )
     )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
 
 async def MyServiceFast_lobDataById_coro(
     object self,
     object ctx,
-    Promise_cFollyUnit promise,
+    Promise__sa_cFollyUnit promise,
     id,
     data
 ):
     try:
-        if ctx is not None:
+        if ctx and getattr(self.lobDataById, "pass_context", False):
             result = await self.lobDataById(ctx,
                       id,
                       data)
@@ -618,4 +750,108 @@ async def MyServiceFast_lobDataById_coro(
         ))
     else:
         promise.cPromise.setValue(c_unit)
+
+cdef api void call_cy_DbMixedStackArguments_getDataByKey0(
+    object self,
+    Cpp2RequestContext* ctx,
+    cFollyPromise[unique_ptr[string]] cPromise,
+    unique_ptr[string] key
+):
+    cdef Promise_binary __promise = Promise_binary.create(cmove(cPromise))
+    arg_key = (deref(key)).data().decode('UTF-8')
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
+    asyncio.get_event_loop().create_task(
+        DbMixedStackArguments_getDataByKey0_coro(
+            self,
+            __context,
+            __promise,
+            arg_key
+        )
+    )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
+
+async def DbMixedStackArguments_getDataByKey0_coro(
+    object self,
+    object ctx,
+    Promise_binary promise,
+    key
+):
+    try:
+        if ctx and getattr(self.getDataByKey0, "pass_context", False):
+            result = await self.getDataByKey0(ctx,
+                      key)
+        else:
+            result = await self.getDataByKey0(
+                      key)
+    except __ApplicationError as ex:
+        # If the handler raised an ApplicationError convert it to a C++ one
+        promise.cPromise.setException(cTApplicationException(
+            ex.type.value, ex.message.encode('UTF-8')
+        ))
+    except Exception as ex:
+        print(
+            "Unexpected error in service handler getDataByKey0:",
+            file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    else:
+        promise.cPromise.setValue(make_unique[string](<string?> result))
+
+cdef api void call_cy_DbMixedStackArguments_getDataByKey1(
+    object self,
+    Cpp2RequestContext* ctx,
+    cFollyPromise[string] cPromise,
+    string key
+):
+    cdef Promise__sa_binary __promise = Promise__sa_binary.create(cmove(cPromise))
+    arg_key = key.data().decode('UTF-8')
+    __context = RequestContext.create(ctx)
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+        __context = None
+    asyncio.get_event_loop().create_task(
+        DbMixedStackArguments_getDataByKey1_coro(
+            self,
+            __context,
+            __promise,
+            arg_key
+        )
+    )
+    if PY_VERSION_HEX >= 0x030702F0:  # 3.7.2 Final
+        __THRIFT_REQUEST_CONTEXT.reset(__context_token)
+
+async def DbMixedStackArguments_getDataByKey1_coro(
+    object self,
+    object ctx,
+    Promise__sa_binary promise,
+    key
+):
+    try:
+        if ctx and getattr(self.getDataByKey1, "pass_context", False):
+            result = await self.getDataByKey1(ctx,
+                      key)
+        else:
+            result = await self.getDataByKey1(
+                      key)
+    except __ApplicationError as ex:
+        # If the handler raised an ApplicationError convert it to a C++ one
+        promise.cPromise.setException(cTApplicationException(
+            ex.type.value, ex.message.encode('UTF-8')
+        ))
+    except Exception as ex:
+        print(
+            "Unexpected error in service handler getDataByKey1:",
+            file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    else:
+        promise.cPromise.setValue(<string?> result)
 

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
 #include <cstdint>
@@ -31,11 +32,9 @@
     size_t operator()(const T& x) const; \
   };                                     \
   }
-#define THRIFT_IMPL_HASH(T)                      \
-  namespace std {                                \
-  size_t hash<T>::operator()(const T& x) const { \
-    return x.hash();                             \
-  }                                              \
+#define THRIFT_IMPL_HASH(T)                                         \
+  namespace std {                                                   \
+  size_t hash<T>::operator()(const T& x) const { return x.hash(); } \
   }
 
 namespace apache {
@@ -78,29 +77,17 @@ class MemoryField {
         offset == other.offset;
   }
 
-  inline void setId(int16_t i) {
-    id = i;
-  }
+  inline void setId(int16_t i) { id = i; }
 
-  inline int16_t getId() const {
-    return id;
-  }
+  inline int16_t getId() const { return id; }
 
-  inline void setLayoutId(int16_t lid) {
-    layoutId = lid;
-  }
+  inline void setLayoutId(int16_t lid) { layoutId = lid; }
 
-  inline int16_t getLayoutId() const {
-    return layoutId;
-  }
+  inline int16_t getLayoutId() const { return layoutId; }
 
-  inline void setOffset(int16_t o) {
-    offset = o;
-  }
+  inline void setOffset(int16_t o) { offset = o; }
 
-  inline int16_t getOffset() const {
-    return offset;
-  }
+  inline int16_t getOffset() const { return offset; }
 
  private:
   // Thrift field index
@@ -116,37 +103,26 @@ class MemoryField {
 };
 
 static_assert(
-    sizeof(MemoryField) == 3 * sizeof(int16_t),
-    "Memory Field is not padded.");
+    sizeof(MemoryField) == 3 * sizeof(int16_t), "Memory Field is not padded.");
 
 class MemoryLayoutBase {
  public:
   MemoryLayoutBase() = default;
   virtual ~MemoryLayoutBase() = default;
 
-  inline size_t hash() const {
-    return folly::hash::hash_combine(bits, size);
-  }
+  inline size_t hash() const { return folly::hash::hash_combine(bits, size); }
 
   inline bool operator==(const MemoryLayoutBase& other) const {
     return bits == other.bits && size == other.size;
   }
 
-  inline void setSize(int32_t s) {
-    size = s;
-  }
+  inline void setSize(int32_t s) { size = s; }
 
-  inline int32_t getSize() const {
-    return size;
-  }
+  inline int32_t getSize() const { return size; }
 
-  inline void setBits(int32_t b) {
-    bits = b;
-  }
+  inline void setBits(int32_t b) { bits = b; }
 
-  inline int16_t getBits() const {
-    return bits;
-  }
+  inline int16_t getBits() const { return bits; }
 
  private:
   int32_t size;
@@ -171,9 +147,11 @@ class MemoryLayout : public MemoryLayoutBase {
     fields.push_back(std::move(field));
   }
 
-  inline const std::vector<MemoryField>& getFields() const {
-    return fields;
+  inline void setFields(std::vector<MemoryField>&& fs) {
+    fields = std::move(fs);
   }
+
+  inline const std::vector<MemoryField>& getFields() const { return fields; }
 
  private:
   std::vector<MemoryField> fields;
@@ -199,9 +177,7 @@ class MemorySchema {
     rootLayout = rootId;
   }
 
-  inline int16_t getRootLayoutId() const {
-    return rootLayout;
-  }
+  inline int16_t getRootLayoutId() const { return rootLayout; }
 
   inline const MemoryLayout& getRootLayout() const {
     return layouts.at(rootLayout);
@@ -211,9 +187,7 @@ class MemorySchema {
     return layouts.at(field.getLayoutId());
   }
 
-  inline const std::vector<MemoryLayout>& getLayouts() const {
-    return layouts;
-  }
+  inline const std::vector<MemoryLayout>& getLayouts() const { return layouts; }
 
   class Helper {
     // Add helper structures here to help minimize size of schema during

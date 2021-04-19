@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -332,6 +329,10 @@ func (p *BinaryProtocol) ReadMapBegin() (kType, vType Type, size int, err error)
 		err = invalidDataLength
 		return
 	}
+	if uint64(size32*2) > p.trans.RemainingBytes() || p.trans.RemainingBytes() == UnknownRemaining {
+		err = invalidDataLength
+		return
+	}
 	size = int(size32)
 	return kType, vType, size, nil
 }
@@ -353,6 +354,10 @@ func (p *BinaryProtocol) ReadListBegin() (elemType Type, size int, err error) {
 		return
 	}
 	if size32 < 0 {
+		err = invalidDataLength
+		return
+	}
+	if uint64(size32) > p.trans.RemainingBytes() || p.trans.RemainingBytes() == UnknownRemaining {
 		err = invalidDataLength
 		return
 	}
@@ -378,6 +383,10 @@ func (p *BinaryProtocol) ReadSetBegin() (elemType Type, size int, err error) {
 		return
 	}
 	if size32 < 0 {
+		err = invalidDataLength
+		return
+	}
+	if uint64(size32) > p.trans.RemainingBytes() || p.trans.RemainingBytes() == UnknownRemaining {
 		err = invalidDataLength
 		return
 	}
@@ -459,7 +468,7 @@ func (p *BinaryProtocol) ReadBinary() ([]byte, error) {
 	if size < 0 {
 		return nil, invalidDataLength
 	}
-	if uint64(size) > p.trans.RemainingBytes() {
+	if uint64(size) > p.trans.RemainingBytes() || p.trans.RemainingBytes() == UnknownRemaining {
 		return nil, invalidDataLength
 	}
 
@@ -490,7 +499,7 @@ func (p *BinaryProtocol) readStringBody(size int32) (value string, err error) {
 	if size < 0 {
 		return "", nil
 	}
-	if uint64(size) > p.trans.RemainingBytes() {
+	if uint64(size) > p.trans.RemainingBytes() || p.trans.RemainingBytes() == UnknownRemaining {
 		return "", invalidDataLength
 	}
 	var buf []byte

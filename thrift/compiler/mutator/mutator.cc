@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -67,18 +67,16 @@ static void fill_mutators(mutator_list& ms) {
   // add more mutators here ...
 }
 
-static t_type* resolve_type(t_type* type) {
+static const t_type* resolve_type(const t_type* type) {
   while (type->is_typedef()) {
-    type = dynamic_cast<t_typedef*>(type)->get_type();
+    type = dynamic_cast<const t_typedef*>(type)->get_type();
   }
   return type;
 }
 
 static void match_type_with_const_value(
-    t_program* program,
-    t_type* long_type,
-    t_const_value* value) {
-  t_type* type = resolve_type(long_type);
+    t_program* program, const t_type* long_type, t_const_value* value) {
+  const t_type* type = resolve_type(long_type);
   value->set_ttype(type);
   if (type->is_list()) {
     auto* elem_type = dynamic_cast<const t_list*>(type)->get_elem_type();
@@ -103,7 +101,7 @@ static void match_type_with_const_value(
   if (type->is_struct()) {
     auto* struct_type = dynamic_cast<const t_struct*>(type);
     for (auto map_val : value->get_map()) {
-      auto tfield = struct_type->get_member(map_val.first->get_string());
+      auto tfield = struct_type->get_field_by_name(map_val.first->get_string());
       match_type_with_const_value(program, tfield->get_type(), map_val.second);
     }
   }
@@ -120,14 +118,15 @@ static void match_type_with_const_value(
       auto str = value->get_string();
       auto constant = program->scope()->get_constant(str);
       if (!constant) {
-        auto full_str = program->get_name() + "." + str;
+        auto full_str = program->name() + "." + str;
         constant = program->scope()->get_constant(full_str);
       }
       if (!constant) {
         throw std::runtime_error(
             std::string("type error: no matching constant: ") + str);
       }
-      *value = *constant->get_value();
+      auto value_copy = constant->get_value()->clone();
+      value->assign(std::move(*value_copy));
     }
     if (enm->find_value(value->get_integer())) {
       value->set_enum_value(enm->find_value(value->get_integer()));

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/frozen/FrozenTestUtil.h>
 #include <thrift/lib/cpp2/frozen/VectorAssociative.h>
@@ -140,11 +140,12 @@ TEST(FrozenVectorTypes, DistinctCheckingShouldPass) {
 
 template <class TestType>
 void populate(TestType& x) {
-  x.aList.push_back(1);
-  x.aSet.insert(2);
-  x.aMap[3] = 4;
-  x.aHashSet.insert(5);
-  x.aHashMap[6] = 7;
+  x.aList_ref()->push_back(1);
+  x.aSet_ref()->insert(2);
+  x.aMap_ref()[3] = 4;
+  x.aHashSet_ref()->insert(5);
+  x.aHashMap_ref()[6] = 7;
+  x.fbVector_ref()->push_back(8);
 }
 
 template <class T>
@@ -172,6 +173,7 @@ TYPED_TEST_P(FrozenStructsWithVectors, Freezable) {
   EXPECT_EQ(f.aHashSet().count(6), 0);
   EXPECT_EQ(f.aHashMap().getDefault(6, 9), 7);
   EXPECT_EQ(f.aHashMap().getDefault(7, 9), 9);
+  EXPECT_EQ(f.fbVector()[0], 8);
 }
 
 REGISTER_TYPED_TEST_CASE_P(FrozenStructsWithVectors, Freezable, Serializable);

@@ -1,55 +1,50 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_PROTOCOL_TCOMPACTPROTOCOL_H_
 #define THRIFT_PROTOCOL_TCOMPACTPROTOCOL_H_ 1
 
+#include <folly/lang/Bits.h>
 #include <thrift/lib/cpp/protocol/TVirtualProtocol.h>
 
-#include <stack>
 #include <memory>
+#include <stack>
 #include <folly/FBVector.h>
 
-namespace apache { namespace thrift { namespace protocol {
+namespace apache {
+namespace thrift {
+namespace protocol {
 
 /**
  * C++ Implementation of the Compact Protocol as described in THRIFT-110
  */
 template <class Transport_>
 class TCompactProtocolT
-  : public TVirtualProtocol< TCompactProtocolT<Transport_> > {
+    : public TVirtualProtocol<TCompactProtocolT<Transport_>> {
  public:
-  static const int8_t  VERSION_N = 2;
-  static const int8_t  VERSION_LOW = 1;
-  static const int8_t  VERSION_DOUBLE_BE = 2;
-  static const int8_t  PROTOCOL_ID = static_cast<int8_t>(0x82);
-  static const int8_t  VERSION_MASK = 0x1f; // 0001 1111
+  static const int8_t VERSION_N = 2;
+  static const int8_t VERSION_LOW = 1;
+  static const int8_t VERSION_DOUBLE_BE = 2;
+  static const int8_t PROTOCOL_ID = static_cast<int8_t>(0x82);
+  static const int8_t VERSION_MASK = 0x1f; // 0001 1111
 
  protected:
-  // Normally we can define static const data members of integral
-  // type here.  However there appears to be a gcc issue when the
-  // high bit is set (http://gcc.gnu.org/bugzilla/show_bug.cgi?id=49896)
-  // unless we cast to a value that fits in an int8_t (0x82 and 0xE0 are
-  // uint8_t)
-
-  static const int8_t  TYPE_MASK = static_cast<int8_t>(0xE0);
+  static const int8_t TYPE_MASK = 0xE0;
   static const int32_t TYPE_SHIFT_AMOUNT = 5;
+  static const int8_t TYPE_SHIFTED_MASK = 0x07; // 0000 0111
 
   Transport_* trans_;
 
@@ -82,26 +77,27 @@ class TCompactProtocolT
   int8_t version_;
 
  public:
-  explicit TCompactProtocolT(std::shared_ptr<Transport_> trans) :
-      TVirtualProtocol< TCompactProtocolT<Transport_> >(trans),
-      trans_(trans.get()),
-      lastFieldId_(0),
-      version_(VERSION_N),
-      string_limit_(0),
-      container_limit_(0) {
+  explicit TCompactProtocolT(std::shared_ptr<Transport_> trans)
+      : TVirtualProtocol<TCompactProtocolT<Transport_>>(trans),
+        trans_(trans.get()),
+        lastFieldId_(0),
+        version_(VERSION_N),
+        string_limit_(0),
+        container_limit_(0) {
     booleanField_.name = nullptr;
     boolValue_.hasBoolValue = false;
   }
 
-  TCompactProtocolT(std::shared_ptr<Transport_> trans,
-                    int32_t string_limit,
-                    int32_t container_limit) :
-    TVirtualProtocol< TCompactProtocolT<Transport_> >(trans),
-    trans_(trans.get()),
-    lastFieldId_(0),
-    version_(VERSION_N),
-    string_limit_(string_limit),
-    container_limit_(container_limit) {
+  TCompactProtocolT(
+      std::shared_ptr<Transport_> trans,
+      int32_t string_limit,
+      int32_t container_limit)
+      : TVirtualProtocol<TCompactProtocolT<Transport_>>(trans),
+        trans_(trans.get()),
+        lastFieldId_(0),
+        version_(VERSION_N),
+        string_limit_(string_limit),
+        container_limit_(container_limit) {
     booleanField_.name = nullptr;
     boolValue_.hasBoolValue = false;
   }
@@ -112,13 +108,13 @@ class TCompactProtocolT
    * The caller is responsible for ensuring that the transport remains valid
    * for the lifetime of the protocol.
    */
-  explicit TCompactProtocolT(Transport_* trans) :
-    TVirtualProtocol< TCompactProtocolT<Transport_> >(trans),
-    trans_(trans),
-    lastFieldId_(0),
-    version_(VERSION_N),
-    string_limit_(0),
-    container_limit_(0) {
+  explicit TCompactProtocolT(Transport_* trans)
+      : TVirtualProtocol<TCompactProtocolT<Transport_>>(trans),
+        trans_(trans),
+        lastFieldId_(0),
+        version_(VERSION_N),
+        string_limit_(0),
+        container_limit_(0) {
     booleanField_.name = nullptr;
     boolValue_.hasBoolValue = false;
   }
@@ -131,46 +127,37 @@ class TCompactProtocolT
     container_limit_ = container_limit;
   }
 
-  int32_t getStringSizeLimit() {
-    return string_limit_;
-  }
+  int32_t getStringSizeLimit() { return string_limit_; }
 
-  int32_t getContainerSizeLimit() {
-    return container_limit_;
-  }
+  int32_t getContainerSizeLimit() { return container_limit_; }
 
   /** Set this if you need backwards compatibility with an old version */
-  void setVersion(const int8_t version) {
-    version_ = version;
-  }
+  void setVersion(const int8_t version) { version_ = version; }
 
   /**
    * Writing functions
    */
 
-  virtual uint32_t writeMessageBegin(const std::string& name,
-                                     const TMessageType messageType,
-                                     const int32_t seqid);
+  virtual uint32_t writeMessageBegin(
+      const std::string& name,
+      const TMessageType messageType,
+      const int32_t seqid);
 
   uint32_t writeStructBegin(const char* name);
 
   uint32_t writeStructEnd();
 
-  uint32_t writeFieldBegin(const char* name,
-                           const TType fieldType,
-                           const int16_t fieldId);
+  uint32_t writeFieldBegin(
+      const char* name, const TType fieldType, const int16_t fieldId);
 
   uint32_t writeFieldStop();
 
-  uint32_t writeListBegin(const TType elemType,
-                          const uint32_t size);
+  uint32_t writeListBegin(const TType elemType, const uint32_t size);
 
-  uint32_t writeSetBegin(const TType elemType,
-                         const uint32_t size);
+  uint32_t writeSetBegin(const TType elemType, const uint32_t size);
 
-  virtual uint32_t writeMapBegin(const TType keyType,
-                                 const TType valType,
-                                 const uint32_t size);
+  virtual uint32_t writeMapBegin(
+      const TType keyType, const TType valType, const uint32_t size);
 
   uint32_t writeBool(const bool value);
 
@@ -195,9 +182,9 @@ class TCompactProtocolT
   uint32_t writeBinary(const String_& str);
 
   /**
-  * These methods are called by structs, but don't actually have any wired
-  * output or purpose
-  */
+   * These methods are called by structs, but don't actually have any wired
+   * output or purpose
+   */
   virtual uint32_t writeMessageEnd() { return 0; }
   uint32_t writeMapEnd() { return 0; }
   uint32_t writeListEnd() { return 0; }
@@ -205,44 +192,37 @@ class TCompactProtocolT
   uint32_t writeFieldEnd() { return 0; }
 
  protected:
-  int32_t writeFieldBeginInternal(const char* name,
-                                  const TType fieldType,
-                                  const int16_t fieldId,
-                                  int8_t typeOverride);
+  int32_t writeFieldBeginInternal(
+      const char* name,
+      const TType fieldType,
+      const int16_t fieldId,
+      int8_t typeOverride);
   uint32_t writeCollectionBegin(int8_t elemType, int32_t size);
   uint32_t writeVarint32(uint32_t n);
   uint32_t writeVarint64(uint64_t n);
   inline int8_t getCompactType(int8_t ttype);
 
  public:
-  uint32_t readMessageBegin(std::string& name,
-                            TMessageType& messageType,
-                            int32_t& seqid);
+  uint32_t readMessageBegin(
+      std::string& name, TMessageType& messageType, int32_t& seqid);
 
   uint32_t readStructBegin(std::string& name);
 
   uint32_t readStructEnd();
 
-  uint32_t readFieldBegin(std::string& name,
-                          TType& fieldType,
-                          int16_t& fieldId);
+  uint32_t readFieldBegin(
+      std::string& name, TType& fieldType, int16_t& fieldId);
 
-  uint32_t readMapBegin(TType& keyType,
-                        TType& valType,
-                        uint32_t& size,
-                        bool& sizeUnknown);
+  uint32_t readMapBegin(
+      TType& keyType, TType& valType, uint32_t& size, bool& sizeUnknown);
 
-  uint32_t readListBegin(TType& elemType,
-                         uint32_t& size,
-                         bool& sizeUnknown);
+  uint32_t readListBegin(TType& elemType, uint32_t& size, bool& sizeUnknown);
 
-  uint32_t readSetBegin(TType& elemType,
-                        uint32_t& size,
-                        bool& sizeUnknown);
+  uint32_t readSetBegin(TType& elemType, uint32_t& size, bool& sizeUnknown);
 
   uint32_t readBool(bool& value);
   // Provide the default readBool() implementation for std::vector<bool>
-  using TVirtualProtocol< TCompactProtocolT<Transport_> >::readBool;
+  using TVirtualProtocol<TCompactProtocolT<Transport_>>::readBool;
 
   uint32_t readByte(int8_t& byte);
 
@@ -289,13 +269,10 @@ typedef TCompactProtocolT<TTransport> TCompactProtocol;
 template <class Transport_>
 class TCompactProtocolFactoryT : public TProtocolFactory {
  public:
-  TCompactProtocolFactoryT() :
-    string_limit_(0),
-    container_limit_(0) {}
+  TCompactProtocolFactoryT() : string_limit_(0), container_limit_(0) {}
 
-  TCompactProtocolFactoryT(int32_t string_limit, int32_t container_limit) :
-    string_limit_(string_limit),
-    container_limit_(container_limit) {}
+  TCompactProtocolFactoryT(int32_t string_limit, int32_t container_limit)
+      : string_limit_(string_limit), container_limit_(container_limit) {}
 
   ~TCompactProtocolFactoryT() override {}
 
@@ -310,11 +287,11 @@ class TCompactProtocolFactoryT : public TProtocolFactory {
   std::shared_ptr<TProtocol> getProtocol(
       std::shared_ptr<TTransport> trans) override {
     std::shared_ptr<Transport_> specific_trans =
-      std::dynamic_pointer_cast<Transport_>(trans);
+        std::dynamic_pointer_cast<Transport_>(trans);
     TProtocol* prot;
     if (specific_trans) {
-      prot = new TCompactProtocolT<Transport_>(specific_trans, string_limit_,
-                                               container_limit_);
+      prot = new TCompactProtocolT<Transport_>(
+          specific_trans, string_limit_, container_limit_);
     } else {
       prot = new TCompactProtocol(trans, string_limit_, container_limit_);
     }
@@ -325,13 +302,14 @@ class TCompactProtocolFactoryT : public TProtocolFactory {
  private:
   int32_t string_limit_;
   int32_t container_limit_;
-
 };
 
 typedef TCompactProtocolFactoryT<TTransport> TCompactProtocolFactory;
 
-}}} // apache::thrift::protocol
+} // namespace protocol
+} // namespace thrift
+} // namespace apache
 
-#include <thrift/lib/cpp/protocol/TCompactProtocol.tcc>
+#include <thrift/lib/cpp/protocol/TCompactProtocol-inl.h>
 
 #endif

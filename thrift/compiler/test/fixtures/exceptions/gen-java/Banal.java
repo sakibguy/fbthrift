@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -27,8 +25,8 @@ import com.facebook.thrift.protocol.*;
 public class Banal extends Exception implements TBase, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("Banal");
 
-  public static boolean DEFAULT_PRETTY_PRINT = true;
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     metaDataMap = Collections.unmodifiableMap(tmpMetaDataMap);
@@ -41,6 +39,21 @@ public class Banal extends Exception implements TBase, java.io.Serializable, Clo
   public Banal() {
   }
 
+  public static class Builder {
+
+    public Builder() {
+    }
+
+    public Banal build() {
+      Banal result = new Banal();
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -51,12 +64,7 @@ public class Banal extends Exception implements TBase, java.io.Serializable, Clo
     return new Banal(this);
   }
 
-  @Deprecated
-  public Banal clone() {
-    return new Banal(this);
-  }
-
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     default:
       throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
@@ -70,50 +78,37 @@ public class Banal extends Exception implements TBase, java.io.Serializable, Clo
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof Banal)
-      return this.equals((Banal)that);
-    return false;
-  }
-
-  public boolean equals(Banal that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof Banal))
+      return false;
+    Banal that = (Banal)_that;
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {});
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -135,19 +130,14 @@ public class Banal extends Exception implements TBase, java.io.Serializable, Clo
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("Banal");
     sb.append(space);
     sb.append("(");
@@ -161,7 +151,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
   }
 
 }

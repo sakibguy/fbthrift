@@ -1,9 +1,26 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from cython.operator cimport dereference as deref
 from cpython.exc cimport PyErr_Occurred
+from cpython.object cimport Py_LT, Py_EQ, Py_NE
 from libcpp.vector cimport vector
 from thrift.py3.common import RpcOptions
 
 from enum import Enum, Flag
+import builtins as _builtins
+import itertools
 
 class TransportErrorType(Enum):
     UNKNOWN = cTTransportExceptionType__UNKNOWN
@@ -20,7 +37,6 @@ class TransportErrorType(Enum):
     INVALID_FRAME_SIZE = cTTransportExceptionType__INVALID_FRAME_SIZE
     SSL_ERROR = cTTransportExceptionType__SSL_ERROR
     COULD_NOT_BIND = cTTransportExceptionType__COULD_NOT_BIND
-    SASL_HANDSHAKE_TIMEOUT = cTTransportExceptionType__SASL_HANDSHAKE_TIMEOUT
     NETWORK_ERROR = cTTransportExceptionType__NETWORK_ERROR
 
 
@@ -67,6 +83,65 @@ cdef create_Error(shared_ptr[cTException] ex):
     message = (<bytes>deref(ex).what()).decode('utf-8')
     inst = <Error>Error.__new__(Error, message)
     return inst
+
+
+cdef class GeneratedError(Error):
+    """This is the base class for all Generated Thrift Exceptions"""
+
+    def __init__(self, *args, **kwargs):
+        names_iter = self.__iter_names()
+        for idx, value in enumerate(args):
+            try:
+                name = next(names_iter)
+            except StopIteration:
+                raise TypeError(f"{type(self).__name__}() only takes {idx} arguments")
+            else:
+                self._fbthrift_set_field(name, value)
+        for name in names_iter:
+            value = kwargs.pop(name, None)
+            if value is not None:
+                self._fbthrift_set_field(name, value)
+        if kwargs:  # still something left
+            raise TypeError(f"{type(self).__name__}() found duplicate/undefined arguments {repr(kwargs)}")
+        _builtins.Exception.__init__(self, *(value for _, value in self))
+
+    cdef object _fbthrift_isset(self):
+        raise TypeError(f"{type(self)} does not have concept of isset")
+
+    cdef object _fbthrift_cmp_sametype(self, other, int op):
+        if not isinstance(other, type(self)):
+            if op == Py_EQ:  # different types are never equal
+                return False
+            if op == Py_NE:  # different types are always notequal
+                return True
+            return NotImplemented
+        # otherwise returns None
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        pass
+
+    cdef string_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        raise NotImplementedError()
+
+    def __repr__(self):
+        fields = ", ".join(f"{name}={repr(value)}" for name, value in self)
+        return f"{type(self).__name__}({fields})"
+
+    def __iter_names(self):
+        for i in range(self._fbthrift_struct_size):
+            yield sv_to_str(self._fbthrift_get_field_name_by_index(i))
+
+    def __iter__(self):
+        for name in self.__iter_names():
+            yield name, getattr(self, name)
+
+    @staticmethod
+    def __get_metadata__():
+        raise NotImplementedError()
+
+    @staticmethod
+    def __get_thrift_name__():
+        raise NotImplementedError()
 
 
 cdef class ApplicationError(Error):

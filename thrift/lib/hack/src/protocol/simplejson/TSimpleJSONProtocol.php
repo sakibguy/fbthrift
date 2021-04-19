@@ -1,14 +1,21 @@
 <?hh
-
-/**
-* Copyright (c) 2006- Facebook
-* Distributed under the Thrift Software License
-*
-* See accompanying file LICENSE or visit the Thrift site at:
-* http://developers.facebook.com/thrift/
-*
-* @package thrift.protocol.simplejson
-*/
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @package thrift.protocol.simplejson
+ */
 
 /**
  * Protocol for encoding/decoding simple json
@@ -193,53 +200,53 @@ class TSimpleJSONProtocol extends TProtocol {
     $ctx = $this->getContext();
     $ret = $ctx->writeSeparator();
     $value = (string) $value;
-    $sb = new StringBuffer();
-    $sb->append('"');
+    $sb = '';
+    $sb .= '"';
     $len = strlen($value);
     for ($i = 0; $i < $len; $i++) {
       $c = $value[$i];
       $ord = ord($c);
       switch ($ord) {
         case 8:
-          $sb->append('\b');
+          $sb .= '\b';
           break;
         case 9:
-          $sb->append('\t');
+          $sb .= '\t';
           break;
         case 10:
-          $sb->append('\n');
+          $sb .= '\n';
           break;
         case 12:
-          $sb->append('\f');
+          $sb .= '\f';
           break;
         case 13:
-          $sb->append('\r');
+          $sb .= '\r';
           break;
         case 34:
           // "
         case 92:
           // \
-          $sb->append('\\');
-          $sb->append($c);
+          $sb .= '\\';
+          $sb .= $c;
           break;
         default:
           if ($ord < 32 || $ord > 126) {
-            $sb->append('\\u00');
-            $sb->append(bin2hex($c));
+            $sb .= '\\u00';
+            $sb .= bin2hex($c);
           } else {
-            $sb->append($c);
+            $sb .= $c;
           }
           break;
       }
     }
-    $sb->append('"');
-    $enc = $sb->detach();
+    $sb .= '"';
+    $enc = $sb;
     $this->trans_->write($enc);
 
     return $ret + strlen($enc);
   }
 
-  public function readMessageBegin(&$name, &$type, &$seqid) {
+  public function readMessageBegin(inout $name, inout $type, inout $seqid) {
     throw new TProtocolException(
       'Reading with TSimpleJSONProtocol is not supported. '.
       'Use readFromJSON() on your struct',
@@ -253,7 +260,7 @@ class TSimpleJSONProtocol extends TProtocol {
     );
   }
 
-  public function readStructBegin(&$name) {
+  public function readStructBegin(inout $_name) {
     $this->getContext()->readSeparator();
     $this->skipWhitespace();
     $this->pushMapReadContext();
@@ -263,7 +270,11 @@ class TSimpleJSONProtocol extends TProtocol {
     $this->popReadContext();
   }
 
-  public function readFieldBegin(&$name, &$fieldType, &$fieldId) {
+  public function readFieldBegin(
+    inout $name,
+    inout $fieldType,
+    inout $fieldId,
+  ) {
     $fieldId = null;
     $ctx = $this->getContext();
     $name = null;
@@ -299,7 +310,7 @@ class TSimpleJSONProtocol extends TProtocol {
     // Do nothing
   }
 
-  public function readMapBegin(&$keyType, &$valType, &$size) {
+  public function readMapBegin(inout $keyType, inout $valType, inout $size) {
     $size = null;
     $this->getContext()->readSeparator();
     $this->skipWhitespace();
@@ -504,7 +515,7 @@ class TSimpleJSONProtocol extends TProtocol {
     }
     $this->expectChar('"', $peek, $start);
     $count = $peek ? 1 : 0;
-    $sb = new StringBuffer();
+    $sb = '';
     $reading = true;
     while ($reading) {
       $c = $this->bufTrans->peek(1, $start + $count);
@@ -518,44 +529,42 @@ class TSimpleJSONProtocol extends TProtocol {
           switch ($c) {
             case '\\':
               $count++;
-              $sb->append('\\');
+              $sb .= '\\';
               break;
             case '"':
               $count++;
-              $sb->append('"');
+              $sb .= '"';
               break;
             case 'b':
               $count++;
-              $sb->append(chr(0x08));
+              $sb .= chr(0x08);
               break;
             case '/':
               $count++;
-              $sb->append('/');
+              $sb .= '/';
               break;
             case 'f':
               $count++;
-              $sb->append("\f");
+              $sb .= "\f";
               break;
             case 'n':
               $count++;
-              $sb->append("\n");
+              $sb .= "\n";
               break;
             case 'r':
               $count++;
-              $sb->append("\r");
+              $sb .= "\r";
               break;
             case 't':
               $count++;
-              $sb->append("\t");
+              $sb .= "\t";
               break;
             case 'u':
               $count++;
               $this->expectChar('0', true, $start + $count);
               $this->expectChar('0', true, $start + $count + 1);
               $count += 2;
-              $sb->append(
-                hex2bin($this->bufTrans->peek(2, $start + $count)),
-              );
+              $sb .= hex2bin($this->bufTrans->peek(2, $start + $count));
               $count += 2;
               break;
             default:
@@ -571,7 +580,7 @@ class TSimpleJSONProtocol extends TProtocol {
           break;
         default:
           $count++;
-          $sb->append($c);
+          $sb .= $c;
           break;
       }
     }
@@ -581,7 +590,7 @@ class TSimpleJSONProtocol extends TProtocol {
     }
 
     $this->expectChar('"', $peek, $start + $count);
-    return Pair {$sb->detach(), $count + 1};
+    return Pair {$sb, $count + 1};
   }
 
   private function skipWhitespace(bool $peek = false, int $start = 0): int {

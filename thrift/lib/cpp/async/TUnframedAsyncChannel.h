@@ -1,55 +1,58 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_ASYNC_TUNFRAMEDASYNCCHANNEL_H_
 #define THRIFT_ASYNC_TUNFRAMEDASYNCCHANNEL_H_ 1
 
+#include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp/async/TStreamAsyncChannel.h>
 
-namespace apache { namespace thrift { namespace async {
+namespace apache {
+namespace thrift {
+namespace async {
 
 namespace detail {
 
 /**
  * Encapsulation of one outstanding write request on a TUnframedAsyncChannel.
  */
-class TUnframedACWriteRequest :
-      public TAsyncChannelWriteRequestBase<TUnframedACWriteRequest> {
+class TUnframedACWriteRequest
+    : public TAsyncChannelWriteRequestBase<TUnframedACWriteRequest> {
  public:
   typedef std::function<void()> VoidCallback;
 
-  TUnframedACWriteRequest(const VoidCallback& callback,
-                          const VoidCallback& errorCallback,
-                          transport::TMemoryBuffer* message,
-                          TAsyncEventChannel* channel);
+  TUnframedACWriteRequest(
+      const VoidCallback& callback,
+      const VoidCallback& errorCallback,
+      transport::TMemoryBuffer* message,
+      TAsyncEventChannel* channel);
 
-  void write(TAsyncTransport* transport,
-             TAsyncTransport::WriteCallback* callback) noexcept;
+  void write(
+      folly::AsyncTransport* transport,
+      folly::AsyncTransport::WriteCallback* callback) noexcept;
 
   void writeSuccess() noexcept;
-  void writeError(size_t bytesWritten,
-                  const transport::TTransportException& ex) noexcept;
+  void writeError(
+      size_t bytesWritten, const transport::TTransportException& ex) noexcept;
 };
 
 /**
  * Read state for TUnframedAsyncChannel
  */
-template<typename ProtocolTraits_>
+template <typename ProtocolTraits_>
 class TUnframedACReadState {
  public:
   typedef std::function<void()> VoidCallback;
@@ -63,41 +66,26 @@ class TUnframedACReadState {
   void setCallbackBuffer(transport::TMemoryBuffer* buffer) {
     callbackBuffer_ = buffer;
   }
-  void unsetCallbackBuffer() {
-    callbackBuffer_ = nullptr;
-  }
+  void unsetCallbackBuffer() { callbackBuffer_ = nullptr; }
 
-  bool hasReadAheadData() {
-    return (memBuffer_.available_read() > 0);
-  }
-  bool hasPartialMessage() {
-    return (memBuffer_.available_read() > 0);
-  }
+  bool hasReadAheadData() { return (memBuffer_.available_read() > 0); }
+  bool hasPartialMessage() { return (memBuffer_.available_read() > 0); }
 
   void getReadBuffer(void** bufReturn, size_t* lenReturn);
   bool readDataAvailable(size_t len);
 
   // Methods specific to TUnframedACReadState
 
-  void setMaxMessageSize(uint32_t size) {
-    maxMessageSize_ = size;
-  }
+  void setMaxMessageSize(uint32_t size) { maxMessageSize_ = size; }
 
-  uint32_t getMaxMessageSize() const {
-    return maxMessageSize_;
-  }
+  uint32_t getMaxMessageSize() const { return maxMessageSize_; }
 
-  ProtocolTraits_* getProtocolTraits() {
-    return &protocolTraits_;
-  }
-  const ProtocolTraits_* getProtocolTraits() const {
-    return &protocolTraits_;
-  }
+  ProtocolTraits_* getProtocolTraits() { return &protocolTraits_; }
+  const ProtocolTraits_* getProtocolTraits() const { return &protocolTraits_; }
 
  private:
-  bool getMessageLength(uint8_t* buffer,
-                        uint32_t bufferLength,
-                        uint32_t* messageLength);
+  bool getMessageLength(
+      uint8_t* buffer, uint32_t bufferLength, uint32_t* messageLength);
 
   /// maximum frame size accepted
   uint32_t maxMessageSize_;
@@ -116,21 +104,23 @@ class TUnframedACReadState {
  * messages.  When reading messages, ProtocolTraits_ is used to determine the
  * end of a message.
  */
-template<typename ProtocolTraits_>
-class TUnframedAsyncChannel :
-  public TStreamAsyncChannel<detail::TUnframedACWriteRequest,
-                             detail::TUnframedACReadState<ProtocolTraits_> > {
+template <typename ProtocolTraits_>
+class TUnframedAsyncChannel
+    : public TStreamAsyncChannel<
+          apache::thrift::async::detail::TUnframedACWriteRequest,
+          apache::thrift::async::detail::TUnframedACReadState<
+              ProtocolTraits_>> {
  private:
-  typedef TStreamAsyncChannel<detail::TUnframedACWriteRequest,
-                              detail::TUnframedACReadState<ProtocolTraits_> >
+  typedef TStreamAsyncChannel<
+      apache::thrift::async::detail::TUnframedACWriteRequest,
+      apache::thrift::async::detail::TUnframedACReadState<ProtocolTraits_>>
       Parent;
   typedef TUnframedAsyncChannel<ProtocolTraits_> Self;
 
  public:
   explicit TUnframedAsyncChannel(
-    const std::shared_ptr<TAsyncTransport>& transport
-    )
-    : Parent(transport) {}
+      const std::shared_ptr<folly::AsyncTransport>& transport)
+      : Parent(transport) {}
 
   /**
    * Helper function to create a shared_ptr<TUnframedAsyncChannel>.
@@ -139,9 +129,9 @@ class TUnframedAsyncChannel :
    * destructor is protected and cannot be invoked directly.
    */
   static std::shared_ptr<Self> newChannel(
-      const std::shared_ptr<TAsyncTransport>& transport) {
-    return std::shared_ptr<Self>(new Self(transport),
-                                   typename Self::Destructor());
+      const std::shared_ptr<folly::AsyncTransport>& transport) {
+    return std::shared_ptr<Self>(
+        new Self(transport), typename Self::Destructor());
   }
 
   /// size in bytes beyond which we'll reject a given message.
@@ -163,6 +153,10 @@ class TUnframedAsyncChannel :
   ~TUnframedAsyncChannel() override {}
 };
 
-}}} // apache::thrift::async
+} // namespace async
+} // namespace thrift
+} // namespace apache
+
+#include <thrift/lib/cpp/async/TUnframedAsyncChannel-inl.h>
 
 #endif // THRIFT_ASYNC_TUNFRAMEDASYNCCHANNEL_H_

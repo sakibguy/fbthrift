@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,17 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
 
+#include <memory>
 #include <string>
 
-#include <thrift/compiler/ast/t_doc.h>
+#include <thrift/compiler/ast/t_named.h>
+#include <thrift/compiler/ast/t_node.h>
+#include <thrift/compiler/ast/t_paramlist.h>
+#include <thrift/compiler/ast/t_sink.h>
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_type.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
+
+enum class t_function_qualifier {
+  none = 0,
+  one_way,
+  idempotent,
+  read_only,
+};
 
 /**
  * class t_function
@@ -33,141 +45,163 @@ namespace compiler {
  * struct.
  *
  */
-class t_function : public t_doc {
+class t_function : public t_named {
  public:
   /**
    * Constructor for t_function
    *
-   * @param returntype  - The type of the value that will be returned
-   * @param name        - The symbolic name of the function
-   * @param arglist     - The parameters that are passed to the functions
-   * @param annotations - Optional args that add more functionality
-   * @param oneway      - Determines if it is a one way function
+   * @param return_type      - The type of the value that will be returned
+   * @param name             - The symbolic name of the function
+   * @param paramlist        - The parameters that are passed to the functions
+   * @param exceptions        - Declare the exceptions that function might throw
+   * @param stream_exceptions - Exceptions to be sent via the stream
+   * @param qualifier        - The qualifier of the function, if any.
    */
   t_function(
-      t_type* returntype,
+      t_type_ref return_type,
       std::string name,
-      t_struct* arglist,
-      t_type* annotations = nullptr,
-      bool oneway = false)
-      : returntype_(returntype),
-        name_(name),
-        arglist_(arglist),
-        annotations_(annotations),
-        oneway_(oneway) {
-    xceptions_ = new t_struct(nullptr);
-    stream_xceptions_ = new t_struct(nullptr);
-
-    if (oneway_) {
-      if (returntype_ == nullptr || !returntype_->is_void()) {
-        throw std::string("Oneway methods must have void return type.");
-      }
-    }
-  }
-
-  /**
-   * Constructor for t_function
-   *
-   * @param returntype  - The type of the value that will be returned
-   * @param name        - The symbolic name of the function
-   * @param arglist     - The parameters that are passed to the functions
-   * @param xceptions   - Declare the exceptions that function might throw
-   * @param stream_xceptions - Exceptions to be sent via the stream
-   * @param annotations - Optional args that add more functionality
-   * @param oneway      - Determines if it is a one way function
-   */
-  t_function(
-      t_type* returntype,
-      std::string name,
-      t_struct* arglist,
-      t_struct* xceptions,
-      t_struct* stream_xceptions,
-      t_type* annotations = nullptr,
-      bool oneway = false)
-      : returntype_(returntype),
-        name_(name),
-        arglist_(arglist),
-        xceptions_(xceptions),
-        stream_xceptions_(stream_xceptions),
-        annotations_(annotations),
-        oneway_(oneway) {
-    if (oneway_) {
-      if (!xceptions_->get_members().empty()) {
+      std::unique_ptr<t_paramlist> paramlist,
+      std::unique_ptr<t_struct> exceptions = nullptr,
+      std::unique_ptr<t_struct> stream_exceptions = nullptr,
+      t_function_qualifier qualifier = t_function_qualifier::none)
+      : t_named(std::move(name)),
+        return_type_(std::move(return_type)),
+        paramlist_(std::move(paramlist)),
+        exceptions_(std::move(exceptions)),
+        stream_exceptions_(std::move(stream_exceptions)),
+        qualifier_(qualifier) {
+    // sinks are supposed to use the other ctor
+    assert(return_type_.type() == nullptr || !return_type_.type()->is_sink());
+    if (is_oneway()) {
+      if (!exceptions_->get_members().empty()) {
         throw std::string("Oneway methods can't throw exceptions.");
       }
 
-      if (returntype_ == nullptr || !returntype_->is_void()) {
+      if (return_type_.type() == nullptr || !return_type_.type()->is_void()) {
         throw std::string("Oneway methods must have void return type.");
       }
     }
 
-    if (!stream_xceptions_) {
-      stream_xceptions_ = new t_struct(nullptr);
+    if (!exceptions_) {
+      exceptions_ = t_struct::new_throws();
     }
 
-    if (!stream_xceptions_->get_members().empty()) {
-      if (returntype == nullptr || !returntype->is_streamresponse()) {
+    if (!stream_exceptions_) {
+      stream_exceptions_ = t_struct::new_throws();
+    }
+
+    sink_exceptions_ = t_struct::new_throws();
+    sink_final_response_exceptions_ = t_struct::new_throws();
+
+    if (!stream_exceptions_->get_members().empty()) {
+      if (return_type_.type() == nullptr ||
+          !return_type_.type()->is_streamresponse()) {
         throw std::string("`stream throws` only valid on stream methods");
       }
     }
   }
 
-  ~t_function() {}
+  t_function(
+      const t_sink* return_type,
+      std::string name,
+      std::unique_ptr<t_paramlist> paramlist,
+      std::unique_ptr<t_struct> exceptions)
+      : t_named(std::move(name)),
+        return_type_(return_type),
+        paramlist_(std::move(paramlist)),
+        exceptions_(std::move(exceptions)),
+        sink_exceptions_(
+            std::unique_ptr<t_struct>(return_type->get_sink_exceptions())),
+        sink_final_response_exceptions_(std::unique_ptr<t_struct>(
+            return_type->get_final_response_exceptions())),
+        qualifier_(t_function_qualifier::none) {
+    if (!exceptions_) {
+      exceptions_ = t_struct::new_throws();
+    }
+    stream_exceptions_ = t_struct::new_throws();
+    if (!sink_exceptions_) {
+      sink_exceptions_ = t_struct::new_throws();
+    }
+    if (!sink_final_response_exceptions_) {
+      sink_final_response_exceptions_ = t_struct::new_throws();
+    }
+  }
 
   /**
    * t_function getters
    */
-  t_type* get_returntype() const {
-    return returntype_;
+  const t_type* get_return_type() const { return return_type_.type(); }
+
+  t_paramlist* get_paramlist() const { return paramlist_.get(); }
+
+  // TODO: remove "xception" function once everything changed to "exception"
+  t_struct* get_xceptions() const { return get_exceptions(); }
+
+  t_struct* get_exceptions() const { return exceptions_.get(); }
+
+  // TODO: remove "xception" function once everything changed to "exception"
+  t_struct* get_stream_xceptions() const { return get_stream_exceptions(); }
+
+  t_struct* get_stream_exceptions() const { return stream_exceptions_.get(); }
+
+  // TODO: remove "xception" function once everything changed to "exception"
+  t_struct* get_sink_xceptions() const { return get_sink_exceptions(); }
+
+  t_struct* get_sink_exceptions() const { return sink_exceptions_.get(); }
+
+  // TODO: remove "xception" function once everything changed to "exception"
+  t_struct* get_sink_final_response_xceptions() const {
+    return get_sink_final_response_exceptions();
   }
 
-  const std::string& get_name() const {
-    return name_;
+  t_struct* get_sink_final_response_exceptions() const {
+    return sink_final_response_exceptions_.get();
   }
 
-  t_struct* get_arglist() const {
-    return arglist_;
+  bool is_oneway() const { return qualifier_ == t_function_qualifier::one_way; }
+
+  bool returns_stream() const {
+    return return_type_.type()->is_streamresponse();
   }
 
-  t_struct* get_xceptions() const {
-    return xceptions_;
-  }
+  bool returns_sink() const { return return_type_.type()->is_sink(); }
 
-  t_struct* get_stream_xceptions() const {
-    return stream_xceptions_;
-  }
-
-  t_type* get_annotations() const {
-    return annotations_;
-  }
-
-  bool is_oneway() const {
-    return oneway_;
-  }
-
-  // are any of the {return type/argument types} a pubsub stream?
-  bool any_streams() const {
-    if (returntype_->is_pubsub_stream()) {
-      return true;
-    }
-    return any_stream_params();
-  }
-
-  bool any_stream_params() const {
-    auto& members = arglist_->get_members();
-    return std::any_of(members.cbegin(), members.cend(), [](auto const& arg) {
-      return arg->get_type()->is_pubsub_stream();
-    });
-  }
+  bool is_interaction_constructor() const { return isInteractionConstructor_; }
+  void set_is_interaction_constructor() { isInteractionConstructor_ = true; }
+  bool is_interaction_member() const { return isInteractionMember_; }
+  void set_is_interaction_member() { isInteractionMember_ = true; }
 
  private:
-  t_type* returntype_;
-  std::string name_;
-  t_struct* arglist_;
-  t_struct* xceptions_;
-  t_struct* stream_xceptions_;
-  t_type* annotations_;
-  bool oneway_;
+  t_type_ref return_type_;
+  std::unique_ptr<t_paramlist> paramlist_;
+  std::unique_ptr<t_struct> exceptions_;
+  std::unique_ptr<t_struct> stream_exceptions_;
+  std::unique_ptr<t_struct> sink_exceptions_;
+  std::unique_ptr<t_struct> sink_final_response_exceptions_;
+  t_function_qualifier qualifier_;
+  bool isInteractionConstructor_{false};
+  bool isInteractionMember_{false};
+
+ public:
+  // TODO(afuller): Delete everything below here. It is only provided for
+  // backwards compatibility.
+
+  t_function(
+      const t_type* return_type,
+      std::string name,
+      std::unique_ptr<t_paramlist> paramlist,
+      std::unique_ptr<t_struct> exceptions = nullptr,
+      std::unique_ptr<t_struct> stream_exceptions = nullptr,
+      t_function_qualifier qualifier = t_function_qualifier::none)
+      : t_function(
+            t_type_ref(return_type),
+            std::move(name),
+            std::move(paramlist),
+            std::move(exceptions),
+            std::move(stream_exceptions),
+            qualifier) {}
+
+  const t_type* get_returntype() const { return get_return_type(); }
 };
 
 } // namespace compiler

@@ -1,37 +1,30 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <thrift/lib/cpp/async/TFramedAsyncChannel.h>
 
-#include <thrift/lib/cpp/async/TStreamAsyncChannel.tcc>
+#include <folly/lang/Bits.h>
+#include <thrift/lib/cpp/async/TStreamAsyncChannel.h>
 
 using apache::thrift::transport::TMemoryBuffer;
 using apache::thrift::transport::TTransportException;
 
-namespace apache { namespace thrift { namespace async {
-
-// Explicit instantiation of TFramedAsyncChannel's parent class,
-// so other users don't have to include TStreamAsyncChannel.tcc
-template class TStreamAsyncChannel<detail::TFramedACWriteRequest,
-                                   detail::TFramedACReadState>;
+namespace apache {
+namespace thrift {
+namespace async {
 
 namespace detail {
 
@@ -43,14 +36,14 @@ TFramedACWriteRequest::TFramedACWriteRequest(
     : TAsyncChannelWriteRequestBase(callback, errorCallback, message) {}
 
 void TFramedACWriteRequest::write(
-    TAsyncTransport* transport,
-    TAsyncTransport::WriteCallback* callback) noexcept {
+    folly::AsyncTransport* transport,
+    folly::AsyncTransport::WriteCallback* callback) noexcept {
   uint32_t len = buffer_.available_read();
 
   const int kNOps = 2;
   iovec ops[kNOps];
 
-  frameSize_ = htonl(len);
+  frameSize_ = folly::Endian::big(len);
   ops[0].iov_base = frameSizeBuf_;
   ops[0].iov_len = sizeof(frameSizeBuf_);
 
@@ -61,23 +54,21 @@ void TFramedACWriteRequest::write(
 }
 
 void TFramedACWriteRequest::writeSuccess() noexcept {
-  buffer_.consume(ntohl(frameSize_));
+  buffer_.consume(folly::Endian::big(frameSize_));
   invokeCallback();
 }
 
 void TFramedACWriteRequest::writeError(
-    size_t bytesWritten,
-    const TTransportException& ex) noexcept {
-  T_ERROR("TFramedAC: write failed after writing %zu bytes: %s",
-          bytesWritten, ex.what());
+    size_t bytesWritten, const TTransportException& ex) noexcept {
+  T_ERROR(
+      "TFramedAC: write failed after writing %zu bytes: %s",
+      bytesWritten,
+      ex.what());
   invokeErrorCallback();
 }
 
-
 TFramedACReadState::TFramedACReadState()
-  : maxFrameSize_(0x7fffffff)
-  , bytesRead_(0)
-  , buffer_(nullptr) {
+    : maxFrameSize_(0x7fffffff), bytesRead_(0), buffer_(nullptr) {
   frameSize_ = 0;
 }
 
@@ -104,14 +95,15 @@ bool TFramedACReadState::readDataAvailable(size_t len) {
     if (bytesRead_ >= sizeof(frameSize_)) {
       // We've finished reading the frame size
       // Convert the frame size to host byte order
-      frameSize_ = ntohl(frameSize_);
+      frameSize_ = folly::Endian::big(frameSize_);
 
       // Check for overly large frame sizes, so that we reject garbage data
       // instead of allocating a huge buffer.
       if (frameSize_ > maxFrameSize_) {
         T_ERROR("TFramedAC::read(): frame size of %d rejected", frameSize_);
-        throw TTransportException(TTransportException::CORRUPTED_DATA,
-                                  "rejected overly large frame size");
+        throw TTransportException(
+            TTransportException::CORRUPTED_DATA,
+            "rejected overly large frame size");
       }
 
       // The empty frame is complete without body bytes
@@ -136,6 +128,8 @@ bool TFramedACReadState::readDataAvailable(size_t len) {
   return false;
 }
 
-} // detail
+} // namespace detail
 
-}}}  // apache::thrift::async
+} // namespace async
+} // namespace thrift
+} // namespace apache

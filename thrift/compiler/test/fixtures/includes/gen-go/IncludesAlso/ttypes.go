@@ -6,9 +6,10 @@ package IncludesAlso
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -16,6 +17,7 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var GoUnusedProtection__ int;
 
@@ -24,6 +26,21 @@ type Also struct {
 
 func NewAlso() *Also {
   return &Also{}
+}
+
+type AlsoBuilder struct {
+  obj *Also
+}
+
+func NewAlsoBuilder() *AlsoBuilder{
+  return &AlsoBuilder{
+    obj: NewAlso(),
+  }
+}
+
+func (p AlsoBuilder) Emit() *Also{
+  return &Also{
+  }
 }
 
 func (p *Also) Read(iprot thrift.Protocol) error {
@@ -65,6 +82,7 @@ func (p *Also) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Also(%+v)", *p)
+
+  return fmt.Sprintf("Also({})")
 }
 

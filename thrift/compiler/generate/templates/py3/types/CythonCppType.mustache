@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,8 @@ c++ object. The work is mostly done in CythonCppBasicType, but this file handles
 custom type overrides from the cpp.type annotation.
 
 }}{{#type:hasCustomType?}}{{!
-  }}{{#type:iobuf?}}__iobuf.cIOBuf{{/type:iobuf?}}{{!
-  }}{{#type:iobufRef?}}unique_ptr[__iobuf.cIOBuf]{{/type:iobufRef?}}{{!
+  }}{{#type:iobuf?}}_fbthrift_iobuf.cIOBuf{{/type:iobuf?}}{{!
+  }}{{#type:iobufRef?}}unique_ptr[_fbthrift_iobuf.cIOBuf]{{/type:iobufRef?}}{{!
   }}{{^type:iobuf?}}{{^type:iobufRef?}}{{!
     }}{{#type:externalProgram?}}{{> common/ModulePath}}.{{/type:externalProgram?}}{{!
     }}{{^type:externalProgram?}}{{^program:typeContext?}}{{!

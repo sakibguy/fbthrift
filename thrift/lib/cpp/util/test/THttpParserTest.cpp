@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,20 +15,20 @@
  */
 
 #include <thrift/lib/cpp/util/THttpParser.h>
-#include <folly/Format.h>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include <fmt/core.h>
+
+#include <folly/String.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 
 namespace {
 
-class THttpClientParserTest : public testing::Test{};
+class THttpClientParserTest : public testing::Test {};
 
 using HeaderMap = std::map<std::string, std::string>;
 
-void write(
-    apache::thrift::util::THttpParser& parser,
-    folly::StringPiece text) {
+void write(apache::thrift::util::THttpParser& parser, folly::StringPiece text) {
   while (!text.empty()) {
     void* buf = nullptr;
     size_t len = 0;
@@ -45,7 +45,7 @@ TEST_F(THttpClientParserTest, too_many_headers) {
   apache::thrift::util::THttpClientParser parser;
   std::map<std::string, std::string> header;
   for (int i = 0; i < 100; i++) {
-    header[folly::sformat("testing_header{}", i)] = "test_header";
+    header[fmt::format("testing_header{}", i)] = "test_header";
   }
   std::map<std::string, std::string> header_persistent;
   auto answer = std::string("{'testing': 'this is a test'}");
@@ -55,13 +55,13 @@ TEST_F(THttpClientParserTest, too_many_headers) {
   auto fbs = buf->moveToFbString();
   std::string output = std::string(fbs.c_str(), fbs.size());
   for (int i = 0; i < 100; i++) {
-    std::string s = folly::sformat("testing_header{}: test_header\r\n", i);
+    std::string s = fmt::format("testing_header{}: test_header\r\n", i);
     EXPECT_THAT(output, ::testing::HasSubstr(s));
   }
   std::vector<std::string> o;
   folly::split("\r\n", output, o);
   if (o.at(o.size() - 1) != answer) {
-    FAIL() << folly::sformat(
+    FAIL() << fmt::format(
         "Final line should be {} not {}", answer, o.at(o.size() - 1));
   }
 }

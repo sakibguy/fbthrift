@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,18 +19,23 @@
 
 #include <stdint.h>
 
+#include <cassert>
+#include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include <thrift/compiler/ast/t_const.h>
-#include <thrift/compiler/ast/t_enum.h>
-#include <thrift/compiler/ast/t_enum_value.h>
+#include <thrift/compiler/ast/t_node.h>
+#include <thrift/compiler/ast/t_type.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
 
 class t_const;
+class t_enum;
+class t_enum_value;
+
 /**
  * A const value is something parsed that could be a map, set, list, struct
  * or whatever.
@@ -47,54 +52,63 @@ class t_const_value {
     CV_LIST
   };
 
-  t_const_value() {}
+  t_const_value() = default;
 
-  explicit t_const_value(int64_t val) {
-    set_integer(val);
-  }
+  explicit t_const_value(int64_t val) noexcept { set_integer(val); }
 
-  explicit t_const_value(std::string val) {
-    set_string(val);
-  }
+  explicit t_const_value(std::string val) { set_string(std::move(val)); }
 
-  t_const_value(const t_const_value& cv) {
-    switch (cv.get_type()) {
+  t_const_value(const t_const_value&) = delete;
+  t_const_value(t_const_value&&) = delete;
+  t_const_value& operator=(const t_const_value&) = delete;
+
+  std::unique_ptr<t_const_value> clone() const {
+    auto clone = std::make_unique<t_const_value>();
+    switch (get_type()) {
       case CV_BOOL:
-        set_bool(cv.get_bool());
+        clone->set_bool(get_bool());
         break;
       case CV_INTEGER:
-        set_integer(cv.get_integer());
+        clone->set_integer(get_integer());
         break;
       case CV_DOUBLE:
-        set_double(cv.get_double());
+        clone->set_double(get_double());
         break;
       case CV_STRING:
-        set_string(cv.get_string());
+        clone->set_string(get_string());
         break;
       case CV_MAP:
-        set_map();
-        for (auto& map_elem : cv.get_map()) {
-          add_map(
-              new t_const_value(*map_elem.first),
-              new t_const_value(*map_elem.second));
+        clone->set_map();
+        for (auto const& map_elem : get_map()) {
+          clone->add_map(map_elem.first->clone(), map_elem.second->clone());
         }
         break;
       case CV_LIST:
-        set_list();
-        for (auto* lst_elem : cv.get_list()) {
-          add_list(new t_const_value(*lst_elem));
+        clone->set_list();
+        for (auto const& list_elem : get_list()) {
+          clone->add_list(list_elem->clone());
         }
         break;
     }
-    set_owner(cv.get_owner());
+
+    clone->set_owner(get_owner());
+    clone->set_ttype(get_ttype());
+    clone->set_is_enum(is_enum());
+    clone->set_enum(get_enum());
+    clone->set_enum_value(get_enum_value());
+
+    return clone;
   }
+
+  void assign(t_const_value&& value) { *this = std::move(value); }
 
   void set_string(std::string val) {
     valType_ = CV_STRING;
-    stringVal_ = val;
+    stringVal_ = std::move(val);
   }
 
   const std::string& get_string() const {
+    assert(valType_ == CV_STRING);
     return stringVal_;
   }
 
@@ -104,6 +118,7 @@ class t_const_value {
   }
 
   int64_t get_integer() const {
+    assert(valType_ == CV_INTEGER || valType_ == CV_BOOL);
     return intVal_;
   }
 
@@ -113,6 +128,7 @@ class t_const_value {
   }
 
   double get_double() const {
+    assert(valType_ == CV_INTEGER || valType_ == CV_DOUBLE);
     return doubleVal_;
   }
 
@@ -125,37 +141,33 @@ class t_const_value {
   }
 
   bool get_bool() const {
+    assert(valType_ == CV_BOOL);
     return boolVal_;
   }
 
-  void set_map() {
-    valType_ = CV_MAP;
-  }
+  void set_map() { valType_ = CV_MAP; }
 
-  void add_map(t_const_value* key, t_const_value* val) {
-    mapVal_.emplace_back(key, val);
+  void add_map(
+      std::unique_ptr<t_const_value> key, std::unique_ptr<t_const_value> val) {
+    mapVal_raw_.emplace_back(key.get(), val.get());
+    mapVal_.emplace_back(std::move(key), std::move(val));
   }
 
   const std::vector<std::pair<t_const_value*, t_const_value*>>& get_map()
       const {
-    return mapVal_;
+    return mapVal_raw_;
   }
 
-  void set_list() {
-    valType_ = CV_LIST;
+  void set_list() { valType_ = CV_LIST; }
+
+  void add_list(std::unique_ptr<t_const_value> val) {
+    listVal_raw_.push_back(val.get());
+    listVal_.push_back(std::move(val));
   }
 
-  void add_list(t_const_value* val) {
-    listVal_.push_back(val);
-  }
+  const std::vector<t_const_value*>& get_list() const { return listVal_raw_; }
 
-  const std::vector<t_const_value*>& get_list() const {
-    return listVal_;
-  }
-
-  t_const_value_type get_type() const {
-    return valType_;
-  }
+  t_const_value_type get_type() const { return valType_; }
 
   bool is_empty() const {
     switch (valType_) {
@@ -171,64 +183,59 @@ class t_const_value {
     return false;
   }
 
-  void set_owner(t_const* owner) {
-    owner_ = owner;
+  void set_owner(t_const* owner) { owner_ = owner; }
+
+  t_const* get_owner() const { return owner_; }
+
+  void set_ttype(std::unique_ptr<t_type_ref> type) { type_ = std::move(type); }
+
+  const t_type* get_ttype() const {
+    return type_ == nullptr ? nullptr : type_->type();
   }
 
-  t_const* get_owner() const {
-    return owner_;
-  }
+  void set_is_enum(bool value = true) { is_enum_ = value; }
 
-  void set_ttype(t_type* type) {
-    type_ = type;
-  }
+  bool is_enum() const { return is_enum_; }
 
-  t_type* get_ttype() const {
-    return type_;
-  }
+  void set_enum(t_enum const* tenum) { tenum_ = tenum; }
 
-  void set_is_enum() {
-    is_enum_ = true;
-  }
+  const t_enum* get_enum() const { return tenum_; }
 
-  bool is_enum() const {
-    return is_enum_;
-  }
+  void set_enum_value(t_enum_value const* tenum_val) { tenum_val_ = tenum_val; }
 
-  void set_enum(t_enum const* tenum) {
-    tenum_ = tenum;
-  }
-
-  const t_enum* get_enum() const {
-    return tenum_;
-  }
-
-  void set_enum_value(t_enum_value const* tenum_val) {
-    tenum_val_ = tenum_val;
-  }
-
-  const t_enum_value* get_enum_value() const {
-    return tenum_val_;
-  }
+  const t_enum_value* get_enum_value() const { return tenum_val_; }
 
  private:
   // Use a vector of pairs to store the contents of the map so that we
   // preserve thrift-file ordering when generating per-language source.
-  std::vector<std::pair<t_const_value*, t_const_value*>> mapVal_;
-
-  std::vector<t_const_value*> listVal_;
+  std::vector<
+      std::pair<std::unique_ptr<t_const_value>, std::unique_ptr<t_const_value>>>
+      mapVal_;
+  std::vector<std::unique_ptr<t_const_value>> listVal_;
   std::string stringVal_;
-  bool boolVal_;
-  int64_t intVal_;
-  double doubleVal_;
+  bool boolVal_ = false;
+  int64_t intVal_ = 0;
+  double doubleVal_ = 0.0;
 
-  t_const_value_type valType_;
+  std::vector<std::pair<t_const_value*, t_const_value*>> mapVal_raw_;
+  std::vector<t_const_value*> listVal_raw_;
+
+  t_const_value_type valType_ = CV_BOOL;
   t_const* owner_ = nullptr;
-  t_type* type_ = nullptr;
+  std::unique_ptr<t_type_ref> type_;
 
   bool is_enum_ = false;
   t_enum const* tenum_ = nullptr;
   t_enum_value const* tenum_val_ = nullptr;
+
+  t_const_value& operator=(t_const_value&&) = default;
+
+ public:
+  // TODO(afuller): Delete everything below here. It is only provided for
+  // backwards compatibility.
+  void set_ttype(const t_type* type) {
+    type_ = std::make_unique<t_type_ref>(type);
+  }
 };
 
 } // namespace compiler

@@ -5,7 +5,7 @@
 #  @generated
 #
 
-from folly.iobuf import IOBuf as __IOBuf
+import folly.iobuf as _fbthrift_iobuf
 import thrift.py3.types
 import thrift.py3.client
 import thrift.py3.common
@@ -19,16 +19,6 @@ _SimpleServiceT = _typing.TypeVar('_SimpleServiceT', bound='SimpleService')
 
 
 class SimpleService(thrift.py3.client.Client):
-
-    async def __aenter__(self: _SimpleServiceT) -> _SimpleServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
 
     async def get_five(
         self,
@@ -269,22 +259,18 @@ class SimpleService(thrift.py3.client.Client):
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> _typing.Sequence[_module_types.AnEnum]: ...
 
+    async def get_binary_union_struct(
+        self,
+        u: _module_types.BinaryUnion,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _module_types.BinaryUnionStruct: ...
+
 
 
 _DerivedServiceT = _typing.TypeVar('_DerivedServiceT', bound='DerivedService')
 
 
 class DerivedService(SimpleService):
-
-    async def __aenter__(self: _DerivedServiceT) -> _DerivedServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
 
     async def get_six(
         self,
@@ -297,16 +283,6 @@ _RederivedServiceT = _typing.TypeVar('_RederivedServiceT', bound='RederivedServi
 
 
 class RederivedService(DerivedService):
-
-    async def __aenter__(self: _RederivedServiceT) -> _RederivedServiceT: ...
-    async def __aexit__(
-        self,
-        exc_type: _typing.Optional[_typing.Type[BaseException]],
-        exc: _typing.Optional[BaseException],
-        tb: _typing.Optional[TracebackType],
-    ) -> _typing.Optional[bool]: ...
-
-    def set_persistent_header(self, key: str, value: str) -> None: ...
 
     async def get_seven(
         self,

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/lib/cpp/EventHandlerBase.h>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 using namespace std;
 using namespace folly;
@@ -25,6 +26,7 @@ class lulz : public exception {
  public:
   explicit lulz(string message) noexcept : message_(move(message)) {}
   const char* what() const noexcept override { return message_.c_str(); }
+
  private:
   string message_;
 };
@@ -35,23 +37,28 @@ class EventHandler : public TProcessorEventHandler {
  public:
   string ex_type;
   string ex_what;
-  void userException(void*,
-                     const char*,
-                     const std::string& ex_type,
-                     const std::string& ex_what) override {
+  void userException(
+      void*,
+      const char*,
+      const std::string& ex_type,
+      const std::string& ex_what) override {
     this->ex_type = ex_type;
     this->ex_what = ex_what;
   }
 };
 
-template <class E> exception_ptr to_eptr(const E& e) {
-  try { throw e; }
-  catch (E&) { return current_exception(); }
+template <class E>
+exception_ptr to_eptr(const E& e) {
+  try {
+    throw e;
+  } catch (E&) {
+    return current_exception();
+  }
 }
 
 class TProcessorEventHandlerTest : public testing::Test {};
 
-}
+} // namespace
 
 TEST_F(TProcessorEventHandlerTest, with_full_wrapped_eptr) {
   auto wrap = exception_wrapper(lulz("hello"));

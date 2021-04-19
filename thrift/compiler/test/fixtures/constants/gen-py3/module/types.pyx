@@ -4,1729 +4,873 @@
 # DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
 #  @generated
 #
-
 cimport cython as __cython
-from cpython.object cimport PyTypeObject
+from cpython.object cimport PyTypeObject, Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
 from libcpp.memory cimport shared_ptr, make_shared, unique_ptr, make_unique
 from libcpp.string cimport string
 from libcpp cimport bool as cbool
 from libcpp.iterator cimport inserter as cinserter
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t, uint32_t
 from cython.operator cimport dereference as deref, preincrement as inc, address as ptr_address
 import thrift.py3.types
 cimport thrift.py3.types
 cimport thrift.py3.exceptions
-from thrift.py3.types import NOTSET as __NOTSET
-from thrift.py3.types cimport translate_cpp_enum_to_python, SetMetaClass as __SetMetaClass
+from thrift.py3.std_libcpp cimport sv_to_str as __sv_to_str, string_view as __cstring_view
+from thrift.py3.types cimport (
+    cSetOp as __cSetOp,
+    richcmp as __richcmp,
+    set_op as __set_op,
+    setcmp as __setcmp,
+    list_index as __list_index,
+    list_count as __list_count,
+    list_slice as __list_slice,
+    list_getitem as __list_getitem,
+    set_iter as __set_iter,
+    map_iter as __map_iter,
+    map_contains as __map_contains,
+    map_getitem as __map_getitem,
+    reference_shared_ptr as __reference_shared_ptr,
+    get_field_name_by_index as __get_field_name_by_index,
+    reset_field as __reset_field,
+    translate_cpp_enum_to_python,
+    SetMetaClass as __SetMetaClass,
+    const_pointer_cast,
+    constant_shared_ptr,
+    NOTSET as __NOTSET,
+    EnumData as __EnumData,
+    EnumFlagsData as __EnumFlagsData,
+    UnionTypeEnumData as __UnionTypeEnumData,
+    createEnumDataForUnionType as __createEnumDataForUnionType,
+)
 cimport thrift.py3.std_libcpp as std_libcpp
-from thrift.py3.serializer import Protocol as __Protocol
 cimport thrift.py3.serializer as serializer
-from thrift.py3.serializer import deserialize, serialize
-import folly.iobuf as __iobuf
+import folly.iobuf as _fbthrift_iobuf
 from folly.optional cimport cOptional
+from folly.memory cimport to_shared_ptr as __to_shared_ptr
+from folly.range cimport Range as __cRange
 
 import sys
-import itertools
-from collections import Sequence, Set, Mapping, Iterable
-import warnings
+from collections.abc import Sequence, Set, Mapping, Iterable
+import weakref as __weakref
 import builtins as _builtins
 
-cdef object __EmptyEnumEnumInstances = None  # Set[EmptyEnum]
-cdef object __EmptyEnumEnumMembers = {}      # Dict[str, EmptyEnum]
-cdef object __EmptyEnumEnumUniqueValues = dict()    # Dict[int, EmptyEnum]
+cimport module.types_reflection as _types_reflection
+
+
+cdef __EnumData __EmptyEnum_enum_data  = __EnumData.create(thrift.py3.types.createEnumData[cEmptyEnum](), EmptyEnum)
+
 
 @__cython.internal
 @__cython.auto_pickle(False)
-cdef class __EmptyEnumMeta(type):
-    def __call__(cls, value):
-        cdef int cvalue
-        if isinstance(value, cls) and value in __EmptyEnumEnumInstances:
-            return value
-        if isinstance(value, int):
-            cvalue = value
+cdef class __EmptyEnumMeta(thrift.py3.types.EnumMeta):
+    def _fbthrift_get_by_value(cls, int value):
+        return __EmptyEnum_enum_data.get_by_value(value)
 
-        raise ValueError(f'{value} is not a valid EmptyEnum')
-
-    def __getitem__(cls, name):
-        return __EmptyEnumEnumMembers[name]
-
-    def __dir__(cls):
-        return ['__class__', '__doc__', '__members__', '__module__',
-        ]
-
-    def __iter__(cls):
-        return iter(__EmptyEnumEnumUniqueValues.values())
-
-    def __reversed__(cls):
-        return reversed(iter(cls))
-
-    def __contains__(cls, item):
-        if not isinstance(item, cls):
-            return False
-        return item in __EmptyEnumEnumInstances
+    def _fbthrift_get_all_names(cls):
+        return __EmptyEnum_enum_data.get_all_names()
 
     def __len__(cls):
-        return len(__EmptyEnumEnumInstances)
+        return __EmptyEnum_enum_data.size()
 
-
-cdef __EmptyEnum_unique_instance(int value, str name):
-    inst = __EmptyEnumEnumUniqueValues.get(value)
-    if inst is None:
-        inst = __EmptyEnumEnumUniqueValues[value] = EmptyEnum.__new__(EmptyEnum, value, name)
-    __EmptyEnumEnumMembers[name] = inst
-    return inst
+    def __getattribute__(cls, str name not None):
+        if name.startswith("__") or name.startswith("_fbthrift_") or name == "mro":
+            return super().__getattribute__(name)
+        return __EmptyEnum_enum_data.get_by_name(name)
 
 
 @__cython.final
+@__cython.auto_pickle(False)
 cdef class EmptyEnum(thrift.py3.types.CompiledEnum):
-    __members__ = thrift.py3.types.MappingProxyType(__EmptyEnumEnumMembers)
+    cdef get_by_name(self, str name):
+        return __EmptyEnum_enum_data.get_by_name(name)
 
-    def __cinit__(self, value, name):
-        if __EmptyEnumEnumInstances is not None:
-            raise TypeError('For Safty we have disabled __new__')
-        self.value = value
-        self.name = name
-        self.__hash = hash(name)
-        self.__str = f"EmptyEnum.{name}"
-        self.__repr = f"<{self.__str}: {value}>"
 
-    def __repr__(self):
-        return self.__repr
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        EnumMetadata[cEmptyEnum].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-    def __str__(self):
-        return self.__str
-
-    def __int__(self):
-        return self.value
-
-    def __eq__(self, other):
-        if not isinstance(other, EmptyEnum):
-            warnings.warn(f"comparison not supported between instances of { EmptyEnum } and {type(other)}", RuntimeWarning, stacklevel=2)
-            return False
-        return self is other
-
-    def __hash__(self):
-        return self.__hash
-
-    def __reduce__(self):
-        return EmptyEnum, (self.value,)
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.EmptyEnum"
 
 
 __SetMetaClass(<PyTypeObject*> EmptyEnum, <PyTypeObject*> __EmptyEnumMeta)
-__EmptyEnumEnumInstances = set(__EmptyEnumEnumUniqueValues.values())
 
 
-cdef inline cEmptyEnum EmptyEnum_to_cpp(EmptyEnum value):
-    cdef int cvalue = value.value
-    pass
-cdef object __CityEnumInstances = None  # Set[City]
-cdef object __CityEnumMembers = {}      # Dict[str, City]
-cdef object __CityEnumUniqueValues = dict()    # Dict[int, City]
+cdef __EnumData __City_enum_data  = __EnumData.create(thrift.py3.types.createEnumData[cCity](), City)
+
 
 @__cython.internal
 @__cython.auto_pickle(False)
-cdef class __CityMeta(type):
-    def __call__(cls, value):
-        cdef int cvalue
-        if isinstance(value, cls) and value in __CityEnumInstances:
-            return value
-        if isinstance(value, int):
-            cvalue = value
-            if cvalue == 0:
-                return City.NYC
-            elif cvalue == 1:
-                return City.MPK
-            elif cvalue == 2:
-                return City.SEA
-            elif cvalue == 3:
-                return City.LON
+cdef class __CityMeta(thrift.py3.types.EnumMeta):
+    def _fbthrift_get_by_value(cls, int value):
+        return __City_enum_data.get_by_value(value)
 
-        raise ValueError(f'{value} is not a valid City')
-
-    def __getitem__(cls, name):
-        return __CityEnumMembers[name]
-
-    def __dir__(cls):
-        return ['__class__', '__doc__', '__members__', '__module__',
-        'NYC',
-        'MPK',
-        'SEA',
-        'LON',
-        ]
-
-    def __iter__(cls):
-        return iter(__CityEnumUniqueValues.values())
-
-    def __reversed__(cls):
-        return reversed(iter(cls))
-
-    def __contains__(cls, item):
-        if not isinstance(item, cls):
-            return False
-        return item in __CityEnumInstances
+    def _fbthrift_get_all_names(cls):
+        return __City_enum_data.get_all_names()
 
     def __len__(cls):
-        return len(__CityEnumInstances)
+        return __City_enum_data.size()
 
-
-cdef __City_unique_instance(int value, str name):
-    inst = __CityEnumUniqueValues.get(value)
-    if inst is None:
-        inst = __CityEnumUniqueValues[value] = City.__new__(City, value, name)
-    __CityEnumMembers[name] = inst
-    return inst
+    def __getattribute__(cls, str name not None):
+        if name.startswith("__") or name.startswith("_fbthrift_") or name == "mro":
+            return super().__getattribute__(name)
+        return __City_enum_data.get_by_name(name)
 
 
 @__cython.final
+@__cython.auto_pickle(False)
 cdef class City(thrift.py3.types.CompiledEnum):
-    NYC = __City_unique_instance(0, "NYC")
-    MPK = __City_unique_instance(1, "MPK")
-    SEA = __City_unique_instance(2, "SEA")
-    LON = __City_unique_instance(3, "LON")
-    __members__ = thrift.py3.types.MappingProxyType(__CityEnumMembers)
+    cdef get_by_name(self, str name):
+        return __City_enum_data.get_by_name(name)
 
-    def __cinit__(self, value, name):
-        if __CityEnumInstances is not None:
-            raise TypeError('For Safty we have disabled __new__')
-        self.value = value
-        self.name = name
-        self.__hash = hash(name)
-        self.__str = f"City.{name}"
-        self.__repr = f"<{self.__str}: {value}>"
 
-    def __repr__(self):
-        return self.__repr
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        EnumMetadata[cCity].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-    def __str__(self):
-        return self.__str
-
-    def __int__(self):
-        return self.value
-
-    def __eq__(self, other):
-        if not isinstance(other, City):
-            warnings.warn(f"comparison not supported between instances of { City } and {type(other)}", RuntimeWarning, stacklevel=2)
-            return False
-        return self is other
-
-    def __hash__(self):
-        return self.__hash
-
-    def __reduce__(self):
-        return City, (self.value,)
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.City"
 
 
 __SetMetaClass(<PyTypeObject*> City, <PyTypeObject*> __CityMeta)
-__CityEnumInstances = set(__CityEnumUniqueValues.values())
 
 
-cdef inline cCity City_to_cpp(City value):
-    cdef int cvalue = value.value
-    if cvalue == 0:
-        return City__NYC
-    elif cvalue == 1:
-        return City__MPK
-    elif cvalue == 2:
-        return City__SEA
-    elif cvalue == 3:
-        return City__LON
-cdef object __CompanyEnumInstances = None  # Set[Company]
-cdef object __CompanyEnumMembers = {}      # Dict[str, Company]
-cdef object __CompanyEnumUniqueValues = dict()    # Dict[int, Company]
+cdef __EnumData __Company_enum_data  = __EnumData.create(thrift.py3.types.createEnumData[cCompany](), Company)
+
 
 @__cython.internal
 @__cython.auto_pickle(False)
-cdef class __CompanyMeta(type):
-    def __call__(cls, value):
-        cdef int cvalue
-        if isinstance(value, cls) and value in __CompanyEnumInstances:
-            return value
-        if isinstance(value, int):
-            cvalue = value
-            if cvalue == 0:
-                return Company.FACEBOOK
-            elif cvalue == 1:
-                return Company.WHATSAPP
-            elif cvalue == 2:
-                return Company.OCULUS
-            elif cvalue == 3:
-                return Company.INSTAGRAM
+cdef class __CompanyMeta(thrift.py3.types.EnumMeta):
+    def _fbthrift_get_by_value(cls, int value):
+        return __Company_enum_data.get_by_value(value)
 
-        raise ValueError(f'{value} is not a valid Company')
-
-    def __getitem__(cls, name):
-        return __CompanyEnumMembers[name]
-
-    def __dir__(cls):
-        return ['__class__', '__doc__', '__members__', '__module__',
-        'FACEBOOK',
-        'WHATSAPP',
-        'OCULUS',
-        'INSTAGRAM',
-        ]
-
-    def __iter__(cls):
-        return iter(__CompanyEnumUniqueValues.values())
-
-    def __reversed__(cls):
-        return reversed(iter(cls))
-
-    def __contains__(cls, item):
-        if not isinstance(item, cls):
-            return False
-        return item in __CompanyEnumInstances
+    def _fbthrift_get_all_names(cls):
+        return __Company_enum_data.get_all_names()
 
     def __len__(cls):
-        return len(__CompanyEnumInstances)
+        return __Company_enum_data.size()
 
-
-cdef __Company_unique_instance(int value, str name):
-    inst = __CompanyEnumUniqueValues.get(value)
-    if inst is None:
-        inst = __CompanyEnumUniqueValues[value] = Company.__new__(Company, value, name)
-    __CompanyEnumMembers[name] = inst
-    return inst
+    def __getattribute__(cls, str name not None):
+        if name.startswith("__") or name.startswith("_fbthrift_") or name == "mro":
+            return super().__getattribute__(name)
+        return __Company_enum_data.get_by_name(name)
 
 
 @__cython.final
+@__cython.auto_pickle(False)
 cdef class Company(thrift.py3.types.CompiledEnum):
-    FACEBOOK = __Company_unique_instance(0, "FACEBOOK")
-    WHATSAPP = __Company_unique_instance(1, "WHATSAPP")
-    OCULUS = __Company_unique_instance(2, "OCULUS")
-    INSTAGRAM = __Company_unique_instance(3, "INSTAGRAM")
-    __members__ = thrift.py3.types.MappingProxyType(__CompanyEnumMembers)
+    cdef get_by_name(self, str name):
+        return __Company_enum_data.get_by_name(name)
 
-    def __cinit__(self, value, name):
-        if __CompanyEnumInstances is not None:
-            raise TypeError('For Safty we have disabled __new__')
-        self.value = value
-        self.name = name
-        self.__hash = hash(name)
-        self.__str = f"Company.{name}"
-        self.__repr = f"<{self.__str}: {value}>"
 
-    def __repr__(self):
-        return self.__repr
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        EnumMetadata[cCompany].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-    def __str__(self):
-        return self.__str
-
-    def __int__(self):
-        return self.value
-
-    def __eq__(self, other):
-        if not isinstance(other, Company):
-            warnings.warn(f"comparison not supported between instances of { Company } and {type(other)}", RuntimeWarning, stacklevel=2)
-            return False
-        return self is other
-
-    def __hash__(self):
-        return self.__hash
-
-    def __reduce__(self):
-        return Company, (self.value,)
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Company"
 
 
 __SetMetaClass(<PyTypeObject*> Company, <PyTypeObject*> __CompanyMeta)
-__CompanyEnumInstances = set(__CompanyEnumUniqueValues.values())
 
 
-cdef inline cCompany Company_to_cpp(Company value):
-    cdef int cvalue = value.value
-    if cvalue == 0:
-        return Company__FACEBOOK
-    elif cvalue == 1:
-        return Company__WHATSAPP
-    elif cvalue == 2:
-        return Company__OCULUS
-    elif cvalue == 3:
-        return Company__INSTAGRAM
 
-
-cdef object __union1_Union_TypeEnumMembers = None
+cdef __UnionTypeEnumData __union1_union_type_enum_data  = __UnionTypeEnumData.create(
+    __createEnumDataForUnionType[cunion1](),
+    __union1Type,
+)
 
 
 @__cython.internal
 @__cython.auto_pickle(False)
-cdef class __union1_Union_TypeMeta(type):
-    def __call__(cls, value):
-        cdef int cvalue
-        if isinstance(value, cls) and value in __union1_Union_TypeEnumMembers:
-            return value
+cdef class __union1_Union_TypeMeta(thrift.py3.types.EnumMeta):
+    def _fbthrift_get_by_value(cls, int value):
+        return __union1_union_type_enum_data.get_by_value(value)
 
-        if isinstance(value, int):
-            cvalue = value
-            if cvalue == 0:
-                return __union1Type.EMPTY
-            elif cvalue == 1:
-                return __union1Type.i
-            elif cvalue == 2:
-                return __union1Type.d
-
-        raise ValueError(f'{value} is not a valid union1.Type')
-
-    def __getitem__(cls, name):
-        if name == "EMPTY":
-            return __union1Type.EMPTY
-        elif name == "i":
-            return __union1Type.i
-        elif name == "d":
-            return __union1Type.d
-        raise KeyError(name)
-
-    def __dir__(cls):
-        return ['__class__', '__doc__', '__members__', '__module__', 'EMPTY',
-            'i',
-            'd',
-        ]
-
-    @property
-    def __members__(cls):
-        return {m.name: m for m in cls}
-
-    def __iter__(cls):
-        yield __union1Type.EMPTY
-        yield __union1Type.i
-        yield __union1Type.d
-
-    def __reversed__(cls):
-        return reversed(iter(cls))
-
-    def __contains__(cls, item):
-        if not isinstance(item, cls):
-            return False
-        return item in __union1_Union_TypeEnumMembers
+    def _fbthrift_get_all_names(cls):
+        return __union1_union_type_enum_data.get_all_names()
 
     def __len__(cls):
-        return 2+1  # For Empty
+        return __union1_union_type_enum_data.size()
+
+    def __getattribute__(cls, str name not None):
+        if name.startswith("__") or name.startswith("_fbthrift_") or name == "mro":
+            return super().__getattribute__(name)
+        return __union1_union_type_enum_data.get_by_name(name)
 
 
 @__cython.final
+@__cython.auto_pickle(False)
 cdef class __union1Type(thrift.py3.types.CompiledEnum):
-    EMPTY = __union1Type.__new__(__union1Type, 0, "EMPTY")
-    i = __union1Type.__new__(__union1Type, 1, "i")
-    d = __union1Type.__new__(__union1Type, 2, "d")
+    cdef get_by_name(self, str name):
+        return __union1_union_type_enum_data.get_by_name(name)
 
-    def __cinit__(self, value, name):
-        if __union1_Union_TypeEnumMembers is not None:
-            raise TypeError('For Safty we have disabled __new__')
-        self.value = value
-        self.name = name
-        self.__hash = hash(name)
-        self.__str = f"union1.Type.{name}"
-        self.__repr = f"<{self.__str}: {value}>"
-
-    def __repr__(self):
-        return self.__repr
-
-    def __str__(self):
-        return self.__str
-
-    def __int__(self):
-        return self.value
-
-    def __eq__(self, other):
-        if not isinstance(other, __union1Type):
-            warnings.warn(f"comparison not supported between instances of { __union1Type } and {type(other)}", RuntimeWarning, stacklevel=2)
-            return False
-        return self is other
-
-    def __hash__(self):
-        return self.__hash
-
-    def __reduce__(self):
-        return __union1Type, (self.value,)
 
 __SetMetaClass(<PyTypeObject*> __union1Type, <PyTypeObject*> __union1_Union_TypeMeta)
-__union1_Union_TypeEnumMembers = set(__union1Type)
 
 
-
-cdef object __union2_Union_TypeEnumMembers = None
+cdef __UnionTypeEnumData __union2_union_type_enum_data  = __UnionTypeEnumData.create(
+    __createEnumDataForUnionType[cunion2](),
+    __union2Type,
+)
 
 
 @__cython.internal
 @__cython.auto_pickle(False)
-cdef class __union2_Union_TypeMeta(type):
-    def __call__(cls, value):
-        cdef int cvalue
-        if isinstance(value, cls) and value in __union2_Union_TypeEnumMembers:
-            return value
+cdef class __union2_Union_TypeMeta(thrift.py3.types.EnumMeta):
+    def _fbthrift_get_by_value(cls, int value):
+        return __union2_union_type_enum_data.get_by_value(value)
 
-        if isinstance(value, int):
-            cvalue = value
-            if cvalue == 0:
-                return __union2Type.EMPTY
-            elif cvalue == 1:
-                return __union2Type.i
-            elif cvalue == 2:
-                return __union2Type.d
-            elif cvalue == 3:
-                return __union2Type.s
-            elif cvalue == 4:
-                return __union2Type.u
-
-        raise ValueError(f'{value} is not a valid union2.Type')
-
-    def __getitem__(cls, name):
-        if name == "EMPTY":
-            return __union2Type.EMPTY
-        elif name == "i":
-            return __union2Type.i
-        elif name == "d":
-            return __union2Type.d
-        elif name == "s":
-            return __union2Type.s
-        elif name == "u":
-            return __union2Type.u
-        raise KeyError(name)
-
-    def __dir__(cls):
-        return ['__class__', '__doc__', '__members__', '__module__', 'EMPTY',
-            'i',
-            'd',
-            's',
-            'u',
-        ]
-
-    @property
-    def __members__(cls):
-        return {m.name: m for m in cls}
-
-    def __iter__(cls):
-        yield __union2Type.EMPTY
-        yield __union2Type.i
-        yield __union2Type.d
-        yield __union2Type.s
-        yield __union2Type.u
-
-    def __reversed__(cls):
-        return reversed(iter(cls))
-
-    def __contains__(cls, item):
-        if not isinstance(item, cls):
-            return False
-        return item in __union2_Union_TypeEnumMembers
+    def _fbthrift_get_all_names(cls):
+        return __union2_union_type_enum_data.get_all_names()
 
     def __len__(cls):
-        return 4+1  # For Empty
+        return __union2_union_type_enum_data.size()
+
+    def __getattribute__(cls, str name not None):
+        if name.startswith("__") or name.startswith("_fbthrift_") or name == "mro":
+            return super().__getattribute__(name)
+        return __union2_union_type_enum_data.get_by_name(name)
 
 
 @__cython.final
+@__cython.auto_pickle(False)
 cdef class __union2Type(thrift.py3.types.CompiledEnum):
-    EMPTY = __union2Type.__new__(__union2Type, 0, "EMPTY")
-    i = __union2Type.__new__(__union2Type, 1, "i")
-    d = __union2Type.__new__(__union2Type, 2, "d")
-    s = __union2Type.__new__(__union2Type, 3, "s")
-    u = __union2Type.__new__(__union2Type, 4, "u")
+    cdef get_by_name(self, str name):
+        return __union2_union_type_enum_data.get_by_name(name)
 
-    def __cinit__(self, value, name):
-        if __union2_Union_TypeEnumMembers is not None:
-            raise TypeError('For Safty we have disabled __new__')
-        self.value = value
-        self.name = name
-        self.__hash = hash(name)
-        self.__str = f"union2.Type.{name}"
-        self.__repr = f"<{self.__str}: {value}>"
-
-    def __repr__(self):
-        return self.__repr
-
-    def __str__(self):
-        return self.__str
-
-    def __int__(self):
-        return self.value
-
-    def __eq__(self, other):
-        if not isinstance(other, __union2Type):
-            warnings.warn(f"comparison not supported between instances of { __union2Type } and {type(other)}", RuntimeWarning, stacklevel=2)
-            return False
-        return self is other
-
-    def __hash__(self):
-        return self.__hash
-
-    def __reduce__(self):
-        return __union2Type, (self.value,)
 
 __SetMetaClass(<PyTypeObject*> __union2Type, <PyTypeObject*> __union2_Union_TypeMeta)
-__union2_Union_TypeEnumMembers = set(__union2Type)
 
 
-cdef cInternship _Internship_defaults = cInternship()
-
+@__cython.auto_pickle(False)
 cdef class Internship(thrift.py3.types.Struct):
+    def __init__(Internship self, **kwargs):
+        self._cpp_obj = make_shared[cInternship]()
+        self._fields_setter = _fbthrift_types_fields.__Internship_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__(**kwargs)
 
-    def __init__(
-        Internship self, *,
-        weeks,
-        str title=None,
-        Company employer=None
-    ):
-        if weeks is not None:
-            if not isinstance(weeks, int):
-                raise TypeError(f'weeks is not a { int !r}.')
-            weeks = <int32_t> weeks
-
-        self._cpp_obj = move(Internship._make_instance(
-          NULL,
-          weeks,
-          title,
-          employer,
-        ))
-
-    def __call__(
-        Internship self,
-        weeks=__NOTSET,
-        title=__NOTSET,
-        employer=__NOTSET
-    ):
-        changes = any((
-            weeks is not __NOTSET,
-
-            title is not __NOTSET,
-
-            employer is not __NOTSET,
-        ))
-
-        if not changes:
+    def __call__(Internship self, **kwargs):
+        if not kwargs:
             return self
+        cdef Internship __fbthrift_inst = Internship.__new__(Internship)
+        __fbthrift_inst._cpp_obj = make_shared[cInternship](deref(self._cpp_obj))
+        __fbthrift_inst._fields_setter = _fbthrift_types_fields.__Internship_FieldsSetter.create(__fbthrift_inst._cpp_obj.get())
+        for __fbthrift_name, _fbthrift_value in kwargs.items():
+            __fbthrift_inst._fbthrift_set_field(__fbthrift_name, _fbthrift_value)
+        return __fbthrift_inst
 
-        if weeks is None:
-            raise TypeError('field weeks is required and has no default, it can not be unset')
-        if None is not weeks is not __NOTSET:
-            if not isinstance(weeks, int):
-                raise TypeError(f'weeks is not a { int !r}.')
-            weeks = <int32_t> weeks
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
 
-        if None is not title is not __NOTSET:
-            if not isinstance(title, str):
-                raise TypeError(f'title is not a { str !r}.')
-
-        if None is not employer is not __NOTSET:
-            if not isinstance(employer, Company):
-                raise TypeError(f'field employer value: { employer !r} is not of the enum type { Company }.')
-
-        inst = <Internship>Internship.__new__(Internship)
-        inst._cpp_obj = move(Internship._make_instance(
-          self._cpp_obj.get(),
-          weeks,
-          title,
-          employer,
-        ))
-        return inst
-
-    @staticmethod
-    cdef unique_ptr[cInternship] _make_instance(
-        cInternship* base_instance,
-        object weeks,
-        object title,
-        object employer
-    ) except *:
-        cdef unique_ptr[cInternship] c_inst
-        if base_instance:
-            c_inst = make_unique[cInternship](deref(base_instance))
-        else:
-            c_inst = make_unique[cInternship]()
-
-        if base_instance:
-            # Convert None's to default value. (or unset)
-            if weeks is None:
-                pass
-            elif weeks is __NOTSET:
-                weeks = None
-
-            if title is None:
-                deref(c_inst).title = _Internship_defaults.title
-                deref(c_inst).__isset.title = False
-                pass
-            elif title is __NOTSET:
-                title = None
-
-            if employer is None:
-                deref(c_inst).__isset.employer = False
-                pass
-            elif employer is __NOTSET:
-                employer = None
-
-        if weeks is not None:
-            deref(c_inst).weeks = weeks
-        if title is not None:
-            deref(c_inst).title = title.encode('UTF-8')
-            deref(c_inst).__isset.title = True
-        if employer is not None:
-            deref(c_inst).employer = Company_to_cpp(employer)
-            deref(c_inst).__isset.employer = True
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
-
-    def __iter__(self):
-        yield 'weeks', self.weeks
-        yield 'title', self.title
-        yield 'employer', self.employer
-
-    def __bool__(self):
-        return True or True or deref(self._cpp_obj).__isset.employer
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("Internship", {
+          "weeks": deref(self._cpp_obj).weeks_ref().has_value(),
+          "title": deref(self._cpp_obj).title_ref().has_value(),
+          "employer": deref(self._cpp_obj).employer_ref().has_value(),
+          "compensation": deref(self._cpp_obj).compensation_ref().has_value(),
+        })
 
     @staticmethod
     cdef create(shared_ptr[cInternship] cpp_obj):
-        inst = <Internship>Internship.__new__(Internship)
-        inst._cpp_obj = cpp_obj
-        return inst
+        __fbthrift_inst = <Internship>Internship.__new__(Internship)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        return __fbthrift_inst
 
     @property
     def weeks(self):
 
-        return self._cpp_obj.get().weeks
+        return deref(self._cpp_obj).weeks_ref().value()
 
     @property
     def title(self):
 
-        return (<bytes>self._cpp_obj.get().title).decode('UTF-8')
+        return (<bytes>deref(self._cpp_obj).title_ref().value()).decode('UTF-8')
 
     @property
     def employer(self):
-        if not deref(self._cpp_obj).__isset.employer:
+        if not deref(self._cpp_obj).employer_ref().has_value():
             return None
 
-        return translate_cpp_enum_to_python(Company, <int>(deref(self._cpp_obj).employer))
+        if self.__fbthrift_cached_employer is None:
+            self.__fbthrift_cached_employer = translate_cpp_enum_to_python(Company, <int>(deref(self._cpp_obj).employer_ref().value_unchecked()))
+        return self.__fbthrift_cached_employer
+
+    @property
+    def compensation(self):
+        if not deref(self._cpp_obj).compensation_ref().has_value():
+            return None
+
+        return deref(self._cpp_obj).compensation_ref().value_unchecked()
 
 
     def __hash__(Internship self):
-        if not self.__hash:
-            self.__hash = hash((
-            self.weeks,
-            self.title,
-            self.employer,
-            ))
-        return self.__hash
+        return  super().__hash__()
 
-    def __repr__(Internship self):
-        return f'Internship(weeks={repr(self.weeks)}, title={repr(self.title)}, employer={repr(self.employer)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, Internship) and
-                isinstance(other, Internship)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __copy__(Internship self):
+        cdef shared_ptr[cInternship] cpp_obj = make_shared[cInternship](
+            deref(self._cpp_obj)
+        )
+        return Internship.create(cmove(cpp_obj))
 
-        cdef cInternship cself = deref((<Internship>self)._cpp_obj)
-        cdef cInternship cother = deref((<Internship>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cInternship](
+            self._cpp_obj,
+            (<Internship>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
-    cdef __iobuf.IOBuf _serialize(Internship self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cInternship* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cInternship](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cInternship](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cInternship](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cInternship](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Internship()
 
-    cdef uint32_t _deserialize(Internship self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cInternship].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Internship"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cInternship](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 4
+
+    cdef _fbthrift_iobuf.IOBuf _serialize(Internship self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cInternship](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _deserialize(Internship self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
         self._cpp_obj = make_shared[cInternship]()
-        cdef cInternship* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cInternship](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cInternship](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cInternship](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cInternship](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
+        with nogil:
+            needed = serializer.cdeserialize[cInternship](buf, self._cpp_obj.get(), proto)
         return needed
 
-    def __reduce__(self):
-        return (deserialize, (Internship, serialize(self)))
 
-
-cdef cUnEnumStruct _UnEnumStruct_defaults = cUnEnumStruct()
-
-cdef class UnEnumStruct(thrift.py3.types.Struct):
-
-    def __init__(
-        UnEnumStruct self, *,
-        City city=None
-    ):
-        self._cpp_obj = move(UnEnumStruct._make_instance(
-          NULL,
-          city,
-        ))
-
-    def __call__(
-        UnEnumStruct self,
-        city=__NOTSET
-    ):
-        changes = any((
-            city is not __NOTSET,
-        ))
-
-        if not changes:
-            return self
-
-        if None is not city is not __NOTSET:
-            if not isinstance(city, City):
-                raise TypeError(f'field city value: { city !r} is not of the enum type { City }.')
-
-        inst = <UnEnumStruct>UnEnumStruct.__new__(UnEnumStruct)
-        inst._cpp_obj = move(UnEnumStruct._make_instance(
-          self._cpp_obj.get(),
-          city,
-        ))
-        return inst
-
-    @staticmethod
-    cdef unique_ptr[cUnEnumStruct] _make_instance(
-        cUnEnumStruct* base_instance,
-        object city
-    ) except *:
-        cdef unique_ptr[cUnEnumStruct] c_inst
-        if base_instance:
-            c_inst = make_unique[cUnEnumStruct](deref(base_instance))
-        else:
-            c_inst = make_unique[cUnEnumStruct]()
-
-        if base_instance:
-            # Convert None's to default value. (or unset)
-            if city is None:
-                deref(c_inst).city = _UnEnumStruct_defaults.city
-                deref(c_inst).__isset.city = False
-                pass
-            elif city is __NOTSET:
-                city = None
-
-        if city is not None:
-            deref(c_inst).city = City_to_cpp(city)
-            deref(c_inst).__isset.city = True
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
-
-    def __iter__(self):
-        yield 'city', self.city
-
-    def __bool__(self):
-        return True
-
-    @staticmethod
-    cdef create(shared_ptr[cUnEnumStruct] cpp_obj):
-        inst = <UnEnumStruct>UnEnumStruct.__new__(UnEnumStruct)
-        inst._cpp_obj = cpp_obj
-        return inst
-
-    @property
-    def city(self):
-
-        return translate_cpp_enum_to_python(City, <int>(deref(self._cpp_obj).city))
-
-
-    def __hash__(UnEnumStruct self):
-        if not self.__hash:
-            self.__hash = hash((
-            self.city,
-            ))
-        return self.__hash
-
-    def __repr__(UnEnumStruct self):
-        return f'UnEnumStruct(city={repr(self.city)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, UnEnumStruct) and
-                isinstance(other, UnEnumStruct)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
-
-        cdef cUnEnumStruct cself = deref((<UnEnumStruct>self)._cpp_obj)
-        cdef cUnEnumStruct cother = deref((<UnEnumStruct>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
-
-    cdef __iobuf.IOBuf _serialize(UnEnumStruct self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cUnEnumStruct* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cUnEnumStruct](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cUnEnumStruct](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cUnEnumStruct](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cUnEnumStruct](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
-
-    cdef uint32_t _deserialize(UnEnumStruct self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
-        self._cpp_obj = make_shared[cUnEnumStruct]()
-        cdef cUnEnumStruct* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cUnEnumStruct](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cUnEnumStruct](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cUnEnumStruct](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cUnEnumStruct](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        return needed
-
-    def __reduce__(self):
-        return (deserialize, (UnEnumStruct, serialize(self)))
-
-
-cdef cRange _Range_defaults = cRange()
-
+@__cython.auto_pickle(False)
 cdef class Range(thrift.py3.types.Struct):
+    def __init__(Range self, **kwargs):
+        self._cpp_obj = make_shared[cRange]()
+        self._fields_setter = _fbthrift_types_fields.__Range_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__(**kwargs)
 
-    def __init__(
-        Range self, *,
-        min,
-        max
-    ):
-        if min is not None:
-            if not isinstance(min, int):
-                raise TypeError(f'min is not a { int !r}.')
-            min = <int32_t> min
-
-        if max is not None:
-            if not isinstance(max, int):
-                raise TypeError(f'max is not a { int !r}.')
-            max = <int32_t> max
-
-        self._cpp_obj = move(Range._make_instance(
-          NULL,
-          min,
-          max,
-        ))
-
-    def __call__(
-        Range self,
-        min=__NOTSET,
-        max=__NOTSET
-    ):
-        changes = any((
-            min is not __NOTSET,
-
-            max is not __NOTSET,
-        ))
-
-        if not changes:
+    def __call__(Range self, **kwargs):
+        if not kwargs:
             return self
+        cdef Range __fbthrift_inst = Range.__new__(Range)
+        __fbthrift_inst._cpp_obj = make_shared[cRange](deref(self._cpp_obj))
+        __fbthrift_inst._fields_setter = _fbthrift_types_fields.__Range_FieldsSetter.create(__fbthrift_inst._cpp_obj.get())
+        for __fbthrift_name, _fbthrift_value in kwargs.items():
+            __fbthrift_inst._fbthrift_set_field(__fbthrift_name, _fbthrift_value)
+        return __fbthrift_inst
 
-        if min is None:
-            raise TypeError('field min is required and has no default, it can not be unset')
-        if None is not min is not __NOTSET:
-            if not isinstance(min, int):
-                raise TypeError(f'min is not a { int !r}.')
-            min = <int32_t> min
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
 
-        if max is None:
-            raise TypeError('field max is required and has no default, it can not be unset')
-        if None is not max is not __NOTSET:
-            if not isinstance(max, int):
-                raise TypeError(f'max is not a { int !r}.')
-            max = <int32_t> max
-
-        inst = <Range>Range.__new__(Range)
-        inst._cpp_obj = move(Range._make_instance(
-          self._cpp_obj.get(),
-          min,
-          max,
-        ))
-        return inst
-
-    @staticmethod
-    cdef unique_ptr[cRange] _make_instance(
-        cRange* base_instance,
-        object min,
-        object max
-    ) except *:
-        cdef unique_ptr[cRange] c_inst
-        if base_instance:
-            c_inst = make_unique[cRange](deref(base_instance))
-        else:
-            c_inst = make_unique[cRange]()
-
-        if base_instance:
-            # Convert None's to default value. (or unset)
-            if min is None:
-                pass
-            elif min is __NOTSET:
-                min = None
-
-            if max is None:
-                pass
-            elif max is __NOTSET:
-                max = None
-
-        if min is not None:
-            deref(c_inst).min = min
-        if max is not None:
-            deref(c_inst).max = max
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
-
-    def __iter__(self):
-        yield 'min', self.min
-        yield 'max', self.max
-
-    def __bool__(self):
-        return True or True
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("Range", {
+          "min": deref(self._cpp_obj).min_ref().has_value(),
+          "max": deref(self._cpp_obj).max_ref().has_value(),
+        })
 
     @staticmethod
     cdef create(shared_ptr[cRange] cpp_obj):
-        inst = <Range>Range.__new__(Range)
-        inst._cpp_obj = cpp_obj
-        return inst
+        __fbthrift_inst = <Range>Range.__new__(Range)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        return __fbthrift_inst
 
     @property
     def min(self):
 
-        return self._cpp_obj.get().min
+        return deref(self._cpp_obj).min_ref().value()
 
     @property
     def max(self):
 
-        return self._cpp_obj.get().max
+        return deref(self._cpp_obj).max_ref().value()
 
 
     def __hash__(Range self):
-        if not self.__hash:
-            self.__hash = hash((
-            self.min,
-            self.max,
-            ))
-        return self.__hash
+        return  super().__hash__()
 
-    def __repr__(Range self):
-        return f'Range(min={repr(self.min)}, max={repr(self.max)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, Range) and
-                isinstance(other, Range)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __copy__(Range self):
+        cdef shared_ptr[cRange] cpp_obj = make_shared[cRange](
+            deref(self._cpp_obj)
+        )
+        return Range.create(cmove(cpp_obj))
 
-        cdef cRange cself = deref((<Range>self)._cpp_obj)
-        cdef cRange cother = deref((<Range>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
-
-    cdef __iobuf.IOBuf _serialize(Range self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cRange* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cRange](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cRange](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cRange](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cRange](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
-
-    cdef uint32_t _deserialize(Range self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
-        self._cpp_obj = make_shared[cRange]()
-        cdef cRange* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cRange](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cRange](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cRange](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cRange](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        return needed
-
-    def __reduce__(self):
-        return (deserialize, (Range, serialize(self)))
-
-
-cdef cstruct1 _struct1_defaults = cstruct1()
-
-cdef class struct1(thrift.py3.types.Struct):
-
-    def __init__(
-        struct1 self, *,
-        a=None,
-        str b=None
-    ):
-        if a is not None:
-            if not isinstance(a, int):
-                raise TypeError(f'a is not a { int !r}.')
-            a = <int32_t> a
-
-        self._cpp_obj = move(struct1._make_instance(
-          NULL,
-          a,
-          b,
-        ))
-
-    def __call__(
-        struct1 self,
-        a=__NOTSET,
-        b=__NOTSET
-    ):
-        changes = any((
-            a is not __NOTSET,
-
-            b is not __NOTSET,
-        ))
-
-        if not changes:
-            return self
-
-        if None is not a is not __NOTSET:
-            if not isinstance(a, int):
-                raise TypeError(f'a is not a { int !r}.')
-            a = <int32_t> a
-
-        if None is not b is not __NOTSET:
-            if not isinstance(b, str):
-                raise TypeError(f'b is not a { str !r}.')
-
-        inst = <struct1>struct1.__new__(struct1)
-        inst._cpp_obj = move(struct1._make_instance(
-          self._cpp_obj.get(),
-          a,
-          b,
-        ))
-        return inst
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cRange](
+            self._cpp_obj,
+            (<Range>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
     @staticmethod
-    cdef unique_ptr[cstruct1] _make_instance(
-        cstruct1* base_instance,
-        object a,
-        object b
-    ) except *:
-        cdef unique_ptr[cstruct1] c_inst
-        if base_instance:
-            c_inst = make_unique[cstruct1](deref(base_instance))
-        else:
-            c_inst = make_unique[cstruct1]()
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Range()
 
-        if base_instance:
-            # Convert None's to default value. (or unset)
-            if a is None:
-                deref(c_inst).a = _struct1_defaults.a
-                deref(c_inst).__isset.a = False
-                pass
-            elif a is __NOTSET:
-                a = None
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cRange].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-            if b is None:
-                deref(c_inst).b = _struct1_defaults.b
-                deref(c_inst).__isset.b = False
-                pass
-            elif b is __NOTSET:
-                b = None
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.Range"
 
-        if a is not None:
-            deref(c_inst).a = a
-            deref(c_inst).__isset.a = True
-        if b is not None:
-            deref(c_inst).b = b.encode('UTF-8')
-            deref(c_inst).__isset.b = True
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cRange](idx)
 
-    def __iter__(self):
-        yield 'a', self.a
-        yield 'b', self.b
+    def __cinit__(self):
+        self._fbthrift_struct_size = 2
 
-    def __bool__(self):
-        return True or True
+    cdef _fbthrift_iobuf.IOBuf _serialize(Range self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cRange](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _deserialize(Range self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
+        self._cpp_obj = make_shared[cRange]()
+        with nogil:
+            needed = serializer.cdeserialize[cRange](buf, self._cpp_obj.get(), proto)
+        return needed
+
+
+@__cython.auto_pickle(False)
+cdef class struct1(thrift.py3.types.Struct):
+    def __init__(struct1 self, **kwargs):
+        self._cpp_obj = make_shared[cstruct1]()
+        self._fields_setter = _fbthrift_types_fields.__struct1_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__(**kwargs)
+
+    def __call__(struct1 self, **kwargs):
+        if not kwargs:
+            return self
+        cdef struct1 __fbthrift_inst = struct1.__new__(struct1)
+        __fbthrift_inst._cpp_obj = make_shared[cstruct1](deref(self._cpp_obj))
+        __fbthrift_inst._fields_setter = _fbthrift_types_fields.__struct1_FieldsSetter.create(__fbthrift_inst._cpp_obj.get())
+        for __fbthrift_name, _fbthrift_value in kwargs.items():
+            __fbthrift_inst._fbthrift_set_field(__fbthrift_name, _fbthrift_value)
+        return __fbthrift_inst
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("struct1", {
+          "a": deref(self._cpp_obj).a_ref().has_value(),
+          "b": deref(self._cpp_obj).b_ref().has_value(),
+        })
 
     @staticmethod
     cdef create(shared_ptr[cstruct1] cpp_obj):
-        inst = <struct1>struct1.__new__(struct1)
-        inst._cpp_obj = cpp_obj
-        return inst
+        __fbthrift_inst = <struct1>struct1.__new__(struct1)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        return __fbthrift_inst
 
     @property
     def a(self):
 
-        return self._cpp_obj.get().a
+        return deref(self._cpp_obj).a_ref().value()
 
     @property
     def b(self):
 
-        return (<bytes>self._cpp_obj.get().b).decode('UTF-8')
+        return (<bytes>deref(self._cpp_obj).b_ref().value()).decode('UTF-8')
 
 
     def __hash__(struct1 self):
-        if not self.__hash:
-            self.__hash = hash((
-            self.a,
-            self.b,
-            ))
-        return self.__hash
+        return  super().__hash__()
 
-    def __repr__(struct1 self):
-        return f'struct1(a={repr(self.a)}, b={repr(self.b)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, struct1) and
-                isinstance(other, struct1)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __copy__(struct1 self):
+        cdef shared_ptr[cstruct1] cpp_obj = make_shared[cstruct1](
+            deref(self._cpp_obj)
+        )
+        return struct1.create(cmove(cpp_obj))
 
-        cdef cstruct1 cself = deref((<struct1>self)._cpp_obj)
-        cdef cstruct1 cother = deref((<struct1>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
-
-    cdef __iobuf.IOBuf _serialize(struct1 self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cstruct1* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cstruct1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cstruct1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cstruct1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cstruct1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
-
-    cdef uint32_t _deserialize(struct1 self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
-        self._cpp_obj = make_shared[cstruct1]()
-        cdef cstruct1* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cstruct1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cstruct1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cstruct1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cstruct1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        return needed
-
-    def __reduce__(self):
-        return (deserialize, (struct1, serialize(self)))
-
-
-cdef cstruct2 _struct2_defaults = cstruct2()
-
-cdef class struct2(thrift.py3.types.Struct):
-
-    def __init__(
-        struct2 self, *,
-        a=None,
-        str b=None,
-        struct1 c=None,
-        d=None
-    ):
-        if a is not None:
-            if not isinstance(a, int):
-                raise TypeError(f'a is not a { int !r}.')
-            a = <int32_t> a
-
-        self._cpp_obj = move(struct2._make_instance(
-          NULL,
-          a,
-          b,
-          c,
-          d,
-        ))
-
-    def __call__(
-        struct2 self,
-        a=__NOTSET,
-        b=__NOTSET,
-        c=__NOTSET,
-        d=__NOTSET
-    ):
-        changes = any((
-            a is not __NOTSET,
-
-            b is not __NOTSET,
-
-            c is not __NOTSET,
-
-            d is not __NOTSET,
-        ))
-
-        if not changes:
-            return self
-
-        if None is not a is not __NOTSET:
-            if not isinstance(a, int):
-                raise TypeError(f'a is not a { int !r}.')
-            a = <int32_t> a
-
-        if None is not b is not __NOTSET:
-            if not isinstance(b, str):
-                raise TypeError(f'b is not a { str !r}.')
-
-        if None is not c is not __NOTSET:
-            if not isinstance(c, struct1):
-                raise TypeError(f'c is not a { struct1 !r}.')
-
-        inst = <struct2>struct2.__new__(struct2)
-        inst._cpp_obj = move(struct2._make_instance(
-          self._cpp_obj.get(),
-          a,
-          b,
-          c,
-          d,
-        ))
-        return inst
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cstruct1](
+            self._cpp_obj,
+            (<struct1>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
     @staticmethod
-    cdef unique_ptr[cstruct2] _make_instance(
-        cstruct2* base_instance,
-        object a,
-        object b,
-        object c,
-        object d
-    ) except *:
-        cdef unique_ptr[cstruct2] c_inst
-        if base_instance:
-            c_inst = make_unique[cstruct2](deref(base_instance))
-        else:
-            c_inst = make_unique[cstruct2]()
+    def __get_reflection__():
+        return _types_reflection.get_reflection__struct1()
 
-        if base_instance:
-            # Convert None's to default value. (or unset)
-            if a is None:
-                deref(c_inst).a = _struct2_defaults.a
-                deref(c_inst).__isset.a = False
-                pass
-            elif a is __NOTSET:
-                a = None
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cstruct1].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-            if b is None:
-                deref(c_inst).b = _struct2_defaults.b
-                deref(c_inst).__isset.b = False
-                pass
-            elif b is __NOTSET:
-                b = None
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.struct1"
 
-            if c is None:
-                deref(c_inst).c = _struct2_defaults.c
-                deref(c_inst).__isset.c = False
-                pass
-            elif c is __NOTSET:
-                c = None
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cstruct1](idx)
 
-            if d is None:
-                deref(c_inst).d = _struct2_defaults.d
-                deref(c_inst).__isset.d = False
-                pass
-            elif d is __NOTSET:
-                d = None
+    def __cinit__(self):
+        self._fbthrift_struct_size = 2
 
-        if a is not None:
-            deref(c_inst).a = a
-            deref(c_inst).__isset.a = True
-        if b is not None:
-            deref(c_inst).b = b.encode('UTF-8')
-            deref(c_inst).__isset.b = True
-        if c is not None:
-            deref(c_inst).c = deref((<struct1?> c)._cpp_obj)
-            deref(c_inst).__isset.c = True
-        if d is not None:
-            deref(c_inst).d = deref(List__i32(d)._cpp_obj)
-            deref(c_inst).__isset.d = True
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
+    cdef _fbthrift_iobuf.IOBuf _serialize(struct1 self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cstruct1](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    def __iter__(self):
-        yield 'a', self.a
-        yield 'b', self.b
-        yield 'c', self.c
-        yield 'd', self.d
+    cdef cuint32_t _deserialize(struct1 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
+        self._cpp_obj = make_shared[cstruct1]()
+        with nogil:
+            needed = serializer.cdeserialize[cstruct1](buf, self._cpp_obj.get(), proto)
+        return needed
 
-    def __bool__(self):
-        return True or True or True or True
+
+@__cython.auto_pickle(False)
+cdef class struct2(thrift.py3.types.Struct):
+    def __init__(struct2 self, **kwargs):
+        self._cpp_obj = make_shared[cstruct2]()
+        self._fields_setter = _fbthrift_types_fields.__struct2_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__(**kwargs)
+
+    def __call__(struct2 self, **kwargs):
+        if not kwargs:
+            return self
+        cdef struct2 __fbthrift_inst = struct2.__new__(struct2)
+        __fbthrift_inst._cpp_obj = make_shared[cstruct2](deref(self._cpp_obj))
+        __fbthrift_inst._fields_setter = _fbthrift_types_fields.__struct2_FieldsSetter.create(__fbthrift_inst._cpp_obj.get())
+        for __fbthrift_name, _fbthrift_value in kwargs.items():
+            __fbthrift_inst._fbthrift_set_field(__fbthrift_name, _fbthrift_value)
+        return __fbthrift_inst
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("struct2", {
+          "a": deref(self._cpp_obj).a_ref().has_value(),
+          "b": deref(self._cpp_obj).b_ref().has_value(),
+          "c": deref(self._cpp_obj).c_ref().has_value(),
+          "d": deref(self._cpp_obj).d_ref().has_value(),
+        })
 
     @staticmethod
     cdef create(shared_ptr[cstruct2] cpp_obj):
-        inst = <struct2>struct2.__new__(struct2)
-        inst._cpp_obj = cpp_obj
-        return inst
+        __fbthrift_inst = <struct2>struct2.__new__(struct2)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        return __fbthrift_inst
 
     @property
     def a(self):
 
-        return self._cpp_obj.get().a
+        return deref(self._cpp_obj).a_ref().value()
 
     @property
     def b(self):
 
-        return (<bytes>self._cpp_obj.get().b).decode('UTF-8')
+        return (<bytes>deref(self._cpp_obj).b_ref().value()).decode('UTF-8')
 
     @property
     def c(self):
 
-        if self.__c is None:
-            self.__c = struct1.create(make_shared[cstruct1](deref(self._cpp_obj).c))
-        return self.__c
+        if self.__fbthrift_cached_c is None:
+            self.__fbthrift_cached_c = struct1.create(__reference_shared_ptr(deref(self._cpp_obj).c_ref().ref(), self._cpp_obj))
+        return self.__fbthrift_cached_c
 
     @property
     def d(self):
 
-        if self.__d is None:
-            self.__d = List__i32.create(make_shared[vector[int32_t]](deref(self._cpp_obj).d))
-        return self.__d
+        if self.__fbthrift_cached_d is None:
+            self.__fbthrift_cached_d = List__i32.create(__reference_shared_ptr(deref(self._cpp_obj).d_ref().ref(), self._cpp_obj))
+        return self.__fbthrift_cached_d
 
 
     def __hash__(struct2 self):
-        if not self.__hash:
-            self.__hash = hash((
-            self.a,
-            self.b,
-            self.c,
-            self.d,
-            ))
-        return self.__hash
+        return  super().__hash__()
 
-    def __repr__(struct2 self):
-        return f'struct2(a={repr(self.a)}, b={repr(self.b)}, c={repr(self.c)}, d={repr(self.d)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, struct2) and
-                isinstance(other, struct2)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __copy__(struct2 self):
+        cdef shared_ptr[cstruct2] cpp_obj = make_shared[cstruct2](
+            deref(self._cpp_obj)
+        )
+        return struct2.create(cmove(cpp_obj))
 
-        cdef cstruct2 cself = deref((<struct2>self)._cpp_obj)
-        cdef cstruct2 cother = deref((<struct2>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
-
-    cdef __iobuf.IOBuf _serialize(struct2 self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cstruct2* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cstruct2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cstruct2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cstruct2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cstruct2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
-
-    cdef uint32_t _deserialize(struct2 self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
-        self._cpp_obj = make_shared[cstruct2]()
-        cdef cstruct2* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cstruct2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cstruct2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cstruct2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cstruct2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        return needed
-
-    def __reduce__(self):
-        return (deserialize, (struct2, serialize(self)))
-
-
-cdef cstruct3 _struct3_defaults = cstruct3()
-
-cdef class struct3(thrift.py3.types.Struct):
-
-    def __init__(
-        struct3 self, *,
-        str a=None,
-        b=None,
-        struct2 c=None
-    ):
-        if b is not None:
-            if not isinstance(b, int):
-                raise TypeError(f'b is not a { int !r}.')
-            b = <int32_t> b
-
-        self._cpp_obj = move(struct3._make_instance(
-          NULL,
-          a,
-          b,
-          c,
-        ))
-
-    def __call__(
-        struct3 self,
-        a=__NOTSET,
-        b=__NOTSET,
-        c=__NOTSET
-    ):
-        changes = any((
-            a is not __NOTSET,
-
-            b is not __NOTSET,
-
-            c is not __NOTSET,
-        ))
-
-        if not changes:
-            return self
-
-        if None is not a is not __NOTSET:
-            if not isinstance(a, str):
-                raise TypeError(f'a is not a { str !r}.')
-
-        if None is not b is not __NOTSET:
-            if not isinstance(b, int):
-                raise TypeError(f'b is not a { int !r}.')
-            b = <int32_t> b
-
-        if None is not c is not __NOTSET:
-            if not isinstance(c, struct2):
-                raise TypeError(f'c is not a { struct2 !r}.')
-
-        inst = <struct3>struct3.__new__(struct3)
-        inst._cpp_obj = move(struct3._make_instance(
-          self._cpp_obj.get(),
-          a,
-          b,
-          c,
-        ))
-        return inst
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cstruct2](
+            self._cpp_obj,
+            (<struct2>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
     @staticmethod
-    cdef unique_ptr[cstruct3] _make_instance(
-        cstruct3* base_instance,
-        object a,
-        object b,
-        object c
-    ) except *:
-        cdef unique_ptr[cstruct3] c_inst
-        if base_instance:
-            c_inst = make_unique[cstruct3](deref(base_instance))
-        else:
-            c_inst = make_unique[cstruct3]()
+    def __get_reflection__():
+        return _types_reflection.get_reflection__struct2()
 
-        if base_instance:
-            # Convert None's to default value. (or unset)
-            if a is None:
-                deref(c_inst).a = _struct3_defaults.a
-                deref(c_inst).__isset.a = False
-                pass
-            elif a is __NOTSET:
-                a = None
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cstruct2].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-            if b is None:
-                deref(c_inst).b = _struct3_defaults.b
-                deref(c_inst).__isset.b = False
-                pass
-            elif b is __NOTSET:
-                b = None
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.struct2"
 
-            if c is None:
-                deref(c_inst).c = _struct3_defaults.c
-                deref(c_inst).__isset.c = False
-                pass
-            elif c is __NOTSET:
-                c = None
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cstruct2](idx)
 
-        if a is not None:
-            deref(c_inst).a = a.encode('UTF-8')
-            deref(c_inst).__isset.a = True
-        if b is not None:
-            deref(c_inst).b = b
-            deref(c_inst).__isset.b = True
-        if c is not None:
-            deref(c_inst).c = deref((<struct2?> c)._cpp_obj)
-            deref(c_inst).__isset.c = True
-        # in C++ you don't have to call move(), but this doesn't translate
-        # into a C++ return statement, so you do here
-        return move_unique(c_inst)
+    def __cinit__(self):
+        self._fbthrift_struct_size = 4
 
-    def __iter__(self):
-        yield 'a', self.a
-        yield 'b', self.b
-        yield 'c', self.c
+    cdef _fbthrift_iobuf.IOBuf _serialize(struct2 self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cstruct2](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    def __bool__(self):
-        return True or True or True
+    cdef cuint32_t _deserialize(struct2 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
+        self._cpp_obj = make_shared[cstruct2]()
+        with nogil:
+            needed = serializer.cdeserialize[cstruct2](buf, self._cpp_obj.get(), proto)
+        return needed
+
+
+@__cython.auto_pickle(False)
+cdef class struct3(thrift.py3.types.Struct):
+    def __init__(struct3 self, **kwargs):
+        self._cpp_obj = make_shared[cstruct3]()
+        self._fields_setter = _fbthrift_types_fields.__struct3_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__(**kwargs)
+
+    def __call__(struct3 self, **kwargs):
+        if not kwargs:
+            return self
+        cdef struct3 __fbthrift_inst = struct3.__new__(struct3)
+        __fbthrift_inst._cpp_obj = make_shared[cstruct3](deref(self._cpp_obj))
+        __fbthrift_inst._fields_setter = _fbthrift_types_fields.__struct3_FieldsSetter.create(__fbthrift_inst._cpp_obj.get())
+        for __fbthrift_name, _fbthrift_value in kwargs.items():
+            __fbthrift_inst._fbthrift_set_field(__fbthrift_name, _fbthrift_value)
+        return __fbthrift_inst
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("struct3", {
+          "a": deref(self._cpp_obj).a_ref().has_value(),
+          "b": deref(self._cpp_obj).b_ref().has_value(),
+          "c": deref(self._cpp_obj).c_ref().has_value(),
+        })
 
     @staticmethod
     cdef create(shared_ptr[cstruct3] cpp_obj):
-        inst = <struct3>struct3.__new__(struct3)
-        inst._cpp_obj = cpp_obj
-        return inst
+        __fbthrift_inst = <struct3>struct3.__new__(struct3)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        return __fbthrift_inst
 
     @property
     def a(self):
 
-        return (<bytes>self._cpp_obj.get().a).decode('UTF-8')
+        return (<bytes>deref(self._cpp_obj).a_ref().value()).decode('UTF-8')
 
     @property
     def b(self):
 
-        return self._cpp_obj.get().b
+        return deref(self._cpp_obj).b_ref().value()
 
     @property
     def c(self):
 
-        if self.__c is None:
-            self.__c = struct2.create(make_shared[cstruct2](deref(self._cpp_obj).c))
-        return self.__c
+        if self.__fbthrift_cached_c is None:
+            self.__fbthrift_cached_c = struct2.create(__reference_shared_ptr(deref(self._cpp_obj).c_ref().ref(), self._cpp_obj))
+        return self.__fbthrift_cached_c
 
 
     def __hash__(struct3 self):
-        if not self.__hash:
-            self.__hash = hash((
-            self.a,
-            self.b,
-            self.c,
-            ))
-        return self.__hash
+        return  super().__hash__()
 
-    def __repr__(struct3 self):
-        return f'struct3(a={repr(self.a)}, b={repr(self.b)}, c={repr(self.c)})'
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, struct3) and
-                isinstance(other, struct3)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __copy__(struct3 self):
+        cdef shared_ptr[cstruct3] cpp_obj = make_shared[cstruct3](
+            deref(self._cpp_obj)
+        )
+        return struct3.create(cmove(cpp_obj))
 
-        cdef cstruct3 cself = deref((<struct3>self)._cpp_obj)
-        cdef cstruct3 cother = deref((<struct3>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cstruct3](
+            self._cpp_obj,
+            (<struct3>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
-    cdef __iobuf.IOBuf _serialize(struct3 self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cstruct3* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cstruct3](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cstruct3](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cstruct3](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cstruct3](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__struct3()
 
-    cdef uint32_t _deserialize(struct3 self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cstruct3].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.struct3"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cstruct3](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 3
+
+    cdef _fbthrift_iobuf.IOBuf _serialize(struct3 self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cstruct3](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _deserialize(struct3 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
         self._cpp_obj = make_shared[cstruct3]()
-        cdef cstruct3* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cstruct3](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cstruct3](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cstruct3](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cstruct3](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
+        with nogil:
+            needed = serializer.cdeserialize[cstruct3](buf, self._cpp_obj.get(), proto)
         return needed
 
-    def __reduce__(self):
-        return (deserialize, (struct3, serialize(self)))
+
+@__cython.auto_pickle(False)
+cdef class struct4(thrift.py3.types.Struct):
+    def __init__(struct4 self, **kwargs):
+        self._cpp_obj = make_shared[cstruct4]()
+        self._fields_setter = _fbthrift_types_fields.__struct4_FieldsSetter.create(self._cpp_obj.get())
+        super().__init__(**kwargs)
+
+    def __call__(struct4 self, **kwargs):
+        if not kwargs:
+            return self
+        cdef struct4 __fbthrift_inst = struct4.__new__(struct4)
+        __fbthrift_inst._cpp_obj = make_shared[cstruct4](deref(self._cpp_obj))
+        __fbthrift_inst._fields_setter = _fbthrift_types_fields.__struct4_FieldsSetter.create(__fbthrift_inst._cpp_obj.get())
+        for __fbthrift_name, _fbthrift_value in kwargs.items():
+            __fbthrift_inst._fbthrift_set_field(__fbthrift_name, _fbthrift_value)
+        return __fbthrift_inst
+
+    cdef void _fbthrift_set_field(self, str name, object value) except *:
+        self._fields_setter.set_field(name.encode("utf-8"), value)
+
+    cdef object _fbthrift_isset(self):
+        return thrift.py3.types._IsSet("struct4", {
+          "a": deref(self._cpp_obj).a_ref().has_value(),
+          "b": deref(self._cpp_obj).b_ref().has_value(),
+          "c": deref(self._cpp_obj).c_ref().has_value(),
+        })
+
+    @staticmethod
+    cdef create(shared_ptr[cstruct4] cpp_obj):
+        __fbthrift_inst = <struct4>struct4.__new__(struct4)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        return __fbthrift_inst
+
+    @property
+    def a(self):
+
+        return deref(self._cpp_obj).a_ref().value()
+
+    @property
+    def b(self):
+        if not deref(self._cpp_obj).b_ref().has_value():
+            return None
+
+        return deref(self._cpp_obj).b_ref().value_unchecked()
+
+    @property
+    def c(self):
+        if not deref(self._cpp_obj).c_ref().has_value():
+            return None
+
+        return deref(self._cpp_obj).c_ref().value_unchecked()
+
+
+    def __hash__(struct4 self):
+        return  super().__hash__()
+
+    def __copy__(struct4 self):
+        cdef shared_ptr[cstruct4] cpp_obj = make_shared[cstruct4](
+            deref(self._cpp_obj)
+        )
+        return struct4.create(cmove(cpp_obj))
+
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cstruct4](
+            self._cpp_obj,
+            (<struct4>other)._cpp_obj,
+            op,
+        ) if r is None else r
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__struct4()
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cstruct4].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.struct4"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cstruct4](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 3
+
+    cdef _fbthrift_iobuf.IOBuf _serialize(struct4 self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cstruct4](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _deserialize(struct4 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
+        self._cpp_obj = make_shared[cstruct4]()
+        with nogil:
+            needed = serializer.cdeserialize[cstruct4](buf, self._cpp_obj.get(), proto)
+        return needed
 
 
 
 
+@__cython.auto_pickle(False)
 cdef class union1(thrift.py3.types.Union):
     Type = __union1Type
 
@@ -1738,17 +882,17 @@ cdef class union1(thrift.py3.types.Union):
         if i is not None:
             if not isinstance(i, int):
                 raise TypeError(f'i is not a { int !r}.')
-            i = <int32_t> i
+            i = <cint32_t> i
 
         if d is not None:
             if not isinstance(d, (float, int)):
                 raise TypeError(f'd is not a { float !r}.')
 
-        self._cpp_obj = move(union1._make_instance(
+        self._cpp_obj = __to_shared_ptr(cmove(union1._make_instance(
           NULL,
           i,
           d,
-        ))
+        )))
         self._load_cache()
 
     @staticmethod
@@ -1758,7 +902,7 @@ cdef class union1(thrift.py3.types.Union):
         if isinstance(value, int):
             if not isinstance(value, pbool):
                 try:
-                    <int32_t> value
+                    <cint32_t> value
                     return union1(i=value)
                 except OverflowError:
                     pass
@@ -1779,8 +923,8 @@ cdef class union1(thrift.py3.types.Union):
     @staticmethod
     cdef unique_ptr[cunion1] _make_instance(
         cunion1* base_instance,
-        i,
-        d
+        object i,
+        object d
     ) except *:
         cdef unique_ptr[cunion1] c_inst = make_unique[cunion1]()
         cdef bint any_set = False
@@ -1796,17 +940,14 @@ cdef class union1(thrift.py3.types.Union):
             any_set = True
         # in C++ you don't have to call move(), but this doesn't translate
         # into a C++ return statement, so you do here
-        return move_unique(c_inst)
-
-    def __bool__(self):
-        return self.type is not __union1Type.EMPTY
+        return cmove(c_inst)
 
     @staticmethod
     cdef create(shared_ptr[cunion1] cpp_obj):
-        inst = <union1>union1.__new__(union1)
-        inst._cpp_obj = cpp_obj
-        inst._load_cache()
-        return inst
+        __fbthrift_inst = <union1>union1.__new__(union1)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        __fbthrift_inst._load_cache()
+        return __fbthrift_inst
 
     @property
     def i(self):
@@ -1822,15 +963,7 @@ cdef class union1(thrift.py3.types.Union):
 
 
     def __hash__(union1 self):
-        if not self.__hash:
-            self.__hash = hash((
-                self.type,
-                self.value,
-            ))
-        return self.__hash
-
-    def __repr__(union1 self):
-        return f'union1(type={self.type.name}, value={self.value!r})'
+        return  super().__hash__()
 
     cdef _load_cache(union1 self):
         self.type = union1.Type(<int>(deref(self._cpp_obj).getType()))
@@ -1842,71 +975,59 @@ cdef class union1(thrift.py3.types.Union):
         elif type == 2:
             self.value = deref(self._cpp_obj).get_d()
 
-    def get_type(union1 self):
-        return self.type
+    def __copy__(union1 self):
+        cdef shared_ptr[cunion1] cpp_obj = make_shared[cunion1](
+            deref(self._cpp_obj)
+        )
+        return union1.create(cmove(cpp_obj))
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, union1) and
-                isinstance(other, union1)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cunion1](
+            self._cpp_obj,
+            (<union1>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
-        cdef cunion1 cself = deref((<union1>self)._cpp_obj)
-        cdef cunion1 cother = deref((<union1>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__union1()
 
-    cdef __iobuf.IOBuf _serialize(union1 self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cunion1* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cunion1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cunion1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cunion1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cunion1](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cunion1].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-    cdef uint32_t _deserialize(union1 self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.union1"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cunion1](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 2
+
+    cdef _fbthrift_iobuf.IOBuf _serialize(union1 self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cunion1](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _deserialize(union1 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
         self._cpp_obj = make_shared[cunion1]()
-        cdef cunion1* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cunion1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cunion1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cunion1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cunion1](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
+        with nogil:
+            needed = serializer.cdeserialize[cunion1](buf, self._cpp_obj.get(), proto)
         # force a cache reload since the underlying data's changed
         self._load_cache()
         return needed
 
-    def __reduce__(self):
-        return (deserialize, (union1, serialize(self)))
 
 
 
-
+@__cython.auto_pickle(False)
 cdef class union2(thrift.py3.types.Union):
     Type = __union2Type
 
@@ -1920,19 +1041,19 @@ cdef class union2(thrift.py3.types.Union):
         if i is not None:
             if not isinstance(i, int):
                 raise TypeError(f'i is not a { int !r}.')
-            i = <int32_t> i
+            i = <cint32_t> i
 
         if d is not None:
             if not isinstance(d, (float, int)):
                 raise TypeError(f'd is not a { float !r}.')
 
-        self._cpp_obj = move(union2._make_instance(
+        self._cpp_obj = __to_shared_ptr(cmove(union2._make_instance(
           NULL,
           i,
           d,
           s,
           u,
-        ))
+        )))
         self._load_cache()
 
     @staticmethod
@@ -1942,7 +1063,7 @@ cdef class union2(thrift.py3.types.Union):
         if isinstance(value, int):
             if not isinstance(value, pbool):
                 try:
-                    <int32_t> value
+                    <cint32_t> value
                     return union2(i=value)
                 except OverflowError:
                     pass
@@ -1967,10 +1088,10 @@ cdef class union2(thrift.py3.types.Union):
     @staticmethod
     cdef unique_ptr[cunion2] _make_instance(
         cunion2* base_instance,
-        i,
-        d,
-        s,
-        u
+        object i,
+        object d,
+        struct1 s,
+        union1 u
     ) except *:
         cdef unique_ptr[cunion2] c_inst = make_unique[cunion2]()
         cdef bint any_set = False
@@ -1996,17 +1117,14 @@ cdef class union2(thrift.py3.types.Union):
             any_set = True
         # in C++ you don't have to call move(), but this doesn't translate
         # into a C++ return statement, so you do here
-        return move_unique(c_inst)
-
-    def __bool__(self):
-        return self.type is not __union2Type.EMPTY
+        return cmove(c_inst)
 
     @staticmethod
     cdef create(shared_ptr[cunion2] cpp_obj):
-        inst = <union2>union2.__new__(union2)
-        inst._cpp_obj = cpp_obj
-        inst._load_cache()
-        return inst
+        __fbthrift_inst = <union2>union2.__new__(union2)
+        __fbthrift_inst._cpp_obj = cmove(cpp_obj)
+        __fbthrift_inst._load_cache()
+        return __fbthrift_inst
 
     @property
     def i(self):
@@ -2034,15 +1152,7 @@ cdef class union2(thrift.py3.types.Union):
 
 
     def __hash__(union2 self):
-        if not self.__hash:
-            self.__hash = hash((
-                self.type,
-                self.value,
-            ))
-        return self.__hash
-
-    def __repr__(union2 self):
-        return f'union2(type={self.type.name}, value={self.value!r})'
+        return  super().__hash__()
 
     cdef _load_cache(union2 self):
         self.type = union2.Type(<int>(deref(self._cpp_obj).getType()))
@@ -2058,1005 +1168,674 @@ cdef class union2(thrift.py3.types.Union):
         elif type == 4:
             self.value = union1.create(make_shared[cunion1](deref(self._cpp_obj).get_u()))
 
-    def get_type(union2 self):
-        return self.type
+    def __copy__(union2 self):
+        cdef shared_ptr[cunion2] cpp_obj = make_shared[cunion2](
+            deref(self._cpp_obj)
+        )
+        return union2.create(cmove(cpp_obj))
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(self, other))
-        if not (
-                isinstance(self, union2) and
-                isinstance(other, union2)):
-            if cop == 2:  # different types are never equal
-                return False
-            else:         # different types are always notequal
-                return True
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[cunion2](
+            self._cpp_obj,
+            (<union2>other)._cpp_obj,
+            op,
+        ) if r is None else r
 
-        cdef cunion2 cself = deref((<union2>self)._cpp_obj)
-        cdef cunion2 cother = deref((<union2>other)._cpp_obj)
-        cdef cbool cmp = cself == cother
-        if cop == 2:
-            return cmp
-        return not cmp
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__union2()
 
-    cdef __iobuf.IOBuf _serialize(union2 self, proto):
-        cdef __iobuf.cIOBufQueue queue = __iobuf.cIOBufQueue(__iobuf.cacheChainLength())
-        cdef cunion2* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                serializer.CompactSerialize[cunion2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                serializer.BinarySerialize[cunion2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                serializer.JSONSerialize[cunion2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                serializer.CompactJSONSerialize[cunion2](deref(cpp_obj), &queue, serializer.SHARE_EXTERNAL_BUFFER)
-        return __iobuf.from_unique_ptr(queue.move())
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        StructMetadata[cunion2].gen(meta)
+        return __MetadataBox.box(cmove(meta))
 
-    cdef uint32_t _deserialize(union2 self, const __iobuf.cIOBuf* buf, proto) except? 0:
-        cdef uint32_t needed
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.union2"
+
+    cdef __cstring_view _fbthrift_get_field_name_by_index(self, size_t idx):
+        return __get_field_name_by_index[cunion2](idx)
+
+    def __cinit__(self):
+        self._fbthrift_struct_size = 4
+
+    cdef _fbthrift_iobuf.IOBuf _serialize(union2 self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[cunion2](self._cpp_obj.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _deserialize(union2 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
         self._cpp_obj = make_shared[cunion2]()
-        cdef cunion2* cpp_obj = self._cpp_obj.get()
-        if proto is __Protocol.COMPACT:
-            with nogil:
-                needed = serializer.CompactDeserialize[cunion2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.BINARY:
-            with nogil:
-                needed = serializer.BinaryDeserialize[cunion2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.JSON:
-            with nogil:
-                needed = serializer.JSONDeserialize[cunion2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
-        elif proto is __Protocol.COMPACT_JSON:
-            with nogil:
-                needed = serializer.CompactJSONDeserialize[cunion2](buf, deref(cpp_obj), serializer.SHARE_EXTERNAL_BUFFER)
+        with nogil:
+            needed = serializer.cdeserialize[cunion2](buf, self._cpp_obj.get(), proto)
         # force a cache reload since the underlying data's changed
         self._load_cache()
         return needed
 
-    def __reduce__(self):
-        return (deserialize, (union2, serialize(self)))
 
-
-cdef class List__i32:
+@__cython.auto_pickle(False)
+cdef class List__i32(thrift.py3.types.List):
     def __init__(self, items=None):
         if isinstance(items, List__i32):
             self._cpp_obj = (<List__i32> items)._cpp_obj
         else:
-            self._cpp_obj = move(List__i32._make_instance(items))
+            self._cpp_obj = List__i32._make_instance(items)
 
     @staticmethod
-    cdef create(shared_ptr[vector[int32_t]] c_items):
-        inst = <List__i32>List__i32.__new__(List__i32)
-        inst._cpp_obj = c_items
-        return inst
+    cdef create(shared_ptr[vector[cint32_t]] c_items):
+        __fbthrift_inst = <List__i32>List__i32.__new__(List__i32)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
 
-    @staticmethod
-    cdef unique_ptr[vector[int32_t]] _make_instance(object items) except *:
-        cdef unique_ptr[vector[int32_t]] c_inst = make_unique[vector[int32_t]]()
-        if items is not None:
-            for item in items:
-                if not isinstance(item, int):
-                    raise TypeError(f"{item!r} is not of type int")
-                item = <int32_t> item
-                deref(c_inst).push_back(item)
-        return move_unique(c_inst)
-
-    def __add__(object self, object other):
-        return type(self)(itertools.chain(self, other))
-
-    def __getitem__(self, object index_obj):
-        cdef shared_ptr[vector[int32_t]] c_inst
-        cdef int32_t citem
-        if isinstance(index_obj, slice):
-            c_inst = make_shared[vector[int32_t]]()
-            sz = deref(self._cpp_obj).size()
-            for index in range(*index_obj.indices(sz)):
-                citem = deref(self._cpp_obj.get())[index]
-                deref(c_inst).push_back(citem)
-            return List__i32.create(c_inst)
-        else:
-            index = <int?>index_obj
-            size = len(self)
-            # Convert a negative index
-            if index < 0:
-                index = size + index
-            if index >= size or index < 0:
-                raise IndexError('list index out of range')
-            citem = deref(self._cpp_obj.get())[index]
-            return citem
+    def __copy__(List__i32 self):
+        cdef shared_ptr[vector[cint32_t]] cpp_obj = make_shared[vector[cint32_t]](
+            deref(self._cpp_obj)
+        )
+        return List__i32.create(cmove(cpp_obj))
 
     def __len__(self):
         return deref(self._cpp_obj).size()
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Iterable) and isinstance(other, Iterable)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
+    @staticmethod
+    cdef shared_ptr[vector[cint32_t]] _make_instance(object items) except *:
+        cdef shared_ptr[vector[cint32_t]] c_inst = make_shared[vector[cint32_t]]()
+        if items is not None:
+            for item in items:
+                if not isinstance(item, int):
+                    raise TypeError(f"{item!r} is not of type int")
+                item = <cint32_t> item
+                deref(c_inst).push_back(item)
+        return c_inst
 
-        for one, two in zip(self, other):
-            if one != two:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
-
-    def __contains__(self, item):
-        if not self or item is None:
-            return False
-        if not isinstance(item, int):
-            return False
-        cdef int32_t citem = item
-        cdef vector[int32_t] vec = deref(
-            self._cpp_obj.get())
-        return std_libcpp.find(vec.begin(), vec.end(), citem) != vec.end()
-
-    def __iter__(self):
-        if not self:
-            raise StopIteration
-        cdef int32_t citem
-        for citem in deref(self._cpp_obj):
-            yield citem
-
-    def __repr__(self):
-        if not self:
-            return 'i[]'
-        return f'i[{", ".join(map(repr, self))}]'
-
-    def __reversed__(self):
-        if not self:
-            raise StopIteration
-        cdef int32_t citem
-        cdef vector[int32_t] vec = deref(
-            self._cpp_obj.get())
-        cdef vector[int32_t].reverse_iterator loc = vec.rbegin()
-        while loc != vec.rend():
-            citem = deref(loc)
-            yield citem
-            inc(loc)
-
-    def index(self, item, start not None=__NOTSET, stop not None=__NOTSET):
-        err = ValueError(f'{item} is not in list')
-        if not self or item is None:
-            raise err
-        offset_begin = offset_end = 0
-        if stop is not __NOTSET or start is not __NOTSET:
-            # Like self[start:stop].index(item)
-            size = len(self)
-            stop = stop if stop is not __NOTSET else size
-            start = start if start is not __NOTSET else 0
-            # Convert stop to a negative position.
-            if stop > 0:
-                stop = min(stop - size, 0)
-            if stop <= -size:
-                raise err  # List would be empty
-            offset_end = -stop
-            # Convert start to always be positive
-            if start < 0:
-                start = max(size + start, 0)
-            if start >= size:
-                raise err  # past end of list
-            offset_begin = start
-
-        if not isinstance(item, int):
-            raise err
-        cdef int32_t citem = item
-        cdef vector[int32_t] vec = deref(self._cpp_obj.get())
-        cdef vector[int32_t].iterator end = std_libcpp.prev(vec.end(), <int64_t>offset_end)
-        cdef vector[int32_t].iterator loc = std_libcpp.find(
-            std_libcpp.next(vec.begin(), <int64_t>offset_begin),
-            end,
-            citem
+    cdef _get_slice(self, slice index_obj):
+        cdef int start, stop, step
+        start, stop, step = index_obj.indices(deref(self._cpp_obj).size())
+        return List__i32.create(
+            __list_slice[vector[cint32_t]](self._cpp_obj, start, stop, step)
         )
-        if loc != end:
-            return <int64_t> std_libcpp.distance(vec.begin(), loc)
-        raise err
+
+    cdef _get_single_item(self, size_t index):
+        cdef cint32_t citem = 0
+        __list_getitem(self._cpp_obj, index, citem)
+        return citem
+
+    cdef _check_item_type(self, item):
+        if not self or item is None:
+            return
+        if isinstance(item, int):
+            return item
+
+    def index(self, item, start=0, stop=None):
+        err = ValueError(f'{item} is not in list')
+        item = self._check_item_type(item)
+        if item is None:
+            raise err
+        cdef (int, int, int) indices = slice(start, stop).indices(deref(self._cpp_obj).size())
+        cdef cint32_t citem = item
+        cdef std_libcpp.optional[size_t] found = __list_index[vector[cint32_t]](self._cpp_obj, indices[0], indices[1], citem)
+        if not found.has_value():
+            raise err
+        return found.value()
 
     def count(self, item):
-        if not self or item is None:
+        item = self._check_item_type(item)
+        if item is None:
             return 0
-        if not isinstance(item, int):
-            return 0
-        cdef int32_t citem = item
-        cdef vector[int32_t] vec = deref(self._cpp_obj.get())
-        return <int64_t> std_libcpp.count(vec.begin(), vec.end(), citem)
+        cdef cint32_t citem = item
+        return __list_count[vector[cint32_t]](self._cpp_obj, citem)
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__List__i32()
 
 
 Sequence.register(List__i32)
 
-cdef class Map__string_i32:
+@__cython.auto_pickle(False)
+cdef class Map__string_i32(thrift.py3.types.Map):
     def __init__(self, items=None):
         if isinstance(items, Map__string_i32):
             self._cpp_obj = (<Map__string_i32> items)._cpp_obj
         else:
-            self._cpp_obj = move(Map__string_i32._make_instance(items))
+            self._cpp_obj = Map__string_i32._make_instance(items)
 
     @staticmethod
-    cdef create(shared_ptr[cmap[string,int32_t]] c_items):
-        inst = <Map__string_i32>Map__string_i32.__new__(Map__string_i32)
-        inst._cpp_obj = c_items
-        return inst
+    cdef create(shared_ptr[cmap[string,cint32_t]] c_items):
+        __fbthrift_inst = <Map__string_i32>Map__string_i32.__new__(Map__string_i32)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(Map__string_i32 self):
+        cdef shared_ptr[cmap[string,cint32_t]] cpp_obj = make_shared[cmap[string,cint32_t]](
+            deref(self._cpp_obj)
+        )
+        return Map__string_i32.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[cmap[string,int32_t]] _make_instance(object items) except *:
-        cdef unique_ptr[cmap[string,int32_t]] c_inst = make_unique[cmap[string,int32_t]]()
+    cdef shared_ptr[cmap[string,cint32_t]] _make_instance(object items) except *:
+        cdef shared_ptr[cmap[string,cint32_t]] c_inst = make_shared[cmap[string,cint32_t]]()
         if items is not None:
             for key, item in items.items():
                 if not isinstance(key, str):
                     raise TypeError(f"{key!r} is not of type str")
                 if not isinstance(item, int):
                     raise TypeError(f"{item!r} is not of type int")
-                item = <int32_t> item
+                item = <cint32_t> item
 
                 deref(c_inst)[key.encode('UTF-8')] = item
-        return move_unique(c_inst)
+        return c_inst
+
+    cdef _check_key_type(self, key):
+        if not self or key is None:
+            return
+        if isinstance(key, str):
+            return key
 
     def __getitem__(self, key):
         err = KeyError(f'{key}')
-        if not self or key is None:
-            raise err
-        if not isinstance(key, str):
+        key = self._check_key_type(key)
+        if key is None:
             raise err
         cdef string ckey = key.encode('UTF-8')
-        cdef cmap[string,int32_t].iterator iter = deref(
-            self._cpp_obj).find(ckey)
-        if iter == deref(self._cpp_obj).end():
+        if not __map_contains(self._cpp_obj, ckey):
             raise err
-        cdef int32_t citem = deref(iter).second
+        cdef cint32_t citem = 0
+        __map_getitem(self._cpp_obj, ckey, citem)
         return citem
-
-    def __len__(self):
-        return deref(self._cpp_obj).size()
 
     def __iter__(self):
         if not self:
-            raise StopIteration
+            return
+        cdef __map_iter[cmap[string,cint32_t]] itr = __map_iter[cmap[string,cint32_t]](self._cpp_obj)
         cdef string citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.first
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextKey(self._cpp_obj, citem)
             yield bytes(citem).decode('UTF-8')
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Mapping) and isinstance(other, Mapping)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for key in self:
-            if key not in other:
-                return cop != 2
-            if other[key] != self[key]:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self.items()))
-        return self.__hash
-
-    def __repr__(self):
-        if not self:
-            return 'i{}'
-        return f'i{{{", ".join(map(lambda i: f"{repr(i[0])}: {repr(i[1])}", self.items()))}}}'
-
     def __contains__(self, key):
-        if not self or key is None:
-            return False
-        if not isinstance(key, str):
+        key = self._check_key_type(key)
+        if key is None:
             return False
         cdef string ckey = key.encode('UTF-8')
-        return deref(self._cpp_obj).count(ckey) > 0
-
-    def get(self, key, default=None):
-        if not self or key is None:
-            return default
-        try:
-            if not isinstance(key, str):
-                key = str(key)
-        except Exception:
-            return default
-        if not isinstance(key, str):
-            return default
-        if key not in self:
-            return default
-        return self[key]
-
-    def keys(self):
-        return self.__iter__()
+        return __map_contains(self._cpp_obj, ckey)
 
     def values(self):
         if not self:
-            raise StopIteration
-        cdef int32_t citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.second
+            return
+        cdef __map_iter[cmap[string,cint32_t]] itr = __map_iter[cmap[string,cint32_t]](self._cpp_obj)
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextValue(self._cpp_obj, citem)
             yield citem
 
     def items(self):
         if not self:
-            raise StopIteration
+            return
+        cdef __map_iter[cmap[string,cint32_t]] itr = __map_iter[cmap[string,cint32_t]](self._cpp_obj)
         cdef string ckey
-        cdef int32_t citem
-        for pair in deref(self._cpp_obj):
-            ckey = pair.first
-            citem = pair.second
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextItem(self._cpp_obj, ckey, citem)
+            yield (ckey.data().decode('UTF-8'), citem)
 
-            yield (ckey.decode('UTF-8'), citem)
-
-
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Map__string_i32()
 
 Mapping.register(Map__string_i32)
 
-cdef class List__Map__string_i32:
+@__cython.auto_pickle(False)
+cdef class List__Map__string_i32(thrift.py3.types.List):
     def __init__(self, items=None):
         if isinstance(items, List__Map__string_i32):
             self._cpp_obj = (<List__Map__string_i32> items)._cpp_obj
         else:
-            self._cpp_obj = move(List__Map__string_i32._make_instance(items))
+            self._cpp_obj = List__Map__string_i32._make_instance(items)
 
     @staticmethod
-    cdef create(shared_ptr[vector[cmap[string,int32_t]]] c_items):
-        inst = <List__Map__string_i32>List__Map__string_i32.__new__(List__Map__string_i32)
-        inst._cpp_obj = c_items
-        return inst
+    cdef create(shared_ptr[vector[cmap[string,cint32_t]]] c_items):
+        __fbthrift_inst = <List__Map__string_i32>List__Map__string_i32.__new__(List__Map__string_i32)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(List__Map__string_i32 self):
+        cdef shared_ptr[vector[cmap[string,cint32_t]]] cpp_obj = make_shared[vector[cmap[string,cint32_t]]](
+            deref(self._cpp_obj)
+        )
+        return List__Map__string_i32.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[vector[cmap[string,int32_t]]] _make_instance(object items) except *:
-        cdef unique_ptr[vector[cmap[string,int32_t]]] c_inst = make_unique[vector[cmap[string,int32_t]]]()
+    cdef shared_ptr[vector[cmap[string,cint32_t]]] _make_instance(object items) except *:
+        cdef shared_ptr[vector[cmap[string,cint32_t]]] c_inst = make_shared[vector[cmap[string,cint32_t]]]()
         if items is not None:
             for item in items:
                 if item is None:
                     raise TypeError("None is not of the type _typing.Mapping[str, int]")
                 if not isinstance(item, Map__string_i32):
                     item = Map__string_i32(item)
-                deref(c_inst).push_back(cmap[string,int32_t](deref(Map__string_i32(item)._cpp_obj.get())))
-        return move_unique(c_inst)
+                deref(c_inst).push_back(deref((<Map__string_i32>item)._cpp_obj))
+        return c_inst
 
-    def __add__(object self, object other):
-        return type(self)(itertools.chain(self, other))
-
-    def __getitem__(self, object index_obj):
-        cdef shared_ptr[vector[cmap[string,int32_t]]] c_inst
-        cdef cmap[string,int32_t] citem
-        if isinstance(index_obj, slice):
-            c_inst = make_shared[vector[cmap[string,int32_t]]]()
-            sz = deref(self._cpp_obj).size()
-            for index in range(*index_obj.indices(sz)):
-                citem = deref(self._cpp_obj.get())[index]
-                deref(c_inst).push_back(citem)
-            return List__Map__string_i32.create(c_inst)
-        else:
-            index = <int?>index_obj
-            size = len(self)
-            # Convert a negative index
-            if index < 0:
-                index = size + index
-            if index >= size or index < 0:
-                raise IndexError('list index out of range')
-            citem = deref(self._cpp_obj.get())[index]
-            return Map__string_i32.create(
-    make_shared[cmap[string,int32_t]](citem))
-
-    def __len__(self):
-        return deref(self._cpp_obj).size()
-
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Iterable) and isinstance(other, Iterable)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for one, two in zip(self, other):
-            if one != two:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
-
-    def __contains__(self, item):
-        if not self or item is None:
-            return False
-        try:
-            if not isinstance(item, Map__string_i32):
-                item = Map__string_i32(item)
-        except Exception:
-            return False
-        if not isinstance(item, Map__string_i32):
-            return False
-        cdef cmap[string,int32_t] citem = cmap[string,int32_t](deref(Map__string_i32(item)._cpp_obj.get()))
-        cdef vector[cmap[string,int32_t]] vec = deref(
-            self._cpp_obj.get())
-        return std_libcpp.find(vec.begin(), vec.end(), citem) != vec.end()
-
-    def __iter__(self):
-        if not self:
-            raise StopIteration
-        cdef cmap[string,int32_t] citem
-        for citem in deref(self._cpp_obj):
-            yield Map__string_i32.create(
-    make_shared[cmap[string,int32_t]](citem))
-
-    def __repr__(self):
-        if not self:
-            return 'i[]'
-        return f'i[{", ".join(map(repr, self))}]'
-
-    def __reversed__(self):
-        if not self:
-            raise StopIteration
-        cdef cmap[string,int32_t] citem
-        cdef vector[cmap[string,int32_t]] vec = deref(
-            self._cpp_obj.get())
-        cdef vector[cmap[string,int32_t]].reverse_iterator loc = vec.rbegin()
-        while loc != vec.rend():
-            citem = deref(loc)
-            yield Map__string_i32.create(
-    make_shared[cmap[string,int32_t]](citem))
-            inc(loc)
-
-    def index(self, item, start not None=__NOTSET, stop not None=__NOTSET):
-        err = ValueError(f'{item} is not in list')
-        if not self or item is None:
-            raise err
-        offset_begin = offset_end = 0
-        if stop is not __NOTSET or start is not __NOTSET:
-            # Like self[start:stop].index(item)
-            size = len(self)
-            stop = stop if stop is not __NOTSET else size
-            start = start if start is not __NOTSET else 0
-            # Convert stop to a negative position.
-            if stop > 0:
-                stop = min(stop - size, 0)
-            if stop <= -size:
-                raise err  # List would be empty
-            offset_end = -stop
-            # Convert start to always be positive
-            if start < 0:
-                start = max(size + start, 0)
-            if start >= size:
-                raise err  # past end of list
-            offset_begin = start
-
-        try:
-            if not isinstance(item, Map__string_i32):
-                item = Map__string_i32(item)
-        except Exception:
-            raise err from None
-        if not isinstance(item, Map__string_i32):
-            raise err
-        cdef cmap[string,int32_t] citem = cmap[string,int32_t](deref(Map__string_i32(item)._cpp_obj.get()))
-        cdef vector[cmap[string,int32_t]] vec = deref(self._cpp_obj.get())
-        cdef vector[cmap[string,int32_t]].iterator end = std_libcpp.prev(vec.end(), <int64_t>offset_end)
-        cdef vector[cmap[string,int32_t]].iterator loc = std_libcpp.find(
-            std_libcpp.next(vec.begin(), <int64_t>offset_begin),
-            end,
-            citem
+    cdef _get_slice(self, slice index_obj):
+        cdef int start, stop, step
+        start, stop, step = index_obj.indices(deref(self._cpp_obj).size())
+        return List__Map__string_i32.create(
+            __list_slice[vector[cmap[string,cint32_t]]](self._cpp_obj, start, stop, step)
         )
-        if loc != end:
-            return <int64_t> std_libcpp.distance(vec.begin(), loc)
-        raise err
+
+    cdef _get_single_item(self, size_t index):
+        cdef shared_ptr[cmap[string,cint32_t]] citem
+        __list_getitem(self._cpp_obj, index, citem)
+        return Map__string_i32.create(citem)
+
+    cdef _check_item_type(self, item):
+        if not self or item is None:
+            return
+        if isinstance(item, Map__string_i32):
+            return item
+        try:
+            return Map__string_i32(item)
+        except:
+            pass
+
+    def index(self, item, start=0, stop=None):
+        err = ValueError(f'{item} is not in list')
+        item = self._check_item_type(item)
+        if item is None:
+            raise err
+        cdef (int, int, int) indices = slice(start, stop).indices(deref(self._cpp_obj).size())
+        cdef cmap[string,cint32_t] citem = deref((<Map__string_i32>item)._cpp_obj)
+        cdef std_libcpp.optional[size_t] found = __list_index[vector[cmap[string,cint32_t]]](self._cpp_obj, indices[0], indices[1], citem)
+        if not found.has_value():
+            raise err
+        return found.value()
 
     def count(self, item):
-        if not self or item is None:
+        item = self._check_item_type(item)
+        if item is None:
             return 0
-        try:
-            if not isinstance(item, Map__string_i32):
-                item = Map__string_i32(item)
-        except Exception:
-            return 0
-        if not isinstance(item, Map__string_i32):
-            return 0
-        cdef cmap[string,int32_t] citem = cmap[string,int32_t](deref(Map__string_i32(item)._cpp_obj.get()))
-        cdef vector[cmap[string,int32_t]] vec = deref(self._cpp_obj.get())
-        return <int64_t> std_libcpp.count(vec.begin(), vec.end(), citem)
+        cdef cmap[string,cint32_t] citem = deref((<Map__string_i32>item)._cpp_obj)
+        return __list_count[vector[cmap[string,cint32_t]]](self._cpp_obj, citem)
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__List__Map__string_i32()
 
 
 Sequence.register(List__Map__string_i32)
 
-cdef class List__Range:
+@__cython.auto_pickle(False)
+cdef class Map__string_string(thrift.py3.types.Map):
+    def __init__(self, items=None):
+        if isinstance(items, Map__string_string):
+            self._cpp_obj = (<Map__string_string> items)._cpp_obj
+        else:
+            self._cpp_obj = Map__string_string._make_instance(items)
+
+    @staticmethod
+    cdef create(shared_ptr[cmap[string,string]] c_items):
+        __fbthrift_inst = <Map__string_string>Map__string_string.__new__(Map__string_string)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(Map__string_string self):
+        cdef shared_ptr[cmap[string,string]] cpp_obj = make_shared[cmap[string,string]](
+            deref(self._cpp_obj)
+        )
+        return Map__string_string.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
+
+    @staticmethod
+    cdef shared_ptr[cmap[string,string]] _make_instance(object items) except *:
+        cdef shared_ptr[cmap[string,string]] c_inst = make_shared[cmap[string,string]]()
+        if items is not None:
+            for key, item in items.items():
+                if not isinstance(key, str):
+                    raise TypeError(f"{key!r} is not of type str")
+                if not isinstance(item, str):
+                    raise TypeError(f"{item!r} is not of type str")
+
+                deref(c_inst)[key.encode('UTF-8')] = item.encode('UTF-8')
+        return c_inst
+
+    cdef _check_key_type(self, key):
+        if not self or key is None:
+            return
+        if isinstance(key, str):
+            return key
+
+    def __getitem__(self, key):
+        err = KeyError(f'{key}')
+        key = self._check_key_type(key)
+        if key is None:
+            raise err
+        cdef string ckey = key.encode('UTF-8')
+        if not __map_contains(self._cpp_obj, ckey):
+            raise err
+        cdef string citem
+        __map_getitem(self._cpp_obj, ckey, citem)
+        return bytes(citem).decode('UTF-8')
+
+    def __iter__(self):
+        if not self:
+            return
+        cdef __map_iter[cmap[string,string]] itr = __map_iter[cmap[string,string]](self._cpp_obj)
+        cdef string citem
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextKey(self._cpp_obj, citem)
+            yield bytes(citem).decode('UTF-8')
+
+    def __contains__(self, key):
+        key = self._check_key_type(key)
+        if key is None:
+            return False
+        cdef string ckey = key.encode('UTF-8')
+        return __map_contains(self._cpp_obj, ckey)
+
+    def values(self):
+        if not self:
+            return
+        cdef __map_iter[cmap[string,string]] itr = __map_iter[cmap[string,string]](self._cpp_obj)
+        cdef string citem
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextValue(self._cpp_obj, citem)
+            yield bytes(citem).decode('UTF-8')
+
+    def items(self):
+        if not self:
+            return
+        cdef __map_iter[cmap[string,string]] itr = __map_iter[cmap[string,string]](self._cpp_obj)
+        cdef string ckey
+        cdef string citem
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextItem(self._cpp_obj, ckey, citem)
+            yield (ckey.data().decode('UTF-8'), bytes(citem).decode('UTF-8'))
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Map__string_string()
+
+Mapping.register(Map__string_string)
+
+@__cython.auto_pickle(False)
+cdef class List__Range(thrift.py3.types.List):
     def __init__(self, items=None):
         if isinstance(items, List__Range):
             self._cpp_obj = (<List__Range> items)._cpp_obj
         else:
-            self._cpp_obj = move(List__Range._make_instance(items))
+            self._cpp_obj = List__Range._make_instance(items)
 
     @staticmethod
     cdef create(shared_ptr[vector[cRange]] c_items):
-        inst = <List__Range>List__Range.__new__(List__Range)
-        inst._cpp_obj = c_items
-        return inst
+        __fbthrift_inst = <List__Range>List__Range.__new__(List__Range)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(List__Range self):
+        cdef shared_ptr[vector[cRange]] cpp_obj = make_shared[vector[cRange]](
+            deref(self._cpp_obj)
+        )
+        return List__Range.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[vector[cRange]] _make_instance(object items) except *:
-        cdef unique_ptr[vector[cRange]] c_inst = make_unique[vector[cRange]]()
+    cdef shared_ptr[vector[cRange]] _make_instance(object items) except *:
+        cdef shared_ptr[vector[cRange]] c_inst = make_shared[vector[cRange]]()
         if items is not None:
             for item in items:
                 if not isinstance(item, Range):
                     raise TypeError(f"{item!r} is not of type 'Range'")
                 deref(c_inst).push_back(deref((<Range>item)._cpp_obj))
-        return move_unique(c_inst)
+        return c_inst
 
-    def __add__(object self, object other):
-        return type(self)(itertools.chain(self, other))
-
-    def __getitem__(self, object index_obj):
-        cdef shared_ptr[vector[cRange]] c_inst
-        cdef cRange citem
-        if isinstance(index_obj, slice):
-            c_inst = make_shared[vector[cRange]]()
-            sz = deref(self._cpp_obj).size()
-            for index in range(*index_obj.indices(sz)):
-                citem = deref(self._cpp_obj.get())[index]
-                deref(c_inst).push_back(citem)
-            return List__Range.create(c_inst)
-        else:
-            index = <int?>index_obj
-            size = len(self)
-            # Convert a negative index
-            if index < 0:
-                index = size + index
-            if index >= size or index < 0:
-                raise IndexError('list index out of range')
-            citem = deref(self._cpp_obj.get())[index]
-            return Range.create(make_shared[cRange](citem))
-
-    def __len__(self):
-        return deref(self._cpp_obj).size()
-
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Iterable) and isinstance(other, Iterable)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for one, two in zip(self, other):
-            if one != two:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
-
-    def __contains__(self, item):
-        if not self or item is None:
-            return False
-        if not isinstance(item, Range):
-            return False
-        cdef cRange citem = deref((<Range>item)._cpp_obj)
-        cdef vector[cRange] vec = deref(
-            self._cpp_obj.get())
-        return std_libcpp.find(vec.begin(), vec.end(), citem) != vec.end()
-
-    def __iter__(self):
-        if not self:
-            raise StopIteration
-        cdef cRange citem
-        for citem in deref(self._cpp_obj):
-            yield Range.create(make_shared[cRange](citem))
-
-    def __repr__(self):
-        if not self:
-            return 'i[]'
-        return f'i[{", ".join(map(repr, self))}]'
-
-    def __reversed__(self):
-        if not self:
-            raise StopIteration
-        cdef cRange citem
-        cdef vector[cRange] vec = deref(
-            self._cpp_obj.get())
-        cdef vector[cRange].reverse_iterator loc = vec.rbegin()
-        while loc != vec.rend():
-            citem = deref(loc)
-            yield Range.create(make_shared[cRange](citem))
-            inc(loc)
-
-    def index(self, item, start not None=__NOTSET, stop not None=__NOTSET):
-        err = ValueError(f'{item} is not in list')
-        if not self or item is None:
-            raise err
-        offset_begin = offset_end = 0
-        if stop is not __NOTSET or start is not __NOTSET:
-            # Like self[start:stop].index(item)
-            size = len(self)
-            stop = stop if stop is not __NOTSET else size
-            start = start if start is not __NOTSET else 0
-            # Convert stop to a negative position.
-            if stop > 0:
-                stop = min(stop - size, 0)
-            if stop <= -size:
-                raise err  # List would be empty
-            offset_end = -stop
-            # Convert start to always be positive
-            if start < 0:
-                start = max(size + start, 0)
-            if start >= size:
-                raise err  # past end of list
-            offset_begin = start
-
-        if not isinstance(item, Range):
-            raise err
-        cdef cRange citem = deref((<Range>item)._cpp_obj)
-        cdef vector[cRange] vec = deref(self._cpp_obj.get())
-        cdef vector[cRange].iterator end = std_libcpp.prev(vec.end(), <int64_t>offset_end)
-        cdef vector[cRange].iterator loc = std_libcpp.find(
-            std_libcpp.next(vec.begin(), <int64_t>offset_begin),
-            end,
-            citem
+    cdef _get_slice(self, slice index_obj):
+        cdef int start, stop, step
+        start, stop, step = index_obj.indices(deref(self._cpp_obj).size())
+        return List__Range.create(
+            __list_slice[vector[cRange]](self._cpp_obj, start, stop, step)
         )
-        if loc != end:
-            return <int64_t> std_libcpp.distance(vec.begin(), loc)
-        raise err
+
+    cdef _get_single_item(self, size_t index):
+        cdef shared_ptr[cRange] citem
+        __list_getitem(self._cpp_obj, index, citem)
+        return Range.create(citem)
+
+    cdef _check_item_type(self, item):
+        if not self or item is None:
+            return
+        if isinstance(item, Range):
+            return item
+
+    def index(self, item, start=0, stop=None):
+        err = ValueError(f'{item} is not in list')
+        item = self._check_item_type(item)
+        if item is None:
+            raise err
+        cdef (int, int, int) indices = slice(start, stop).indices(deref(self._cpp_obj).size())
+        cdef cRange citem = deref((<Range>item)._cpp_obj)
+        cdef std_libcpp.optional[size_t] found = __list_index[vector[cRange]](self._cpp_obj, indices[0], indices[1], citem)
+        if not found.has_value():
+            raise err
+        return found.value()
 
     def count(self, item):
-        if not self or item is None:
-            return 0
-        if not isinstance(item, Range):
+        item = self._check_item_type(item)
+        if item is None:
             return 0
         cdef cRange citem = deref((<Range>item)._cpp_obj)
-        cdef vector[cRange] vec = deref(self._cpp_obj.get())
-        return <int64_t> std_libcpp.count(vec.begin(), vec.end(), citem)
+        return __list_count[vector[cRange]](self._cpp_obj, citem)
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__List__Range()
 
 
 Sequence.register(List__Range)
 
-cdef class List__Internship:
+@__cython.auto_pickle(False)
+cdef class List__Internship(thrift.py3.types.List):
     def __init__(self, items=None):
         if isinstance(items, List__Internship):
             self._cpp_obj = (<List__Internship> items)._cpp_obj
         else:
-            self._cpp_obj = move(List__Internship._make_instance(items))
+            self._cpp_obj = List__Internship._make_instance(items)
 
     @staticmethod
     cdef create(shared_ptr[vector[cInternship]] c_items):
-        inst = <List__Internship>List__Internship.__new__(List__Internship)
-        inst._cpp_obj = c_items
-        return inst
+        __fbthrift_inst = <List__Internship>List__Internship.__new__(List__Internship)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(List__Internship self):
+        cdef shared_ptr[vector[cInternship]] cpp_obj = make_shared[vector[cInternship]](
+            deref(self._cpp_obj)
+        )
+        return List__Internship.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[vector[cInternship]] _make_instance(object items) except *:
-        cdef unique_ptr[vector[cInternship]] c_inst = make_unique[vector[cInternship]]()
+    cdef shared_ptr[vector[cInternship]] _make_instance(object items) except *:
+        cdef shared_ptr[vector[cInternship]] c_inst = make_shared[vector[cInternship]]()
         if items is not None:
             for item in items:
                 if not isinstance(item, Internship):
                     raise TypeError(f"{item!r} is not of type 'Internship'")
                 deref(c_inst).push_back(deref((<Internship>item)._cpp_obj))
-        return move_unique(c_inst)
+        return c_inst
 
-    def __add__(object self, object other):
-        return type(self)(itertools.chain(self, other))
-
-    def __getitem__(self, object index_obj):
-        cdef shared_ptr[vector[cInternship]] c_inst
-        cdef cInternship citem
-        if isinstance(index_obj, slice):
-            c_inst = make_shared[vector[cInternship]]()
-            sz = deref(self._cpp_obj).size()
-            for index in range(*index_obj.indices(sz)):
-                citem = deref(self._cpp_obj.get())[index]
-                deref(c_inst).push_back(citem)
-            return List__Internship.create(c_inst)
-        else:
-            index = <int?>index_obj
-            size = len(self)
-            # Convert a negative index
-            if index < 0:
-                index = size + index
-            if index >= size or index < 0:
-                raise IndexError('list index out of range')
-            citem = deref(self._cpp_obj.get())[index]
-            return Internship.create(make_shared[cInternship](citem))
-
-    def __len__(self):
-        return deref(self._cpp_obj).size()
-
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Iterable) and isinstance(other, Iterable)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for one, two in zip(self, other):
-            if one != two:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
-
-    def __contains__(self, item):
-        if not self or item is None:
-            return False
-        if not isinstance(item, Internship):
-            return False
-        cdef cInternship citem = deref((<Internship>item)._cpp_obj)
-        cdef vector[cInternship] vec = deref(
-            self._cpp_obj.get())
-        return std_libcpp.find(vec.begin(), vec.end(), citem) != vec.end()
-
-    def __iter__(self):
-        if not self:
-            raise StopIteration
-        cdef cInternship citem
-        for citem in deref(self._cpp_obj):
-            yield Internship.create(make_shared[cInternship](citem))
-
-    def __repr__(self):
-        if not self:
-            return 'i[]'
-        return f'i[{", ".join(map(repr, self))}]'
-
-    def __reversed__(self):
-        if not self:
-            raise StopIteration
-        cdef cInternship citem
-        cdef vector[cInternship] vec = deref(
-            self._cpp_obj.get())
-        cdef vector[cInternship].reverse_iterator loc = vec.rbegin()
-        while loc != vec.rend():
-            citem = deref(loc)
-            yield Internship.create(make_shared[cInternship](citem))
-            inc(loc)
-
-    def index(self, item, start not None=__NOTSET, stop not None=__NOTSET):
-        err = ValueError(f'{item} is not in list')
-        if not self or item is None:
-            raise err
-        offset_begin = offset_end = 0
-        if stop is not __NOTSET or start is not __NOTSET:
-            # Like self[start:stop].index(item)
-            size = len(self)
-            stop = stop if stop is not __NOTSET else size
-            start = start if start is not __NOTSET else 0
-            # Convert stop to a negative position.
-            if stop > 0:
-                stop = min(stop - size, 0)
-            if stop <= -size:
-                raise err  # List would be empty
-            offset_end = -stop
-            # Convert start to always be positive
-            if start < 0:
-                start = max(size + start, 0)
-            if start >= size:
-                raise err  # past end of list
-            offset_begin = start
-
-        if not isinstance(item, Internship):
-            raise err
-        cdef cInternship citem = deref((<Internship>item)._cpp_obj)
-        cdef vector[cInternship] vec = deref(self._cpp_obj.get())
-        cdef vector[cInternship].iterator end = std_libcpp.prev(vec.end(), <int64_t>offset_end)
-        cdef vector[cInternship].iterator loc = std_libcpp.find(
-            std_libcpp.next(vec.begin(), <int64_t>offset_begin),
-            end,
-            citem
+    cdef _get_slice(self, slice index_obj):
+        cdef int start, stop, step
+        start, stop, step = index_obj.indices(deref(self._cpp_obj).size())
+        return List__Internship.create(
+            __list_slice[vector[cInternship]](self._cpp_obj, start, stop, step)
         )
-        if loc != end:
-            return <int64_t> std_libcpp.distance(vec.begin(), loc)
-        raise err
+
+    cdef _get_single_item(self, size_t index):
+        cdef shared_ptr[cInternship] citem
+        __list_getitem(self._cpp_obj, index, citem)
+        return Internship.create(citem)
+
+    cdef _check_item_type(self, item):
+        if not self or item is None:
+            return
+        if isinstance(item, Internship):
+            return item
+
+    def index(self, item, start=0, stop=None):
+        err = ValueError(f'{item} is not in list')
+        item = self._check_item_type(item)
+        if item is None:
+            raise err
+        cdef (int, int, int) indices = slice(start, stop).indices(deref(self._cpp_obj).size())
+        cdef cInternship citem = deref((<Internship>item)._cpp_obj)
+        cdef std_libcpp.optional[size_t] found = __list_index[vector[cInternship]](self._cpp_obj, indices[0], indices[1], citem)
+        if not found.has_value():
+            raise err
+        return found.value()
 
     def count(self, item):
-        if not self or item is None:
-            return 0
-        if not isinstance(item, Internship):
+        item = self._check_item_type(item)
+        if item is None:
             return 0
         cdef cInternship citem = deref((<Internship>item)._cpp_obj)
-        cdef vector[cInternship] vec = deref(self._cpp_obj.get())
-        return <int64_t> std_libcpp.count(vec.begin(), vec.end(), citem)
+        return __list_count[vector[cInternship]](self._cpp_obj, citem)
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__List__Internship()
 
 
 Sequence.register(List__Internship)
 
-cdef class List__string:
+@__cython.auto_pickle(False)
+cdef class List__string(thrift.py3.types.List):
     def __init__(self, items=None):
         if isinstance(items, List__string):
             self._cpp_obj = (<List__string> items)._cpp_obj
         else:
-            self._cpp_obj = move(List__string._make_instance(items))
+            self._cpp_obj = List__string._make_instance(items)
 
     @staticmethod
     cdef create(shared_ptr[vector[string]] c_items):
-        inst = <List__string>List__string.__new__(List__string)
-        inst._cpp_obj = c_items
-        return inst
+        __fbthrift_inst = <List__string>List__string.__new__(List__string)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
 
-    @staticmethod
-    cdef unique_ptr[vector[string]] _make_instance(object items) except *:
-        cdef unique_ptr[vector[string]] c_inst = make_unique[vector[string]]()
-        if items is not None:
-            for item in items:
-                if not isinstance(item, str):
-                    raise TypeError(f"{item!r} is not of type str")
-                deref(c_inst).push_back(item.encode('UTF-8'))
-        return move_unique(c_inst)
-
-    def __add__(object self, object other):
-        return type(self)(itertools.chain(self, other))
-
-    def __getitem__(self, object index_obj):
-        cdef shared_ptr[vector[string]] c_inst
-        cdef string citem
-        if isinstance(index_obj, slice):
-            c_inst = make_shared[vector[string]]()
-            sz = deref(self._cpp_obj).size()
-            for index in range(*index_obj.indices(sz)):
-                citem = deref(self._cpp_obj.get())[index]
-                deref(c_inst).push_back(citem)
-            return List__string.create(c_inst)
-        else:
-            index = <int?>index_obj
-            size = len(self)
-            # Convert a negative index
-            if index < 0:
-                index = size + index
-            if index >= size or index < 0:
-                raise IndexError('list index out of range')
-            citem = deref(self._cpp_obj.get())[index]
-            return bytes(citem).decode('UTF-8')
+    def __copy__(List__string self):
+        cdef shared_ptr[vector[string]] cpp_obj = make_shared[vector[string]](
+            deref(self._cpp_obj)
+        )
+        return List__string.create(cmove(cpp_obj))
 
     def __len__(self):
         return deref(self._cpp_obj).size()
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Iterable) and isinstance(other, Iterable)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
+    @staticmethod
+    cdef shared_ptr[vector[string]] _make_instance(object items) except *:
+        cdef shared_ptr[vector[string]] c_inst = make_shared[vector[string]]()
+        if items is not None:
+            if isinstance(items, str):
+                raise TypeError("If you really want to pass a string into a _typing.Sequence[str] field, explicitly convert it first.")
+            for item in items:
+                if not isinstance(item, str):
+                    raise TypeError(f"{item!r} is not of type str")
+                deref(c_inst).push_back(item.encode('UTF-8'))
+        return c_inst
 
-        for one, two in zip(self, other):
-            if one != two:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
-
-    def __contains__(self, item):
-        if not self or item is None:
-            return False
-        if not isinstance(item, str):
-            return False
-        cdef string citem = item.encode('UTF-8')
-        cdef vector[string] vec = deref(
-            self._cpp_obj.get())
-        return std_libcpp.find(vec.begin(), vec.end(), citem) != vec.end()
-
-    def __iter__(self):
-        if not self:
-            raise StopIteration
-        cdef string citem
-        for citem in deref(self._cpp_obj):
-            yield bytes(citem).decode('UTF-8')
-
-    def __repr__(self):
-        if not self:
-            return 'i[]'
-        return f'i[{", ".join(map(repr, self))}]'
-
-    def __reversed__(self):
-        if not self:
-            raise StopIteration
-        cdef string citem
-        cdef vector[string] vec = deref(
-            self._cpp_obj.get())
-        cdef vector[string].reverse_iterator loc = vec.rbegin()
-        while loc != vec.rend():
-            citem = deref(loc)
-            yield bytes(citem).decode('UTF-8')
-            inc(loc)
-
-    def index(self, item, start not None=__NOTSET, stop not None=__NOTSET):
-        err = ValueError(f'{item} is not in list')
-        if not self or item is None:
-            raise err
-        offset_begin = offset_end = 0
-        if stop is not __NOTSET or start is not __NOTSET:
-            # Like self[start:stop].index(item)
-            size = len(self)
-            stop = stop if stop is not __NOTSET else size
-            start = start if start is not __NOTSET else 0
-            # Convert stop to a negative position.
-            if stop > 0:
-                stop = min(stop - size, 0)
-            if stop <= -size:
-                raise err  # List would be empty
-            offset_end = -stop
-            # Convert start to always be positive
-            if start < 0:
-                start = max(size + start, 0)
-            if start >= size:
-                raise err  # past end of list
-            offset_begin = start
-
-        if not isinstance(item, str):
-            raise err
-        cdef string citem = item.encode('UTF-8')
-        cdef vector[string] vec = deref(self._cpp_obj.get())
-        cdef vector[string].iterator end = std_libcpp.prev(vec.end(), <int64_t>offset_end)
-        cdef vector[string].iterator loc = std_libcpp.find(
-            std_libcpp.next(vec.begin(), <int64_t>offset_begin),
-            end,
-            citem
+    cdef _get_slice(self, slice index_obj):
+        cdef int start, stop, step
+        start, stop, step = index_obj.indices(deref(self._cpp_obj).size())
+        return List__string.create(
+            __list_slice[vector[string]](self._cpp_obj, start, stop, step)
         )
-        if loc != end:
-            return <int64_t> std_libcpp.distance(vec.begin(), loc)
-        raise err
+
+    cdef _get_single_item(self, size_t index):
+        cdef string citem
+        __list_getitem(self._cpp_obj, index, citem)
+        return bytes(citem).decode('UTF-8')
+
+    cdef _check_item_type(self, item):
+        if not self or item is None:
+            return
+        if isinstance(item, str):
+            return item
+
+    def index(self, item, start=0, stop=None):
+        err = ValueError(f'{item} is not in list')
+        item = self._check_item_type(item)
+        if item is None:
+            raise err
+        cdef (int, int, int) indices = slice(start, stop).indices(deref(self._cpp_obj).size())
+        cdef string citem = item.encode('UTF-8')
+        cdef std_libcpp.optional[size_t] found = __list_index[vector[string]](self._cpp_obj, indices[0], indices[1], citem)
+        if not found.has_value():
+            raise err
+        return found.value()
 
     def count(self, item):
-        if not self or item is None:
-            return 0
-        if not isinstance(item, str):
+        item = self._check_item_type(item)
+        if item is None:
             return 0
         cdef string citem = item.encode('UTF-8')
-        cdef vector[string] vec = deref(self._cpp_obj.get())
-        return <int64_t> std_libcpp.count(vec.begin(), vec.end(), citem)
+        return __list_count[vector[string]](self._cpp_obj, citem)
+
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__List__string()
 
 
 Sequence.register(List__string)
 
-cdef class Set__i32:
+@__cython.auto_pickle(False)
+cdef class Set__i32(thrift.py3.types.Set):
     def __init__(self, items=None):
         if isinstance(items, Set__i32):
             self._cpp_obj = (<Set__i32> items)._cpp_obj
         else:
-            self._cpp_obj = move(Set__i32._make_instance(items))
+            self._cpp_obj = Set__i32._make_instance(items)
 
     @staticmethod
-    cdef create(shared_ptr[cset[int32_t]] c_items):
-        inst = <Set__i32>Set__i32.__new__(Set__i32)
-        inst._cpp_obj = c_items
-        return inst
+    cdef create(shared_ptr[cset[cint32_t]] c_items):
+        __fbthrift_inst = <Set__i32>Set__i32.__new__(Set__i32)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(Set__i32 self):
+        cdef shared_ptr[cset[cint32_t]] cpp_obj = make_shared[cset[cint32_t]](
+            deref(self._cpp_obj)
+        )
+        return Set__i32.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[cset[int32_t]] _make_instance(object items) except *:
-        cdef unique_ptr[cset[int32_t]] c_inst = make_unique[cset[int32_t]]()
+    cdef shared_ptr[cset[cint32_t]] _make_instance(object items) except *:
+        cdef shared_ptr[cset[cint32_t]] c_inst = make_shared[cset[cint32_t]]()
         if items is not None:
             for item in items:
                 if not isinstance(item, int):
                     raise TypeError(f"{item!r} is not of type int")
-                item = <int32_t> item
+                item = <cint32_t> item
                 deref(c_inst).insert(item)
-        return move_unique(c_inst)
+        return c_inst
 
     def __contains__(self, item):
         if not self or item is None:
@@ -3066,187 +1845,79 @@ cdef class Set__i32:
         return pbool(deref(self._cpp_obj).count(item))
 
 
-    def __len__(self):
-        return deref(self._cpp_obj).size()
-
     def __iter__(self):
         if not self:
-            raise StopIteration
-        for citem in deref(self._cpp_obj):
+            return
+        cdef __set_iter[cset[cint32_t]] itr = __set_iter[cset[cint32_t]](self._cpp_obj)
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNext(self._cpp_obj, citem)
             yield citem
 
-    def __repr__(self):
-        if not self:
-            return 'iset()'
-        return f'i{{{", ".join(map(repr, self))}}}'
-
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        cdef cset[int32_t] cself, cother
-        cdef cbool retval
-        if (isinstance(self, Set__i32) and
-                isinstance(other, Set__i32)):
-            cself = deref((<Set__i32> self)._cpp_obj)
-            cother = deref((<Set__i32> other)._cpp_obj)
-            # C level comparisons
-            if cop == 0:    # Less Than (strict subset)
-                if not cself.size() < cother.size():
-                    return False
-                for item in cself:
-                    if not cother.count(item):
-                        return False
-                return True
-            elif cop == 1:  # Less Than or Equal To  (subset)
-                for item in cself:
-                    if not cother.count(item):
-                        return False
-                return True
-            elif cop == 2:  # Equivalent
-                if cself.size() != cother.size():
-                    return False
-                for item in cself:
-                    if not cother.count(item):
-                        return False
-                return True
-            elif cop == 3:  # Not Equivalent
-                for item in cself:
-                    if not cother.count(item):
-                        return True
-                return cself.size() != cother.size()
-            elif cop == 4:  # Greater Than (strict superset)
-                if not cself.size() > cother.size():
-                    return False
-                for item in cother:
-                    if not cself.count(item):
-                        return False
-                return True
-            elif cop == 5:  # Greater Than or Equal To (superset)
-                for item in cother:
-                    if not cself.count(item):
-                        return False
-                return True
-
-        # Python level comparisons
-        if cop == 0:
-            return Set.__lt__(self, other)
-        elif cop == 1:
-            return Set.__le__(self, other)
-        elif cop == 2:
-            return Set.__eq__(self, other)
-        elif cop == 3:
-            return Set.__ne__(self, other)
-        elif cop == 4:
-            return Set.__gt__(self, other)
-        elif cop == 5:
-            return Set.__ge__(self, other)
-
     def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
+        return super().__hash__()
 
-    def __and__(self, other):
-        if not isinstance(self, Set__i32):
-            self = Set__i32(self)
+    def __richcmp__(self, other, int op):
+        if isinstance(other, Set__i32):
+            # C level comparisons
+            return __setcmp(
+                self._cpp_obj,
+                (<Set__i32> other)._cpp_obj,
+                op,
+            )
+        return self._fbthrift_py_richcmp(other, op)
+
+    cdef _fbthrift_do_set_op(self, other, __cSetOp op):
         if not isinstance(other, Set__i32):
             other = Set__i32(other)
+        cdef shared_ptr[cset[cint32_t]] result
+        return Set__i32.create(__set_op[cset[cint32_t]](
+            self._cpp_obj,
+            (<Set__i32>other)._cpp_obj,
+            op,
+        ))
 
-        cdef shared_ptr[cset[int32_t]] shretval = \
-            make_shared[cset[int32_t]]()
-        for citem in deref((<Set__i32> self)._cpp_obj):
-            if deref((<Set__i32> other)._cpp_obj).count(citem) > 0:
-                deref(shretval).insert(citem)
-        return Set__i32.create(shretval)
-
-    def __sub__(self, other):
-        if not isinstance(self, Set__i32):
-            self = Set__i32(self)
-        if not isinstance(other, Set__i32):
-            other = Set__i32(other)
-
-        cdef shared_ptr[cset[int32_t]] shretval = \
-            make_shared[cset[int32_t]]()
-        for citem in deref((<Set__i32> self)._cpp_obj):
-            if deref((<Set__i32> other)._cpp_obj).count(citem) == 0:
-                deref(shretval).insert(citem)
-        return Set__i32.create(shretval)
-
-    def __or__(self, other):
-        if not isinstance(self, Set__i32):
-            self = Set__i32(self)
-        if not isinstance(other, Set__i32):
-            other = Set__i32(other)
-
-        cdef shared_ptr[cset[int32_t]] shretval = \
-            make_shared[cset[int32_t]]()
-        for citem in deref((<Set__i32> self)._cpp_obj):
-                deref(shretval).insert(citem)
-        for citem in deref((<Set__i32> other)._cpp_obj):
-                deref(shretval).insert(citem)
-        return Set__i32.create(shretval)
-
-    def __xor__(self, other):
-        if not isinstance(self, Set__i32):
-            self = Set__i32(self)
-        if not isinstance(other, Set__i32):
-            other = Set__i32(other)
-
-        cdef shared_ptr[cset[int32_t]] shretval = \
-            make_shared[cset[int32_t]]()
-        for citem in deref((<Set__i32> self)._cpp_obj):
-            if deref((<Set__i32> other)._cpp_obj).count(citem) == 0:
-                deref(shretval).insert(citem)
-        for citem in deref((<Set__i32> other)._cpp_obj):
-            if deref((<Set__i32> self)._cpp_obj).count(citem) == 0:
-                deref(shretval).insert(citem)
-        return Set__i32.create(shretval)
-
-    def isdisjoint(self, other):
-        return len(self & other) == 0
-
-    def union(self, other):
-        return self | other
-
-    def intersection(self, other):
-        return self & other
-
-    def difference(self, other):
-        return self - other
-
-    def symmetric_difference(self, other):
-        return self ^ other
-
-    def issubset(self, other):
-        return self <= other
-
-    def issuperset(self, other):
-        return self >= other
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Set__i32()
 
 
 Set.register(Set__i32)
 
-cdef class Set__string:
+@__cython.auto_pickle(False)
+cdef class Set__string(thrift.py3.types.Set):
     def __init__(self, items=None):
         if isinstance(items, Set__string):
             self._cpp_obj = (<Set__string> items)._cpp_obj
         else:
-            self._cpp_obj = move(Set__string._make_instance(items))
+            self._cpp_obj = Set__string._make_instance(items)
 
     @staticmethod
     cdef create(shared_ptr[cset[string]] c_items):
-        inst = <Set__string>Set__string.__new__(Set__string)
-        inst._cpp_obj = c_items
-        return inst
+        __fbthrift_inst = <Set__string>Set__string.__new__(Set__string)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(Set__string self):
+        cdef shared_ptr[cset[string]] cpp_obj = make_shared[cset[string]](
+            deref(self._cpp_obj)
+        )
+        return Set__string.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[cset[string]] _make_instance(object items) except *:
-        cdef unique_ptr[cset[string]] c_inst = make_unique[cset[string]]()
+    cdef shared_ptr[cset[string]] _make_instance(object items) except *:
+        cdef shared_ptr[cset[string]] c_inst = make_shared[cset[string]]()
         if items is not None:
+            if isinstance(items, str):
+                raise TypeError("If you really want to pass a string into a _typing.AbstractSet[str] field, explicitly convert it first.")
             for item in items:
                 if not isinstance(item, str):
                     raise TypeError(f"{item!r} is not of type str")
                 deref(c_inst).insert(item.encode('UTF-8'))
-        return move_unique(c_inst)
+        return c_inst
 
     def __contains__(self, item):
         if not self or item is None:
@@ -3256,590 +1927,298 @@ cdef class Set__string:
         return pbool(deref(self._cpp_obj).count(item.encode('UTF-8')))
 
 
-    def __len__(self):
-        return deref(self._cpp_obj).size()
-
     def __iter__(self):
         if not self:
-            raise StopIteration
-        for citem in deref(self._cpp_obj):
+            return
+        cdef __set_iter[cset[string]] itr = __set_iter[cset[string]](self._cpp_obj)
+        cdef string citem
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNext(self._cpp_obj, citem)
             yield bytes(citem).decode('UTF-8')
 
-    def __repr__(self):
-        if not self:
-            return 'iset()'
-        return f'i{{{", ".join(map(repr, self))}}}'
-
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        cdef cset[string] cself, cother
-        cdef cbool retval
-        if (isinstance(self, Set__string) and
-                isinstance(other, Set__string)):
-            cself = deref((<Set__string> self)._cpp_obj)
-            cother = deref((<Set__string> other)._cpp_obj)
-            # C level comparisons
-            if cop == 0:    # Less Than (strict subset)
-                if not cself.size() < cother.size():
-                    return False
-                for item in cself:
-                    if not cother.count(item):
-                        return False
-                return True
-            elif cop == 1:  # Less Than or Equal To  (subset)
-                for item in cself:
-                    if not cother.count(item):
-                        return False
-                return True
-            elif cop == 2:  # Equivalent
-                if cself.size() != cother.size():
-                    return False
-                for item in cself:
-                    if not cother.count(item):
-                        return False
-                return True
-            elif cop == 3:  # Not Equivalent
-                for item in cself:
-                    if not cother.count(item):
-                        return True
-                return cself.size() != cother.size()
-            elif cop == 4:  # Greater Than (strict superset)
-                if not cself.size() > cother.size():
-                    return False
-                for item in cother:
-                    if not cself.count(item):
-                        return False
-                return True
-            elif cop == 5:  # Greater Than or Equal To (superset)
-                for item in cother:
-                    if not cself.count(item):
-                        return False
-                return True
-
-        # Python level comparisons
-        if cop == 0:
-            return Set.__lt__(self, other)
-        elif cop == 1:
-            return Set.__le__(self, other)
-        elif cop == 2:
-            return Set.__eq__(self, other)
-        elif cop == 3:
-            return Set.__ne__(self, other)
-        elif cop == 4:
-            return Set.__gt__(self, other)
-        elif cop == 5:
-            return Set.__ge__(self, other)
-
     def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self))
-        return self.__hash
+        return super().__hash__()
 
-    def __and__(self, other):
-        if not isinstance(self, Set__string):
-            self = Set__string(self)
+    def __richcmp__(self, other, int op):
+        if isinstance(other, Set__string):
+            # C level comparisons
+            return __setcmp(
+                self._cpp_obj,
+                (<Set__string> other)._cpp_obj,
+                op,
+            )
+        return self._fbthrift_py_richcmp(other, op)
+
+    cdef _fbthrift_do_set_op(self, other, __cSetOp op):
         if not isinstance(other, Set__string):
             other = Set__string(other)
+        cdef shared_ptr[cset[string]] result
+        return Set__string.create(__set_op[cset[string]](
+            self._cpp_obj,
+            (<Set__string>other)._cpp_obj,
+            op,
+        ))
 
-        cdef shared_ptr[cset[string]] shretval = \
-            make_shared[cset[string]]()
-        for citem in deref((<Set__string> self)._cpp_obj):
-            if deref((<Set__string> other)._cpp_obj).count(citem) > 0:
-                deref(shretval).insert(citem)
-        return Set__string.create(shretval)
-
-    def __sub__(self, other):
-        if not isinstance(self, Set__string):
-            self = Set__string(self)
-        if not isinstance(other, Set__string):
-            other = Set__string(other)
-
-        cdef shared_ptr[cset[string]] shretval = \
-            make_shared[cset[string]]()
-        for citem in deref((<Set__string> self)._cpp_obj):
-            if deref((<Set__string> other)._cpp_obj).count(citem) == 0:
-                deref(shretval).insert(citem)
-        return Set__string.create(shretval)
-
-    def __or__(self, other):
-        if not isinstance(self, Set__string):
-            self = Set__string(self)
-        if not isinstance(other, Set__string):
-            other = Set__string(other)
-
-        cdef shared_ptr[cset[string]] shretval = \
-            make_shared[cset[string]]()
-        for citem in deref((<Set__string> self)._cpp_obj):
-                deref(shretval).insert(citem)
-        for citem in deref((<Set__string> other)._cpp_obj):
-                deref(shretval).insert(citem)
-        return Set__string.create(shretval)
-
-    def __xor__(self, other):
-        if not isinstance(self, Set__string):
-            self = Set__string(self)
-        if not isinstance(other, Set__string):
-            other = Set__string(other)
-
-        cdef shared_ptr[cset[string]] shretval = \
-            make_shared[cset[string]]()
-        for citem in deref((<Set__string> self)._cpp_obj):
-            if deref((<Set__string> other)._cpp_obj).count(citem) == 0:
-                deref(shretval).insert(citem)
-        for citem in deref((<Set__string> other)._cpp_obj):
-            if deref((<Set__string> self)._cpp_obj).count(citem) == 0:
-                deref(shretval).insert(citem)
-        return Set__string.create(shretval)
-
-    def isdisjoint(self, other):
-        return len(self & other) == 0
-
-    def union(self, other):
-        return self | other
-
-    def intersection(self, other):
-        return self & other
-
-    def difference(self, other):
-        return self - other
-
-    def symmetric_difference(self, other):
-        return self ^ other
-
-    def issubset(self, other):
-        return self <= other
-
-    def issuperset(self, other):
-        return self >= other
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Set__string()
 
 
 Set.register(Set__string)
 
-cdef class Map__i32_i32:
+@__cython.auto_pickle(False)
+cdef class Map__i32_i32(thrift.py3.types.Map):
     def __init__(self, items=None):
         if isinstance(items, Map__i32_i32):
             self._cpp_obj = (<Map__i32_i32> items)._cpp_obj
         else:
-            self._cpp_obj = move(Map__i32_i32._make_instance(items))
+            self._cpp_obj = Map__i32_i32._make_instance(items)
 
     @staticmethod
-    cdef create(shared_ptr[cmap[int32_t,int32_t]] c_items):
-        inst = <Map__i32_i32>Map__i32_i32.__new__(Map__i32_i32)
-        inst._cpp_obj = c_items
-        return inst
+    cdef create(shared_ptr[cmap[cint32_t,cint32_t]] c_items):
+        __fbthrift_inst = <Map__i32_i32>Map__i32_i32.__new__(Map__i32_i32)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
 
-    @staticmethod
-    cdef unique_ptr[cmap[int32_t,int32_t]] _make_instance(object items) except *:
-        cdef unique_ptr[cmap[int32_t,int32_t]] c_inst = make_unique[cmap[int32_t,int32_t]]()
-        if items is not None:
-            for key, item in items.items():
-                if not isinstance(key, int):
-                    raise TypeError(f"{key!r} is not of type int")
-                key = <int32_t> key
-                if not isinstance(item, int):
-                    raise TypeError(f"{item!r} is not of type int")
-                item = <int32_t> item
-
-                deref(c_inst)[key] = item
-        return move_unique(c_inst)
-
-    def __getitem__(self, key):
-        err = KeyError(f'{key}')
-        if not self or key is None:
-            raise err
-        if not isinstance(key, int):
-            raise err
-        cdef int32_t ckey = key
-        cdef cmap[int32_t,int32_t].iterator iter = deref(
-            self._cpp_obj).find(ckey)
-        if iter == deref(self._cpp_obj).end():
-            raise err
-        cdef int32_t citem = deref(iter).second
-        return citem
+    def __copy__(Map__i32_i32 self):
+        cdef shared_ptr[cmap[cint32_t,cint32_t]] cpp_obj = make_shared[cmap[cint32_t,cint32_t]](
+            deref(self._cpp_obj)
+        )
+        return Map__i32_i32.create(cmove(cpp_obj))
 
     def __len__(self):
         return deref(self._cpp_obj).size()
 
+    @staticmethod
+    cdef shared_ptr[cmap[cint32_t,cint32_t]] _make_instance(object items) except *:
+        cdef shared_ptr[cmap[cint32_t,cint32_t]] c_inst = make_shared[cmap[cint32_t,cint32_t]]()
+        if items is not None:
+            for key, item in items.items():
+                if not isinstance(key, int):
+                    raise TypeError(f"{key!r} is not of type int")
+                key = <cint32_t> key
+                if not isinstance(item, int):
+                    raise TypeError(f"{item!r} is not of type int")
+                item = <cint32_t> item
+
+                deref(c_inst)[key] = item
+        return c_inst
+
+    cdef _check_key_type(self, key):
+        if not self or key is None:
+            return
+        if isinstance(key, int):
+            return key
+
+    def __getitem__(self, key):
+        err = KeyError(f'{key}')
+        key = self._check_key_type(key)
+        if key is None:
+            raise err
+        cdef cint32_t ckey = key
+        if not __map_contains(self._cpp_obj, ckey):
+            raise err
+        cdef cint32_t citem = 0
+        __map_getitem(self._cpp_obj, ckey, citem)
+        return citem
+
     def __iter__(self):
         if not self:
-            raise StopIteration
-        cdef int32_t citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.first
+            return
+        cdef __map_iter[cmap[cint32_t,cint32_t]] itr = __map_iter[cmap[cint32_t,cint32_t]](self._cpp_obj)
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextKey(self._cpp_obj, citem)
             yield citem
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Mapping) and isinstance(other, Mapping)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for key in self:
-            if key not in other:
-                return cop != 2
-            if other[key] != self[key]:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self.items()))
-        return self.__hash
-
-    def __repr__(self):
-        if not self:
-            return 'i{}'
-        return f'i{{{", ".join(map(lambda i: f"{repr(i[0])}: {repr(i[1])}", self.items()))}}}'
-
     def __contains__(self, key):
-        if not self or key is None:
+        key = self._check_key_type(key)
+        if key is None:
             return False
-        if not isinstance(key, int):
-            return False
-        cdef int32_t ckey = key
-        return deref(self._cpp_obj).count(ckey) > 0
-
-    def get(self, key, default=None):
-        if not self or key is None:
-            return default
-        try:
-            if not isinstance(key, int):
-                key = int(key)
-        except Exception:
-            return default
-        if not isinstance(key, int):
-            return default
-        if key not in self:
-            return default
-        return self[key]
-
-    def keys(self):
-        return self.__iter__()
+        cdef cint32_t ckey = key
+        return __map_contains(self._cpp_obj, ckey)
 
     def values(self):
         if not self:
-            raise StopIteration
-        cdef int32_t citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.second
+            return
+        cdef __map_iter[cmap[cint32_t,cint32_t]] itr = __map_iter[cmap[cint32_t,cint32_t]](self._cpp_obj)
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextValue(self._cpp_obj, citem)
             yield citem
 
     def items(self):
         if not self:
-            raise StopIteration
-        cdef int32_t ckey
-        cdef int32_t citem
-        for pair in deref(self._cpp_obj):
-            ckey = pair.first
-            citem = pair.second
-
+            return
+        cdef __map_iter[cmap[cint32_t,cint32_t]] itr = __map_iter[cmap[cint32_t,cint32_t]](self._cpp_obj)
+        cdef cint32_t ckey = 0
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextItem(self._cpp_obj, ckey, citem)
             yield (ckey, citem)
 
-
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Map__i32_i32()
 
 Mapping.register(Map__i32_i32)
 
-cdef class Map__i32_string:
+@__cython.auto_pickle(False)
+cdef class Map__i32_string(thrift.py3.types.Map):
     def __init__(self, items=None):
         if isinstance(items, Map__i32_string):
             self._cpp_obj = (<Map__i32_string> items)._cpp_obj
         else:
-            self._cpp_obj = move(Map__i32_string._make_instance(items))
+            self._cpp_obj = Map__i32_string._make_instance(items)
 
     @staticmethod
-    cdef create(shared_ptr[cmap[int32_t,string]] c_items):
-        inst = <Map__i32_string>Map__i32_string.__new__(Map__i32_string)
-        inst._cpp_obj = c_items
-        return inst
+    cdef create(shared_ptr[cmap[cint32_t,string]] c_items):
+        __fbthrift_inst = <Map__i32_string>Map__i32_string.__new__(Map__i32_string)
+        __fbthrift_inst._cpp_obj = cmove(c_items)
+        return __fbthrift_inst
+
+    def __copy__(Map__i32_string self):
+        cdef shared_ptr[cmap[cint32_t,string]] cpp_obj = make_shared[cmap[cint32_t,string]](
+            deref(self._cpp_obj)
+        )
+        return Map__i32_string.create(cmove(cpp_obj))
+
+    def __len__(self):
+        return deref(self._cpp_obj).size()
 
     @staticmethod
-    cdef unique_ptr[cmap[int32_t,string]] _make_instance(object items) except *:
-        cdef unique_ptr[cmap[int32_t,string]] c_inst = make_unique[cmap[int32_t,string]]()
+    cdef shared_ptr[cmap[cint32_t,string]] _make_instance(object items) except *:
+        cdef shared_ptr[cmap[cint32_t,string]] c_inst = make_shared[cmap[cint32_t,string]]()
         if items is not None:
             for key, item in items.items():
                 if not isinstance(key, int):
                     raise TypeError(f"{key!r} is not of type int")
-                key = <int32_t> key
+                key = <cint32_t> key
                 if not isinstance(item, str):
                     raise TypeError(f"{item!r} is not of type str")
 
                 deref(c_inst)[key] = item.encode('UTF-8')
-        return move_unique(c_inst)
+        return c_inst
+
+    cdef _check_key_type(self, key):
+        if not self or key is None:
+            return
+        if isinstance(key, int):
+            return key
 
     def __getitem__(self, key):
         err = KeyError(f'{key}')
-        if not self or key is None:
+        key = self._check_key_type(key)
+        if key is None:
             raise err
-        if not isinstance(key, int):
+        cdef cint32_t ckey = key
+        if not __map_contains(self._cpp_obj, ckey):
             raise err
-        cdef int32_t ckey = key
-        cdef cmap[int32_t,string].iterator iter = deref(
-            self._cpp_obj).find(ckey)
-        if iter == deref(self._cpp_obj).end():
-            raise err
-        cdef string citem = deref(iter).second
+        cdef string citem
+        __map_getitem(self._cpp_obj, ckey, citem)
         return bytes(citem).decode('UTF-8')
-
-    def __len__(self):
-        return deref(self._cpp_obj).size()
 
     def __iter__(self):
         if not self:
-            raise StopIteration
-        cdef int32_t citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.first
+            return
+        cdef __map_iter[cmap[cint32_t,string]] itr = __map_iter[cmap[cint32_t,string]](self._cpp_obj)
+        cdef cint32_t citem = 0
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextKey(self._cpp_obj, citem)
             yield citem
 
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Mapping) and isinstance(other, Mapping)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for key in self:
-            if key not in other:
-                return cop != 2
-            if other[key] != self[key]:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self.items()))
-        return self.__hash
-
-    def __repr__(self):
-        if not self:
-            return 'i{}'
-        return f'i{{{", ".join(map(lambda i: f"{repr(i[0])}: {repr(i[1])}", self.items()))}}}'
-
     def __contains__(self, key):
-        if not self or key is None:
+        key = self._check_key_type(key)
+        if key is None:
             return False
-        if not isinstance(key, int):
-            return False
-        cdef int32_t ckey = key
-        return deref(self._cpp_obj).count(ckey) > 0
-
-    def get(self, key, default=None):
-        if not self or key is None:
-            return default
-        try:
-            if not isinstance(key, int):
-                key = int(key)
-        except Exception:
-            return default
-        if not isinstance(key, int):
-            return default
-        if key not in self:
-            return default
-        return self[key]
-
-    def keys(self):
-        return self.__iter__()
+        cdef cint32_t ckey = key
+        return __map_contains(self._cpp_obj, ckey)
 
     def values(self):
         if not self:
-            raise StopIteration
+            return
+        cdef __map_iter[cmap[cint32_t,string]] itr = __map_iter[cmap[cint32_t,string]](self._cpp_obj)
         cdef string citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.second
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextValue(self._cpp_obj, citem)
             yield bytes(citem).decode('UTF-8')
 
     def items(self):
         if not self:
-            raise StopIteration
-        cdef int32_t ckey
+            return
+        cdef __map_iter[cmap[cint32_t,string]] itr = __map_iter[cmap[cint32_t,string]](self._cpp_obj)
+        cdef cint32_t ckey = 0
         cdef string citem
-        for pair in deref(self._cpp_obj):
-            ckey = pair.first
-            citem = pair.second
-
+        for i in range(deref(self._cpp_obj).size()):
+            itr.genNextItem(self._cpp_obj, ckey, citem)
             yield (ckey, bytes(citem).decode('UTF-8'))
 
-
+    @staticmethod
+    def __get_reflection__():
+        return _types_reflection.get_reflection__Map__i32_string()
 
 Mapping.register(Map__i32_string)
 
-cdef class Map__string_string:
-    def __init__(self, items=None):
-        if isinstance(items, Map__string_string):
-            self._cpp_obj = (<Map__string_string> items)._cpp_obj
-        else:
-            self._cpp_obj = move(Map__string_string._make_instance(items))
-
-    @staticmethod
-    cdef create(shared_ptr[cmap[string,string]] c_items):
-        inst = <Map__string_string>Map__string_string.__new__(Map__string_string)
-        inst._cpp_obj = c_items
-        return inst
-
-    @staticmethod
-    cdef unique_ptr[cmap[string,string]] _make_instance(object items) except *:
-        cdef unique_ptr[cmap[string,string]] c_inst = make_unique[cmap[string,string]]()
-        if items is not None:
-            for key, item in items.items():
-                if not isinstance(key, str):
-                    raise TypeError(f"{key!r} is not of type str")
-                if not isinstance(item, str):
-                    raise TypeError(f"{item!r} is not of type str")
-
-                deref(c_inst)[key.encode('UTF-8')] = item.encode('UTF-8')
-        return move_unique(c_inst)
-
-    def __getitem__(self, key):
-        err = KeyError(f'{key}')
-        if not self or key is None:
-            raise err
-        if not isinstance(key, str):
-            raise err
-        cdef string ckey = key.encode('UTF-8')
-        cdef cmap[string,string].iterator iter = deref(
-            self._cpp_obj).find(ckey)
-        if iter == deref(self._cpp_obj).end():
-            raise err
-        cdef string citem = deref(iter).second
-        return bytes(citem).decode('UTF-8')
-
-    def __len__(self):
-        return deref(self._cpp_obj).size()
-
-    def __iter__(self):
-        if not self:
-            raise StopIteration
-        cdef string citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.first
-            yield bytes(citem).decode('UTF-8')
-
-    def __richcmp__(self, other, op):
-        cdef int cop = op
-        if cop not in (2, 3):
-            raise TypeError("unorderable types: {}, {}".format(type(self), type(other)))
-        if not (isinstance(self, Mapping) and isinstance(other, Mapping)):
-            return cop != 2
-        if (len(self) != len(other)):
-            return cop != 2
-
-        for key in self:
-            if key not in other:
-                return cop != 2
-            if other[key] != self[key]:
-                return cop != 2
-
-        return cop == 2
-
-    def __hash__(self):
-        if not self.__hash:
-            self.__hash = hash(tuple(self.items()))
-        return self.__hash
-
-    def __repr__(self):
-        if not self:
-            return 'i{}'
-        return f'i{{{", ".join(map(lambda i: f"{repr(i[0])}: {repr(i[1])}", self.items()))}}}'
-
-    def __contains__(self, key):
-        if not self or key is None:
-            return False
-        if not isinstance(key, str):
-            return False
-        cdef string ckey = key.encode('UTF-8')
-        return deref(self._cpp_obj).count(ckey) > 0
-
-    def get(self, key, default=None):
-        if not self or key is None:
-            return default
-        try:
-            if not isinstance(key, str):
-                key = str(key)
-        except Exception:
-            return default
-        if not isinstance(key, str):
-            return default
-        if key not in self:
-            return default
-        return self[key]
-
-    def keys(self):
-        return self.__iter__()
-
-    def values(self):
-        if not self:
-            raise StopIteration
-        cdef string citem
-        for pair in deref(self._cpp_obj):
-            citem = pair.second
-            yield bytes(citem).decode('UTF-8')
-
-    def items(self):
-        if not self:
-            raise StopIteration
-        cdef string ckey
-        cdef string citem
-        for pair in deref(self._cpp_obj):
-            ckey = pair.first
-            citem = pair.second
-
-            yield (ckey.decode('UTF-8'), bytes(citem).decode('UTF-8'))
-
-
-
-Mapping.register(Map__string_string)
-
 myInt = 1337
 name = cname().decode('UTF-8')
-states = List__Map__string_i32.create(make_shared[vector[cmap[string,int32_t]]](cstates()))
-x = 1.0
+multi_line_string = cmulti_line_string().decode('UTF-8')
+states = List__Map__string_i32.create(constant_shared_ptr(cstates()))
+x = 1
 y = 1000000.0
-z = 1000000000.0
-zeroDoubleValue = 0.0
-longDoubleValue = 0.000026
-instagram = Internship.create(make_shared[cInternship](cinstagram()))
-kRanges = List__Range.create(make_shared[vector[cRange]](ckRanges()))
-internList = List__Internship.create(make_shared[vector[cInternship]](cinternList()))
-pod_0 = struct1.create(make_shared[cstruct1](cpod_0()))
-pod_1 = struct1.create(make_shared[cstruct1](cpod_1()))
-pod_2 = struct2.create(make_shared[cstruct2](cpod_2()))
-pod_3 = struct3.create(make_shared[cstruct3](cpod_3()))
-u_1_1 = union1.create(make_shared[cunion1](cu_1_1()))
-u_1_2 = union1.create(make_shared[cunion1](cu_1_2()))
-u_1_3 = union1.create(make_shared[cunion1](cu_1_3()))
-u_2_1 = union2.create(make_shared[cunion2](cu_2_1()))
-u_2_2 = union2.create(make_shared[cunion2](cu_2_2()))
-u_2_3 = union2.create(make_shared[cunion2](cu_2_3()))
-u_2_4 = union2.create(make_shared[cunion2](cu_2_4()))
-u_2_5 = union2.create(make_shared[cunion2](cu_2_5()))
-u_2_6 = union2.create(make_shared[cunion2](cu_2_6()))
+z = 1000000000
+zeroDoubleValue = 0
+longDoubleValue = 2.59961000990301e-05
+my_company = Company(<int> (cmy_company()))
+foo = cfoo().decode('UTF-8')
+bar = 42
+mymap = Map__string_string.create(constant_shared_ptr(cmymap()))
+instagram = Internship.create(constant_shared_ptr(cinstagram()))
+partial_const = Internship.create(constant_shared_ptr(cpartial_const()))
+kRanges = List__Range.create(constant_shared_ptr(ckRanges()))
+internList = List__Internship.create(constant_shared_ptr(cinternList()))
+pod_0 = struct1.create(constant_shared_ptr(cpod_0()))
+pod_s_0 = struct1.create(constant_shared_ptr(cpod_s_0()))
+pod_1 = struct1.create(constant_shared_ptr(cpod_1()))
+pod_s_1 = struct1.create(constant_shared_ptr(cpod_s_1()))
+pod_2 = struct2.create(constant_shared_ptr(cpod_2()))
+pod_trailing_commas = struct2.create(constant_shared_ptr(cpod_trailing_commas()))
+pod_s_2 = struct2.create(constant_shared_ptr(cpod_s_2()))
+pod_3 = struct3.create(constant_shared_ptr(cpod_3()))
+pod_s_3 = struct3.create(constant_shared_ptr(cpod_s_3()))
+pod_4 = struct4.create(constant_shared_ptr(cpod_4()))
+u_1_1 = union1.create(constant_shared_ptr(cu_1_1()))
+u_1_2 = union1.create(constant_shared_ptr(cu_1_2()))
+u_1_3 = union1.create(constant_shared_ptr(cu_1_3()))
+u_2_1 = union2.create(constant_shared_ptr(cu_2_1()))
+u_2_2 = union2.create(constant_shared_ptr(cu_2_2()))
+u_2_3 = union2.create(constant_shared_ptr(cu_2_3()))
+u_2_4 = union2.create(constant_shared_ptr(cu_2_4()))
+u_2_5 = union2.create(constant_shared_ptr(cu_2_5()))
+u_2_6 = union2.create(constant_shared_ptr(cu_2_6()))
 apostrophe = capostrophe().decode('UTF-8')
 tripleApostrophe = ctripleApostrophe().decode('UTF-8')
 quotationMark = cquotationMark().decode('UTF-8')
 backslash = cbackslash().decode('UTF-8')
 escaped_a = cescaped_a().decode('UTF-8')
-char2ascii = Map__string_i32.create(make_shared[cmap[string,int32_t]](cchar2ascii()))
-escaped_strings = List__string.create(make_shared[vector[string]](cescaped_strings()))
+char2ascii = Map__string_i32.create(constant_shared_ptr(cchar2ascii()))
+escaped_strings = List__string.create(constant_shared_ptr(cescaped_strings()))
 false_c = False
 true_c = True
 zero_byte = 0
 zero16 = 0
 zero32 = 0
 zero64 = 0
-zero_dot_zero = 0.0
+zero_dot_zero = 0
 empty_string = cempty_string().decode('UTF-8')
-empty_int_list = List__i32.create(make_shared[vector[int32_t]](cempty_int_list()))
-empty_string_list = List__string.create(make_shared[vector[string]](cempty_string_list()))
-empty_int_set = Set__i32.create(make_shared[cset[int32_t]](cempty_int_set()))
-empty_string_set = Set__string.create(make_shared[cset[string]](cempty_string_set()))
-empty_int_int_map = Map__i32_i32.create(make_shared[cmap[int32_t,int32_t]](cempty_int_int_map()))
-empty_int_string_map = Map__i32_string.create(make_shared[cmap[int32_t,string]](cempty_int_string_map()))
-empty_string_int_map = Map__string_i32.create(make_shared[cmap[string,int32_t]](cempty_string_int_map()))
-empty_string_string_map = Map__string_string.create(make_shared[cmap[string,string]](cempty_string_string_map()))
+empty_int_list = List__i32.create(constant_shared_ptr(cempty_int_list()))
+empty_string_list = List__string.create(constant_shared_ptr(cempty_string_list()))
+empty_int_set = Set__i32.create(constant_shared_ptr(cempty_int_set()))
+empty_string_set = Set__string.create(constant_shared_ptr(cempty_string_set()))
+empty_int_int_map = Map__i32_i32.create(constant_shared_ptr(cempty_int_int_map()))
+empty_int_string_map = Map__i32_string.create(constant_shared_ptr(cempty_int_string_map()))
+empty_string_int_map = Map__string_i32.create(constant_shared_ptr(cempty_string_int_map()))
+empty_string_string_map = Map__string_string.create(constant_shared_ptr(cempty_string_string_map()))
+MyCompany = Company
+MyStringIdentifier = str
+MyIntIdentifier = int
+MyMapIdentifier = Map__string_string

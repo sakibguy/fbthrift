@@ -1,29 +1,27 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_SERVER_TSERVEROBSERVER_H_
 #define THRIFT_SERVER_TSERVEROBSERVER_H_ 1
 
 #include <stdint.h>
+#include <chrono>
 #include <memory>
+
+#include <folly/Optional.h>
 
 namespace apache {
 namespace thrift {
@@ -31,31 +29,87 @@ namespace server {
 
 class TServerObserver {
  public:
-
   virtual ~TServerObserver() {}
 
   TServerObserver() : sampleRate_(0) {}
   explicit TServerObserver(uint32_t sampleRate) : sampleRate_(sampleRate) {}
 
-  class CallTimestamps {
-  public:
-    uint64_t readBegin;
-    uint64_t readEnd;
-    uint64_t processBegin;
-    uint64_t processEnd;
-    uint64_t writeBegin;
-    uint64_t writeEnd;
+  class SamplingStatus {
+   public:
+    SamplingStatus() noexcept : SamplingStatus(false, false) {}
+    SamplingStatus(
+        bool isServerSamplingEnabled, bool isClientSamplingEnabled) noexcept
+        : isServerSamplingEnabled_(isServerSamplingEnabled),
+          isClientSamplingEnabled_(isClientSamplingEnabled) {}
+    bool isEnabled() const {
+      return isServerSamplingEnabled_ || isClientSamplingEnabled_;
+    }
+    bool isEnabledByServer() const { return isServerSamplingEnabled_; }
+    bool isEnabledByClient() const { return isClientSamplingEnabled_; }
 
-    CallTimestamps() {
-      init();
+   private:
+    bool isServerSamplingEnabled_;
+    bool isClientSamplingEnabled_;
+  };
+
+  class PreHandlerTimestamps {
+   protected:
+    using clock = std::chrono::steady_clock;
+    using us = std::chrono::microseconds;
+
+   public:
+    static uint64_t to_microseconds(clock::duration dur) {
+      return std::chrono::duration_cast<us>(dur).count();
+    }
+    static clock::time_point from_microseconds(uint64_t usec) {
+      return clock::time_point() + us(usec);
     }
 
-    void init() {
-      readBegin = readEnd = 0;
-      processBegin = processEnd = 0;
-      writeBegin = writeEnd = 0;
+    clock::time_point readEnd;
+    clock::time_point processBegin;
+
+    folly::Optional<uint64_t> processDelayLatencyUsec() const {
+      if (processBegin != clock::time_point()) {
+        return to_microseconds(processBegin - readEnd);
+      }
+      return {};
     }
 
+    void setStatus(const SamplingStatus& status) { status_ = status; }
+
+    const SamplingStatus getSamplingStatus() const { return status_; }
+
+   private:
+    SamplingStatus status_;
+  };
+
+  class CallTimestamps : public PreHandlerTimestamps {
+   public:
+    std::chrono::steady_clock::time_point processEnd;
+    std::chrono::steady_clock::time_point writeBegin;
+    std::chrono::steady_clock::time_point writeEnd;
+
+    folly::Optional<uint64_t> processLatencyUsec() const {
+      if (processBegin != clock::time_point() &&
+          processEnd != clock::time_point()) {
+        return to_microseconds(processEnd - processBegin);
+      }
+      return {};
+    }
+
+    folly::Optional<uint64_t> writeDelayLatencyUsec() const {
+      if (writeBegin != clock::time_point()) {
+        return to_microseconds(writeBegin - processEnd);
+      }
+      return {};
+    }
+
+    folly::Optional<uint64_t> writeLatencyUsec() const {
+      if (writeBegin != clock::time_point()) {
+        return to_microseconds(writeEnd - writeBegin);
+      }
+      return {};
+    }
   };
 
   virtual void connAccepted() {}
@@ -64,13 +118,9 @@ class TServerObserver {
 
   virtual void connRejected() {}
 
+  virtual void connClosed() {}
+
   virtual void activeConnections(int32_t /*numConnections*/) {}
-
-  virtual void saslError() {}
-
-  virtual void saslFallBack() {}
-
-  virtual void saslComplete() {}
 
   virtual void tlsError() {}
 
@@ -102,10 +152,10 @@ class TServerObserver {
 
   virtual void protocolError() {}
 
+  virtual void tlsWithClientCert() {}
+
   // The observer has to specify a sample rate for callCompleted notifications
-  inline uint32_t getSampleRate() const {
-    return sampleRate_;
-  }
+  inline uint32_t getSampleRate() const { return sampleRate_; }
 
  protected:
   uint32_t sampleRate_;

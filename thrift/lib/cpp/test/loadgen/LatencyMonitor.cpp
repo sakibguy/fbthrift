@@ -1,54 +1,52 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #define __STDC_FORMAT_MACROS
 
 #include <thrift/lib/cpp/test/loadgen/LatencyMonitor.h>
 
+#include <thrift/lib/cpp/Thrift.h>
 #include <thrift/lib/cpp/concurrency/Util.h>
 #include <thrift/lib/cpp/test/loadgen/WeightedLoadConfig.h>
-#include <thrift/lib/cpp/Thrift.h>
 
-DEFINE_double(thriftLatencyMonPct, 99,
+DEFINE_double(
+    thriftLatencyMonPct,
+    99,
     "x-th percentail latencies to show in stats: (0 - 100)");
 
 using std::shared_ptr;
 
-namespace apache { namespace thrift { namespace loadgen {
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
 enum {
-  US_PER_S = concurrency::Util::US_PER_S
+  US_PER_S = concurrency::Util::US_PER_S,
 };
 
 LatencyMonitor::LatencyMonitor(const shared_ptr<LoadConfig>& config)
-  : numOpTypes_(config->getNumOpTypes())
-  , opFields_()
-  , initialTime_(0)
-  , initialScoreBoard_(numOpTypes_)
-  , aggregateScoreBoard_(numOpTypes_)
-  , config_(config)
-  , currentQps_(0) {
+    : numOpTypes_(config->getNumOpTypes()),
+      opFields_(),
+      initialTime_(),
+      initialScoreBoard_(numOpTypes_),
+      aggregateScoreBoard_(numOpTypes_),
+      config_(config),
+      currentQps_(0) {
   setDefaultOpFields();
-  CHECK(FLAGS_thriftLatencyMonPct > 0
-      && FLAGS_thriftLatencyMonPct < 100);
+  CHECK(FLAGS_thriftLatencyMonPct > 0 && FLAGS_thriftLatencyMonPct < 100);
 }
 
 void LatencyMonitor::setFields(uint32_t opType, const FieldInfoVector* fields) {
@@ -78,7 +76,7 @@ void LatencyMonitor::initializeInfo() {
   aggregateScoreBoard_ = initialScoreBoard_;
 
   // Record the start time
-  initialTime_ = concurrency::Util::currentTimeUsec();
+  initialTime_ = std::chrono::steady_clock::now();
 
   // Print information about how to read the output
   printLegend();
@@ -110,8 +108,7 @@ uint32_t LatencyMonitor::printHeader() {
   // Print a line with the field labels
   for (uint32_t op = 0; op < numOpTypes_; ++op) {
     FieldInfoVector* fields = &opFields_[op];
-    for (FieldInfoVector::iterator it = fields->begin();
-         it != fields->end();
+    for (FieldInfoVector::iterator it = fields->begin(); it != fields->end();
          ++it) {
       printField(getFieldName(it->field), &(*it));
     }
@@ -138,8 +135,9 @@ uint32_t LatencyMonitor::printInfo(uint64_t intervalUsec) {
   // Aggregate all of the worker's scoreboards into new data for this interval
   aggregateWorkerScorboards(&aggregateScoreBoard_);
 
-  int64_t now = concurrency::Util::currentTimeUsec();
-  uint64_t allTimeUsec = now - initialTime_;
+  auto now = std::chrono::steady_clock::now();
+  auto allTimeUsec =
+      std::chrono::duration_cast<std::chrono::microseconds>(now - initialTime_);
 
   uint64_t totalQueries = 0;
 
@@ -151,11 +149,12 @@ uint32_t LatencyMonitor::printInfo(uint64_t intervalUsec) {
     }
 
     const LatencyScoreBoard::OpData* current =
-      aggregateScoreBoard_.getOpData(op);
+        aggregateScoreBoard_.getOpData(op);
     const LatencyScoreBoard::OpData* prev = prevScoreBoard.getOpData(op);
     const LatencyScoreBoard::OpData* initial = initialScoreBoard_.getOpData(op);
 
-    printOpInfo(fields, current, prev, initial, intervalUsec, allTimeUsec);
+    printOpInfo(
+        fields, current, prev, initial, intervalUsec, allTimeUsec.count());
     printf("| ");
 
     totalQueries += current->getCountSince(prev);
@@ -172,8 +171,13 @@ uint32_t LatencyMonitor::printInfo(uint64_t intervalUsec) {
     prevScoreBoard.computeOpAggregate(&prev);
     initialScoreBoard_.computeOpAggregate(&initial);
 
-    printOpInfo(&totalFields_, &current, &prev, &initial,
-                intervalUsec, allTimeUsec);
+    printOpInfo(
+        &totalFields_,
+        &current,
+        &prev,
+        &initial,
+        intervalUsec,
+        allTimeUsec.count());
   }
 
   printf("\n");
@@ -196,18 +200,25 @@ void LatencyMonitor::printOpHeader(FieldInfoVector* fields) {
   }
 }
 
-void LatencyMonitor::printOpInfo(FieldInfoVector* fields,
-                                 const LatencyScoreBoard::OpData* current,
-                                 const LatencyScoreBoard::OpData* prev,
-                                 const LatencyScoreBoard::OpData* initial,
-                                 uint64_t intervalUsec,
-                                 uint64_t allTimeUsec) {
-  for (FieldInfoVector::iterator it = fields->begin();
-       it != fields->end();
+void LatencyMonitor::printOpInfo(
+    FieldInfoVector* fields,
+    const LatencyScoreBoard::OpData* current,
+    const LatencyScoreBoard::OpData* prev,
+    const LatencyScoreBoard::OpData* initial,
+    uint64_t intervalUsec,
+    uint64_t allTimeUsec) {
+  for (FieldInfoVector::iterator it = fields->begin(); it != fields->end();
        ++it) {
     char buf[128];
-    formatFieldValue(it->field, buf, sizeof(buf), current, prev, initial,
-                     intervalUsec, allTimeUsec);
+    formatFieldValue(
+        it->field,
+        buf,
+        sizeof(buf),
+        current,
+        prev,
+        initial,
+        intervalUsec,
+        allTimeUsec);
 
     printField(buf, &(*it));
   }
@@ -277,46 +288,62 @@ uint32_t LatencyMonitor::getDefaultFieldWidth(FieldEnum field) const {
   throw TLibraryException("unknown field type");
 }
 
-void LatencyMonitor::formatFieldValue(FieldEnum field,
-                                      char* buf,
-                                      size_t buflen,
-                                      const LatencyScoreBoard::OpData* current,
-                                      const LatencyScoreBoard::OpData* prev,
-                                      const LatencyScoreBoard::OpData* initial,
-                                      uint64_t intervalUsec,
-                                      uint64_t allTimeUsec) {
+void LatencyMonitor::formatFieldValue(
+    FieldEnum field,
+    char* buf,
+    size_t buflen,
+    const LatencyScoreBoard::OpData* current,
+    const LatencyScoreBoard::OpData* prev,
+    const LatencyScoreBoard::OpData* initial,
+    uint64_t intervalUsec,
+    uint64_t allTimeUsec) {
   switch (field) {
     case FIELD_COUNT:
       snprintf(buf, buflen, "%" PRIu64, current->getCountSince(prev));
       return;
     case FIELD_QPS:
-      snprintf(buf, buflen, "%" PRIu64,
-               (US_PER_S * current->getCountSince(prev)) / intervalUsec);
+      snprintf(
+          buf,
+          buflen,
+          "%" PRIu64,
+          (US_PER_S * current->getCountSince(prev)) / intervalUsec);
       return;
     case FIELD_LATENCY:
-      formatLatency(buf, buflen,
-                    current->getLatencyAvgSince(prev),
-                    current->getLatencyStdDevSince(prev));
+      formatLatency(
+          buf,
+          buflen,
+          current->getLatencyAvgSince(prev),
+          current->getLatencyStdDevSince(prev));
       return;
     case FIELD_PCT_LATENCY:
-      formatLatency(buf, buflen, current->getLatencyPctSince(
-            FLAGS_thriftLatencyMonPct/100, prev));
+      formatLatency(
+          buf,
+          buflen,
+          current->getLatencyPctSince(FLAGS_thriftLatencyMonPct / 100, prev));
       return;
     case FIELD_ALL_TIME_COUNT:
       snprintf(buf, buflen, "%" PRIu64, current->getCountSince(initial));
       return;
     case FIELD_ALL_TIME_QPS:
-      snprintf(buf, buflen, "%" PRIu64,
-               (US_PER_S * current->getCountSince(initial)) / allTimeUsec);
+      snprintf(
+          buf,
+          buflen,
+          "%" PRIu64,
+          (US_PER_S * current->getCountSince(initial)) / allTimeUsec);
       return;
     case FIELD_ALL_TIME_LATENCY:
-      formatLatency(buf, buflen,
-                    current->getLatencyAvgSince(initial),
-                    current->getLatencyStdDevSince(initial));
+      formatLatency(
+          buf,
+          buflen,
+          current->getLatencyAvgSince(initial),
+          current->getLatencyStdDevSince(initial));
       return;
     case FIELD_ALL_TIME_PCT_LATENCY:
-      formatLatency(buf, buflen, current->getLatencyPctSince(
-            FLAGS_thriftLatencyMonPct/100, initial));
+      formatLatency(
+          buf,
+          buflen,
+          current->getLatencyPctSince(
+              FLAGS_thriftLatencyMonPct / 100, initial));
       return;
   }
 
@@ -324,8 +351,7 @@ void LatencyMonitor::formatFieldValue(FieldEnum field,
   throw TLibraryException("unknown field type");
 }
 
-void LatencyMonitor::formatLatency(char* buf, size_t buflen,
-                                   double pct) {
+void LatencyMonitor::formatLatency(char* buf, size_t buflen, double pct) {
   int pctPrecision = 0;
   if (pct < 1) {
     pctPrecision = 2;
@@ -333,12 +359,11 @@ void LatencyMonitor::formatLatency(char* buf, size_t buflen,
     pctPrecision = 1;
   }
 
-  snprintf(buf, buflen, "%.*f",
-           pctPrecision, pct);
+  snprintf(buf, buflen, "%.*f", pctPrecision, pct);
 }
 
-void LatencyMonitor::formatLatency(char* buf, size_t buflen,
-                                   double avg, double stddev) {
+void LatencyMonitor::formatLatency(
+    char* buf, size_t buflen, double avg, double stddev) {
   int avgPrecision = 0;
   if (avg < 1) {
     avgPrecision = 2;
@@ -353,9 +378,8 @@ void LatencyMonitor::formatLatency(char* buf, size_t buflen,
     stddevPrecision = 1;
   }
 
-  snprintf(buf, buflen, "%.*f/%.*f",
-           avgPrecision, avg,
-           stddevPrecision, stddev);
+  snprintf(
+      buf, buflen, "%.*f/%.*f", avgPrecision, avg, stddevPrecision, stddev);
 }
 
 void LatencyMonitor::aggregateWorkerScorboards(LatencyScoreBoard* scoreboard) {
@@ -402,7 +426,7 @@ void LatencyMonitor::setDefaultOpFields() {
   // Special case handling for WeightedLoadConfig.
   // We want to avoid printing statistics for fields that have a 0 weight.
   shared_ptr<WeightedLoadConfig> weightedConfig =
-    std::dynamic_pointer_cast<WeightedLoadConfig>(config_);
+      std::dynamic_pointer_cast<WeightedLoadConfig>(config_);
 
   uint32_t numEnabledOps = 0;
   if (weightedConfig) {
@@ -446,44 +470,55 @@ void LatencyMonitor::printLegend() {
   printf("Field Labels:\n");
 
   if (isFieldInUse(FIELD_COUNT)) {
-    printf("  %10s: number of operations in the last interval\n",
-           getFieldName(FIELD_COUNT));
+    printf(
+        "  %10s: number of operations in the last interval\n",
+        getFieldName(FIELD_COUNT));
   }
   if (isFieldInUse(FIELD_QPS)) {
-    printf("  %10s: queries per second in the last interval\n",
-           getFieldName(FIELD_QPS));
+    printf(
+        "  %10s: queries per second in the last interval\n",
+        getFieldName(FIELD_QPS));
   }
   if (isFieldInUse(FIELD_LATENCY)) {
-    printf("  %10s: average microseconds per operation over the last interval\n"
-           "  %10s  displayed value is (average/standard deviation)\n",
-           getFieldName(FIELD_LATENCY), "");
+    printf(
+        "  %10s: average microseconds per operation over the last interval\n"
+        "  %10s  displayed value is (average/standard deviation)\n",
+        getFieldName(FIELD_LATENCY),
+        "");
   }
   if (isFieldInUse(FIELD_PCT_LATENCY)) {
-    printf("  %10s: %2.1fth percentile microseconds per operation over\
+    printf(
+        "  %10s: %2.1fth percentile microseconds per operation over\
         the last interval\n",
-        getFieldName(FIELD_PCT_LATENCY), FLAGS_thriftLatencyMonPct);
+        getFieldName(FIELD_PCT_LATENCY),
+        FLAGS_thriftLatencyMonPct);
   }
   if (isFieldInUse(FIELD_ALL_TIME_COUNT)) {
-    printf("  %10s: number of operations since the test started\n",
-           getFieldName(FIELD_ALL_TIME_COUNT));
+    printf(
+        "  %10s: number of operations since the test started\n",
+        getFieldName(FIELD_ALL_TIME_COUNT));
   }
   if (isFieldInUse(FIELD_ALL_TIME_QPS)) {
-    printf("  %10s: average queries per second since the test started\n",
-           getFieldName(FIELD_ALL_TIME_QPS));
+    printf(
+        "  %10s: average queries per second since the test started\n",
+        getFieldName(FIELD_ALL_TIME_QPS));
   }
   if (isFieldInUse(FIELD_ALL_TIME_LATENCY)) {
-    printf("  %10s: average microseconds per operation since the test started\n"
-           "  %10s  displayed value is (average/standard deviation)\n",
-           getFieldName(FIELD_ALL_TIME_LATENCY), "");
+    printf(
+        "  %10s: average microseconds per operation since the test started\n"
+        "  %10s  displayed value is (average/standard deviation)\n",
+        getFieldName(FIELD_ALL_TIME_LATENCY),
+        "");
   }
   if (isFieldInUse(FIELD_ALL_TIME_PCT_LATENCY)) {
-    printf("  %10s: %2.1fth percentile microseconds per operation since\
+    printf(
+        "  %10s: %2.1fth percentile microseconds per operation since\
         the test started\n",
-        getFieldName(FIELD_ALL_TIME_PCT_LATENCY), FLAGS_thriftLatencyMonPct);
+        getFieldName(FIELD_ALL_TIME_PCT_LATENCY),
+        FLAGS_thriftLatencyMonPct);
   }
 
   fflush(stdout);
-
 }
 
 bool LatencyMonitor::isFieldInUse(FieldEnum field) {
@@ -509,4 +544,6 @@ bool LatencyMonitor::isFieldInUse(FieldEnum field) {
   return false;
 }
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache

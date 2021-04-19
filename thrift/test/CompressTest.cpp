@@ -1,47 +1,38 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-#include <folly/Benchmark.h>
-#include <gflags/gflags.h>
-#include <gtest/gtest.h>
-#include <thrift/lib/cpp/transport/THeader.h>
-#include <thrift/lib/cpp2/protocol/Serializer.h>
+
 #include <cstdlib>
 #include <ctime>
+#include <folly/Benchmark.h>
+#include <folly/portability/GFlags.h>
+#include <folly/portability/GTest.h>
+#include <thrift/lib/cpp/transport/THeader.h>
+#include <thrift/lib/cpp2/protocol/Serializer.h>
 
 #include <thrift/test/gen-cpp2/ThriftTest.h>
 
-using namespace boost;
 using namespace apache::thrift;
-using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 using namespace thrift::test;
 
 void testMessage(
-    uint8_t flag,
-    int iters,
-    bool easyMessage,
-    bool binary = false) {
+    uint8_t flag, int iters, bool easyMessage, bool binary = false) {
   Bonk b;
   Bonk bin;
-  b.message = "";
+  *b.message_ref() = "";
 
   THeader header;
   if (flag) {
@@ -55,9 +46,9 @@ void testMessage(
 
   for (int i = 0; i < iters; i++) {
     if (easyMessage) {
-      b.message += "t";
+      *b.message_ref() += "t";
     } else {
-      b.message += 66 + rand() % 24;
+      *b.message_ref() += 66 + rand() % 24;
     }
     folly::IOBufQueue out;
     if (binary) {
@@ -177,9 +168,9 @@ TEST(chained, zstd) {
 TEST(sdf, sdfsd) {
   Bonk b;
   Bonk bin;
-  b.message = "";
+  *b.message_ref() = "";
   for (int i = 0; i < 10000; i++) {
-    b.message += 66 + rand() % 24;
+    *b.message_ref() += 66 + rand() % 24;
   }
 
   THeader header;
@@ -201,17 +192,6 @@ TEST(sdf, sdfsd) {
   folly::io::Cursor cursor(compressed.get());
   cursor.skip(15);
   EXPECT_EQ(cursor.read<uint8_t>(), 1);
-
-  header.setMinCompressBytes(uncompressedSize);
-  compressed = header.addHeader(serialized->clone(), strMap);
-  compressedSize = compressed->computeChainDataLength();
-
-  // We shouldn't compress anything due to setMinCompressBytes limit above.
-  EXPECT_EQ(compressedSize, uncompressedSize);
-  // Verify there were no transforms.
-  cursor.reset(compressed.get());
-  cursor.skip(15);
-  EXPECT_EQ(cursor.read<uint8_t>(), 0);
 }
 
 int main(int argc, char** argv) {

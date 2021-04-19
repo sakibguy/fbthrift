@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <folly/lang/Bits.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
 namespace apache {
@@ -36,16 +37,14 @@ class CompactV1ProtocolWriter : protected CompactProtocolWriter {
   using ProtocolReader = CompactV1ProtocolReader;
 
   using CompactProtocolWriter::CompactProtocolWriter;
+  using CompactProtocolWriter::kSortKeys;
   using CompactProtocolWriter::protocolType;
   using CompactProtocolWriter::setOutput;
 
   inline uint32_t writeMessageBegin(
-      const std::string& name,
-      MessageType messageType,
-      int32_t seqid);
+      const std::string& name, MessageType messageType, int32_t seqid);
   using CompactProtocolWriter::writeBool;
   using CompactProtocolWriter::writeByte;
-  using CompactProtocolWriter::writeCollectionBegin;
   using CompactProtocolWriter::writeFieldBegin;
   using CompactProtocolWriter::writeFieldEnd;
   using CompactProtocolWriter::writeFieldStop;
@@ -64,7 +63,6 @@ class CompactV1ProtocolWriter : protected CompactProtocolWriter {
   inline uint32_t writeDouble(double dub);
   using CompactProtocolWriter::writeBinary;
   using CompactProtocolWriter::writeFloat;
-  using CompactProtocolWriter::writeSerializedData;
   using CompactProtocolWriter::writeString;
 
   using CompactProtocolWriter::serializedFieldSize;
@@ -81,7 +79,6 @@ class CompactV1ProtocolWriter : protected CompactProtocolWriter {
   using CompactProtocolWriter::serializedSizeListEnd;
   using CompactProtocolWriter::serializedSizeMapBegin;
   using CompactProtocolWriter::serializedSizeMapEnd;
-  using CompactProtocolWriter::serializedSizeSerializedData;
   using CompactProtocolWriter::serializedSizeSetBegin;
   using CompactProtocolWriter::serializedSizeSetEnd;
   using CompactProtocolWriter::serializedSizeStop;
@@ -103,8 +100,8 @@ class CompactV1ProtocolReader : protected CompactProtocolReader {
   using CompactProtocolReader::setInput;
   using CompactProtocolReader::setStringSizeLimit;
 
-  inline void
-  readMessageBegin(std::string& name, MessageType& messageType, int32_t& seqid);
+  inline void readMessageBegin(
+      std::string& name, MessageType& messageType, int32_t& seqid);
   using CompactProtocolReader::readBool;
   using CompactProtocolReader::readByte;
   using CompactProtocolReader::readFieldBegin;
@@ -122,6 +119,7 @@ class CompactV1ProtocolReader : protected CompactProtocolReader {
   using CompactProtocolReader::readStructBegin;
   using CompactProtocolReader::readStructEnd;
   inline void readDouble(double& dub);
+  using CompactProtocolReader::fixedSizeInContainer;
   using CompactProtocolReader::peekList;
   using CompactProtocolReader::peekMap;
   using CompactProtocolReader::peekSet;
@@ -129,12 +127,14 @@ class CompactV1ProtocolReader : protected CompactProtocolReader {
   using CompactProtocolReader::readFloat;
   using CompactProtocolReader::readString;
   using CompactProtocolReader::skip;
+  using CompactProtocolReader::skipBytes;
 
-  using CompactProtocolReader::getCurrentPosition;
+  using CompactProtocolReader::getCursor;
+  using CompactProtocolReader::getCursorPosition;
   using CompactProtocolReader::readFromPositionAndAppend;
 };
 
 } // namespace thrift
 } // namespace apache
 
-#include <thrift/lib/cpp2/protocol/CompactV1Protocol.tcc>
+#include <thrift/lib/cpp2/protocol/CompactV1Protocol-inl.h>

@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -36,13 +34,13 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
   public static final int U = 1;
   public static final int ADOUBLE = 2;
   public static final int F = 3;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
   private static final int __ADOUBLE_ISSET_ID = 0;
   private BitSet __isset_bit_vector = new BitSet(1);
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(U, new FieldMetaData("u", TFieldRequirementType.DEFAULT, 
@@ -62,15 +60,55 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
   }
 
   public StructWithUnion(
-    MyUnion u,
-    double aDouble,
-    MyField f)
-  {
+      MyUnion u,
+      double aDouble,
+      MyField f) {
     this();
     this.u = u;
     this.aDouble = aDouble;
     setADoubleIsSet(true);
     this.f = f;
+  }
+
+  public static class Builder {
+    private MyUnion u;
+    private double aDouble;
+    private MyField f;
+
+    BitSet __optional_isset = new BitSet(1);
+
+    public Builder() {
+    }
+
+    public Builder setU(final MyUnion u) {
+      this.u = u;
+      return this;
+    }
+
+    public Builder setADouble(final double aDouble) {
+      this.aDouble = aDouble;
+      __optional_isset.set(__ADOUBLE_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setF(final MyField f) {
+      this.f = f;
+      return this;
+    }
+
+    public StructWithUnion build() {
+      StructWithUnion result = new StructWithUnion();
+      result.setU(this.u);
+      if (__optional_isset.get(__ADOUBLE_ISSET_ID)) {
+        result.setADouble(this.aDouble);
+      }
+      result.setF(this.f);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -92,12 +130,7 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
     return new StructWithUnion(this);
   }
 
-  @Deprecated
-  public StructWithUnion clone() {
-    return new StructWithUnion(this);
-  }
-
-  public MyUnion  getU() {
+  public MyUnion getU() {
     return this.u;
   }
 
@@ -115,13 +148,13 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
     return this.u != null;
   }
 
-  public void setUIsSet(boolean value) {
-    if (!value) {
+  public void setUIsSet(boolean __value) {
+    if (!__value) {
       this.u = null;
     }
   }
 
-  public double  getADouble() {
+  public double getADouble() {
     return this.aDouble;
   }
 
@@ -140,11 +173,11 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
     return __isset_bit_vector.get(__ADOUBLE_ISSET_ID);
   }
 
-  public void setADoubleIsSet(boolean value) {
-    __isset_bit_vector.set(__ADOUBLE_ISSET_ID, value);
+  public void setADoubleIsSet(boolean __value) {
+    __isset_bit_vector.set(__ADOUBLE_ISSET_ID, __value);
   }
 
-  public MyField  getF() {
+  public MyField getF() {
     return this.f;
   }
 
@@ -162,35 +195,35 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
     return this.f != null;
   }
 
-  public void setFIsSet(boolean value) {
-    if (!value) {
+  public void setFIsSet(boolean __value) {
+    if (!__value) {
       this.f = null;
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case U:
-      if (value == null) {
+      if (__value == null) {
         unsetU();
       } else {
-        setU((MyUnion)value);
+        setU((MyUnion)__value);
       }
       break;
 
     case ADOUBLE:
-      if (value == null) {
+      if (__value == null) {
         unsetADouble();
       } else {
-        setADouble((Double)value);
+        setADouble((Double)__value);
       }
       break;
 
     case F:
-      if (value == null) {
+      if (__value == null) {
         unsetF();
       } else {
-        setF((MyField)value);
+        setF((MyField)__value);
       }
       break;
 
@@ -215,68 +248,28 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case U:
-      return isSetU();
-    case ADOUBLE:
-      return isSetADouble();
-    case F:
-      return isSetF();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof StructWithUnion)
-      return this.equals((StructWithUnion)that);
-    return false;
-  }
-
-  public boolean equals(StructWithUnion that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof StructWithUnion))
+      return false;
+    StructWithUnion that = (StructWithUnion)_that;
 
-    boolean this_present_u = true && this.isSetU();
-    boolean that_present_u = true && that.isSetU();
-    if (this_present_u || that_present_u) {
-      if (!(this_present_u && that_present_u))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.u, that.u))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetU(), that.isSetU(), this.u, that.u)) { return false; }
 
-    boolean this_present_aDouble = true;
-    boolean that_present_aDouble = true;
-    if (this_present_aDouble || that_present_aDouble) {
-      if (!(this_present_aDouble && that_present_aDouble))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.aDouble, that.aDouble))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.aDouble, that.aDouble)) { return false; }
 
-    boolean this_present_f = true && this.isSetF();
-    boolean that_present_f = true && that.isSetF();
-    if (this_present_f || that_present_f) {
-      if (!(this_present_f && that_present_f))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.f, that.f))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetF(), that.isSetF(), this.f, that.f)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {u, aDouble, f});
   }
 
   @Override
@@ -296,7 +289,7 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(u, other.u);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetADouble()).compareTo(other.isSetADouble());
@@ -304,7 +297,7 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(aDouble, other.aDouble);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetF()).compareTo(other.isSetF());
@@ -312,49 +305,49 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(f, other.f);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case U:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.u = new MyUnion();
             this.u.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case ADOUBLE:
-          if (field.type == TType.DOUBLE) {
+          if (__field.type == TType.DOUBLE) {
             this.aDouble = iprot.readDouble();
             setADoubleIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case F:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.f = new MyField();
             this.f.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -389,19 +382,14 @@ public class StructWithUnion implements TBase, java.io.Serializable, Cloneable, 
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("StructWithUnion");
     sb.append(space);
     sb.append("(");
@@ -412,10 +400,10 @@ String space = prettyPrint ? " " : "";
     sb.append("u");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getU() == null) {
+    if (this.getU() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getU(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getU(), indent + 1, prettyPrint));
     }
     first = false;
     if (!first) sb.append("," + newLine);
@@ -423,17 +411,17 @@ String space = prettyPrint ? " " : "";
     sb.append("aDouble");
     sb.append(space);
     sb.append(":").append(space);
-    sb.append(TBaseHelper.toString(this. getADouble(), indent + 1, prettyPrint));
+    sb.append(TBaseHelper.toString(this.getADouble(), indent + 1, prettyPrint));
     first = false;
     if (!first) sb.append("," + newLine);
     sb.append(indentStr);
     sb.append("f");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getF() == null) {
+    if (this.getF() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getF(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getF(), indent + 1, prettyPrint));
     }
     first = false;
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
@@ -443,7 +431,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
   }
 
 }

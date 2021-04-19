@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,20 +16,7 @@
 
 %>class <%service:name%>SvNull : public <%service:name%>SvIf<%#service:extends%>, virtual public <% > common/namespace_cpp2%><%service:name%>SvIf<%/service:extends%> {
  public:
-<%#service:functions%><%#function:returnType%><%^function:eb%><%^type:deprecated_stream?%>
-<%^type:resolves_to_complex_return?%>
-  <% > types/type%> <%function:name%>(<% > service_common/function_param_list_commented_out%>) override;
-<%/type:resolves_to_complex_return?%>
-<%#type:resolves_to_complex_return?%>
-  void <%function:name%>(<% > types/type%>& /*_return*/<%function:comma%><% > service_common/function_param_list_commented_out%>) override;
-<%/type:resolves_to_complex_return?%>
-<%#service:frozen2?%>
-<%^type:resolves_to_complex_return?%>
-  <% > types/type%> frozen2_<%function:name%>(<% > service_common/frozen2_function_param_list%>) override;
-<%/type:resolves_to_complex_return?%>
-<%#type:resolves_to_complex_return?%>
-  void frozen2_<%function:name%>(<% > types/type%>& /*_return*/<%function:comma%><% > service_common/frozen2_function_param_list%>) override;
-<%/type:resolves_to_complex_return?%>
-<%/service:frozen2?%>
-<%/type:deprecated_stream?%><%/function:eb%><%/function:returnType%><%/service:functions%>
+<%#service:functions%><%#function:return_type%><%^function:starts_interaction?%><%^function:eb%><%^function:returns_stream?%>
+  <% > service_common/function_return_type%> <%function:cpp_name%>(<% > service_common/function_return_param%><% > service_common/function_param_list_commented_out%>) override;
+<%/function:returns_stream?%><%/function:eb%><%/function:starts_interaction?%><%/function:return_type%><%/service:functions%>
 };

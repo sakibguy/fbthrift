@@ -6,9 +6,10 @@ package module
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -16,6 +17,7 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var GoUnusedProtection__ int;
 
@@ -38,6 +40,18 @@ var AnimalToValue = map[string]Animal {
   "TARANTULA": Animal_TARANTULA,
 }
 
+var AnimalNames = []string {
+  "DOG",
+  "CAT",
+  "TARANTULA",
+}
+
+var AnimalValues = []Animal {
+  Animal_DOG,
+  Animal_CAT,
+  Animal_TARANTULA,
+}
+
 func (p Animal) String() string {
   if v, ok := AnimalToName[p]; ok {
     return v
@@ -54,7 +68,7 @@ func AnimalFromString(s string) (Animal, error) {
 
 func AnimalPtr(v Animal) *Animal { return &v }
 
-type PersonID int64
+type PersonID = int64
 
 func PersonIDPtr(v PersonID) *PersonID { return &v }
 
@@ -90,6 +104,65 @@ func (p *Color) GetBlue() float64 {
 func (p *Color) GetAlpha() float64 {
   return p.Alpha
 }
+type ColorBuilder struct {
+  obj *Color
+}
+
+func NewColorBuilder() *ColorBuilder{
+  return &ColorBuilder{
+    obj: NewColor(),
+  }
+}
+
+func (p ColorBuilder) Emit() *Color{
+  return &Color{
+    Red: p.obj.Red,
+    Green: p.obj.Green,
+    Blue: p.obj.Blue,
+    Alpha: p.obj.Alpha,
+  }
+}
+
+func (c *ColorBuilder) Red(red float64) *ColorBuilder {
+  c.obj.Red = red
+  return c
+}
+
+func (c *ColorBuilder) Green(green float64) *ColorBuilder {
+  c.obj.Green = green
+  return c
+}
+
+func (c *ColorBuilder) Blue(blue float64) *ColorBuilder {
+  c.obj.Blue = blue
+  return c
+}
+
+func (c *ColorBuilder) Alpha(alpha float64) *ColorBuilder {
+  c.obj.Alpha = alpha
+  return c
+}
+
+func (c *Color) SetRed(red float64) *Color {
+  c.Red = red
+  return c
+}
+
+func (c *Color) SetGreen(green float64) *Color {
+  c.Green = green
+  return c
+}
+
+func (c *Color) SetBlue(blue float64) *Color {
+  c.Blue = blue
+  return c
+}
+
+func (c *Color) SetAlpha(alpha float64) *Color {
+  c.Alpha = alpha
+  return c
+}
+
 func (p *Color) Read(iprot thrift.Protocol) error {
   if _, err := iprot.ReadStructBegin(); err != nil {
     return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
@@ -136,37 +209,37 @@ func (p *Color) Read(iprot thrift.Protocol) error {
 
 func (p *Color)  ReadField1(iprot thrift.Protocol) error {
   if v, err := iprot.ReadDouble(); err != nil {
-  return thrift.PrependError("error reading field 1: ", err)
-} else {
-  p.Red = v
-}
+    return thrift.PrependError("error reading field 1: ", err)
+  } else {
+    p.Red = v
+  }
   return nil
 }
 
 func (p *Color)  ReadField2(iprot thrift.Protocol) error {
   if v, err := iprot.ReadDouble(); err != nil {
-  return thrift.PrependError("error reading field 2: ", err)
-} else {
-  p.Green = v
-}
+    return thrift.PrependError("error reading field 2: ", err)
+  } else {
+    p.Green = v
+  }
   return nil
 }
 
 func (p *Color)  ReadField3(iprot thrift.Protocol) error {
   if v, err := iprot.ReadDouble(); err != nil {
-  return thrift.PrependError("error reading field 3: ", err)
-} else {
-  p.Blue = v
-}
+    return thrift.PrependError("error reading field 3: ", err)
+  } else {
+    p.Blue = v
+  }
   return nil
 }
 
 func (p *Color)  ReadField4(iprot thrift.Protocol) error {
   if v, err := iprot.ReadDouble(); err != nil {
-  return thrift.PrependError("error reading field 4: ", err)
-} else {
-  p.Alpha = v
-}
+    return thrift.PrependError("error reading field 4: ", err)
+  } else {
+    p.Alpha = v
+  }
   return nil
 }
 
@@ -228,7 +301,12 @@ func (p *Color) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Color(%+v)", *p)
+
+  redVal := fmt.Sprintf("%v", p.Red)
+  greenVal := fmt.Sprintf("%v", p.Green)
+  blueVal := fmt.Sprintf("%v", p.Blue)
+  alphaVal := fmt.Sprintf("%v", p.Alpha)
+  return fmt.Sprintf("Color({Red:%s Green:%s Blue:%s Alpha:%s})", redVal, greenVal, blueVal, alphaVal)
 }
 
 // Attributes:
@@ -246,7 +324,9 @@ type Vehicle struct {
 }
 
 func NewVehicle() *Vehicle {
-  return &Vehicle{}
+  return &Vehicle{
+    Color: NewColor(),
+  }
 }
 
 var Vehicle_Color_DEFAULT *Color
@@ -283,23 +363,93 @@ func (p *Vehicle) GetHasAC() bool {
   return p.HasAC
 }
 func (p *Vehicle) IsSetColor() bool {
-  return p.Color != nil
+  return p != nil && p.Color != nil
 }
 
 func (p *Vehicle) IsSetLicensePlate() bool {
-  return p.LicensePlate != nil
+  return p != nil && p.LicensePlate != nil
 }
 
 func (p *Vehicle) IsSetDescription() bool {
-  return p.Description != nil
+  return p != nil && p.Description != nil
 }
 
 func (p *Vehicle) IsSetName() bool {
-  return p.Name != nil
+  return p != nil && p.Name != nil
 }
 
 func (p *Vehicle) IsSetHasAC() bool {
-  return p.HasAC != Vehicle_HasAC_DEFAULT
+  return p != nil && p.HasAC != Vehicle_HasAC_DEFAULT
+}
+
+type VehicleBuilder struct {
+  obj *Vehicle
+}
+
+func NewVehicleBuilder() *VehicleBuilder{
+  return &VehicleBuilder{
+    obj: NewVehicle(),
+  }
+}
+
+func (p VehicleBuilder) Emit() *Vehicle{
+  return &Vehicle{
+    Color: p.obj.Color,
+    LicensePlate: p.obj.LicensePlate,
+    Description: p.obj.Description,
+    Name: p.obj.Name,
+    HasAC: p.obj.HasAC,
+  }
+}
+
+func (v *VehicleBuilder) Color(color *Color) *VehicleBuilder {
+  v.obj.Color = color
+  return v
+}
+
+func (v *VehicleBuilder) LicensePlate(licensePlate *string) *VehicleBuilder {
+  v.obj.LicensePlate = licensePlate
+  return v
+}
+
+func (v *VehicleBuilder) Description(description *string) *VehicleBuilder {
+  v.obj.Description = description
+  return v
+}
+
+func (v *VehicleBuilder) Name(name *string) *VehicleBuilder {
+  v.obj.Name = name
+  return v
+}
+
+func (v *VehicleBuilder) HasAC(hasAC bool) *VehicleBuilder {
+  v.obj.HasAC = hasAC
+  return v
+}
+
+func (v *Vehicle) SetColor(color *Color) *Vehicle {
+  v.Color = color
+  return v
+}
+
+func (v *Vehicle) SetLicensePlate(licensePlate *string) *Vehicle {
+  v.LicensePlate = licensePlate
+  return v
+}
+
+func (v *Vehicle) SetDescription(description *string) *Vehicle {
+  v.Description = description
+  return v
+}
+
+func (v *Vehicle) SetName(name *string) *Vehicle {
+  v.Name = name
+  return v
+}
+
+func (v *Vehicle) SetHasAC(hasAC bool) *Vehicle {
+  v.HasAC = hasAC
+  return v
 }
 
 func (p *Vehicle) Read(iprot thrift.Protocol) error {
@@ -360,37 +510,37 @@ func (p *Vehicle)  ReadField1(iprot thrift.Protocol) error {
 
 func (p *Vehicle)  ReadField2(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 2: ", err)
-} else {
-  p.LicensePlate = &v
-}
+    return thrift.PrependError("error reading field 2: ", err)
+  } else {
+    p.LicensePlate = &v
+  }
   return nil
 }
 
 func (p *Vehicle)  ReadField3(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 3: ", err)
-} else {
-  p.Description = &v
-}
+    return thrift.PrependError("error reading field 3: ", err)
+  } else {
+    p.Description = &v
+  }
   return nil
 }
 
 func (p *Vehicle)  ReadField4(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 4: ", err)
-} else {
-  p.Name = &v
-}
+    return thrift.PrependError("error reading field 4: ", err)
+  } else {
+    p.Name = &v
+  }
   return nil
 }
 
 func (p *Vehicle)  ReadField5(iprot thrift.Protocol) error {
   if v, err := iprot.ReadBool(); err != nil {
-  return thrift.PrependError("error reading field 5: ", err)
-} else {
-  p.HasAC = v
-}
+    return thrift.PrependError("error reading field 5: ", err)
+  } else {
+    p.HasAC = v
+  }
   return nil
 }
 
@@ -472,7 +622,33 @@ func (p *Vehicle) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Vehicle(%+v)", *p)
+
+  var colorVal string
+  if p.Color == nil {
+    colorVal = "<nil>"
+  } else {
+    colorVal = fmt.Sprintf("%v", p.Color)
+  }
+  var licensePlateVal string
+  if p.LicensePlate == nil {
+    licensePlateVal = "<nil>"
+  } else {
+    licensePlateVal = fmt.Sprintf("%v", *p.LicensePlate)
+  }
+  var descriptionVal string
+  if p.Description == nil {
+    descriptionVal = "<nil>"
+  } else {
+    descriptionVal = fmt.Sprintf("%v", *p.Description)
+  }
+  var nameVal string
+  if p.Name == nil {
+    nameVal = "<nil>"
+  } else {
+    nameVal = fmt.Sprintf("%v", *p.Name)
+  }
+  hasACVal := fmt.Sprintf("%v", p.HasAC)
+  return fmt.Sprintf("Vehicle({Color:%s LicensePlate:%s Description:%s Name:%s HasAC:%s})", colorVal, licensePlateVal, descriptionVal, nameVal, hasACVal)
 }
 
 // Attributes:
@@ -562,35 +738,160 @@ func (p *Person) GetVehicles() []*Vehicle {
   return p.Vehicles
 }
 func (p *Person) IsSetAge() bool {
-  return p.Age != nil
+  return p != nil && p.Age != nil
 }
 
 func (p *Person) IsSetAddress() bool {
-  return p.Address != nil
+  return p != nil && p.Address != nil
 }
 
 func (p *Person) IsSetFavoriteColor() bool {
-  return p.FavoriteColor != nil
+  return p != nil && p.FavoriteColor != nil
 }
 
 func (p *Person) IsSetFriends() bool {
-  return p.Friends != nil
+  return p != nil && p.Friends != nil
 }
 
 func (p *Person) IsSetBestFriend() bool {
-  return p.BestFriend != nil
+  return p != nil && p.BestFriend != nil
 }
 
 func (p *Person) IsSetPetNames() bool {
-  return p.PetNames != nil
+  return p != nil && p.PetNames != nil
 }
 
 func (p *Person) IsSetAfraidOfAnimal() bool {
-  return p.AfraidOfAnimal != nil
+  return p != nil && p.AfraidOfAnimal != nil
 }
 
 func (p *Person) IsSetVehicles() bool {
-  return p.Vehicles != nil
+  return p != nil && p.Vehicles != nil
+}
+
+type PersonBuilder struct {
+  obj *Person
+}
+
+func NewPersonBuilder() *PersonBuilder{
+  return &PersonBuilder{
+    obj: NewPerson(),
+  }
+}
+
+func (p PersonBuilder) Emit() *Person{
+  return &Person{
+    Id: p.obj.Id,
+    Name: p.obj.Name,
+    Age: p.obj.Age,
+    Address: p.obj.Address,
+    FavoriteColor: p.obj.FavoriteColor,
+    Friends: p.obj.Friends,
+    BestFriend: p.obj.BestFriend,
+    PetNames: p.obj.PetNames,
+    AfraidOfAnimal: p.obj.AfraidOfAnimal,
+    Vehicles: p.obj.Vehicles,
+  }
+}
+
+func (p *PersonBuilder) Id(id PersonID) *PersonBuilder {
+  p.obj.Id = id
+  return p
+}
+
+func (p *PersonBuilder) Name(name string) *PersonBuilder {
+  p.obj.Name = name
+  return p
+}
+
+func (p *PersonBuilder) Age(age *int16) *PersonBuilder {
+  p.obj.Age = age
+  return p
+}
+
+func (p *PersonBuilder) Address(address *string) *PersonBuilder {
+  p.obj.Address = address
+  return p
+}
+
+func (p *PersonBuilder) FavoriteColor(favoriteColor *Color) *PersonBuilder {
+  p.obj.FavoriteColor = favoriteColor
+  return p
+}
+
+func (p *PersonBuilder) Friends(friends []PersonID) *PersonBuilder {
+  p.obj.Friends = friends
+  return p
+}
+
+func (p *PersonBuilder) BestFriend(bestFriend *PersonID) *PersonBuilder {
+  p.obj.BestFriend = bestFriend
+  return p
+}
+
+func (p *PersonBuilder) PetNames(petNames map[Animal]string) *PersonBuilder {
+  p.obj.PetNames = petNames
+  return p
+}
+
+func (p *PersonBuilder) AfraidOfAnimal(afraidOfAnimal *Animal) *PersonBuilder {
+  p.obj.AfraidOfAnimal = afraidOfAnimal
+  return p
+}
+
+func (p *PersonBuilder) Vehicles(vehicles []*Vehicle) *PersonBuilder {
+  p.obj.Vehicles = vehicles
+  return p
+}
+
+func (p *Person) SetId(id PersonID) *Person {
+  p.Id = id
+  return p
+}
+
+func (p *Person) SetName(name string) *Person {
+  p.Name = name
+  return p
+}
+
+func (p *Person) SetAge(age *int16) *Person {
+  p.Age = age
+  return p
+}
+
+func (p *Person) SetAddress(address *string) *Person {
+  p.Address = address
+  return p
+}
+
+func (p *Person) SetFavoriteColor(favoriteColor *Color) *Person {
+  p.FavoriteColor = favoriteColor
+  return p
+}
+
+func (p *Person) SetFriends(friends []PersonID) *Person {
+  p.Friends = friends
+  return p
+}
+
+func (p *Person) SetBestFriend(bestFriend *PersonID) *Person {
+  p.BestFriend = bestFriend
+  return p
+}
+
+func (p *Person) SetPetNames(petNames map[Animal]string) *Person {
+  p.PetNames = petNames
+  return p
+}
+
+func (p *Person) SetAfraidOfAnimal(afraidOfAnimal *Animal) *Person {
+  p.AfraidOfAnimal = afraidOfAnimal
+  return p
+}
+
+func (p *Person) SetVehicles(vehicles []*Vehicle) *Person {
+  p.Vehicles = vehicles
+  return p
 }
 
 func (p *Person) Read(iprot thrift.Protocol) error {
@@ -663,38 +964,38 @@ func (p *Person) Read(iprot thrift.Protocol) error {
 
 func (p *Person)  ReadField1(iprot thrift.Protocol) error {
   if v, err := iprot.ReadI64(); err != nil {
-  return thrift.PrependError("error reading field 1: ", err)
-} else {
-  temp := PersonID(v)
-  p.Id = temp
-}
+    return thrift.PrependError("error reading field 1: ", err)
+  } else {
+    temp := PersonID(v)
+    p.Id = temp
+  }
   return nil
 }
 
 func (p *Person)  ReadField2(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 2: ", err)
-} else {
-  p.Name = v
-}
+    return thrift.PrependError("error reading field 2: ", err)
+  } else {
+    p.Name = v
+  }
   return nil
 }
 
 func (p *Person)  ReadField3(iprot thrift.Protocol) error {
   if v, err := iprot.ReadI16(); err != nil {
-  return thrift.PrependError("error reading field 3: ", err)
-} else {
-  p.Age = &v
-}
+    return thrift.PrependError("error reading field 3: ", err)
+  } else {
+    p.Age = &v
+  }
   return nil
 }
 
 func (p *Person)  ReadField4(iprot thrift.Protocol) error {
   if v, err := iprot.ReadString(); err != nil {
-  return thrift.PrependError("error reading field 4: ", err)
-} else {
-  p.Address = &v
-}
+    return thrift.PrependError("error reading field 4: ", err)
+  } else {
+    p.Address = &v
+  }
   return nil
 }
 
@@ -714,13 +1015,13 @@ func (p *Person)  ReadField6(iprot thrift.Protocol) error {
   tSet := make([]PersonID, 0, size)
   p.Friends =  tSet
   for i := 0; i < size; i ++ {
-var _elem0 PersonID
+    var _elem0 PersonID
     if v, err := iprot.ReadI64(); err != nil {
-    return thrift.PrependError("error reading field 0: ", err)
-} else {
-    temp := PersonID(v)
-    _elem0 = temp
-}
+      return thrift.PrependError("error reading field 0: ", err)
+    } else {
+      temp := PersonID(v)
+      _elem0 = temp
+    }
     p.Friends = append(p.Friends, _elem0)
   }
   if err := iprot.ReadSetEnd(); err != nil {
@@ -731,11 +1032,11 @@ var _elem0 PersonID
 
 func (p *Person)  ReadField7(iprot thrift.Protocol) error {
   if v, err := iprot.ReadI64(); err != nil {
-  return thrift.PrependError("error reading field 7: ", err)
-} else {
-  temp := PersonID(v)
-  p.BestFriend = &temp
-}
+    return thrift.PrependError("error reading field 7: ", err)
+  } else {
+    temp := PersonID(v)
+    p.BestFriend = &temp
+  }
   return nil
 }
 
@@ -747,19 +1048,19 @@ func (p *Person)  ReadField8(iprot thrift.Protocol) error {
   tMap := make(map[Animal]string, size)
   p.PetNames =  tMap
   for i := 0; i < size; i ++ {
-var _key1 Animal
+    var _key1 Animal
     if v, err := iprot.ReadI32(); err != nil {
-    return thrift.PrependError("error reading field 0: ", err)
-} else {
-    temp := Animal(v)
-    _key1 = temp
-}
-var _val2 string
+      return thrift.PrependError("error reading field 0: ", err)
+    } else {
+      temp := Animal(v)
+      _key1 = temp
+    }
+    var _val2 string
     if v, err := iprot.ReadString(); err != nil {
-    return thrift.PrependError("error reading field 0: ", err)
-} else {
-    _val2 = v
-}
+      return thrift.PrependError("error reading field 0: ", err)
+    } else {
+      _val2 = v
+    }
     p.PetNames[_key1] = _val2
   }
   if err := iprot.ReadMapEnd(); err != nil {
@@ -770,11 +1071,11 @@ var _val2 string
 
 func (p *Person)  ReadField9(iprot thrift.Protocol) error {
   if v, err := iprot.ReadI32(); err != nil {
-  return thrift.PrependError("error reading field 9: ", err)
-} else {
-  temp := Animal(v)
-  p.AfraidOfAnimal = &temp
-}
+    return thrift.PrependError("error reading field 9: ", err)
+  } else {
+    temp := Animal(v)
+    p.AfraidOfAnimal = &temp
+  }
   return nil
 }
 
@@ -973,6 +1274,42 @@ func (p *Person) String() string {
   if p == nil {
     return "<nil>"
   }
-  return fmt.Sprintf("Person(%+v)", *p)
+
+  idVal := fmt.Sprintf("%v", p.Id)
+  nameVal := fmt.Sprintf("%v", p.Name)
+  var ageVal string
+  if p.Age == nil {
+    ageVal = "<nil>"
+  } else {
+    ageVal = fmt.Sprintf("%v", *p.Age)
+  }
+  var addressVal string
+  if p.Address == nil {
+    addressVal = "<nil>"
+  } else {
+    addressVal = fmt.Sprintf("%v", *p.Address)
+  }
+  var favoriteColorVal string
+  if p.FavoriteColor == nil {
+    favoriteColorVal = "<nil>"
+  } else {
+    favoriteColorVal = fmt.Sprintf("%v", p.FavoriteColor)
+  }
+  friendsVal := fmt.Sprintf("%v", p.Friends)
+  var bestFriendVal string
+  if p.BestFriend == nil {
+    bestFriendVal = "<nil>"
+  } else {
+    bestFriendVal = fmt.Sprintf("%v", *p.BestFriend)
+  }
+  petNamesVal := fmt.Sprintf("%v", p.PetNames)
+  var afraidOfAnimalVal string
+  if p.AfraidOfAnimal == nil {
+    afraidOfAnimalVal = "<nil>"
+  } else {
+    afraidOfAnimalVal = fmt.Sprintf("%v", *p.AfraidOfAnimal)
+  }
+  vehiclesVal := fmt.Sprintf("%v", p.Vehicles)
+  return fmt.Sprintf("Person({Id:%s Name:%s Age:%s Address:%s FavoriteColor:%s Friends:%s BestFriend:%s PetNames:%s AfraidOfAnimal:%s Vehicles:%s})", idVal, nameVal, ageVal, addressVal, favoriteColorVal, friendsVal, bestFriendVal, petNamesVal, afraidOfAnimalVal, vehiclesVal)
 }
 

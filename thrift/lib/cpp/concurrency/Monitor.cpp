@@ -1,36 +1,36 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #include <thrift/lib/cpp/concurrency/Monitor.h>
-#include <thrift/lib/cpp/concurrency/Exception.h>
-#include <thrift/lib/cpp/concurrency/Util.h>
-#include <glog/logging.h>
+
+#include <cassert>
+#include <cerrno>
+#include <iostream>
 
 #include <boost/scoped_ptr.hpp>
-
-#include <assert.h>
-#include <errno.h>
-
-#include <iostream>
+#include <glog/logging.h>
 
 #include <folly/portability/PThread.h>
 
-namespace apache { namespace thrift { namespace concurrency {
+#include <thrift/lib/cpp/concurrency/Exception.h>
+#include <thrift/lib/cpp/concurrency/Util.h>
+
+namespace apache {
+namespace thrift {
+namespace concurrency {
 
 using boost::scoped_ptr;
 
@@ -40,25 +40,14 @@ using boost::scoped_ptr;
  * @version $Id:$
  */
 class Monitor::Impl {
-
  public:
-
-  Impl()
-     : ownedMutex_(new Mutex()),
-       mutex_(nullptr),
-       condInitialized_(false) {
+  Impl() : ownedMutex_(new Mutex()), mutex_(nullptr), condInitialized_(false) {
     init(ownedMutex_.get());
   }
 
-  Impl(Mutex* mutex)
-     : mutex_(nullptr),
-       condInitialized_(false) {
-    init(mutex);
-  }
+  Impl(Mutex* mutex) : mutex_(nullptr), condInitialized_(false) { init(mutex); }
 
-  Impl(Monitor* monitor)
-     : mutex_(nullptr),
-       condInitialized_(false) {
+  Impl(Monitor* monitor) : mutex_(nullptr), condInitialized_(false) {
     init(&(monitor->mutex()));
   }
 
@@ -78,13 +67,10 @@ class Monitor::Impl {
   void wait(int64_t timeout_ms) const {
     int result = waitForTimeRelative(timeout_ms);
     if (result == ETIMEDOUT) {
-      // pthread_cond_timedwait has been observed to return early on
-      // various platforms, so comment out this assert.
-      //assert(Util::currentTime() >= (now + timeout));
       throw TimedOutException();
     } else if (result != 0) {
       throw TLibraryException(
-        "pthread_cond_wait() or pthread_cond_timedwait() failed");
+          "pthread_cond_wait() or pthread_cond_timedwait() failed");
     }
   }
 
@@ -114,12 +100,10 @@ class Monitor::Impl {
     assert(mutex_->isLocked());
 
     pthread_mutex_t* mutexImpl =
-      reinterpret_cast<pthread_mutex_t*>(mutex_->getUnderlyingImpl());
+        reinterpret_cast<pthread_mutex_t*>(mutex_->getUnderlyingImpl());
     assert(mutexImpl);
 
-    return pthread_cond_timedwait(&pthread_cond_,
-                                  mutexImpl,
-                                  abstime);
+    return pthread_cond_timedwait(&pthread_cond_, mutexImpl, abstime);
   }
 
   /**
@@ -132,11 +116,10 @@ class Monitor::Impl {
     assert(mutex_->isLocked());
 
     pthread_mutex_t* mutexImpl =
-      reinterpret_cast<pthread_mutex_t*>(mutex_->getUnderlyingImpl());
+        reinterpret_cast<pthread_mutex_t*>(mutex_->getUnderlyingImpl());
     assert(mutexImpl);
     return pthread_cond_wait(&pthread_cond_, mutexImpl);
   }
-
 
   void notify() {
     // The caller must lock the mutex before calling notify()
@@ -155,7 +138,6 @@ class Monitor::Impl {
   }
 
  private:
-
   void init(Mutex* mutex) {
     mutex_ = mutex;
 
@@ -188,15 +170,25 @@ Monitor::Monitor() : impl_(new Monitor::Impl()) {}
 Monitor::Monitor(Mutex* mutex) : impl_(new Monitor::Impl(mutex)) {}
 Monitor::Monitor(Monitor* monitor) : impl_(new Monitor::Impl(monitor)) {}
 
-Monitor::~Monitor() { delete impl_; }
+Monitor::~Monitor() {
+  delete impl_;
+}
 
-Mutex& Monitor::mutex() const { return impl_->mutex(); }
+Mutex& Monitor::mutex() const {
+  return impl_->mutex();
+}
 
-void Monitor::lock() const { impl_->lock(); }
+void Monitor::lock() const {
+  impl_->lock();
+}
 
-void Monitor::unlock() const { impl_->unlock(); }
+void Monitor::unlock() const {
+  impl_->unlock();
+}
 
-void Monitor::wait(int64_t timeout) const { impl_->wait(timeout); }
+void Monitor::wait(int64_t timeout) const {
+  impl_->wait(timeout);
+}
 
 int Monitor::waitForTime(const timespec* abstime) const {
   return impl_->waitForTime(abstime);
@@ -210,8 +202,14 @@ int Monitor::waitForever() const {
   return impl_->waitForever();
 }
 
-void Monitor::notify() const { impl_->notify(); }
+void Monitor::notify() const {
+  impl_->notify();
+}
 
-void Monitor::notifyAll() const { impl_->notifyAll(); }
+void Monitor::notifyAll() const {
+  impl_->notifyAll();
+}
 
-}}} // apache::thrift::concurrency
+} // namespace concurrency
+} // namespace thrift
+} // namespace apache

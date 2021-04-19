@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,26 +17,26 @@
 #ifndef THRIFT_RELATIVEPTR_H_
 #define THRIFT_RELATIVEPTR_H_
 
-#include <boost/noncopyable.hpp>
+#include <glog/logging.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 typedef uint8_t byte;
 
 // Relative Ptr - The key to relocatable object graphs
 // TODO: expose 'OffsetType' as a type parameter in freeze()
-template<class T,
-         class OffsetType = uint32_t>
-class RelativePtr : private boost::noncopyable {
+template <class T, class OffsetType = uint32_t>
+class RelativePtr {
   OffsetType offset_;
- public:
-  RelativePtr() {
-    reset(nullptr);
-  }
 
-  explicit RelativePtr(T* ptr) {
-    reset(ptr);
-  }
+ public:
+  RelativePtr() { reset(nullptr); }
+
+  RelativePtr(const RelativePtr&) = delete;
+  RelativePtr& operator=(const RelativePtr&) = delete;
+
+  explicit RelativePtr(T* ptr) { reset(ptr); }
 
   void reset(T* ptr = nullptr) {
     if (!ptr) {
@@ -60,11 +60,10 @@ class RelativePtr : private boost::noncopyable {
     return reinterpret_cast<T*>(target);
   }
 
-  T& operator*() const {
-    return *get();
-  }
+  T& operator*() const { return *get(); }
 };
 
-}} //apache::thrfit
+} // namespace thrift
+} // namespace apache
 
-#endif//THRIFT_RELATIVEPTR_H_
+#endif // THRIFT_RELATIVEPTR_H_

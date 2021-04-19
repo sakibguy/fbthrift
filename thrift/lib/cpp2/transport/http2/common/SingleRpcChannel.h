@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,8 @@
 #include <string>
 
 #include <folly/FixedString.h>
+#include <folly/Function.h>
+
 #include <proxygen/lib/http/session/HTTPTransaction.h>
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
 #include <thrift/lib/cpp2/transport/http2/common/H2Channel.h>
@@ -26,23 +28,28 @@
 namespace apache {
 namespace thrift {
 
+class Cpp2Worker;
+
 class SingleRpcChannel : public H2Channel {
  public:
   SingleRpcChannel(
-      proxygen::ResponseHandler* toHttp2,
+      proxygen::HTTPTransaction* toHttp2,
       ThriftProcessor* processor,
-      bool legacySupport);
+      std::shared_ptr<Cpp2Worker> worker);
 
-  SingleRpcChannel(H2ClientConnection* toHttp2, bool legacySupport);
+  SingleRpcChannel(
+      folly::EventBase& evb,
+      folly::Function<proxygen::HTTPTransaction*(SingleRpcChannel*)>
+          transactionFactory);
 
   virtual ~SingleRpcChannel() override;
 
   void sendThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
+      ResponseRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload) noexcept override;
 
   virtual void sendThriftRequest(
-      std::unique_ptr<RequestRpcMetadata> metadata,
+      RequestMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> payload,
       std::unique_ptr<ThriftClientCallback> callback) noexcept override;
 
@@ -55,7 +62,11 @@ class SingleRpcChannel : public H2Channel {
 
   void onH2StreamEnd() noexcept override;
 
-  void onH2StreamClosed(proxygen::ProxygenError) noexcept override;
+  void onH2StreamClosed(
+      proxygen::ProxygenError error,
+      std::string errorDescription) noexcept override;
+
+  void onMessageFlushed() noexcept override;
 
   void setNotYetStable() noexcept;
 
@@ -78,11 +89,13 @@ class SingleRpcChannel : public H2Channel {
   // Owned by H2ThriftServer.
   ThriftProcessor* processor_{nullptr};
 
-  // Event base on which all methods in this object must be invoked.
-  folly::EventBase* evb_;
+  std::shared_ptr<Cpp2Worker> worker_;
 
-  // Set to true to support the legacy HTTP2 protocol.
-  bool legacySupport_;
+  // Event base on which all methods in this object must be invoked.
+  folly::EventBase* evb_{nullptr};
+
+  folly::Function<proxygen::HTTPTransaction*(SingleRpcChannel*)>
+      transactionFactory_;
 
   // Transaction object for use on client side to communicate with the
   // Proxygen layer.
@@ -97,16 +110,7 @@ class SingleRpcChannel : public H2Channel {
   bool receivedThriftRPC_{false};
   bool receivedH2Stream_{false};
 
-  // This flag is initialized when the channel is constructed to
-  // decide whether or not the connection should be set to stable
-  // (i.e., we know that the server does not have to read the header
-  // any more to determine the channel version).  This flag is set to
-  // true if the connection is not yet stable and negotiation has
-  // completed on the client side.  If this channel completes a
-  // successful RPC, it means the server now knows that the client has
-  // completed negotiation, and so it can set the connection to be
-  // stable.
-  bool shouldMakeStable_;
+  std::shared_ptr<void> activeRequestsGuard_;
 };
 
 } // namespace thrift

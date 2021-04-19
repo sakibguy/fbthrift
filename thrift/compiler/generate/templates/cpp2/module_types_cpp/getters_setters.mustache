@@ -1,12 +1,12 @@
 <%!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,26 +15,28 @@
   limitations under the License.
 
 %><%#struct:fields?%><%#struct:fields%><%#field:type%><%#type:resolves_to_container_or_struct?%>
-<%^type:optionals?%><%^type:no_getters_setters?%>
+<%^type:no_getters_setters?%>
+<%^field:lazy?%>
 <%#field:optional?%><%^field:cpp_ref?%>
-const <% > types/type%>* <%struct:name%>::get_<%field:name%>() const& {
-  return __isset.<%field:name%> ? std::addressof(<%field:name%>) : nullptr;
+const <%type:cpp_type%>* <%struct:name%>::get_<%field:cpp_name%>() const& {
+  return <%field:cpp_name%>_ref().has_value() ? std::addressof(<%field:cpp_name%>) : nullptr;
 }
 
-<% > types/type%>* <%struct:name%>::get_<%field:name%>() & {
-  return __isset.<%field:name%> ? std::addressof(<%field:name%>) : nullptr;
+<%type:cpp_type%>* <%struct:name%>::get_<%field:cpp_name%>() & {
+  return <%field:cpp_name%>_ref().has_value() ? std::addressof(<%field:cpp_name%>) : nullptr;
 }
 
 <%/field:cpp_ref?%><%/field:optional?%>
 <%^field:optional?%><%^field:cpp_ref?%>
-const <% > types/type%>& <%struct:name%>::get_<%field:name%>() const& {
-  return <%field:name%>;
+const <%type:cpp_type%>& <%struct:name%>::get_<%field:cpp_name%>() const& {
+  return <%field:cpp_name%>;
 }
 
-<% > types/type%> <%struct:name%>::get_<%field:name%>() && {
-  return std::move(<%field:name%>);
+<%type:cpp_type%> <%struct:name%>::get_<%field:cpp_name%>() && {
+  return std::move(<%field:cpp_name%>);
 }
 
 <%/field:cpp_ref?%><%/field:optional?%>
-<%/type:no_getters_setters?%><%/type:optionals?%>
+<%/field:lazy?%>
+<%/type:no_getters_setters?%>
 <%/type:resolves_to_container_or_struct?%><%/field:type%><%/struct:fields%><%/struct:fields?%>

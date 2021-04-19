@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include <deque>
+
 namespace apache {
 namespace thrift {
 namespace frozen {
@@ -159,8 +162,8 @@ struct ArrayLayout : public LayoutBase {
     typedef typename Layout<Item>::View ItemView;
     class Iterator;
 
-    static ViewPosition
-    indexPosition(const byte* start, size_t i, const LayoutBase& itemLayout) {
+    static ViewPosition indexPosition(
+        const byte* start, size_t i, const LayoutBase& itemLayout) {
       if (itemLayout.size) {
         return ViewPosition{start + itemLayout.size * i, 0};
       } else {
@@ -203,27 +206,18 @@ struct ArrayLayout : public LayoutBase {
       return (*this)[size() - 1];
     }
 
-    const_iterator begin() const {
-      return const_iterator(*this, 0);
-    }
+    const_iterator begin() const { return const_iterator(*this, 0); }
 
-    const_iterator end() const {
-      return const_iterator(*this);
-    }
+    const_iterator end() const { return const_iterator(*this); }
 
-    size_t count() const {
-      return count_;
-    }
+    size_t count() const { return count_; }
 
-    bool empty() const {
-      return !count_;
-    }
-    size_t size() const {
-      return count_;
-    }
+    bool empty() const { return !count_; }
+    size_t size() const { return count_; }
 
     folly::Range<const Item*> range() const {
-      static_assert(detail::IsBlitType<Item>::value, "");
+      static_assert(
+          apache::thrift::frozen::detail::IsBlitType<Item>::value, "");
       auto data = reinterpret_cast<const Item*>(data_);
       return {data, data + count_};
     }
@@ -236,9 +230,9 @@ struct ArrayLayout : public LayoutBase {
     class Iterator {
      public:
       using difference_type = ptrdiff_t;
-      using value_type = const ItemView;
-      using pointer = value_type*;
-      using reference = value_type&;
+      using value_type = ItemView;
+      using pointer = const value_type*;
+      using reference = const value_type&;
       using iterator_category = std::random_access_iterator_tag;
 
       Iterator() {}
@@ -250,12 +244,8 @@ struct ArrayLayout : public LayoutBase {
       explicit Iterator(const View& outer)
           : outer_(outer), index_(outer.count_) {}
 
-      const ItemView& operator*() const {
-        return item_;
-      }
-      const ItemView* operator->() const {
-        return &item_;
-      }
+      const ItemView& operator*() const { return item_; }
+      const ItemView* operator->() const { return &item_; }
 
       Item thaw() const {
         Item item;
@@ -312,8 +302,22 @@ struct ArrayLayout : public LayoutBase {
         return index_ == other.index_;
       }
 
-      bool operator!=(const Iterator& other) const {
-        return !(*this == other);
+      bool operator!=(const Iterator& other) const { return !(*this == other); }
+
+      bool operator<(const Iterator& other) const {
+        return index_ < other.index_;
+      }
+
+      bool operator<=(const Iterator& other) const {
+        return index_ <= other.index_;
+      }
+
+      bool operator>(const Iterator& other) const {
+        return index_ > other.index_;
+      }
+
+      bool operator>=(const Iterator& other) const {
+        return index_ >= other.index_;
       }
 
      private:
@@ -337,18 +341,19 @@ struct ArrayLayout : public LayoutBase {
     size_t count_{0};
   };
 
-  View view(ViewPosition self) const {
-    return View(this, self);
-  }
+  View view(ViewPosition self) const { return View(this, self); }
 };
 
 } // namespace detail
 
 template <class T>
 struct Layout<T, typename std::enable_if<IsList<T>::value>::type>
-    : public detail::ArrayLayout<T, typename T::value_type> {};
+    : public apache::thrift::frozen::detail::
+          ArrayLayout<T, typename T::value_type> {};
 } // namespace frozen
 } // namespace thrift
 } // namespace apache
 
 THRIFT_DECLARE_TRAIT_TEMPLATE(IsList, std::vector)
+THRIFT_DECLARE_TRAIT_TEMPLATE(IsList, std::deque)
+THRIFT_DECLARE_TRAIT_TEMPLATE(IsList, folly::fbvector)

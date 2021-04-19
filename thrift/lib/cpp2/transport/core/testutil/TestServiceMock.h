@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,7 @@
 
 #include <atomic>
 
-#include <gmock/gmock.h>
+#include <folly/portability/GMock.h>
 
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <thrift/lib/cpp2/transport/core/testutil/gen-cpp2/IntermHeaderService.tcc>
@@ -38,6 +38,8 @@ class TestServiceMock : public TestServiceSvIf {
   MOCK_METHOD1(onewayThrowsUnexpectedException_, void(int32_t));
   MOCK_METHOD1(hello_, std::string(const std::string&));
   MOCK_METHOD1(checkPort_, void(int32_t));
+  MOCK_METHOD1(echo_, std::string(folly::IOBuf));
+  MOCK_METHOD1(onewayLogBlob_, void(folly::IOBuf));
 
   int32_t sumTwoNumbers(int32_t x, int32_t y) override;
 
@@ -58,6 +60,10 @@ class TestServiceMock : public TestServiceSvIf {
   void hello(std::string& result, std::unique_ptr<std::string> name) override;
 
   void checkPort(int32_t port) override;
+
+  void echo(std::string& result, std::unique_ptr<folly::IOBuf> val) override;
+
+  void onewayLogBlob(std::unique_ptr<folly::IOBuf> val) override;
 
  protected:
   std::atomic<int32_t> sum{0};

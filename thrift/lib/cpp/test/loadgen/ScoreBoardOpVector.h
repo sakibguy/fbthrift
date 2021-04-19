@@ -1,31 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_TEST_LOADGEN_SCOREBOARDOPVECTOR_H_
 #define THRIFT_TEST_LOADGEN_SCOREBOARDOPVECTOR_H_ 1
 
 #include <thrift/lib/cpp/test/loadgen/ScoreBoard.h>
 
 #include <assert.h>
-#include <vector>
 #include <stddef.h>
+#include <vector>
 
-namespace apache { namespace thrift { namespace loadgen {
+namespace apache {
+namespace thrift {
+namespace loadgen {
 
 /**
  * A vector of per-operation scoreboard data.
@@ -37,7 +37,7 @@ namespace apache { namespace thrift { namespace loadgen {
  * - a zero() method
  * - an accumulate() method
  */
-template<typename OpDataT>
+template <typename OpDataT>
 class ScoreBoardOpVector {
  private:
   typedef std::vector<OpDataT> DataVector;
@@ -46,9 +46,7 @@ class ScoreBoardOpVector {
   typedef typename DataVector::iterator Iterator;
   typedef typename DataVector::const_iterator ConstIterator;
 
-  explicit ScoreBoardOpVector(uint32_t numOpsHint) {
-    resize(numOpsHint);
-  }
+  explicit ScoreBoardOpVector(uint32_t numOpsHint) { resize(numOpsHint); }
 
   OpDataT* getOpData(uint32_t opType) {
     if (opType >= opData_.size()) {
@@ -76,8 +74,7 @@ class ScoreBoardOpVector {
     }
 
     uint32_t index = 0;
-    for (ConstIterator it = other->opData_.begin();
-         it != other->opData_.end();
+    for (ConstIterator it = other->opData_.begin(); it != other->opData_.end();
          ++it, ++index) {
       opData_[index].accumulate(&(*it));
     }
@@ -90,19 +87,11 @@ class ScoreBoardOpVector {
     }
   }
 
-  Iterator begin() {
-    return opData_.begin();
-  }
-  Iterator end() {
-    return opData_.end();
-  }
+  Iterator begin() { return opData_.begin(); }
+  Iterator end() { return opData_.end(); }
 
-  ConstIterator begin() const {
-    return opData_.begin();
-  }
-  ConstIterator end() const {
-    return opData_.end();
-  }
+  ConstIterator begin() const { return opData_.begin(); }
+  ConstIterator end() const { return opData_.end(); }
 
  private:
   void resize(uint32_t numOps) {
@@ -122,6 +111,8 @@ class ScoreBoardOpVector {
   DataVector opData_;
 };
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_TEST_LOADGEN_SCOREBOARDOPVECTOR_H_

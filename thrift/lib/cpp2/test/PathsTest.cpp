@@ -1,29 +1,24 @@
 /*
- * Copyright 2013-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <cmath>
 #include <iostream>
 #include <string>
 
-#include <gtest/gtest.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/test/gen-cpp2/Paths_types.h>
@@ -39,11 +34,11 @@ TEST(PathsDemo, example) {
     int x = 60 * std::cos(i * 0.01);
     int y = 60 * std::sin(i * 0.01);
     Point p;
-    p.x = x;
-    p.y = y;
-    p1.points.push_back(p);
-    p2.xs.push_back(x);
-    p2.ys.push_back(y);
+    *p.x_ref() = x;
+    *p.y_ref() = y;
+    p1.points_ref()->push_back(p);
+    p2.xs_ref()->push_back(x);
+    p2.ys_ref()->push_back(y);
   }
 
   auto s1 = CompactSerializer::serialize<std::string>(p1);

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,16 +30,21 @@
 #include <vector>
 
 #include <folly/Demangle.h>
+#include <folly/FBVector.h>
 #include <folly/MapUtil.h>
 #include <folly/Memory.h>
 #include <folly/Optional.h>
 #include <folly/Range.h>
-#include <folly/container/F14Map-pre.h>
-#include <folly/container/F14Set-pre.h>
+#include <folly/Utility.h>
+#include <folly/container/F14Map-fwd.h>
+#include <folly/container/F14Set-fwd.h>
 #include <folly/experimental/Bits.h>
 #include <folly/hash/Hash.h>
 #include <folly/lang/Bits.h>
+#include <folly/sorted_vector_types.h>
+#include <thrift/lib/cpp2/frozen/FixedSizeStringHash.h>
 #include <thrift/lib/cpp2/frozen/FrozenMacros.h>
+#include <thrift/lib/cpp2/frozen/HintTypes.h>
 #include <thrift/lib/cpp2/frozen/Traits.h>
 #include <thrift/lib/cpp2/frozen/schema/MemorySchema.h>
 #include <thrift/lib/thrift/gen-cpp2/frozen_types.h>
@@ -77,6 +82,8 @@ namespace frozen {
  * -Tom Jackson
  */
 typedef uint8_t byte;
+
+class LoadRoot;
 
 /**
  * Simply represents an indented line separator for use in debugging
@@ -119,6 +126,10 @@ struct LayoutPosition {
   LayoutPosition operator()(FieldPosition f) const {
     return {start + f.offset, bitOffset + f.bitOffset};
   }
+
+  int64_t byteOffset(LayoutPosition that) const {
+    return static_cast<int64_t>(start) - static_cast<int64_t>(that.start);
+  }
 };
 
 /**
@@ -140,6 +151,10 @@ struct FreezePosition {
   FreezePosition operator()(FieldPosition f) const {
     return {start + f.offset, bitOffset + f.bitOffset};
   }
+
+  int64_t byteOffset(FreezePosition that) const {
+    return static_cast<int64_t>(start - that.start);
+  }
 };
 
 /**
@@ -155,6 +170,20 @@ struct ViewPosition {
   size_t bitOffset;
   ViewPosition operator()(FieldPosition f) const {
     return {start + f.offset, bitOffset + f.bitOffset};
+  }
+
+  ViewPosition operator()(int64_t bytes) const { return {start + bytes, 0}; }
+
+  int64_t toBits() const noexcept {
+    return reinterpret_cast<int64_t>(start) * 8 + bitOffset;
+  }
+
+  inline bool operator==(const ViewPosition& that) const noexcept {
+    return toBits() == that.toBits();
+  }
+
+  inline bool operator!=(const ViewPosition& that) const noexcept {
+    return toBits() != that.toBits();
   }
 };
 
@@ -202,16 +231,15 @@ struct LayoutBase {
    * Convenience function for placing the first field for layout.
    */
   FieldPosition startFieldPosition() const {
-    return FieldPosition(inlined ? 0 : (bits + 7) / 8);
+    uint32_t offset = folly::to_narrow(inlined ? 0 : (bits + 7) / 8);
+    return FieldPosition(folly::to_signed(offset));
   }
 
   /**
    * Indicates that this layout requires no storage, so saving and freezing may
    * be skipped
    */
-  bool empty() const {
-    return !size && !bits;
-  }
+  bool empty() const { return !size && !bits; }
 
   virtual ~LayoutBase() {}
 
@@ -245,9 +273,15 @@ struct LayoutBase {
   template <typename SchemaInfo>
   void load(
       const typename SchemaInfo::Schema&,
-      const typename SchemaInfo::Layout& layout) {
+      const typename SchemaInfo::Layout& layout,
+      LoadRoot&) {
     size = layout.getSize();
     bits = layout.getBits();
+  }
+
+  template <typename K>
+  static size_t hash(const K& key) {
+    return std::hash<K>()(key);
   }
 
  protected:
@@ -263,19 +297,6 @@ struct Layout : public LayoutBase {
       "Be sure to 'frozen2' cpp option was enabled and "
       "'#include \"..._layouts.h\"'");
 };
-
-template <typename T, typename SchemaInfo = schema::SchemaInfo>
-void saveRoot(const Layout<T>& layout, typename SchemaInfo::Schema& schema) {
-  typename SchemaInfo::Helper helper(schema);
-  typename SchemaInfo::Layout myLayout;
-  layout.template save<SchemaInfo>(schema, myLayout, helper);
-  schema.setRootLayoutId(std::move(helper.add(std::move(myLayout))));
-}
-
-template <typename T, typename SchemaInfo = schema::SchemaInfo>
-void loadRoot(Layout<T>& layout, const typename SchemaInfo::Schema& schema) {
-  layout.template load<SchemaInfo>(schema, schema.getRootLayout());
-}
 
 std::ostream& operator<<(std::ostream& os, const LayoutBase& layout);
 
@@ -341,9 +362,7 @@ struct Field final : public FieldBase {
   /**
    * Clears this subtree's layout, changing the layout to 0 bytes.
    */
-  void clear() override {
-    layout.clear();
-  }
+  void clear() override { layout.clear(); }
 
   /**
    * Populates the layout information for this field from the description of
@@ -352,7 +371,8 @@ struct Field final : public FieldBase {
   template <typename SchemaInfo>
   void load(
       const typename SchemaInfo::Schema& schema,
-      const typename SchemaInfo::Field& field) {
+      const typename SchemaInfo::Field& field,
+      LoadRoot& root) {
     auto offset = field.getOffset();
     if (offset < 0) {
       pos.bitOffset = -offset;
@@ -360,7 +380,7 @@ struct Field final : public FieldBase {
       pos.offset = offset;
     }
     this->layout.template load<SchemaInfo>(
-        schema, schema.getLayoutForField(field));
+        schema, schema.getLayoutForField(field), root);
   }
 
   /**
@@ -389,6 +409,31 @@ struct Field final : public FieldBase {
     field.setLayoutId(helper.add(std::move(myLayout)));
     parent.addField(std::move(field));
   }
+};
+
+/**
+ * A view of an unqualified field of a Frozen object. It provides a consistent
+ * interface between Frozen and Thrift.
+ */
+template <typename T>
+class FieldView {
+ public:
+  using value_type = T;
+
+  explicit FieldView(T value) : value_(value) {}
+
+  bool is_set() const noexcept { return true; }
+
+  bool has_value() const noexcept { return true; }
+
+  T value() const noexcept { return value_; }
+
+  const T& operator*() const noexcept { return value_; }
+
+  const T* operator->() const noexcept { return &value_; }
+
+ private:
+  T value_;
 };
 
 /**
@@ -422,6 +467,8 @@ class ViewBase {
   explicit operator bool() const {
     return position_.start && !layout_->empty();
   }
+
+  ViewPosition getPosition() { return position_; }
 
   /**
    * thaw this object back into its original, mutable representation.
@@ -469,7 +516,9 @@ FieldPosition maximizeField(FieldPosition fieldPos, Field<T, Layout>& field) {
       // only consumed bits, layout at bit offset
       layout.resize(after, true);
       field.pos = inlinedField;
-      nextPos.bitOffset += layout.bits;
+
+      uint32_t bits = folly::to_narrow(layout.bits);
+      nextPos.bitOffset += bits;
     }
   }
   if (!inlineBits) {
@@ -477,7 +526,8 @@ FieldPosition maximizeField(FieldPosition fieldPos, Field<T, Layout>& field) {
     FieldPosition after = layout.maximize();
     layout.resize(after, false);
     field.pos = normalField;
-    nextPos.offset += layout.size;
+    uint32_t size = folly::to_narrow(layout.size);
+    nextPos.offset += size;
   }
   return nextPos;
 }
@@ -497,11 +547,82 @@ Layout<T> maximumLayout() {
   return layout;
 }
 
+class FieldCycleHolder {
+ public:
+  template <class T, class D>
+  Field<T>* pushCycle(
+      std::unique_ptr<Field<T>, D>& owned, int32_t key, const char* name) {
+    auto& slot = cyclicFields_[typeid(T)];
+    if (slot.refCount++ == 0) {
+      if (!owned) {
+        owned = std::make_unique<Field<T>>(key, name);
+      }
+      slot.field = owned.get();
+    }
+    CHECK(slot.field);
+    return static_cast<Field<T>*>(slot.field);
+  }
+
+  template <class T, class D>
+  void popCycle(std::unique_ptr<Field<T>, D>& owned) {
+    auto& slot = cyclicFields_[typeid(T)];
+    if (--slot.refCount == 0) {
+      CHECK(owned != nullptr);
+      CHECK(owned.get() == slot.field);
+      slot.field = nullptr;
+    } else {
+      CHECK(owned == nullptr);
+    }
+  }
+
+  template <class T>
+  Field<T>* pushCycle(
+      std::shared_ptr<Field<T>>& owned, int32_t key, const char* name) {
+    auto& slot = cyclicFields_[typeid(T)];
+    if (slot.refCount++ == 0) {
+      if (!owned) {
+        owned = std::make_shared<Field<T>>(key, name);
+      }
+      slot.field = owned.get();
+    }
+    CHECK(slot.field);
+    return static_cast<Field<T>*>(slot.field);
+  }
+
+  template <class T>
+  void popCycle(std::shared_ptr<Field<T>>& owned) {
+    auto& slot = cyclicFields_[typeid(T)];
+    if (--slot.refCount == 0) {
+      CHECK(owned != nullptr);
+      CHECK(owned.get() == slot.field);
+      slot.field = nullptr;
+    } else {
+      CHECK(owned == nullptr);
+    }
+  }
+
+  template <class T>
+  void updateCycle(std::shared_ptr<Field<T>>& owned) {
+    CHECK(owned != nullptr);
+    auto& slot = cyclicFields_[typeid(T)];
+    // only the first one can update, otherwise we have no way to inform others
+    CHECK_EQ(slot.refCount, 1);
+    slot.field = owned.get();
+  }
+
+ private:
+  struct SharedField {
+    FieldBase* field = nullptr;
+    size_t refCount = 0;
+  };
+  std::unordered_map<std::type_index, SharedField> cyclicFields_;
+};
+
 /**
  * LayoutRoot calculates the layout necessary to store a given object,
  * recursively. The logic of layout should closely match that of freezing.
  */
-class LayoutRoot {
+class LayoutRoot : public FieldCycleHolder {
   LayoutRoot() {}
   /**
    * Lays out a given object from the root, repeatedly running layout until a
@@ -517,6 +638,9 @@ class LayoutRoot {
       if (!resized_) {
         return cursor_ + kPaddingBytes;
       }
+      // clear the trackers to restart graph traversal
+      sharedFields_.clear();
+      positions_.clear();
     }
     assert(false); // layout should always reach a fixed point.
     return 0;
@@ -547,8 +671,8 @@ class LayoutRoot {
    * bound storage size estimate and indication of whether the layout changed.
    */
   template <class T>
-  static void
-  layout(const T& root, Layout<T>& layout, bool& layoutChanged, size_t& size) {
+  static void layout(
+      const T& root, Layout<T>& layout, bool& layoutChanged, size_t& size) {
     LayoutRoot layoutRoot;
     size_t resizes;
     size = layoutRoot.doLayout(root, layout, resizes);
@@ -582,7 +706,8 @@ class LayoutRoot {
         resized_ = _layout.resize(after, true) || resized_;
         if (!_layout.empty()) {
           field.pos = inlinedField;
-          nextPos.bitOffset += _layout.bits;
+          uint32_t bits = folly::to_narrow(_layout.bits);
+          nextPos.bitOffset += bits;
         }
       }
     }
@@ -592,7 +717,8 @@ class LayoutRoot {
       resized_ = _layout.resize(after, false) || resized_;
       if (!_layout.empty()) {
         field.pos = normalField;
-        nextPos.offset += _layout.size;
+        uint32_t size = folly::to_narrow(_layout.size);
+        nextPos.offset += size;
       }
     }
     return nextPos;
@@ -603,13 +729,9 @@ class LayoutRoot {
       LayoutPosition self,
       FieldPosition fieldPos,
       Field<folly::Optional<T>, Layout>& field,
-      bool present,
-      const T& value) {
-    if (present) {
-      return layoutField(self, fieldPos, field, value);
-    } else {
-      return layoutField(self, fieldPos, field, folly::none);
-    }
+      apache::thrift::optional_field_ref<const T&> ref) {
+    return layoutField(
+        self, fieldPos, field, ref ? folly::make_optional(*ref) : folly::none);
   }
 
   /**
@@ -631,10 +753,42 @@ class LayoutRoot {
     return worstCaseDistance;
   }
 
+  template <typename T>
+  void shareField(const T* ptr, std::shared_ptr<Field<T>> field) {
+    assert(sharedFieldOf(ptr) == nullptr);
+    auto key = reinterpret_cast<uintptr_t>(ptr);
+    sharedFields_[key] = field;
+  }
+
+  template <typename T>
+  std::shared_ptr<Field<T>> sharedFieldOf(const T* ptr) const {
+    auto key = reinterpret_cast<uintptr_t>(ptr);
+    auto it = sharedFields_.find(key);
+    return it != sharedFields_.end()
+        ? std::dynamic_pointer_cast<Field<T>>(it->second)
+        : nullptr;
+  }
+
+  template <typename T>
+  void registerLayoutPosition(const T* ptr, LayoutPosition pos) {
+    auto key = reinterpret_cast<uintptr_t>(ptr);
+    DCHECK_EQ(positions_.count(key), 0);
+    positions_[key] = pos;
+  }
+
+  template <typename T>
+  const LayoutPosition* layoutPositionOf(const T* ptr) const {
+    auto key = reinterpret_cast<uintptr_t>(ptr);
+    auto it = positions_.find(key);
+    return it == positions_.end() ? nullptr : &it->second;
+  }
+
  protected:
   bool resized_;
   size_t cursor_;
-};
+  std::unordered_map<uintptr_t, std::shared_ptr<FieldBase>> sharedFields_;
+  std::unordered_map<uintptr_t, LayoutPosition> positions_;
+}; // namespace frozen
 
 /**
  * LayoutException is thrown if freezing is attempted without a sufficient
@@ -654,8 +808,7 @@ class LayoutException : public std::length_error {
 class LayoutTypeMismatchException : public std::logic_error {
  public:
   LayoutTypeMismatchException(
-      const std::string& expected,
-      const std::string& actual)
+      const std::string& expected, const std::string& actual)
       : std::logic_error(
             "Layout for '" + expected + "' loaded from layout of '" + actual +
             "'") {}
@@ -667,6 +820,8 @@ class LayoutTypeMismatchException : public std::logic_error {
  */
 class FreezeRoot {
  protected:
+  std::unordered_map<uintptr_t, FreezePosition> positions_;
+
   template <class T>
   typename Layout<T>::View doFreeze(const Layout<T>& layout, const T& root) {
     folly::MutableByteRange range, tail;
@@ -687,9 +842,7 @@ class FreezeRoot {
    */
   template <class T, class Layout, class Arg>
   void freezeField(
-      FreezePosition self,
-      const Field<T, Layout>& field,
-      const Arg& value) {
+      FreezePosition self, const Field<T, Layout>& field, const Arg& value) {
     field.layout.freeze(*this, value, self(field.pos));
   }
 
@@ -697,13 +850,26 @@ class FreezeRoot {
   void freezeOptionalField(
       FreezePosition self,
       const Field<folly::Optional<T>, Layout>& field,
-      bool present,
-      const T& value) {
-    if (present) {
-      freezeField(self, field, value);
-    } else {
-      freezeField(self, field, folly::none);
-    }
+      apache::thrift::optional_field_ref<const T&> ref) {
+    freezeField(self, field, ref ? folly::make_optional(*ref) : folly::none);
+  }
+
+  /**
+   * Helpers to freeze reference nodes. Note the difference between unique_ptr
+   * and shared_ptr, see the comments of shouldLayout() in LayoutRoot class
+   */
+  template <typename T>
+  const FreezePosition* freezePositionOf(const T* ptr) const {
+    auto key = reinterpret_cast<uintptr_t>(ptr);
+    auto it = positions_.find(key);
+    return it == positions_.end() ? nullptr : &it->second;
+  }
+
+  template <typename T>
+  void registerFreezePosition(const T* ptr, FreezePosition pos) {
+    auto key = reinterpret_cast<uintptr_t>(ptr);
+    DCHECK_EQ(positions_.count(key), 0);
+    positions_[key] = pos;
   }
 
   /**
@@ -742,9 +908,7 @@ class ByteRangeFreezer final : public FreezeRoot {
  public:
   template <class T>
   static typename Layout<T>::View freeze(
-      const Layout<T>& layout,
-      const T& root,
-      folly::MutableByteRange& write) {
+      const Layout<T>& layout, const T& root, folly::MutableByteRange& write) {
     ByteRangeFreezer freezer(write);
     auto view = freezer.doFreeze(layout, root);
     return view;
@@ -760,6 +924,28 @@ class ByteRangeFreezer final : public FreezeRoot {
 
   folly::MutableByteRange& write_;
 };
+
+/**
+ * The root that manage the referred fields at load time
+ */
+class LoadRoot : public FieldCycleHolder {
+ public:
+  LoadRoot() {}
+};
+
+template <typename T, typename SchemaInfo = schema::SchemaInfo>
+void saveRoot(const Layout<T>& layout, typename SchemaInfo::Schema& schema) {
+  typename SchemaInfo::Helper helper(schema);
+  typename SchemaInfo::Layout myLayout;
+  layout.template save<SchemaInfo>(schema, myLayout, helper);
+  schema.setRootLayoutId(std::move(helper.add(std::move(myLayout))));
+}
+
+template <typename T, typename SchemaInfo = schema::SchemaInfo>
+void loadRoot(Layout<T>& layout, const typename SchemaInfo::Schema& schema) {
+  LoadRoot root;
+  layout.template load<SchemaInfo>(schema, schema.getRootLayout(), root);
+}
 
 struct Holder {
   virtual ~Holder() {}
@@ -821,11 +1007,7 @@ enum class Frozen2 { Marker };
  * Freezes an object, returning an View bundled with an owned layout and
  * storage.
  */
-template <
-    class T,
-    class =
-        typename std::enable_if<!folly::is_trivially_copyable<T>::value>::type,
-    class Return = Bundled<typename Layout<T>::View>>
+template <class T, class Return = Bundled<typename Layout<T>::View>>
 Return freeze(const T& x, Frozen2 = Frozen2::Marker) {
   std::unique_ptr<Layout<T>> layout(new Layout<T>);
   size_t size = LayoutRoot::layout(x, *layout);
@@ -853,16 +1035,39 @@ template <class T>
 void thawField(
     ViewPosition self,
     const Field<folly::Optional<T>>& f,
-    T& out,
-    bool& isset) {
+    apache::thrift::optional_field_ref<T&> out) {
   folly::Optional<T> opt;
   f.layout.thaw(self(f.pos), opt);
   if (opt) {
-    isset = true;
     out = opt.value();
   } else {
-    isset = false;
+    out.reset();
   }
+}
+
+/**
+ * Helper for thawing a ref field into an unique_ptr field
+ */
+template <
+    class T,
+    class D,
+    std::enable_if_t<!std::is_same<T, folly::IOBuf>::value>>
+void thawField(
+    ViewPosition self,
+    const Field<std::unique_ptr<T, D>>& f,
+    std::unique_ptr<T, D>& out) {
+  f.layout.thaw(self(f.pos), out);
+}
+
+/**
+ * Helper for thawing a ref field into an shared_ptr field
+ */
+template <class T>
+void thawField(
+    ViewPosition self,
+    const Field<std::shared_ptr<T>>& f,
+    std::shared_ptr<T>& out) {
+  f.layout.thaw(self(f.pos), out);
 }
 
 /**
@@ -877,6 +1082,7 @@ using View = typename Layout<T>::View;
 } // namespace thrift
 } // namespace apache
 
+#include <thrift/lib/cpp2/frozen/FrozenFixedSizeString-inl.h> // @nolint
 #include <thrift/lib/cpp2/frozen/FrozenTrivial-inl.h> // @nolint
 // depends on Trivial
 #include <thrift/lib/cpp2/frozen/FrozenBool-inl.h> // @nolint
@@ -884,6 +1090,7 @@ using View = typename Layout<T>::View;
 #include <thrift/lib/cpp2/frozen/FrozenOptional-inl.h> // @nolint
 #include <thrift/lib/cpp2/frozen/FrozenPair-inl.h> // @nolint
 #include <thrift/lib/cpp2/frozen/FrozenRange-inl.h> // @nolint
+#include <thrift/lib/cpp2/frozen/FrozenRef-inl.h> // @nolint
 #include <thrift/lib/cpp2/frozen/FrozenString-inl.h> // @nolint
 // depends on Range
 #include <thrift/lib/cpp2/frozen/FrozenHashTable-inl.h> // @nolint

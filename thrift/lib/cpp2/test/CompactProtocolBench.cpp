@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,11 +20,12 @@
 
 #include <iostream>
 #include <vector>
-#include <gflags/gflags.h>
+
+#include <fmt/core.h>
 #include <glog/logging.h>
 #include <folly/Benchmark.h>
-#include <folly/Format.h>
 #include <folly/Optional.h>
+#include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 
 using namespace std;
@@ -36,8 +37,8 @@ const size_t kMultExp = 0;
 
 Shallow makeShallow() {
   Shallow data;
-  data.one = 750ll;
-  data.two = 750ll << 22;
+  *data.one_ref() = 750ll;
+  *data.two_ref() = 750ll << 22;
   return data;
 }
 
@@ -48,11 +49,11 @@ Deep makeDeep(size_t triplesz) {
     for (size_t j = 0; j < triplesz; ++j) {
       Deep2 data2;
       for (size_t k = 0; k < triplesz; ++k) {
-        data2.datas.push_back(sformat("omg[{}, {}, {}]", i, j, k));
+        data2.datas_ref()->push_back(fmt::format("omg[{}, {}, {}]", i, j, k));
       }
-      data1.deeps.push_back(move(data2));
+      data1.deeps_ref()->push_back(move(data2));
     }
-    data.deeps.push_back(move(data1));
+    data.deeps_ref()->push_back(move(data1));
   }
   return data;
 }
@@ -77,7 +78,7 @@ BENCHMARK(CompactProtocolReader_dtor, kiters) {
   }
   braces.dismiss();
   while (iters--) {
-    protos[iters].clear();
+    protos[iters].reset();
   }
   braces.rehire();
 }
@@ -102,7 +103,7 @@ BENCHMARK(CompactProtocolWriter_dtor, kiters) {
   }
   braces.dismiss();
   while (iters--) {
-    protos[iters].clear();
+    protos[iters].reset();
   }
   braces.rehire();
 }

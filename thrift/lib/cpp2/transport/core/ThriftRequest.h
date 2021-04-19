@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,20 +18,31 @@
 
 #include <stdint.h>
 
+#include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include <glog/logging.h>
 
+#include <folly/Portability.h>
+
+#include <folly/Optional.h>
 #include <folly/io/IOBuf.h>
+
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
+#if FOLLY_HAS_COROUTINES
+#include <thrift/lib/cpp2/async/Sink.h>
+#endif
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 #include <thrift/lib/cpp2/server/ServerConfigs.h>
+#include <thrift/lib/cpp2/transport/core/RequestStateMachine.h>
 #include <thrift/lib/cpp2/transport/core/ThriftChannelIf.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -45,136 +56,250 @@ namespace thrift {
  * to clean up our APIs to avoid the dependency to a ResponseChannel
  * object.
  */
-class ThriftRequestCore : public ResponseChannel::Request {
+class ThriftRequestCore : public ResponseChannelRequest {
  public:
   ThriftRequestCore(
-      const apache::thrift::server::ServerConfigs& serverConfigs,
-      std::unique_ptr<RequestRpcMetadata> metadata,
-      std::unique_ptr<Cpp2ConnContext> connContext)
+      server::ServerConfigs& serverConfigs,
+      RequestRpcMetadata&& metadata,
+      Cpp2ConnContext& connContext)
       : serverConfigs_(serverConfigs),
-        name_(metadata->name),
-        kind_(metadata->kind),
-        seqId_(metadata->seqId),
-        active_(true),
-        connContext_(
-            connContext ? std::move(connContext)
-                        : std::make_unique<Cpp2ConnContext>()),
-        reqContext_(connContext_.get(), &header_),
+        kind_(metadata.kind_ref().value_or(
+            RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE)),
+        checksumRequested_(metadata.crc32c_ref().has_value()),
+        loadMetric_(
+            metadata.loadMetric_ref()
+                ? folly::make_optional(std::move(*metadata.loadMetric_ref()))
+                : folly::none),
+        reqContext_(&connContext, &header_),
         queueTimeout_(serverConfigs_),
         taskTimeout_(serverConfigs_) {
-    header_.setProtocolId(static_cast<int16_t>(metadata->protocol));
-    header_.setSequenceNumber(metadata->seqId);
-    if (metadata->__isset.clientTimeoutMs) {
-      header_.setClientTimeout(
-          std::chrono::milliseconds(metadata->clientTimeoutMs));
-    }
-    if (metadata->__isset.queueTimeoutMs) {
-      header_.setClientQueueTimeout(
-          std::chrono::milliseconds(metadata->queueTimeoutMs));
-    }
-    if (metadata->__isset.priority) {
-      header_.setCallPriority(
-          static_cast<concurrency::PRIORITY>(metadata->priority));
-    }
-    if (metadata->__isset.otherMetadata) {
-      header_.setReadHeaders(std::move(metadata->otherMetadata));
-    }
-    reqContext_.setMessageBeginSize(0);
-    reqContext_.setMethodName(metadata->name);
-    reqContext_.setProtoSeqId(metadata->seqId);
+    // Note that method name, RPC kind, and serialization protocol are validated
+    // outside the ThriftRequestCore constructor.
+    header_.setProtocolId(static_cast<int16_t>(
+        metadata.protocol_ref().value_or(ProtocolId::BINARY)));
 
-    auto observer = serverConfigs_.getObserver();
-    if (observer) {
+    if (auto clientTimeoutMs = metadata.clientTimeoutMs_ref()) {
+      clientTimeout_ = std::chrono::milliseconds(*clientTimeoutMs);
+      header_.setClientTimeout(clientTimeout_);
+    }
+    if (auto queueTimeoutMs = metadata.queueTimeoutMs_ref()) {
+      clientQueueTimeout_ = std::chrono::milliseconds(*queueTimeoutMs);
+      header_.setClientQueueTimeout(clientQueueTimeout_);
+    }
+    if (auto priority = metadata.priority_ref()) {
+      header_.setCallPriority(static_cast<concurrency::PRIORITY>(*priority));
+    }
+    if (auto otherMetadata = metadata.otherMetadata_ref()) {
+      header_.setReadHeaders(std::move(*otherMetadata));
+    }
+    if (auto clientId = metadata.clientId_ref()) {
+      header_.setClientId(*clientId);
+      header_.setReadHeader(
+          transport::THeader::kClientId, std::move(*clientId));
+    }
+    if (auto serviceTraceMeta = metadata.serviceTraceMeta_ref()) {
+      header_.setServiceTraceMeta(*serviceTraceMeta);
+      header_.setReadHeader(
+          transport::THeader::kServiceTraceMeta, std::move(*serviceTraceMeta));
+    }
+
+    // Store client's compression configs (if client explicitly requested
+    // compression codec and size limit, use these settings to compress
+    // response)
+    if (auto compressionConfig = metadata.compressionConfig_ref()) {
+      compressionConfig_ = *compressionConfig;
+    }
+
+    if (auto methodName = metadata.name_ref()) {
+      reqContext_.setMethodName(std::move(*methodName).str());
+    }
+
+    if (auto* observer = serverConfigs_.getObserver()) {
       observer->receivedRequest();
     }
-
-    if (metadata->__isset.queueTimeoutMs) {
-      clientQueueTimeout_ = std::chrono::milliseconds(metadata->queueTimeoutMs);
-    }
-    if (metadata->__isset.clientTimeoutMs) {
-      clientTimeout_ = std::chrono::milliseconds(metadata->clientTimeoutMs);
-    }
   }
 
-  ~ThriftRequestCore() override {
-    // Cancel the timers before getting destroyed
-    cancelTimeout();
-  }
+  ~ThriftRequestCore() override { cancelTimeout(); }
 
-  bool isActive() final {
-    return active_.load();
-  }
+  bool isActive() const final { return stateMachine_.isActive(); }
 
-  void cancel() override {
-    if (active_.exchange(false)) {
-      cancelTimeout();
-    }
-  }
+  bool tryCancel() { return stateMachine_.tryCancel(getEventBase()); }
 
-  bool isOneway() final {
+  RpcKind kind() const { return kind_; }
+
+  bool isOneway() const final {
     return kind_ == RpcKind::SINGLE_REQUEST_NO_RESPONSE ||
         kind_ == RpcKind::STREAMING_REQUEST_NO_RESPONSE;
   }
 
-  protocol::PROTOCOL_TYPES getProtoId() {
+  protocol::PROTOCOL_TYPES getProtoId() const {
     return static_cast<protocol::PROTOCOL_TYPES>(header_.getProtocolId());
   }
 
-  Cpp2RequestContext* getRequestContext() {
-    return &reqContext_;
+  Cpp2RequestContext* getRequestContext() { return &reqContext_; }
+
+  const transport::THeader& getTHeader() const { return header_; }
+
+  const std::string& getMethodName() const {
+    return reqContext_.getMethodName();
   }
+
+  const folly::Optional<CompressionConfig>& getCompressionConfig() {
+    return compressionConfig_;
+  }
+
+  // RequestTimestampSample is a wrapper for sampled requests
+  class RequestTimestampSample : public MessageChannel::SendCallback {
+   public:
+    RequestTimestampSample(
+        server::TServerObserver::CallTimestamps& timestamps,
+        server::TServerObserver* observer,
+        MessageChannel::SendCallback* chainedCallback = nullptr);
+
+    void sendQueued() override;
+    void messageSent() override;
+    void messageSendError(folly::exception_wrapper&& e) override;
+    ~RequestTimestampSample() override;
+
+   private:
+    server::TServerObserver::CallTimestamps timestamps_;
+    server::TServerObserver* observer_;
+    MessageChannel::SendCallback* chainedCallback_;
+  };
 
   void sendReply(
       std::unique_ptr<folly::IOBuf>&& buf,
-      apache::thrift::MessageChannel::SendCallback* cb = nullptr) final {
-    if (active_.exchange(false)) {
-      cancelTimeout();
-      sendReplyInternal(std::move(buf), cb);
+      apache::thrift::MessageChannel::SendCallback* cb,
+      folly::Optional<uint32_t> crc32c) override final;
 
-      auto observer = serverConfigs_.getObserver();
-      if (observer) {
+  bool sendStreamReply(
+      std::unique_ptr<folly::IOBuf> response,
+      StreamServerCallbackPtr stream,
+      folly::Optional<uint32_t> crc32c) override final {
+    if (tryCancel()) {
+      cancelTimeout();
+      auto metadata = makeResponseRpcMetadata(header_.extractAllWriteHeaders());
+      if (crc32c) {
+        metadata.crc32c_ref() = *crc32c;
+      }
+      auto alive = sendReplyInternal(
+          std::move(metadata), std::move(response), std::move(stream));
+
+      if (auto* observer = serverConfigs_.getObserver()) {
         observer->sentReply();
       }
+      return alive;
     }
+    return false;
   }
 
   void sendStreamReply(
-      ResponseAndSemiStream<
-          std::unique_ptr<folly::IOBuf>,
-          std::unique_ptr<folly::IOBuf>>&& result,
-      MessageChannel::SendCallback* cb) final {
-    if (active_.exchange(false)) {
+      std::unique_ptr<folly::IOBuf>&& buf,
+      apache::thrift::detail::ServerStreamFactory&& stream,
+      folly::Optional<uint32_t> crc32c) override final {
+    if (tryCancel()) {
       cancelTimeout();
-      sendReplyInternal(
-          std::move(result.response), std::move(result.stream), cb);
+      auto metadata = makeResponseRpcMetadata(header_.extractAllWriteHeaders());
+      if (crc32c) {
+        metadata.crc32c_ref() = *crc32c;
+      }
+      sendReplyInternal(std::move(metadata), std::move(buf), std::move(stream));
 
-      auto observer = serverConfigs_.getObserver();
-      if (observer) {
+      if (auto* observer = serverConfigs_.getObserver()) {
         observer->sentReply();
       }
     }
   }
 
-  void sendErrorWrapped(
-      folly::exception_wrapper ew,
-      std::string exCode,
-      apache::thrift::MessageChannel::SendCallback* cb = nullptr) final {
-    if (active_.exchange(false)) {
+#if FOLLY_HAS_COROUTINES
+  void sendSinkReply(
+      std::unique_ptr<folly::IOBuf>&& buf,
+      apache::thrift::detail::SinkConsumerImpl&& consumerImpl,
+      folly::Optional<uint32_t> crc32c) override final {
+    if (tryCancel()) {
       cancelTimeout();
-      sendErrorWrappedInternal(std::move(ew), exCode, cb);
+      auto metadata = makeResponseRpcMetadata(header_.extractAllWriteHeaders());
+      if (crc32c) {
+        metadata.crc32c_ref() = *crc32c;
+      }
+      sendReplyInternal(
+          std::move(metadata), std::move(buf), std::move(consumerImpl));
+
+      if (auto* observer = serverConfigs_.getObserver()) {
+        observer->sentReply();
+      }
+    }
+  }
+#endif
+
+  void sendErrorWrapped(folly::exception_wrapper ew, std::string exCode) final {
+    if (exCode == kConnectionClosingErrorCode) {
+      closeConnection(std::move(ew));
+    }
+
+    if (tryCancel()) {
+      cancelTimeout();
+      sendErrorWrappedInternal(
+          std::move(ew), exCode, header_.extractAllWriteHeaders());
     }
   }
 
+  void sendQueueTimeoutResponse() final {
+    if (tryCancel() && !isOneway()) {
+      cancelTimeout();
+      if (auto* observer = serverConfigs_.getObserver()) {
+        observer->queueTimeout();
+      }
+      sendErrorWrappedInternal(
+          TApplicationException(
+              TApplicationException::TApplicationExceptionType::TIMEOUT,
+              "Queue Timeout"),
+          kServerQueueTimeoutErrorCode,
+          {});
+    }
+  }
+
+  bool isReplyChecksumNeeded() const override { return checksumRequested_; }
+
  protected:
   virtual void sendThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
-      std::unique_ptr<folly::IOBuf> response) noexcept = 0;
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> response,
+      MessageChannel::SendCallbackPtr) noexcept = 0;
+
+  virtual void sendSerializedError(
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> exbuf) noexcept = 0;
+
+  virtual bool sendStreamThriftResponse(
+      ResponseRpcMetadata&&,
+      std::unique_ptr<folly::IOBuf>,
+      StreamServerCallbackPtr) noexcept {
+    folly::terminate_with<std::runtime_error>(
+        "sendStreamThriftResponse not implemented");
+  }
 
   virtual void sendStreamThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
-      std::unique_ptr<folly::IOBuf> response,
-      apache::thrift::SemiStream<std::unique_ptr<folly::IOBuf>>
-          stream) noexcept = 0;
+      ResponseRpcMetadata&&,
+      std::unique_ptr<folly::IOBuf>,
+      apache::thrift::detail::ServerStreamFactory&&) noexcept {
+    LOG(FATAL) << "sendStreamThriftResponse not implemented";
+  }
+
+#if FOLLY_HAS_COROUTINES
+  virtual void sendSinkThriftResponse(
+      ResponseRpcMetadata&&,
+      std::unique_ptr<folly::IOBuf>,
+      apache::thrift::detail::SinkConsumerImpl&&) noexcept {
+    LOG(FATAL) << "sendSinkThriftResponse not implemented";
+  }
+#endif
+
+  bool tryStartProcessing() final { return stateMachine_.tryStartProcessing(); }
+
+  virtual void closeConnection(folly::exception_wrapper) noexcept {
+    LOG(FATAL) << "closeConnection not implemented";
+  }
 
   virtual folly::EventBase* getEventBase() noexcept = 0;
 
@@ -187,7 +312,11 @@ class ThriftRequestCore : public ResponseChannel::Request {
         clientQueueTimeout_, clientTimeout_, queueTimeout, taskTimeout);
 
     auto reqContext = getRequestContext();
-    reqContext->setRequestTimeout(taskTimeout);
+    if (clientTimeout_ > std::chrono::milliseconds::zero()) {
+      reqContext->setRequestTimeout(clientTimeout_);
+    } else {
+      reqContext->setRequestTimeout(taskTimeout);
+    }
 
     if (differentTimeouts) {
       if (queueTimeout > std::chrono::milliseconds(0)) {
@@ -200,95 +329,113 @@ class ThriftRequestCore : public ResponseChannel::Request {
   }
 
  private:
+  MessageChannel::SendCallbackPtr prepareSendCallback(
+      MessageChannel::SendCallbackPtr&& sendCallback,
+      server::TServerObserver* observer);
+
   void sendReplyInternal(
+      ResponseRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> buf,
-      apache::thrift::MessageChannel::SendCallback* cb = nullptr) {
-    if (checkResponseSize(*buf)) {
-      sendThriftResponse(createMetadata(), std::move(buf));
-    } else {
-      sendErrorWrappedInternal(
-          folly::make_exception_wrapper<TApplicationException>(
-              TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
-              "Response size too big"),
-          kResponseTooBigErrorCode,
-          cb);
+      MessageChannel::SendCallbackPtr cb);
+
+  bool sendReplyInternal(
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> buf,
+      StreamServerCallbackPtr stream) {
+    if (!checkResponseSize(*buf)) {
+      sendResponseTooBigEx();
+      return false;
     }
+    return sendStreamThriftResponse(
+        std::move(metadata), std::move(buf), std::move(stream));
   }
 
   void sendReplyInternal(
+      ResponseRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> buf,
-      apache::thrift::SemiStream<std::unique_ptr<folly::IOBuf>> stream,
-      apache::thrift::MessageChannel::SendCallback* cb = nullptr) {
+      apache::thrift::detail::ServerStreamFactory&& stream) {
     if (checkResponseSize(*buf)) {
       sendStreamThriftResponse(
-          createMetadata(), std::move(buf), std::move(stream));
+          std::move(metadata), std::move(buf), std::move(stream));
     } else {
-      sendErrorWrappedInternal(
-          folly::make_exception_wrapper<TApplicationException>(
-              TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
-              "Response size too big"),
-          kResponseTooBigErrorCode,
-          cb);
+      sendResponseTooBigEx();
     }
   }
 
-  std::unique_ptr<ResponseRpcMetadata> createMetadata() {
-    auto metadata = std::make_unique<ResponseRpcMetadata>();
-    metadata->seqId = seqId_;
-    metadata->__isset.seqId = true;
-    metadata->otherMetadata = header_.releaseWriteHeaders();
-    auto* eh = header_.getExtraWriteHeaders();
-    if (eh) {
-      metadata->otherMetadata.insert(eh->begin(), eh->end());
+#if FOLLY_HAS_COROUTINES
+  void sendReplyInternal(
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> buf,
+      apache::thrift::detail::SinkConsumerImpl sink) {
+    if (checkResponseSize(*buf)) {
+      sendSinkThriftResponse(
+          std::move(metadata), std::move(buf), std::move(sink));
+    } else {
+      sendResponseTooBigEx();
     }
-    if (!metadata->otherMetadata.empty()) {
-      metadata->__isset.otherMetadata = true;
+  }
+#endif
+
+  void sendResponseTooBigEx() {
+    sendErrorWrappedInternal(
+        folly::make_exception_wrapper<TApplicationException>(
+            TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
+            "Response size too big"),
+        kResponseTooBigErrorCode,
+        header_.extractAllWriteHeaders());
+  }
+
+  ResponseRpcMetadata makeResponseRpcMetadata(
+      transport::THeader::StringToStringMap&& writeHeaders) {
+    ResponseRpcMetadata metadata;
+
+    if (loadMetric_) {
+      metadata.load_ref() = serverConfigs_.getLoad(*loadMetric_);
     }
+
+    if (!writeHeaders.empty()) {
+      metadata.otherMetadata_ref() = std::move(writeHeaders);
+    }
+
     return metadata;
   }
 
   void sendErrorWrappedInternal(
       folly::exception_wrapper ew,
       const std::string& exCode,
-      apache::thrift::MessageChannel::SendCallback* /*cb*/) {
+      transport::THeader::StringToStringMap&& writeHeaders) {
     DCHECK(ew.is_compatible_with<TApplicationException>());
-    header_.setHeader("ex", exCode);
+    writeHeaders["ex"] = exCode;
     ew.with_exception([&](TApplicationException& tae) {
       std::unique_ptr<folly::IOBuf> exbuf;
-      auto proto = header_.getProtocolId();
+      auto proto = getProtoId();
       try {
-        exbuf = serializeError(proto, tae, name_, seqId_);
+        exbuf = serializeError(proto, tae, getMethodName(), 0);
       } catch (const protocol::TProtocolException& pe) {
         // Should never happen.  Log an error and return an empty
         // payload.
         LOG(ERROR) << "serializeError failed. type=" << pe.getType()
                    << " what()=" << pe.what();
       }
-      if (kind_ != RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE) {
-        sendReplyInternal(std::move(exbuf));
-      } else {
-        sendReplyInternal(std::move(exbuf), {}, nullptr);
+
+      if (tae.getType() ==
+              TApplicationException::TApplicationExceptionType::UNKNOWN &&
+          exbuf && !checkResponseSize(*exbuf)) {
+        sendResponseTooBigEx();
+        return;
       }
+
+      sendSerializedError(
+          makeResponseRpcMetadata(std::move(writeHeaders)), std::move(exbuf));
     });
   }
 
   void cancelTimeout() {
-    queueTimeout_.canceled_ = true;
-    taskTimeout_.canceled_ = true;
-    if (queueTimeout_.isScheduled()) {
-      queueTimeout_.cancelTimeout();
-    }
-    if (taskTimeout_.isScheduled()) {
-      taskTimeout_.cancelTimeout();
-    }
+    queueTimeout_.cancelTimeout();
+    taskTimeout_.cancelTimeout();
   }
 
   bool checkResponseSize(const folly::IOBuf& buf) {
-    if (responseSizeChecked_) {
-      return true;
-    }
-    responseSizeChecked_ = true;
-
     auto maxResponseSize = serverConfigs_.getMaxResponseSize();
     return maxResponseSize == 0 ||
         buf.computeChainDataLength() <= maxResponseSize;
@@ -296,38 +443,24 @@ class ThriftRequestCore : public ResponseChannel::Request {
 
   class QueueTimeout : public folly::HHWheelTimer::Callback {
     ThriftRequestCore* request_;
-    bool canceled_{false};
-    const apache::thrift::server::ServerConfigs& serverConfigs_;
-    QueueTimeout(const apache::thrift::server::ServerConfigs& serverConfigs)
+    const server::ServerConfigs& serverConfigs_;
+    QueueTimeout(const server::ServerConfigs& serverConfigs)
         : serverConfigs_(serverConfigs) {}
     void timeoutExpired() noexcept override {
-      if (!canceled_ && !request_->reqContext_.getStartedProcessing() &&
-          request_->active_.exchange(false) && !request_->isOneway()) {
-        const auto& observer = serverConfigs_.getObserver();
-        if (observer) {
-          observer->queueTimeout();
-        }
-        request_->sendErrorWrappedInternal(
-            TApplicationException(
-                TApplicationException::TApplicationExceptionType::TIMEOUT,
-                "Queue Timeout"),
-            kTaskExpiredErrorCode,
-            nullptr);
+      if (request_->stateMachine_.tryStopProcessing()) {
+        request_->sendQueueTimeoutResponse();
       }
     }
     friend class ThriftRequestCore;
   };
   class TaskTimeout : public folly::HHWheelTimer::Callback {
     ThriftRequestCore* request_;
-    bool canceled_{false};
-    const apache::thrift::server::ServerConfigs& serverConfigs_;
-    TaskTimeout(const apache::thrift::server::ServerConfigs& serverConfigs)
+    const server::ServerConfigs& serverConfigs_;
+    TaskTimeout(const server::ServerConfigs& serverConfigs)
         : serverConfigs_(serverConfigs) {}
     void timeoutExpired() noexcept override {
-      if (!canceled_ && request_->active_.exchange(false) &&
-          !request_->isOneway()) {
-        const auto& observer = serverConfigs_.getObserver();
-        if (observer) {
+      if (request_->tryCancel() && !request_->isOneway()) {
+        if (auto* observer = serverConfigs_.getObserver()) {
           observer->taskTimeout();
         }
         request_->sendErrorWrappedInternal(
@@ -335,7 +468,7 @@ class ThriftRequestCore : public ResponseChannel::Request {
                 TApplicationException::TApplicationExceptionType::TIMEOUT,
                 "Task expired"),
             kTaskExpiredErrorCode,
-            nullptr);
+            {});
       }
     }
     friend class ThriftRequestCore;
@@ -344,55 +477,82 @@ class ThriftRequestCore : public ResponseChannel::Request {
   friend class TaskTimeout;
   friend class ThriftProcessor;
 
+  server::TServerObserver::CallTimestamps& getTimestamps() {
+    return static_cast<server::TServerObserver::CallTimestamps&>(
+        reqContext_.getTimestamps());
+  }
+
  protected:
-  const apache::thrift::server::ServerConfigs& serverConfigs_;
+  server::ServerConfigs& serverConfigs_;
+  const RpcKind kind_;
+  RequestStateMachine stateMachine_;
 
  private:
-  std::string name_;
-  RpcKind kind_;
-  int32_t seqId_;
-  std::atomic<bool> active_;
+  bool checksumRequested_{false};
   transport::THeader header_;
-  std::unique_ptr<Cpp2ConnContext> connContext_;
+  folly::Optional<std::string> loadMetric_;
   Cpp2RequestContext reqContext_;
+  folly::Optional<CompressionConfig> compressionConfig_;
 
   QueueTimeout queueTimeout_;
   TaskTimeout taskTimeout_;
   std::chrono::milliseconds clientQueueTimeout_{0};
   std::chrono::milliseconds clientTimeout_{0};
-  bool responseSizeChecked_{false};
 };
 
+// HTTP2 uses this
 class ThriftRequest final : public ThriftRequestCore {
  public:
   ThriftRequest(
-      const apache::thrift::server::ServerConfigs& serverConfigs,
+      server::ServerConfigs& serverConfigs,
       std::shared_ptr<ThriftChannelIf> channel,
-      std::unique_ptr<RequestRpcMetadata> metadata,
+      RequestRpcMetadata&& metadata,
       std::unique_ptr<Cpp2ConnContext> connContext)
-      : ThriftRequestCore(
-            serverConfigs,
-            std::move(metadata),
-            std::move(connContext)),
-        channel_(std::move(channel)) {
+      : ThriftRequestCore(serverConfigs, std::move(metadata), *connContext),
+        channel_(std::move(channel)),
+        connContext_(std::move(connContext)) {
+    serverConfigs_.incActiveRequests();
     scheduleTimeouts();
   }
 
+  ~ThriftRequest() { serverConfigs_.decActiveRequests(); }
+
  private:
   void sendThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
-      std::unique_ptr<folly::IOBuf> response) noexcept override {
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> response,
+      MessageChannel::SendCallbackPtr) noexcept override {
     channel_->sendThriftResponse(std::move(metadata), std::move(response));
   }
 
-  void sendStreamThriftResponse(
-      std::unique_ptr<ResponseRpcMetadata> metadata,
-      std::unique_ptr<folly::IOBuf> response,
-      apache::thrift::SemiStream<std::unique_ptr<folly::IOBuf>>
-          stream) noexcept override {
-    channel_->sendStreamThriftResponse(
-        std::move(metadata), std::move(response), std::move(stream));
+  void sendSerializedError(
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> exbuf) noexcept override {
+    switch (kind_) {
+      case RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE:
+      case RpcKind::STREAMING_REQUEST_SINGLE_RESPONSE:
+        sendThriftResponse(std::move(metadata), std::move(exbuf), nullptr);
+        break;
+      case RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE:
+      case RpcKind::STREAMING_REQUEST_STREAMING_RESPONSE:
+        sendStreamThriftResponse(
+            std::move(metadata),
+            std::move(exbuf),
+            StreamServerCallbackPtr(nullptr));
+        break;
+#if FOLLY_HAS_COROUTINES
+      case RpcKind::SINK:
+        sendSinkThriftResponse(std::move(metadata), std::move(exbuf), {});
+        break;
+#endif
+      default: // Don't send error back for one-way.
+        LOG(ERROR) << "unknown rpckind " << static_cast<int32_t>(kind_);
+        break;
+    }
   }
+
+  // Don't allow hiding of overloaded method.
+  using ThriftRequestCore::sendStreamThriftResponse;
 
   folly::EventBase* getEventBase() noexcept override {
     return channel_->getEventBase();
@@ -400,6 +560,7 @@ class ThriftRequest final : public ThriftRequestCore {
 
  private:
   std::shared_ptr<ThriftChannelIf> channel_;
+  std::unique_ptr<Cpp2ConnContext> connContext_;
 };
 
 } // namespace thrift

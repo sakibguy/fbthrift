@@ -1,30 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_CLONEABLE_IOBUF_H_
 #define THRIFT_CLONEABLE_IOBUF_H_
 
 #include <memory>
+
 #include <folly/io/IOBuf.h>
 #include <thrift/lib/cpp/Thrift.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 namespace detail {
 
@@ -32,29 +31,25 @@ namespace detail {
 // copy constructor
 template <typename T, typename Deleter = std::default_delete<T>>
 class CloneableUniquePtr : public std::unique_ptr<T, Deleter> {
-public:
+ public:
   typedef std::unique_ptr<T, Deleter> Base;
-  CloneableUniquePtr()
-    : std::unique_ptr<T, Deleter>() {}
+  CloneableUniquePtr() : std::unique_ptr<T, Deleter>() {}
   explicit CloneableUniquePtr(std::nullptr_t)
-    : std::unique_ptr<T, Deleter>(nullptr) {}
+      : std::unique_ptr<T, Deleter>(nullptr) {}
   explicit CloneableUniquePtr(typename Base::pointer p)
-    : std::unique_ptr<T, Deleter>(p) {}
-  template<typename D>
+      : std::unique_ptr<T, Deleter>(p) {}
+  template <typename D>
   CloneableUniquePtr(typename Base::pointer p, D&& d)
-    : std::unique_ptr<T, Deleter>(p, std::forward<D>(d)) {}
+      : std::unique_ptr<T, Deleter>(p, std::forward<D>(d)) {}
   explicit CloneableUniquePtr(Base&& other)
-    : std::unique_ptr<T, Deleter>(std::move(other)) {}
+      : std::unique_ptr<T, Deleter>(std::move(other)) {}
   explicit CloneableUniquePtr(CloneableUniquePtr&& other) noexcept
-    : std::unique_ptr<T, Deleter>(std::move(other)) {}
+      : std::unique_ptr<T, Deleter>(std::move(other)) {}
 
   explicit CloneableUniquePtr(const Base& other)
-    : std::unique_ptr<T, Deleter>(other ? other->clone() : nullptr) {
-    LOG(INFO) << "Clone";
-  }
+      : std::unique_ptr<T, Deleter>(other ? other->clone() : nullptr) {}
   CloneableUniquePtr(const CloneableUniquePtr<T, Deleter>& other)
-    : std::unique_ptr<T, Deleter>(other ? other->clone() : nullptr) {
-  }
+      : std::unique_ptr<T, Deleter>(other ? other->clone() : nullptr) {}
 
   CloneableUniquePtr& operator=(CloneableUniquePtr&& other) {
     Base::operator=(std::move(other));
@@ -81,16 +76,16 @@ public:
 
 template <class T, class Deleter>
 void swap(
-    CloneableUniquePtr<T, Deleter>& lhs,
-    CloneableUniquePtr<T, Deleter>& rhs) {
+    CloneableUniquePtr<T, Deleter>& lhs, CloneableUniquePtr<T, Deleter>& rhs) {
   using base = std::unique_ptr<T, Deleter>;
   return swap(static_cast<base&>(lhs), static_cast<base&>(rhs));
 }
 
-}
+} // namespace detail
 
-typedef detail::CloneableUniquePtr<folly::IOBuf> CloneableIOBuf;
+typedef apache::thrift::detail::CloneableUniquePtr<folly::IOBuf> CloneableIOBuf;
 
-}} // apache::thrift
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef THRIFT_CLONEABLE_IOBUF_H_

@@ -1,11 +1,11 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,9 +15,11 @@
  */
 
 #include <memory>
+
+#include <folly/portability/GTest.h>
+
 #include <thrift/lib/cpp2/test/gen-cpp2/TestServiceStack.h>
 #include <thrift/lib/cpp2/util/ScopedServerInterfaceThread.h>
-#include <gtest/gtest.h>
 
 using namespace std;
 using namespace folly;
@@ -32,7 +34,6 @@ class ServiceStackHandler : public TestServiceStackSvIf {
 TEST(ServiceStackTest, example) {
   auto handler = make_shared<ServiceStackHandler>();
   ScopedServerInterfaceThread ssit(handler);
-  auto client = ssit.newClient<TestServiceStackAsyncClient>(
-      *EventBaseManager::get()->getEventBase());
+  auto client = ssit.newClient<TestServiceStackAsyncClient>();
   client->sync_noResponse(/* size = */ 77);
 }

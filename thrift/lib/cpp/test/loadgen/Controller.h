@@ -1,37 +1,36 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef THRIFT_TEST_LOADGEN_CONTROLLER_H_
 #define THRIFT_TEST_LOADGEN_CONTROLLER_H_ 1
 
-#include <boost/noncopyable.hpp>
+#include <condition_variable>
+#include <mutex>
 
-#include <thrift/lib/cpp/concurrency/Monitor.h>
-#include <thrift/lib/cpp/test/loadgen/LoadConfig.h>
 #include <thrift/lib/cpp/test/loadgen/IntervalTimer.h>
+#include <thrift/lib/cpp/test/loadgen/LoadConfig.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 namespace concurrency {
 
 class PosixThreadFactory;
 
-} // apache::thrift::concurrency
+} // namespace concurrency
 
 namespace loadgen {
 
@@ -39,25 +38,31 @@ class WorkerFactory;
 class WorkerIf;
 class Monitor;
 
-class Controller : private boost::noncopyable {
+class Controller {
  public:
-  Controller(WorkerFactory* factory, Monitor* monitor,
+  Controller(
+      WorkerFactory* factory,
+      Monitor* monitor,
       std::shared_ptr<LoadConfig> config,
       apache::thrift::concurrency::PosixThreadFactory* threadFactory = nullptr);
 
-  void run(uint32_t numThreads, uint32_t maxThreads,
-      double monitorInterval = 1.0);
+  Controller(const Controller&) = delete;
+  Controller& operator=(const Controller&) = delete;
+
+  void run(
+      uint32_t numThreads, uint32_t maxThreads, double monitorInterval = 1.0);
 
  private:
   class WorkerRunner;
-  typedef std::vector< std::shared_ptr<WorkerIf> > WorkerVector;
+  typedef std::vector<std::shared_ptr<WorkerIf>> WorkerVector;
 
   void createWorkerThreads(uint32_t numThreads);
   void startWorkers(uint32_t numThreads);
   void runMonitor(double interval);
   std::shared_ptr<WorkerIf> createWorker();
 
-  concurrency::Monitor initMonitor_;
+  std::mutex initMutex_;
+  std::condition_variable initCondVar_;
   uint32_t numThreads_;
   uint32_t maxThreads_;
   WorkerFactory* workerFactory_;
@@ -68,6 +73,8 @@ class Controller : private boost::noncopyable {
   apache::thrift::concurrency::PosixThreadFactory* threadFactory_;
 };
 
-}}} // apache::thrift::loadgen
+} // namespace loadgen
+} // namespace thrift
+} // namespace apache
 
 #endif // THRIFT_TEST_LOADGEN_CONTROLLER_H_

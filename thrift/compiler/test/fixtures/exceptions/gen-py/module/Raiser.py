@@ -7,12 +7,13 @@
 
 from __future__ import absolute_import
 import six
+import sys
 from thrift.util.Recursive import fix_spec
-from thrift.Thrift import *
+from thrift.Thrift import TType, TMessageType, TPriority, TRequestContext, TProcessorEventHandler, TServerInterface, TProcessor, TException, TApplicationException, UnimplementedTypedef
 from thrift.protocol.TProtocol import TProtocolException
 
 
-from .ttypes import *
+from .ttypes import UTF8STRINGS, Banal, Fiery, Serious, ComplexFieldNames, CustomFieldNames
 from thrift.Thrift import TProcessor
 import pprint
 import warnings
@@ -22,16 +23,22 @@ from thrift.protocol import TBinaryProtocol
 from thrift.protocol import TCompactProtocol
 from thrift.protocol import THeaderProtocol
 fastproto = None
-if not '__pypy__' in sys.builtin_module_names:
-  try:
-    from thrift.protocol import fastproto
-  except:
-    pass
+try:
+  from thrift.protocol import fastproto
+except ImportError:
+  pass
 
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3
 
-from thrift.util.Decorators import *
+from thrift.util.Decorators import (
+  future_process_main,
+  future_process_method,
+  process_main as thrift_process_main,
+  process_method as thrift_process_method,
+  should_run_on_thread,
+  write_results_after_future,
+)
 
 class Iface:
   def doBland(self, ):
@@ -75,11 +82,9 @@ class doBland_args:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -90,10 +95,6 @@ class doBland_args:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -145,11 +146,9 @@ class doBland_result:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -160,10 +159,6 @@ class doBland_result:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -215,11 +210,9 @@ class doRaise_args:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -230,10 +223,6 @@ class doRaise_args:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -278,6 +267,7 @@ class doRaise_result:
   Attributes:
    - b
    - f
+   - s
   """
 
   thrift_spec = None
@@ -291,11 +281,9 @@ class doRaise_result:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -314,14 +302,16 @@ class doRaise_result:
           self.f.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.s = Serious()
+          self.s.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -339,6 +329,10 @@ class doRaise_result:
       oprot.writeFieldBegin('f', TType.STRUCT, 2)
       self.f.write(oprot)
       oprot.writeFieldEnd()
+    if self.s != None:
+      oprot.writeFieldBegin('s', TType.STRUCT, 3)
+      self.s.write(oprot)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -353,6 +347,10 @@ class doRaise_result:
       value = pprint.pformat(self.f, indent=0)
       value = padding.join(value.splitlines(True))
       L.append('    f=%s' % (value))
+    if self.s is not None:
+      value = pprint.pformat(self.s, indent=0)
+      value = padding.join(value.splitlines(True))
+      L.append('    s=%s' % (value))
     return "%s(%s)" % (self.__class__.__name__, "\n" + ",\n".join(L) if L else '')
 
   def __eq__(self, other):
@@ -373,6 +371,7 @@ doRaise_result.thrift_spec = (
   None, # 0
   (1, TType.STRUCT, 'b', [Banal, Banal.thrift_spec, False], None, 2, ), # 1
   (2, TType.STRUCT, 'f', [Fiery, Fiery.thrift_spec, False], None, 2, ), # 2
+  (3, TType.STRUCT, 's', [Serious, Serious.thrift_spec, False], None, 2, ), # 3
 )
 
 doRaise_result.thrift_struct_annotations = {
@@ -380,15 +379,17 @@ doRaise_result.thrift_struct_annotations = {
 doRaise_result.thrift_field_annotations = {
 }
 
-def doRaise_result__init__(self, b=None, f=None,):
+def doRaise_result__init__(self, b=None, f=None, s=None,):
   self.b = b
   self.f = f
+  self.s = s
 
 doRaise_result.__init__ = doRaise_result__init__
 
 def doRaise_result__setstate__(self, state):
   state.setdefault('b', None)
   state.setdefault('f', None)
+  state.setdefault('s', None)
   self.__dict__ = state
 
 doRaise_result.__getstate__ = lambda self: self.__dict__.copy()
@@ -406,11 +407,9 @@ class get200_args:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -421,10 +420,6 @@ class get200_args:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -481,11 +476,9 @@ class get200_result:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -501,10 +494,6 @@ class get200_result:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -577,11 +566,9 @@ class get500_args:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -592,10 +579,6 @@ class get500_args:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -641,6 +624,7 @@ class get500_result:
    - success
    - f
    - b
+   - s
   """
 
   thrift_spec = None
@@ -654,11 +638,9 @@ class get500_result:
   def read(self, iprot):
     if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      self.checkRequired()
       return
     if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
       fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      self.checkRequired()
       return
     iprot.readStructBegin()
     while True:
@@ -682,14 +664,16 @@ class get500_result:
           self.b.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.s = Serious()
+          self.s.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
     iprot.readStructEnd()
-    self.checkRequired()
-
-  def checkRequired(self):
-    return
 
   def write(self, oprot):
     if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
@@ -711,6 +695,10 @@ class get500_result:
       oprot.writeFieldBegin('b', TType.STRUCT, 2)
       self.b.write(oprot)
       oprot.writeFieldEnd()
+    if self.s != None:
+      oprot.writeFieldBegin('s', TType.STRUCT, 3)
+      self.s.write(oprot)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -729,6 +717,10 @@ class get500_result:
       value = pprint.pformat(self.b, indent=0)
       value = padding.join(value.splitlines(True))
       L.append('    b=%s' % (value))
+    if self.s is not None:
+      value = pprint.pformat(self.s, indent=0)
+      value = padding.join(value.splitlines(True))
+      L.append('    s=%s' % (value))
     return "%s(%s)" % (self.__class__.__name__, "\n" + ",\n".join(L) if L else '')
 
   def __eq__(self, other):
@@ -749,6 +741,7 @@ get500_result.thrift_spec = (
   (0, TType.STRING, 'success', True, None, 2, ), # 0
   (1, TType.STRUCT, 'f', [Fiery, Fiery.thrift_spec, False], None, 2, ), # 1
   (2, TType.STRUCT, 'b', [Banal, Banal.thrift_spec, False], None, 2, ), # 2
+  (3, TType.STRUCT, 's', [Serious, Serious.thrift_spec, False], None, 2, ), # 3
 )
 
 get500_result.thrift_struct_annotations = {
@@ -756,10 +749,11 @@ get500_result.thrift_struct_annotations = {
 get500_result.thrift_field_annotations = {
 }
 
-def get500_result__init__(self, success=None, f=None, b=None,):
+def get500_result__init__(self, success=None, f=None, b=None, s=None,):
   self.success = success
   self.f = f
   self.b = b
+  self.s = s
 
 get500_result.__init__ = get500_result__init__
 
@@ -767,6 +761,7 @@ def get500_result__setstate__(self, state):
   state.setdefault('success', None)
   state.setdefault('f', None)
   state.setdefault('b', None)
+  state.setdefault('s', None)
   self.__dict__ = state
 
 get500_result.__getstate__ = lambda self: self.__dict__.copy()
@@ -835,6 +830,8 @@ class Client(Iface):
       raise result.b
     if result.f != None:
       raise result.f
+    if result.s != None:
+      raise result.s
     return
 
   def get200(self, ):
@@ -889,6 +886,8 @@ class Client(Iface):
       raise result.f
     if result.b != None:
       raise result.b
+    if result.s != None:
+      raise result.s
     raise TApplicationException(TApplicationException.MISSING_RESULT, "get500 failed: unknown result");
 
 
@@ -914,10 +913,10 @@ class Processor(Iface, TProcessor):
     l.extend(Processor._onewayMethods)
     return tuple(l)
 
-  @process_main()
+  @thrift_process_main()
   def process(self,): pass
 
-  @process_method(doBland_args, oneway=False)
+  @thrift_process_method(doBland_args, oneway=False)
   def process_doBland(self, args, handler_ctx):
     result = doBland_result()
     try:
@@ -925,10 +924,10 @@ class Processor(Iface, TProcessor):
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'doBland', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
-  @process_method(doRaise_args, oneway=False)
+  @thrift_process_method(doRaise_args, oneway=False)
   def process_doRaise(self, args, handler_ctx):
     result = doRaise_result()
     try:
@@ -939,13 +938,16 @@ class Processor(Iface, TProcessor):
     except Fiery as exc1:
       self._event_handler.handlerException(handler_ctx, 'doRaise', exc1)
       result.f = exc1
+    except Serious as exc2:
+      self._event_handler.handlerException(handler_ctx, 'doRaise', exc2)
+      result.s = exc2
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'doRaise', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
-  @process_method(get200_args, oneway=False)
+  @thrift_process_method(get200_args, oneway=False)
   def process_get200(self, args, handler_ctx):
     result = get200_result()
     try:
@@ -953,10 +955,10 @@ class Processor(Iface, TProcessor):
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'get200', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
-  @process_method(get500_args, oneway=False)
+  @thrift_process_method(get500_args, oneway=False)
   def process_get500(self, args, handler_ctx):
     result = get500_result()
     try:
@@ -967,10 +969,13 @@ class Processor(Iface, TProcessor):
     except Banal as exc1:
       self._event_handler.handlerException(handler_ctx, 'get500', exc1)
       result.b = exc1
+    except Serious as exc2:
+      self._event_handler.handlerException(handler_ctx, 'get500', exc2)
+      result.s = exc2
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'get500', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
 Iface._processor_type = Processor
@@ -997,10 +1002,10 @@ class ContextProcessor(ContextIface, TProcessor):
     l.extend(ContextProcessor._onewayMethods)
     return tuple(l)
 
-  @process_main()
+  @thrift_process_main()
   def process(self,): pass
 
-  @process_method(doBland_args, oneway=False)
+  @thrift_process_method(doBland_args, oneway=False)
   def process_doBland(self, args, handler_ctx):
     result = doBland_result()
     try:
@@ -1008,10 +1013,10 @@ class ContextProcessor(ContextIface, TProcessor):
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'doBland', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
-  @process_method(doRaise_args, oneway=False)
+  @thrift_process_method(doRaise_args, oneway=False)
   def process_doRaise(self, args, handler_ctx):
     result = doRaise_result()
     try:
@@ -1022,13 +1027,16 @@ class ContextProcessor(ContextIface, TProcessor):
     except Fiery as exc1:
       self._event_handler.handlerException(handler_ctx, 'doRaise', exc1)
       result.f = exc1
+    except Serious as exc2:
+      self._event_handler.handlerException(handler_ctx, 'doRaise', exc2)
+      result.s = exc2
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'doRaise', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
-  @process_method(get200_args, oneway=False)
+  @thrift_process_method(get200_args, oneway=False)
   def process_get200(self, args, handler_ctx):
     result = get200_result()
     try:
@@ -1036,10 +1044,10 @@ class ContextProcessor(ContextIface, TProcessor):
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'get200', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
-  @process_method(get500_args, oneway=False)
+  @thrift_process_method(get500_args, oneway=False)
   def process_get500(self, args, handler_ctx):
     result = get500_result()
     try:
@@ -1050,10 +1058,13 @@ class ContextProcessor(ContextIface, TProcessor):
     except Banal as exc1:
       self._event_handler.handlerException(handler_ctx, 'get500', exc1)
       result.b = exc1
+    except Serious as exc2:
+      self._event_handler.handlerException(handler_ctx, 'get500', exc2)
+      result.s = exc2
     except:
       ex = sys.exc_info()[1]
       self._event_handler.handlerError(handler_ctx, 'get500', ex)
-      result = Thrift.TApplicationException(message=str(ex))
+      result = Thrift.TApplicationException(message=repr(ex))
     return result
 
 ContextIface._processor_type = ContextProcessor

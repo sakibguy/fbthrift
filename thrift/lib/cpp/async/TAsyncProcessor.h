@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef THRIFT_TASYNCPROCESSOR_H
@@ -22,11 +19,14 @@
 
 #include <functional>
 #include <memory>
-#include <thrift/lib/cpp/TProcessor.h>
-#include <thrift/lib/cpp/server/TConnectionContext.h>
-#include <thrift/lib/cpp/protocol/TProtocol.h>
 
-namespace apache { namespace thrift { namespace async {
+#include <thrift/lib/cpp/TProcessor.h>
+#include <thrift/lib/cpp/protocol/TProtocol.h>
+#include <thrift/lib/cpp/server/TConnectionContext.h>
+
+namespace apache {
+namespace thrift {
+namespace async {
 
 /**
  * Async version of a TProcessor.  It is not expected to complete by the time
@@ -39,13 +39,15 @@ class TAsyncProcessor : public TProcessorBase {
  public:
   virtual ~TAsyncProcessor() {}
 
-  virtual void process(std::function<void(bool success)> _return,
-                       std::shared_ptr<protocol::TProtocol> in,
-                       std::shared_ptr<protocol::TProtocol> out,
-                       server::TConnectionContext* context = nullptr) = 0;
+  virtual void process(
+      std::function<void(bool success)> _return,
+      std::shared_ptr<protocol::TProtocol> in,
+      std::shared_ptr<protocol::TProtocol> out,
+      server::TConnectionContext* context = nullptr) = 0;
 
-  void process(std::function<void(bool success)> _return,
-               std::shared_ptr<apache::thrift::protocol::TProtocol> io) {
+  void process(
+      std::function<void(bool success)> _return,
+      std::shared_ptr<apache::thrift::protocol::TProtocol> io) {
     return process(_return, io, io);
   }
 
@@ -67,8 +69,8 @@ class TAsyncProcessorFactory {
 class TAsyncSingletonProcessorFactory : public TAsyncProcessorFactory {
  public:
   explicit TAsyncSingletonProcessorFactory(
-    const std::shared_ptr<TAsyncProcessor>& processor) :
-      processor_(processor) {}
+      const std::shared_ptr<TAsyncProcessor>& processor)
+      : processor_(processor) {}
 
   std::shared_ptr<TAsyncProcessor> getProcessor(
       server::TConnectionContext*) override {
@@ -79,12 +81,15 @@ class TAsyncSingletonProcessorFactory : public TAsyncProcessorFactory {
   std::shared_ptr<TAsyncProcessor> processor_;
 };
 
-
-}}} // apache::thrift::async
+} // namespace async
+} // namespace thrift
+} // namespace apache
 
 // XXX I'm lazy for now
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 using apache::thrift::async::TAsyncProcessor;
-}}
+}
+} // namespace apache
 
 #endif // #ifndef THRIFT_TASYNCPROCESSOR_H

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -64,12 +64,12 @@ folly::sorted_vector_map<int32_t, std::string> getRandomFollyMap() {
 }
 
 void buildRandomStructA(cpp2::StructA& obj) {
-  obj.fieldA = folly::Random::rand32(rng_) % 2;
-  obj.fieldB = folly::Random::rand32(rng_);
-  obj.fieldC = std::to_string(folly::Random::rand32(rng_));
-  obj.fieldD = getRandomVector();
-  obj.fieldE = getRandomSet();
-  obj.fieldF = getRandomMap();
+  *obj.fieldA_ref() = folly::Random::rand32(rng_) % 2;
+  *obj.fieldB_ref() = folly::Random::rand32(rng_);
+  *obj.fieldC_ref() = std::to_string(folly::Random::rand32(rng_));
+  *obj.fieldD_ref() = getRandomVector();
+  *obj.fieldE_ref() = getRandomSet();
+  *obj.fieldF_ref() = getRandomMap();
 
   for (int32_t i = 0; i < kNumOfInserts; ++i) {
     std::vector<std::vector<int32_t>> g1;
@@ -82,20 +82,20 @@ void buildRandomStructA(cpp2::StructA& obj) {
       j1.push_back(getRandomSet());
       j2.insert(getRandomVector());
     }
-    obj.fieldG.push_back(g1);
-    obj.fieldH.insert(h1);
-    obj.fieldI.emplace(getRandomMap(), getRandomMap());
-    obj.fieldJ.emplace(j1, j2);
+    obj.fieldG_ref()->push_back(g1);
+    obj.fieldH_ref()->insert(h1);
+    obj.fieldI_ref()->emplace(getRandomMap(), getRandomMap());
+    obj.fieldJ_ref()->emplace(j1, j2);
   }
 }
 
 void buildRandomStructB(cpp2::StructB& obj) {
-  obj.fieldA = folly::Random::rand32(rng_) % 2;
-  obj.fieldB = folly::Random::rand32(rng_);
-  obj.fieldC = std::to_string(folly::Random::rand32(rng_));
-  obj.fieldD = getRandomVector();
-  obj.fieldE = getRandomFollySet();
-  obj.fieldF = getRandomFollyMap();
+  *obj.fieldA_ref() = folly::Random::rand32(rng_) % 2;
+  *obj.fieldB_ref() = folly::Random::rand32(rng_);
+  *obj.fieldC_ref() = std::to_string(folly::Random::rand32(rng_));
+  *obj.fieldD_ref() = getRandomVector();
+  *obj.fieldE_ref() = getRandomFollySet();
+  *obj.fieldF_ref() = getRandomFollyMap();
 
   for (int32_t i = 0; i < kNumOfInserts; ++i) {
     std::vector<std::vector<int32_t>> g1;
@@ -108,10 +108,10 @@ void buildRandomStructB(cpp2::StructB& obj) {
       j1.push_back(getRandomFollySet());
       j2.insert(getRandomVector());
     }
-    obj.fieldG.push_back(g1);
-    obj.fieldH.insert(h1);
-    obj.fieldI[std::move(getRandomFollyMap())] = getRandomFollyMap();
-    obj.fieldJ[std::move(j1)] = j2;
+    obj.fieldG_ref()->push_back(g1);
+    obj.fieldH_ref()->insert(h1);
+    obj.fieldI_ref()[std::move(getRandomFollyMap())] = getRandomFollyMap();
+    obj.fieldJ_ref()[std::move(j1)] = j2;
   }
 }
 
@@ -181,9 +181,7 @@ BENCHMARK(CompactDeserialization, iters) {
 
     // Deserialize, timed:
     cpp2::StructA obj2;
-    braces.dismissing([&] {
-      serializer::deserialize(buf.get(), obj2);
-    });
+    braces.dismissing([&] { serializer::deserialize(buf.get(), obj2); });
   }
 }
 

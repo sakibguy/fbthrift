@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
+#include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/frozen/FrozenUtil.h>
 #include <thrift/lib/cpp2/frozen/test/gen-cpp2/Example_layouts.h>
@@ -22,31 +23,47 @@
 #include <thrift/lib/cpp2/protocol/DebugProtocol.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 
+namespace {
 using namespace apache::thrift;
 using namespace apache::thrift::frozen;
 using namespace apache::thrift::test;
 using namespace apache::thrift::util;
+using namespace testing;
+using Fixed8 = apache::thrift::frozen::FixedSizeString<8>;
+using Fixed2 = apache::thrift::frozen::FixedSizeString<2>;
+
+template <class T>
+std::string toString(const T& x) {
+  return debugString(x);
+}
+template <class T>
+std::string toString(const Layout<T>& x) {
+  std::ostringstream xStr;
+  xStr << x;
+  return xStr.str();
+}
+
+#define EXPECT_PRINTED_EQ(a, b) EXPECT_EQ(toString(a), toString(b))
 
 EveryLayout stressValue2 = [] {
   EveryLayout x;
-  x.aBool = true;
-  x.aInt = 2;
-  x.aList = {3, 5};
-  x.aSet = {7, 11};
-  x.aHashSet = {13, 17};
-  x.aMap = {{19, 23}, {29, 31}};
-  x.aHashMap = {{37, 41}, {43, 47}};
-  x.optInt = 53;
-  x.__isset.optInt = true;
-  x.aFloat = 59.61;
-  x.optMap = {{2, 4}, {3, 9}};
-  x.__isset.optMap = true;
+  *x.aBool_ref() = true;
+  *x.aInt_ref() = 2;
+  *x.aList_ref() = {3, 5};
+  *x.aSet_ref() = {7, 11};
+  *x.aHashSet_ref() = {13, 17};
+  *x.aMap_ref() = {{19, 23}, {29, 31}};
+  *x.aHashMap_ref() = {{37, 41}, {43, 47}};
+  x.optInt_ref() = 53;
+  *x.aFloat_ref() = 59.61;
+  x.optMap_ref() = {{2, 4}, {3, 9}};
   return x;
 }();
 
 template <class T>
 Layout<T>&& layout(const T& x, Layout<T>&& layout = Layout<T>()) {
   size_t size = LayoutRoot::layout(x, layout);
+  (void)size;
   return std::move(layout);
 }
 
@@ -59,54 +76,51 @@ Layout<T> layout(const T& x, size_t& size) {
 
 auto tom1 = [] {
   Pet1 max;
-  max.name = "max";
+  *max.name_ref() = "max";
   Pet1 ed;
-  ed.name = "ed";
+  *ed.name_ref() = "ed";
   Person1 tom;
-  tom.name = "tom";
-  tom.height = 1.82f;
-  tom.age = 30;
-  tom.__isset.age = true;
-  tom.pets.push_back(max);
-  tom.pets.push_back(ed);
+  *tom.name_ref() = "tom";
+  *tom.height_ref() = 1.82f;
+  tom.age_ref() = 30;
+  tom.pets_ref()->push_back(max);
+  tom.pets_ref()->push_back(ed);
   return tom;
 }();
 auto tom2 = [] {
   Pet2 max;
-  max.name = "max";
+  *max.name_ref() = "max";
   Pet2 ed;
-  ed.name = "ed";
+  *ed.name_ref() = "ed";
   Person2 tom;
-  tom.name = "tom";
-  tom.weight = 169;
-  tom.age = 30;
-  tom.__isset.age = true;
-  tom.pets.push_back(max);
-  tom.pets.push_back(ed);
+  *tom.name_ref() = "tom";
+  *tom.weight_ref() = 169;
+  tom.age_ref() = 30;
+  tom.pets_ref()->push_back(max);
+  tom.pets_ref()->push_back(ed);
   return tom;
 }();
 
 TEST(Frozen, EndToEnd) {
   auto view = freeze(tom1);
-  EXPECT_EQ(tom1.name, view.name());
-  ASSERT_TRUE(view.age().hasValue());
-  EXPECT_EQ(tom1.age, view.age().value());
-  EXPECT_EQ(tom1.height, view.height());
-  EXPECT_EQ(view.pets()[0].name(), tom1.pets[0].name);
-  auto& pets = tom1.pets;
+  EXPECT_EQ(*tom1.name_ref(), view.name());
+  ASSERT_TRUE(view.name_ref().has_value());
+  EXPECT_EQ(*tom1.name_ref(), *view.name_ref());
+  ASSERT_TRUE(view.age().has_value());
+  EXPECT_EQ(*tom1.age_ref(), view.age().value());
+  EXPECT_EQ(*tom1.height_ref(), view.height());
+  EXPECT_EQ(view.pets()[0].name(), *tom1.pets_ref()[0].name_ref());
+  auto& pets = *tom1.pets_ref();
   auto fpets = view.pets();
   ASSERT_EQ(pets.size(), fpets.size());
-  for (size_t i = 0; i < tom1.pets.size(); ++i) {
-    EXPECT_EQ(pets[i].name, fpets[i].name());
+  for (size_t i = 0; i < tom1.pets_ref()->size(); ++i) {
+    EXPECT_EQ(*pets[i].name_ref(), fpets[i].name());
   }
   Layout<Person1> layout;
   LayoutRoot::layout(tom1, layout);
-  LOG(INFO) << layout;
-  LOG(INFO) << apache::thrift::debugString(tom1);
   auto ttom = view.thaw();
-  LOG(INFO) << apache::thrift::debugString(ttom);
-  EXPECT_TRUE(ttom.__isset.name);
-  EXPECT_EQ(tom1, ttom);
+  EXPECT_TRUE(ttom.name_ref().has_value());
+  EXPECT_PRINTED_EQ(tom1, ttom);
 }
 
 TEST(Frozen, Comparison) {
@@ -114,10 +128,10 @@ TEST(Frozen, Comparison) {
   auto view1 = freeze(tom1);
   auto view2 = freeze(tom2);
   // name is optional now, and was __isset=true, so we don't write it
-  ASSERT_TRUE(view2.age().hasValue());
-  EXPECT_EQ(tom2.age, view2.age().value());
-  EXPECT_EQ(tom2.name, view2.name());
-  EXPECT_EQ(tom2.name.size(), view2.name().size());
+  ASSERT_TRUE(view2.age().has_value());
+  EXPECT_EQ(*tom2.age_ref(), view2.age().value());
+  EXPECT_EQ(*tom2.name_ref(), view2.name());
+  EXPECT_EQ(tom2.name_ref()->size(), view2.name().size());
   auto ttom2 = view2.thaw();
   EXPECT_EQ(tom2, ttom2) << debugString(tom2) << debugString(ttom2);
 }
@@ -148,6 +162,31 @@ TEST(Frozen, Compatibility) {
   ASSERT_GE(view12.pets().size(), 2);
   EXPECT_EQ(view12.pets()[0].name(), view21.pets()[0].name());
   EXPECT_EQ(view12.pets()[1].name(), view21.pets()[1].name());
+}
+
+// It's important to make sure the hash function not change, other wise the
+// existing indexed data will be messed up.
+TEST(Frozen, HashCompatibility) {
+  // int
+  std::hash<int64_t> intHash;
+  for (int64_t i = -10000; i < 10000; ++i) {
+    EXPECT_EQ(Layout<int64_t>::hash(i), intHash(i));
+  }
+
+  // string
+  using StrLayout = Layout<std::string>;
+  using View = StrLayout::View;
+
+  auto follyHash = [](const View& v) {
+    return folly::hash::fnv64_buf(v.begin(), v.size());
+  };
+
+  std::vector<std::string> strs{
+      "hello", "WOrld", "luckylook", "facebook", "Let it go!!"};
+  for (auto&& s : strs) {
+    View v(s);
+    EXPECT_EQ(StrLayout::hash(v), follyHash(v));
+  }
 }
 
 TEST(Frozen, EmbeddedSchema) {
@@ -186,11 +225,13 @@ TEST(Frozen, EmbeddedSchema) {
     folly::StringPiece charRange(&storage[start], storage.size() - start);
     folly::ByteRange bytes(charRange);
     auto view = person2.view({bytes.begin(), 0});
-    EXPECT_EQ(tom1.name, view.name());
-    ASSERT_EQ(tom1.__isset.age, view.age().hasValue());
-    EXPECT_EQ(tom1.age, view.age().value());
-    EXPECT_EQ(tom1.pets[0].name, view.pets()[0].name());
-    EXPECT_EQ(tom1.pets[1].name, view.pets()[1].name());
+    EXPECT_EQ(*tom1.name_ref(), view.name());
+    ASSERT_EQ(tom1.age_ref().has_value(), view.age().has_value());
+    if (auto age = tom1.age_ref()) {
+      EXPECT_EQ(*age, view.age().value());
+    }
+    EXPECT_EQ(*tom1.pets_ref()[0].name_ref(), view.pets()[0].name());
+    EXPECT_EQ(*tom1.pets_ref()[1].name_ref(), view.pets()[1].name());
   }
 }
 
@@ -200,7 +241,9 @@ TEST(Frozen, NoLayout) {
   EXPECT_FALSE(Layout<bool>().view(null));
   EXPECT_EQ(0, Layout<int>().view(null));
   EXPECT_EQ(0.0f, Layout<float>().view(null));
-  EXPECT_EQ(folly::Optional<int>(), Layout<folly::Optional<int>>().view(null));
+  EXPECT_EQ(
+      apache::thrift::frozen::OptionalFieldView<int>(),
+      Layout<folly::Optional<int>>().view(null));
   EXPECT_EQ(std::string(), Layout<std::string>().view(null));
   EXPECT_EQ(std::vector<int>(), Layout<std::vector<int>>().view(null).thaw());
   EXPECT_EQ(Person1(), Layout<Person1>().view(null).thaw());
@@ -272,10 +315,10 @@ TEST(Frozen, VectorString) {
 TEST(Frozen, BigMap) {
   PlaceTest t;
   for (int i = 0; i < 1000; ++i) {
-    auto& place = t.places[i * i * i % 757368944];
-    place.name = folly::to<std::string>(i);
+    auto& place = t.places_ref()[i * i * i % 757368944];
+    *place.name_ref() = folly::to<std::string>(i);
     for (int j = 0; j < 200; ++j) {
-      ++place.popularityByHour[rand() % (24 * 7)];
+      ++place.popularityByHour_ref()[rand() % (24 * 7)];
     }
   }
   folly::IOBufQueue bq(folly::IOBufQueue::cacheChainLength());
@@ -293,15 +336,15 @@ Tiny tiny1 = [] {
 Tiny tiny2 = [] {
   Tiny obj;
   obj.a = "two";
-  obj.b = "set";
+  *obj.b_ref() = "set";
   return obj;
 }();
 Tiny tiny4 = [] {
   Tiny obj;
   obj.a = "four";
-  obj.b = "itty";
-  obj.c = "bitty";
-  obj.d = "strings";
+  *obj.b_ref() = "itty";
+  *obj.c_ref() = "bitty";
+  *obj.d_ref() = "strings";
   return obj;
 }();
 
@@ -309,15 +352,6 @@ TEST(Frozen, Tiny) {
   EXPECT_EQ(tiny4, freeze(tiny4).thaw());
   EXPECT_EQ(24, frozenSize(tiny4));
 }
-
-template <class T>
-std::string toString(const T& x) {
-  std::ostringstream xStr;
-  xStr << x;
-  return xStr.str();
-}
-
-#define EXPECT_PRINTED_EQ(a, b) EXPECT_EQ(toString(a), toString(b))
 
 TEST(Frozen, SchemaSaving) {
   // calculate a layout
@@ -343,10 +377,65 @@ TEST(Frozen, SchemaSaving) {
 
 TEST(Frozen, Enum) {
   Person1 he, she;
-  he.gender = Gender::Male;
-  she.gender = Gender::Female;
+  *he.gender_ref() = Gender::Male;
+  *she.gender_ref() = Gender::Female;
   EXPECT_EQ(he, freeze(he).thaw());
   EXPECT_EQ(she, freeze(she).thaw());
+}
+
+TEST(Frozen, EnumAsKey) {
+  EnumAsKeyTest thriftObj;
+  thriftObj.enumSet_ref()->insert(Gender::Male);
+  thriftObj.enumMap_ref()->emplace(Gender::Female, 1219);
+  thriftObj.outsideEnumSet_ref()->insert(Animal::DOG);
+  thriftObj.outsideEnumMap_ref()->emplace(Animal::CAT, 7779);
+
+  auto frozenObj = freeze(thriftObj);
+  EXPECT_THAT(frozenObj.enumSet(), Contains(Gender::Male));
+  EXPECT_THAT(frozenObj.outsideEnumSet(), Contains(Animal::DOG));
+  EXPECT_EQ(frozenObj.enumMap().at(Gender::Female), 1219);
+  EXPECT_EQ(frozenObj.outsideEnumMap().at(Animal::CAT), 7779);
+}
+
+template <class T>
+size_t frozenBits(const T& value) {
+  Layout<T> layout;
+  LayoutRoot::layout(value, layout);
+  return layout.bits;
+}
+
+TEST(Frozen, Bool) {
+  Pet1 meat, vegan, dunno;
+  meat.vegan_ref() = false;
+  vegan.vegan_ref() = true;
+  // Always-empty optionals take 0 bits.
+  // Sometimes-full optionals take >=1 bits.
+  // Always-false bools take 0 bits.
+  // Sometimes-true bools take 1 bits.
+  // dunno => Nothing => 0 bits.
+  // meat => Just(False) => 1 bit.
+  // vegan => Just(True) => 2 bits.
+  EXPECT_LT(frozenBits(dunno), frozenBits(meat));
+  EXPECT_LT(frozenBits(meat), frozenBits(vegan));
+  EXPECT_FALSE(*freeze(meat).vegan());
+  EXPECT_TRUE(*freeze(vegan).vegan());
+  EXPECT_FALSE(freeze(dunno).vegan().has_value());
+  EXPECT_EQ(meat, freeze(meat).thaw());
+  EXPECT_EQ(vegan, freeze(vegan).thaw());
+  EXPECT_EQ(dunno, freeze(dunno).thaw());
+}
+
+TEST(Frozen, ThawPart) {
+  auto f = freeze(tom1);
+  EXPECT_EQ(f.pets()[0].name(), "max");
+  EXPECT_EQ(f.pets()[1].name(), "ed");
+
+  auto max = f.pets()[0].thaw();
+  auto ed = f.pets()[1].thaw();
+  EXPECT_EQ(typeid(max), typeid(Pet1));
+  EXPECT_EQ(typeid(ed), typeid(Pet1));
+  EXPECT_EQ(*max.name_ref(), "max");
+  EXPECT_EQ(*ed.name_ref(), "ed");
 }
 
 TEST(Frozen, SchemaConversion) {
@@ -444,3 +533,131 @@ TEST(Frozen, Bundled) {
   EXPECT_EQ(47, *s.findFirstOfType<int>());
   EXPECT_EQ(nullptr, s.findFirstOfType<std::string>());
 }
+
+TEST(Frozen, TrivialCopyable) {
+  TriviallyCopyableStruct s;
+  s.field_ref() = 42;
+  auto view = freeze(s);
+  EXPECT_EQ(view.field(), 42);
+}
+
+MATCHER(PairStrEq, "") {
+  *result_listener << std::get<0>(arg).first << ", " << std::get<0>(arg).second
+                   << ", vs " << std::get<1>(arg).first << ", "
+                   << std::get<1>(arg).second;
+  return std::get<0>(arg).first == std::get<1>(arg).first &&
+      std::get<0>(arg).second == std::get<1>(arg).second;
+}
+
+TEST(Frozen, FixedSizeString) {
+  // Good example.
+  {
+    TestFixedSizeString s;
+    s.bytes8_ref() = "01234567";
+    // bytes4 field is optional and can be unset.
+    auto view = freeze(s);
+    ASSERT_TRUE(view.bytes8_ref().has_value());
+    EXPECT_EQ(view.bytes8_ref()->toString(), "01234567");
+  }
+  // Good example.
+  {
+    TestFixedSizeString s;
+    s.bytes8_ref() = "01234567";
+    s.bytes4_ref() = "0123";
+    auto view = freeze(s);
+    ASSERT_TRUE(view.bytes8_ref().has_value());
+    EXPECT_EQ(view.bytes8_ref()->toString(), "01234567");
+    ASSERT_TRUE(view.bytes4().has_value());
+    EXPECT_EQ(view.bytes4()->toString(), "0123");
+  }
+  // Throws if an unqualified FixedSizeString field is unset.
+  {
+    TestFixedSizeString s;
+    s.bytes4_ref() = "0123";
+    // bytes8 field is unqualified and must be set.
+    EXPECT_THROW(
+        [&s]() { auto view = freeze(s); }(),
+        apache::thrift::frozen::detail::FixedSizeMismatchException);
+  }
+  // Throws if a FixedSizeString field doesn't have the expected size.
+  {
+    EXPECT_THROW(
+        []() {
+          TestFixedSizeString s;
+          s.bytes8_ref() = "01234567";
+          s.bytes4_ref() = "0";
+          auto view = freeze(s);
+        }(),
+        apache::thrift::frozen::detail::FixedSizeMismatchException);
+    EXPECT_THROW(
+        []() {
+          TestFixedSizeString s;
+          s.bytes8_ref() = "0";
+          s.bytes4_ref() = "0123";
+          auto view = freeze(s);
+        }(),
+        apache::thrift::frozen::detail::FixedSizeMismatchException);
+  }
+  // Tests FixedSizeString as both the key_type and the value_type in a hashmap.
+  {
+    TestFixedSizeString s;
+    s.bytes8_ref() = "01234567";
+    std::unordered_map<std::string, std::string> rawMap = {
+        {"76543210", "ab"},
+        {"12345670", "cd"},
+        {"hellosnw", "ef"},
+        {"facebook", "hi"},
+    };
+    for (const auto& [key, val] : rawMap) {
+      s.aMapToFreeze_ref()[apache::thrift::frozen::FixedSizeString<8>(key)] =
+          val;
+      s.aMap_ref()[apache::thrift::frozen::FixedSizeString<8>(key)] = val;
+    }
+
+    // Tests aMap before serialization.
+    {
+      EXPECT_THAT(
+          *s.aMap_ref(), testing::UnorderedPointwise(PairStrEq(), rawMap));
+      auto iter = s.aMap_ref()->find(Fixed8("hellosnw"));
+      ASSERT_NE(iter, s.aMap_ref()->end());
+      EXPECT_THAT(
+          *iter,
+          testing::Pair(
+              testing::Eq(Fixed8("hellosnw")), testing::Eq(Fixed2("ef"))));
+    }
+
+    auto view = freeze(s);
+
+    auto extractToUnorderedMap = [](const auto& frozenMap) {
+      std::unordered_map<std::string, std::string> result;
+      for (auto iter = frozenMap.begin(); iter != frozenMap.end(); ++iter) {
+        result[iter->first().toString()] = iter->second().toString();
+      }
+      return result;
+    };
+
+    ASSERT_TRUE(view.aMap_ref().has_value());
+    EXPECT_THAT(
+        extractToUnorderedMap(*view.aMap_ref()),
+        testing::UnorderedElementsAreArray(rawMap.begin(), rawMap.end()));
+    ASSERT_TRUE(view.aMapToFreeze_ref().has_value());
+    EXPECT_THAT(
+        extractToUnorderedMap(*view.aMapToFreeze_ref()),
+        testing::UnorderedElementsAreArray(rawMap.begin(), rawMap.end()));
+
+    {
+      std::string key = "hellosnw";
+      auto iter = view.aMap_ref()->find(folly::ByteRange{
+          reinterpret_cast<const uint8_t*>(key.data()), key.size()});
+      ASSERT_NE(iter, view.aMap_ref()->end());
+      EXPECT_EQ(iter->first().toString(), "hellosnw");
+      EXPECT_EQ(iter->second().toString(), "ef");
+    }
+  }
+}
+
+TEST(Frozen, Empty) {
+  Empty s;
+  FOLLY_MAYBE_UNUSED auto view = freeze(s);
+}
+} // namespace

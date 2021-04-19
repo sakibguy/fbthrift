@@ -1,11 +1,11 @@
 /*
- * Copyright 2016-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,9 +16,7 @@
 
 #pragma once
 
-#include <boost/python/object.hpp>
-#include <boost/python/str.hpp>
-#include <boost/python/tuple.hpp>
+#include <boost/python.hpp>
 #include <folly/SocketAddress.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 
@@ -37,6 +35,8 @@ boost::python::object makePythonAddress(const folly::SocketAddress& sa) {
     return boost::python::make_tuple(sa.getAddressStr(), sa.getPort());
   } else if (sa.getFamily() == AF_INET6) {
     return boost::python::make_tuple(sa.getAddressStr(), sa.getPort(), 0, 0);
+  } else if (sa.getFamily() == AF_UNIX) {
+    return boost::python::str(sa.getPath());
   } else {
     LOG(FATAL) << "CppServerWrapper can't create a non-inet thrift endpoint";
     abort();
@@ -59,12 +59,6 @@ class CppContextData {
     connCtx_ = connCtx;
 
     clientIdentity_ = connCtx->getPeerCommonName();
-    if (clientIdentity_.empty()) {
-      auto ss = connCtx->getSaslServer();
-      if (ss) {
-        clientIdentity_ = ss->getClientIdentity();
-      }
-    }
 
     auto pa = connCtx->getPeerAddress();
     if (pa) {
@@ -93,21 +87,11 @@ class CppContextData {
   boost::python::object getLocalAddress() const {
     return makePythonAddress(localAddress_);
   }
-  const Cpp2ConnContext* getConnCtx() const {
-    return connCtx_;
-  }
-  Cpp2RequestContext* getReqCtx() const {
-    return requestCtx_;
-  }
-  const std::string& getHeaderEx() {
-    return headerEx_;
-  }
-  void setHeaderEx(const std::string& headerEx) {
-    headerEx_ = headerEx;
-  }
-  const std::string& getHeaderExWhat() {
-    return headerExWhat_;
-  }
+  const Cpp2ConnContext* getConnCtx() const { return connCtx_; }
+  Cpp2RequestContext* getReqCtx() const { return requestCtx_; }
+  const std::string& getHeaderEx() { return headerEx_; }
+  void setHeaderEx(const std::string& headerEx) { headerEx_ = headerEx; }
+  const std::string& getHeaderExWhat() { return headerExWhat_; }
   void setHeaderExWhat(const std::string& headerExWhat) {
     headerExWhat_ = headerExWhat;
   }

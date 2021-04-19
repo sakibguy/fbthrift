@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.facebook.thrift.perf;
 
 import org.apache.commons.cli.*;
@@ -23,16 +39,13 @@ public class LoadTesterArgumentParser {
   }
 
   public int getListenPort() {
-    String value =
-      commandLine.getOptionValue(OPT_PORT,
-                                 Integer.toString(OPT_PORT_DEFAULT));
+    String value = commandLine.getOptionValue(OPT_PORT, Integer.toString(OPT_PORT_DEFAULT));
     return Integer.decode(value);
   }
 
   public int getNumberOfThreads() {
     String value =
-      commandLine.getOptionValue(OPT_NUM_THREADS,
-                                 Integer.toString(getNumberOfProcessors()));
+        commandLine.getOptionValue(OPT_NUM_THREADS, Integer.toString(getNumberOfProcessors()));
     return Integer.decode(value);
   }
 
@@ -46,23 +59,21 @@ public class LoadTesterArgumentParser {
 
   protected void registerOptions() {
     options.addOption(
-      OptionBuilder.withLongOpt(OPT_HELP)
-      .withDescription("Print this usage message")
-      .create());
+        OptionBuilder.withLongOpt(OPT_HELP).withDescription("Print this usage message").create());
 
     options.addOption(
-      OptionBuilder.withLongOpt(OPT_PORT)
-      .hasArg()
-      .withArgName("number")
-      .withDescription("Port to bind for listening")
-      .create());
+        OptionBuilder.withLongOpt(OPT_PORT)
+            .hasArg()
+            .withArgName("number")
+            .withDescription("Port to bind for listening")
+            .create());
 
     options.addOption(
-      OptionBuilder.withLongOpt(OPT_NUM_THREADS)
-      .hasArg()
-      .withArgName("count")
-      .withDescription("Number of task threads")
-      .create());
+        OptionBuilder.withLongOpt(OPT_NUM_THREADS)
+            .hasArg()
+            .withArgName("count")
+            .withDescription("Number of task threads")
+            .create());
   }
 
   protected Options options = new Options();

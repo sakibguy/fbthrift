@@ -1,22 +1,17 @@
 /*
- * Copyright 2004-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -28,9 +23,9 @@
 
 #include <thrift/lib/cpp/concurrency/Util.h>
 
-#include <thrift/lib/cpp/test/loadgen/loadgen.h>
 #include <thrift/lib/cpp/test/loadgen/QpsMonitor.h>
 #include <thrift/lib/cpp/test/loadgen/Worker.h>
+#include <thrift/lib/cpp/test/loadgen/loadgen.h>
 
 #include "common/config/Flags.h"
 
@@ -42,7 +37,6 @@ DEFINE_bool(qps_monitor, false, "use the simple QPS monitor");
 using std::shared_ptr;
 namespace loadgen = apache::thrift::loadgen;
 
-
 class PerfLoadConfig : public loadgen::LoadConfig {
  public:
   uint32_t getNumOpTypes() const override { return 1; }
@@ -53,22 +47,18 @@ class PerfLoadConfig : public loadgen::LoadConfig {
 
   uint32_t getNumWorkerThreads() const override { return FLAGS_num_threads; }
 
-  std::string getOpName(uint32_t /* opType */) override {
-    return "noop";
-  }
+  std::string getOpName(uint32_t /* opType */) override { return "noop"; }
 };
-
 
 class PerfWorker : public loadgen::Worker<void, PerfLoadConfig> {
  public:
   shared_ptr<void> createConnection() override { return shared_ptr<void>(); }
 
-  void performOperation(const shared_ptr<void>& /* client */, uint32_t /* op */)
-      override {
+  void performOperation(
+      const shared_ptr<void>& /* client */, uint32_t /* op */) override {
     return;
   }
 };
-
 
 int main(int argc, char* argv[]) {
   facebook::config::Flags::initFlags(&argc, &argv, true);

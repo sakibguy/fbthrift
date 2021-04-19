@@ -1,23 +1,19 @@
 /*
- * Copyright 2012-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 #ifndef CPP2_SERIALIZER_H
 #define CPP2_SERIALIZER_H
 
@@ -26,10 +22,11 @@
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
+#include <thrift/lib/cpp2/protocol/Cpp2Ops.h>
 #include <thrift/lib/cpp2/protocol/JSONProtocol.h>
+#include <thrift/lib/cpp2/protocol/NimbleProtocol.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
 #include <thrift/lib/cpp2/protocol/SimpleJSONProtocol.h>
-#include <thrift/lib/cpp2/protocol/Cpp2Ops.tcc>
 
 namespace apache {
 namespace thrift {
@@ -48,7 +45,7 @@ struct Serializer {
     // if you don't need to support thrift1-compatibility types
     apache::thrift::Cpp2Ops<T>::read(&reader, &obj);
 
-    return reader.getCurrentPosition();
+    return reader.getCursor();
   }
   template <class T>
   static size_t deserialize(
@@ -191,18 +188,37 @@ struct Serializer {
   }
 };
 
+// template specialization for NimbleProtocol
+template <>
+struct Serializer<NimbleProtocolReader, NimbleProtocolWriter> {
+  template <class T>
+  static size_t deserialize(const folly::IOBuf* buf, T& obj) {
+    NimbleProtocolReader reader;
+    reader.setInput(folly::io::Cursor{buf});
+    obj.read(&reader);
+    return 0;
+  }
+
+  template <class T>
+  static void serialize(const T& obj, folly::IOBufQueue* out) {
+    NimbleProtocolWriter writer;
+    obj.write(&writer);
+    out->append(writer.finalize());
+  }
+};
+
 typedef Serializer<CompactProtocolReader, CompactProtocolWriter>
     CompactSerializer;
 typedef Serializer<BinaryProtocolReader, BinaryProtocolWriter> BinarySerializer;
 typedef Serializer<JSONProtocolReader, JSONProtocolWriter> JSONSerializer;
 typedef Serializer<SimpleJSONProtocolReader, SimpleJSONProtocolWriter>
     SimpleJSONSerializer;
+typedef Serializer<NimbleProtocolReader, NimbleProtocolWriter> NimbleSerializer;
 
 // Serialization code specific to handling errors
 template <typename ProtIn, typename ProtOut>
 std::unique_ptr<folly::IOBuf> serializeErrorProtocol(
-    TApplicationException obj,
-    folly::IOBuf* req) {
+    const TApplicationException& obj, folly::IOBuf* req) {
   ProtIn iprot;
   std::string fname;
   apache::thrift::MessageType mtype;
@@ -223,7 +239,7 @@ std::unique_ptr<folly::IOBuf> serializeErrorProtocol(
 
 template <typename ProtOut>
 std::unique_ptr<folly::IOBuf> serializeErrorProtocol(
-    TApplicationException obj,
+    const TApplicationException& obj,
     const std::string& fname,
     int32_t protoSeqId) {
   ProtOut prot;
@@ -237,14 +253,18 @@ std::unique_ptr<folly::IOBuf> serializeErrorProtocol(
   return queue.move();
 }
 
-std::unique_ptr<folly::IOBuf>
-serializeError(int protId, TApplicationException obj, folly::IOBuf* buf);
+std::unique_ptr<folly::IOBuf> serializeError(
+    int protId, const TApplicationException& obj, folly::IOBuf* buf);
 
 std::unique_ptr<folly::IOBuf> serializeError(
     int protId,
-    TApplicationException obj,
+    const TApplicationException& obj,
     const std::string& fname,
     int32_t protoSeqId);
+
+// serialize TApplicationException without a protocol message envelop
+std::unique_ptr<folly::IOBuf> serializeErrorStruct(
+    protocol::PROTOCOL_TYPES protId, const TApplicationException& obj);
 
 } // namespace thrift
 } // namespace apache

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,14 +16,12 @@
 
 #pragma once
 
+#include <random>
 #include <folly/GLog.h>
 #include <folly/system/ThreadName.h>
 #include <thrift/lib/cpp2/async/RequestChannel.h>
-#include <thrift/lib/cpp2/transport/rsocket/YarplStreamImpl.h>
 #include <thrift/perf/cpp2/if/gen-cpp2/ApiBase_types.h>
 #include <thrift/perf/cpp2/util/QPSStats.h>
-#include <yarpl/Flowable.h>
-#include <random>
 
 DECLARE_uint32(chunk_size);
 DECLARE_uint32(batch_size);
@@ -98,15 +96,15 @@ class Upload {
     stats_->registerCounter(timeout_);
     stats_->registerCounter(error_);
     stats_->registerCounter(fatal_);
-    chunk_.data.unshare();
-    chunk_.data.reserve(0, chunkSize);
-    auto buffer = chunk_.data.writableData();
+    chunk_.data_ref()->unshare();
+    chunk_.data_ref()->reserve(0, chunkSize);
+    auto buffer = chunk_.data_ref()->writableData();
     // Make it real data to eliminate network optimizations on sending all 0's.
     srand(time(nullptr));
     for (uint32_t i = 0; i < FLAGS_chunk_size; ++i) {
       buffer[i] = (uint8_t)(rand() % 26 + 'A');
     }
-    chunk_.data.append(chunkSize);
+    chunk_.data_ref()->append(chunkSize);
   }
   ~Upload() = default;
 
@@ -162,13 +160,13 @@ class StreamDownload {
     stats_->registerCounter(download_);
     stats_->registerCounter(error_);
     stats_->registerCounter(fatal_);
-    chunk_.data.unshare();
-    chunk_.data.reserve(0, chunkSize);
-    auto buffer = chunk_.data.writableData();
+    chunk_.data_ref()->unshare();
+    chunk_.data_ref()->reserve(0, chunkSize);
+    auto buffer = chunk_.data_ref()->writableData();
     for (uint32_t i = 0; i < chunkSize; ++i) {
       buffer[i] = (uint8_t)((i + 'A') % 26);
     }
-    chunk_.data.append(chunkSize);
+    chunk_.data_ref()->append(chunkSize);
   }
   ~StreamDownload() = default;
 
@@ -180,41 +178,23 @@ class StreamDownload {
     apache::thrift::RpcOptions rpcOptions;
     rpcOptions.setQueueTimeout(std::chrono::seconds(10));
     rpcOptions.setTimeout(std::chrono::seconds(10));
+    rpcOptions.setChunkBufferSize(FLAGS_batch_size);
 
-    class Subscription : public yarpl::flowable::Subscription {
-     public:
-      Subscription(QPSStats* stats) : stats_(stats) {
-        stats_->registerCounter(ks_Request_);
-      }
+    client->sync_streamDownload(rpcOptions)
+        .subscribeExTry(
+            folly::EventBaseManager::get()->getEventBase(),
+            [this, &outstandingOps](auto&& t) {
+              if (t.hasValue()) {
+                stats_->add(download_);
+              } else if (t.hasException()) {
+                stats_->add(fatal_);
+                --outstandingOps;
 
-      void request(int64_t cnt) override {
-        // not the amount of requests but number of requests!
-        stats_->add(ks_Request_);
-        requested_ += cnt;
-      }
-      void cancel() override {
-        requested_ = -1;
-      }
-
-      std::atomic<int32_t> requested_{0};
-      std::string ks_Request_ = "s_request";
-      QPSStats* stats_;
-    };
-
-    auto output = client->sync_streamDownload(rpcOptions);
-    apache::thrift::toFlowable(
-        std::move(output).via(folly::EventBaseManager::get()->getEventBase()))
-        ->subscribe(
-            // next
-            [this](auto) { stats_->add(download_); },
-            // error
-            [this, &outstandingOps](const auto&) mutable {
-              stats_->add(fatal_);
-              --outstandingOps;
-            },
-            // complete
-            [&outstandingOps]() mutable { --outstandingOps; },
-            FLAGS_batch_size);
+              } else {
+                --outstandingOps;
+              }
+            })
+        .detach();
   }
 
   void asyncReceived(AsyncClient*, ClientReceiveState&&) {}

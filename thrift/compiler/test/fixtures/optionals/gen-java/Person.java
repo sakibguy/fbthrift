@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -44,12 +42,12 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
   public Color favoriteColor;
   public Set<Long> friends;
   public long bestFriend;
-  public Map<Integer,String> petNames;
+  public Map<Animal,String> petNames;
   /**
    * 
    * @see Animal
    */
-  public int afraidOfAnimal;
+  public Animal afraidOfAnimal;
   public List<Vehicle> vehicles;
   public static final int ID = 1;
   public static final int NAME = 2;
@@ -61,16 +59,15 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
   public static final int PETNAMES = 8;
   public static final int AFRAIDOFANIMAL = 9;
   public static final int VEHICLES = 10;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
   private static final int __ID_ISSET_ID = 0;
   private static final int __AGE_ISSET_ID = 1;
   private static final int __BESTFRIEND_ISSET_ID = 2;
-  private static final int __AFRAIDOFANIMAL_ISSET_ID = 3;
-  private BitSet __isset_bit_vector = new BitSet(4);
+  private BitSet __isset_bit_vector = new BitSet(3);
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(ID, new FieldMetaData("id", TFieldRequirementType.DEFAULT, 
@@ -108,9 +105,8 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
   }
 
   public Person(
-    long id,
-    String name)
-  {
+      long id,
+      String name) {
     this();
     this.id = id;
     setIdIsSet(true);
@@ -118,17 +114,16 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
   }
 
   public Person(
-    long id,
-    String name,
-    short age,
-    String address,
-    Color favoriteColor,
-    Set<Long> friends,
-    long bestFriend,
-    Map<Integer,String> petNames,
-    int afraidOfAnimal,
-    List<Vehicle> vehicles)
-  {
+      long id,
+      String name,
+      short age,
+      String address,
+      Color favoriteColor,
+      Set<Long> friends,
+      long bestFriend,
+      Map<Animal,String> petNames,
+      Animal afraidOfAnimal,
+      List<Vehicle> vehicles) {
     this();
     this.id = id;
     setIdIsSet(true);
@@ -142,8 +137,103 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     setBestFriendIsSet(true);
     this.petNames = petNames;
     this.afraidOfAnimal = afraidOfAnimal;
-    setAfraidOfAnimalIsSet(true);
     this.vehicles = vehicles;
+  }
+
+  public static class Builder {
+    private long id;
+    private String name;
+    private short age;
+    private String address;
+    private Color favoriteColor;
+    private Set<Long> friends;
+    private long bestFriend;
+    private Map<Animal,String> petNames;
+    private Animal afraidOfAnimal;
+    private List<Vehicle> vehicles;
+
+    BitSet __optional_isset = new BitSet(3);
+
+    public Builder() {
+    }
+
+    public Builder setId(final long id) {
+      this.id = id;
+      __optional_isset.set(__ID_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setName(final String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Builder setAge(final short age) {
+      this.age = age;
+      __optional_isset.set(__AGE_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setAddress(final String address) {
+      this.address = address;
+      return this;
+    }
+
+    public Builder setFavoriteColor(final Color favoriteColor) {
+      this.favoriteColor = favoriteColor;
+      return this;
+    }
+
+    public Builder setFriends(final Set<Long> friends) {
+      this.friends = friends;
+      return this;
+    }
+
+    public Builder setBestFriend(final long bestFriend) {
+      this.bestFriend = bestFriend;
+      __optional_isset.set(__BESTFRIEND_ISSET_ID, true);
+      return this;
+    }
+
+    public Builder setPetNames(final Map<Animal,String> petNames) {
+      this.petNames = petNames;
+      return this;
+    }
+
+    public Builder setAfraidOfAnimal(final Animal afraidOfAnimal) {
+      this.afraidOfAnimal = afraidOfAnimal;
+      return this;
+    }
+
+    public Builder setVehicles(final List<Vehicle> vehicles) {
+      this.vehicles = vehicles;
+      return this;
+    }
+
+    public Person build() {
+      Person result = new Person();
+      if (__optional_isset.get(__ID_ISSET_ID)) {
+        result.setId(this.id);
+      }
+      result.setName(this.name);
+      if (__optional_isset.get(__AGE_ISSET_ID)) {
+        result.setAge(this.age);
+      }
+      result.setAddress(this.address);
+      result.setFavoriteColor(this.favoriteColor);
+      result.setFriends(this.friends);
+      if (__optional_isset.get(__BESTFRIEND_ISSET_ID)) {
+        result.setBestFriend(this.bestFriend);
+      }
+      result.setPetNames(this.petNames);
+      result.setAfraidOfAnimal(this.afraidOfAnimal);
+      result.setVehicles(this.vehicles);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -170,7 +260,9 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     if (other.isSetPetNames()) {
       this.petNames = TBaseHelper.deepCopy(other.petNames);
     }
-    this.afraidOfAnimal = TBaseHelper.deepCopy(other.afraidOfAnimal);
+    if (other.isSetAfraidOfAnimal()) {
+      this.afraidOfAnimal = TBaseHelper.deepCopy(other.afraidOfAnimal);
+    }
     if (other.isSetVehicles()) {
       this.vehicles = TBaseHelper.deepCopy(other.vehicles);
     }
@@ -180,12 +272,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return new Person(this);
   }
 
-  @Deprecated
-  public Person clone() {
-    return new Person(this);
-  }
-
-  public long  getId() {
+  public long getId() {
     return this.id;
   }
 
@@ -204,11 +291,11 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return __isset_bit_vector.get(__ID_ISSET_ID);
   }
 
-  public void setIdIsSet(boolean value) {
-    __isset_bit_vector.set(__ID_ISSET_ID, value);
+  public void setIdIsSet(boolean __value) {
+    __isset_bit_vector.set(__ID_ISSET_ID, __value);
   }
 
-  public String  getName() {
+  public String getName() {
     return this.name;
   }
 
@@ -226,13 +313,13 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return this.name != null;
   }
 
-  public void setNameIsSet(boolean value) {
-    if (!value) {
+  public void setNameIsSet(boolean __value) {
+    if (!__value) {
       this.name = null;
     }
   }
 
-  public short  getAge() {
+  public short getAge() {
     return this.age;
   }
 
@@ -251,11 +338,11 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return __isset_bit_vector.get(__AGE_ISSET_ID);
   }
 
-  public void setAgeIsSet(boolean value) {
-    __isset_bit_vector.set(__AGE_ISSET_ID, value);
+  public void setAgeIsSet(boolean __value) {
+    __isset_bit_vector.set(__AGE_ISSET_ID, __value);
   }
 
-  public String  getAddress() {
+  public String getAddress() {
     return this.address;
   }
 
@@ -273,13 +360,13 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return this.address != null;
   }
 
-  public void setAddressIsSet(boolean value) {
-    if (!value) {
+  public void setAddressIsSet(boolean __value) {
+    if (!__value) {
       this.address = null;
     }
   }
 
-  public Color  getFavoriteColor() {
+  public Color getFavoriteColor() {
     return this.favoriteColor;
   }
 
@@ -297,13 +384,13 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return this.favoriteColor != null;
   }
 
-  public void setFavoriteColorIsSet(boolean value) {
-    if (!value) {
+  public void setFavoriteColorIsSet(boolean __value) {
+    if (!__value) {
       this.favoriteColor = null;
     }
   }
 
-  public Set<Long>  getFriends() {
+  public Set<Long> getFriends() {
     return this.friends;
   }
 
@@ -321,13 +408,13 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return this.friends != null;
   }
 
-  public void setFriendsIsSet(boolean value) {
-    if (!value) {
+  public void setFriendsIsSet(boolean __value) {
+    if (!__value) {
       this.friends = null;
     }
   }
 
-  public long  getBestFriend() {
+  public long getBestFriend() {
     return this.bestFriend;
   }
 
@@ -346,15 +433,15 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return __isset_bit_vector.get(__BESTFRIEND_ISSET_ID);
   }
 
-  public void setBestFriendIsSet(boolean value) {
-    __isset_bit_vector.set(__BESTFRIEND_ISSET_ID, value);
+  public void setBestFriendIsSet(boolean __value) {
+    __isset_bit_vector.set(__BESTFRIEND_ISSET_ID, __value);
   }
 
-  public Map<Integer,String>  getPetNames() {
+  public Map<Animal,String> getPetNames() {
     return this.petNames;
   }
 
-  public Person setPetNames(Map<Integer,String> petNames) {
+  public Person setPetNames(Map<Animal,String> petNames) {
     this.petNames = petNames;
     return this;
   }
@@ -368,8 +455,8 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return this.petNames != null;
   }
 
-  public void setPetNamesIsSet(boolean value) {
-    if (!value) {
+  public void setPetNamesIsSet(boolean __value) {
+    if (!__value) {
       this.petNames = null;
     }
   }
@@ -378,7 +465,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
    * 
    * @see Animal
    */
-  public int  getAfraidOfAnimal() {
+  public Animal getAfraidOfAnimal() {
     return this.afraidOfAnimal;
   }
 
@@ -386,26 +473,27 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
    * 
    * @see Animal
    */
-  public Person setAfraidOfAnimal(int afraidOfAnimal) {
+  public Person setAfraidOfAnimal(Animal afraidOfAnimal) {
     this.afraidOfAnimal = afraidOfAnimal;
-    setAfraidOfAnimalIsSet(true);
     return this;
   }
 
   public void unsetAfraidOfAnimal() {
-    __isset_bit_vector.clear(__AFRAIDOFANIMAL_ISSET_ID);
+    this.afraidOfAnimal = null;
   }
 
   // Returns true if field afraidOfAnimal is set (has been assigned a value) and false otherwise
   public boolean isSetAfraidOfAnimal() {
-    return __isset_bit_vector.get(__AFRAIDOFANIMAL_ISSET_ID);
+    return this.afraidOfAnimal != null;
   }
 
-  public void setAfraidOfAnimalIsSet(boolean value) {
-    __isset_bit_vector.set(__AFRAIDOFANIMAL_ISSET_ID, value);
+  public void setAfraidOfAnimalIsSet(boolean __value) {
+    if (!__value) {
+      this.afraidOfAnimal = null;
+    }
   }
 
-  public List<Vehicle>  getVehicles() {
+  public List<Vehicle> getVehicles() {
     return this.vehicles;
   }
 
@@ -423,92 +511,92 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     return this.vehicles != null;
   }
 
-  public void setVehiclesIsSet(boolean value) {
-    if (!value) {
+  public void setVehiclesIsSet(boolean __value) {
+    if (!__value) {
       this.vehicles = null;
     }
   }
 
   @SuppressWarnings("unchecked")
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case ID:
-      if (value == null) {
+      if (__value == null) {
         unsetId();
       } else {
-        setId((Long)value);
+        setId((Long)__value);
       }
       break;
 
     case NAME:
-      if (value == null) {
+      if (__value == null) {
         unsetName();
       } else {
-        setName((String)value);
+        setName((String)__value);
       }
       break;
 
     case AGE:
-      if (value == null) {
+      if (__value == null) {
         unsetAge();
       } else {
-        setAge((Short)value);
+        setAge((Short)__value);
       }
       break;
 
     case ADDRESS:
-      if (value == null) {
+      if (__value == null) {
         unsetAddress();
       } else {
-        setAddress((String)value);
+        setAddress((String)__value);
       }
       break;
 
     case FAVORITECOLOR:
-      if (value == null) {
+      if (__value == null) {
         unsetFavoriteColor();
       } else {
-        setFavoriteColor((Color)value);
+        setFavoriteColor((Color)__value);
       }
       break;
 
     case FRIENDS:
-      if (value == null) {
+      if (__value == null) {
         unsetFriends();
       } else {
-        setFriends((Set<Long>)value);
+        setFriends((Set<Long>)__value);
       }
       break;
 
     case BESTFRIEND:
-      if (value == null) {
+      if (__value == null) {
         unsetBestFriend();
       } else {
-        setBestFriend((Long)value);
+        setBestFriend((Long)__value);
       }
       break;
 
     case PETNAMES:
-      if (value == null) {
+      if (__value == null) {
         unsetPetNames();
       } else {
-        setPetNames((Map<Integer,String>)value);
+        setPetNames((Map<Animal,String>)__value);
       }
       break;
 
     case AFRAIDOFANIMAL:
-      if (value == null) {
+      if (__value == null) {
         unsetAfraidOfAnimal();
       } else {
-        setAfraidOfAnimal((Integer)value);
+        setAfraidOfAnimal((Animal)__value);
       }
       break;
 
     case VEHICLES:
-      if (value == null) {
+      if (__value == null) {
         unsetVehicles();
       } else {
-        setVehicles((List<Vehicle>)value);
+        setVehicles((List<Vehicle>)__value);
       }
       break;
 
@@ -554,145 +642,42 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case ID:
-      return isSetId();
-    case NAME:
-      return isSetName();
-    case AGE:
-      return isSetAge();
-    case ADDRESS:
-      return isSetAddress();
-    case FAVORITECOLOR:
-      return isSetFavoriteColor();
-    case FRIENDS:
-      return isSetFriends();
-    case BESTFRIEND:
-      return isSetBestFriend();
-    case PETNAMES:
-      return isSetPetNames();
-    case AFRAIDOFANIMAL:
-      return isSetAfraidOfAnimal();
-    case VEHICLES:
-      return isSetVehicles();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof Person)
-      return this.equals((Person)that);
-    return false;
-  }
-
-  public boolean equals(Person that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof Person))
+      return false;
+    Person that = (Person)_that;
 
-    boolean this_present_id = true;
-    boolean that_present_id = true;
-    if (this_present_id || that_present_id) {
-      if (!(this_present_id && that_present_id))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.id, that.id))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.id, that.id)) { return false; }
 
-    boolean this_present_name = true && this.isSetName();
-    boolean that_present_name = true && that.isSetName();
-    if (this_present_name || that_present_name) {
-      if (!(this_present_name && that_present_name))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.name, that.name))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetName(), that.isSetName(), this.name, that.name)) { return false; }
 
-    boolean this_present_age = true && this.isSetAge();
-    boolean that_present_age = true && that.isSetAge();
-    if (this_present_age || that_present_age) {
-      if (!(this_present_age && that_present_age))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.age, that.age))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetAge(), that.isSetAge(), this.age, that.age)) { return false; }
 
-    boolean this_present_address = true && this.isSetAddress();
-    boolean that_present_address = true && that.isSetAddress();
-    if (this_present_address || that_present_address) {
-      if (!(this_present_address && that_present_address))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.address, that.address))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetAddress(), that.isSetAddress(), this.address, that.address)) { return false; }
 
-    boolean this_present_favoriteColor = true && this.isSetFavoriteColor();
-    boolean that_present_favoriteColor = true && that.isSetFavoriteColor();
-    if (this_present_favoriteColor || that_present_favoriteColor) {
-      if (!(this_present_favoriteColor && that_present_favoriteColor))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.favoriteColor, that.favoriteColor))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetFavoriteColor(), that.isSetFavoriteColor(), this.favoriteColor, that.favoriteColor)) { return false; }
 
-    boolean this_present_friends = true && this.isSetFriends();
-    boolean that_present_friends = true && that.isSetFriends();
-    if (this_present_friends || that_present_friends) {
-      if (!(this_present_friends && that_present_friends))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.friends, that.friends))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetFriends(), that.isSetFriends(), this.friends, that.friends)) { return false; }
 
-    boolean this_present_bestFriend = true && this.isSetBestFriend();
-    boolean that_present_bestFriend = true && that.isSetBestFriend();
-    if (this_present_bestFriend || that_present_bestFriend) {
-      if (!(this_present_bestFriend && that_present_bestFriend))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.bestFriend, that.bestFriend))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetBestFriend(), that.isSetBestFriend(), this.bestFriend, that.bestFriend)) { return false; }
 
-    boolean this_present_petNames = true && this.isSetPetNames();
-    boolean that_present_petNames = true && that.isSetPetNames();
-    if (this_present_petNames || that_present_petNames) {
-      if (!(this_present_petNames && that_present_petNames))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.petNames, that.petNames))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetPetNames(), that.isSetPetNames(), this.petNames, that.petNames)) { return false; }
 
-    boolean this_present_afraidOfAnimal = true && this.isSetAfraidOfAnimal();
-    boolean that_present_afraidOfAnimal = true && that.isSetAfraidOfAnimal();
-    if (this_present_afraidOfAnimal || that_present_afraidOfAnimal) {
-      if (!(this_present_afraidOfAnimal && that_present_afraidOfAnimal))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.afraidOfAnimal, that.afraidOfAnimal))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetAfraidOfAnimal(), that.isSetAfraidOfAnimal(), this.afraidOfAnimal, that.afraidOfAnimal)) { return false; }
 
-    boolean this_present_vehicles = true && this.isSetVehicles();
-    boolean that_present_vehicles = true && that.isSetVehicles();
-    if (this_present_vehicles || that_present_vehicles) {
-      if (!(this_present_vehicles && that_present_vehicles))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.vehicles, that.vehicles))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetVehicles(), that.isSetVehicles(), this.vehicles, that.vehicles)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {id, name, age, address, favoriteColor, friends, bestFriend, petNames, afraidOfAnimal, vehicles});
   }
 
   @Override
@@ -712,7 +697,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(id, other.id);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetName()).compareTo(other.isSetName());
@@ -720,7 +705,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(name, other.name);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetAge()).compareTo(other.isSetAge());
@@ -728,7 +713,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(age, other.age);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetAddress()).compareTo(other.isSetAddress());
@@ -736,7 +721,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(address, other.address);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetFavoriteColor()).compareTo(other.isSetFavoriteColor());
@@ -744,7 +729,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(favoriteColor, other.favoriteColor);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetFriends()).compareTo(other.isSetFriends());
@@ -752,7 +737,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(friends, other.friends);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetBestFriend()).compareTo(other.isSetBestFriend());
@@ -760,7 +745,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(bestFriend, other.bestFriend);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetPetNames()).compareTo(other.isSetPetNames());
@@ -768,7 +753,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(petNames, other.petNames);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetAfraidOfAnimal()).compareTo(other.isSetAfraidOfAnimal());
@@ -776,7 +761,7 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(afraidOfAnimal, other.afraidOfAnimal);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     lastComparison = Boolean.valueOf(isSetVehicles()).compareTo(other.isSetVehicles());
@@ -784,63 +769,63 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
       return lastComparison;
     }
     lastComparison = TBaseHelper.compareTo(vehicles, other.vehicles);
-    if (lastComparison != 0) {
+    if (lastComparison != 0) { 
       return lastComparison;
     }
     return 0;
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case ID:
-          if (field.type == TType.I64) {
+          if (__field.type == TType.I64) {
             this.id = iprot.readI64();
             setIdIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case NAME:
-          if (field.type == TType.STRING) {
+          if (__field.type == TType.STRING) {
             this.name = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case AGE:
-          if (field.type == TType.I16) {
+          if (__field.type == TType.I16) {
             this.age = iprot.readI16();
             setAgeIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case ADDRESS:
-          if (field.type == TType.STRING) {
+          if (__field.type == TType.STRING) {
             this.address = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case FAVORITECOLOR:
-          if (field.type == TType.STRUCT) {
+          if (__field.type == TType.STRUCT) {
             this.favoriteColor = new Color();
             this.favoriteColor.read(iprot);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case FRIENDS:
-          if (field.type == TType.SET) {
+          if (__field.type == TType.SET) {
             {
               TSet _set0 = iprot.readSetBegin();
               this.friends = new HashSet<Long>(Math.max(0, 2*_set0.size));
@@ -855,48 +840,47 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
               iprot.readSetEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case BESTFRIEND:
-          if (field.type == TType.I64) {
+          if (__field.type == TType.I64) {
             this.bestFriend = iprot.readI64();
             setBestFriendIsSet(true);
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case PETNAMES:
-          if (field.type == TType.MAP) {
+          if (__field.type == TType.MAP) {
             {
               TMap _map3 = iprot.readMapBegin();
-              this.petNames = new HashMap<Integer,String>(Math.max(0, 2*_map3.size));
+              this.petNames = new HashMap<Animal,String>(Math.max(0, 2*_map3.size));
               for (int _i4 = 0; 
                    (_map3.size < 0) ? iprot.peekMap() : (_i4 < _map3.size); 
                    ++_i4)
               {
-                int _key5;
+                Animal _key5;
                 String _val6;
-                _key5 = iprot.readI32();
+                _key5 = Animal.findByValue(iprot.readI32());
                 _val6 = iprot.readString();
                 this.petNames.put(_key5, _val6);
               }
               iprot.readMapEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case AFRAIDOFANIMAL:
-          if (field.type == TType.I32) {
-            this.afraidOfAnimal = iprot.readI32();
-            setAfraidOfAnimalIsSet(true);
+          if (__field.type == TType.I32) {
+            this.afraidOfAnimal = Animal.findByValue(iprot.readI32());
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         case VEHICLES:
-          if (field.type == TType.LIST) {
+          if (__field.type == TType.LIST) {
             {
               TList _list7 = iprot.readListBegin();
               this.vehicles = new ArrayList<Vehicle>(Math.max(0, _list7.size));
@@ -912,11 +896,11 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
               iprot.readListEnd();
             }
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -982,8 +966,8 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
         oprot.writeFieldBegin(PET_NAMES_FIELD_DESC);
         {
           oprot.writeMapBegin(new TMap(TType.I32, TType.STRING, this.petNames.size()));
-          for (Map.Entry<Integer, String> _iter11 : this.petNames.entrySet())          {
-            oprot.writeI32(_iter11.getKey());
+          for (Map.Entry<Animal, String> _iter11 : this.petNames.entrySet())          {
+            oprot.writeI32(_iter11.getKey() == null ? 0 : _iter11.getKey().getValue());
             oprot.writeString(_iter11.getValue());
           }
           oprot.writeMapEnd();
@@ -991,10 +975,12 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
         oprot.writeFieldEnd();
       }
     }
-    if (isSetAfraidOfAnimal()) {
-      oprot.writeFieldBegin(AFRAID_OF_ANIMAL_FIELD_DESC);
-      oprot.writeI32(this.afraidOfAnimal);
-      oprot.writeFieldEnd();
+    if (this.afraidOfAnimal != null) {
+      if (isSetAfraidOfAnimal()) {
+        oprot.writeFieldBegin(AFRAID_OF_ANIMAL_FIELD_DESC);
+        oprot.writeI32(this.afraidOfAnimal == null ? 0 : this.afraidOfAnimal.getValue());
+        oprot.writeFieldEnd();
+      }
     }
     if (this.vehicles != null) {
       if (isSetVehicles()) {
@@ -1015,19 +1001,14 @@ public class Person implements TBase, java.io.Serializable, Cloneable, Comparabl
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("Person");
     sb.append(space);
     sb.append("(");
@@ -1038,17 +1019,17 @@ String space = prettyPrint ? " " : "";
     sb.append("id");
     sb.append(space);
     sb.append(":").append(space);
-    sb.append(TBaseHelper.toString(this. getId(), indent + 1, prettyPrint));
+    sb.append(TBaseHelper.toString(this.getId(), indent + 1, prettyPrint));
     first = false;
     if (!first) sb.append("," + newLine);
     sb.append(indentStr);
     sb.append("name");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getName() == null) {
+    if (this.getName() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getName(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getName(), indent + 1, prettyPrint));
     }
     first = false;
     if (isSetAge())
@@ -1058,7 +1039,7 @@ String space = prettyPrint ? " " : "";
       sb.append("age");
       sb.append(space);
       sb.append(":").append(space);
-      sb.append(TBaseHelper.toString(this. getAge(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getAge(), indent + 1, prettyPrint));
       first = false;
     }
     if (isSetAddress())
@@ -1068,10 +1049,10 @@ String space = prettyPrint ? " " : "";
       sb.append("address");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getAddress() == null) {
+      if (this.getAddress() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getAddress(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getAddress(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -1082,10 +1063,10 @@ String space = prettyPrint ? " " : "";
       sb.append("favoriteColor");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getFavoriteColor() == null) {
+      if (this.getFavoriteColor() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getFavoriteColor(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getFavoriteColor(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -1096,10 +1077,10 @@ String space = prettyPrint ? " " : "";
       sb.append("friends");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getFriends() == null) {
+      if (this.getFriends() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getFriends(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getFriends(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -1110,7 +1091,7 @@ String space = prettyPrint ? " " : "";
       sb.append("bestFriend");
       sb.append(space);
       sb.append(":").append(space);
-      sb.append(TBaseHelper.toString(this. getBestFriend(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getBestFriend(), indent + 1, prettyPrint));
       first = false;
     }
     if (isSetPetNames())
@@ -1120,10 +1101,10 @@ String space = prettyPrint ? " " : "";
       sb.append("petNames");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getPetNames() == null) {
+      if (this.getPetNames() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getPetNames(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getPetNames(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -1134,14 +1115,18 @@ String space = prettyPrint ? " " : "";
       sb.append("afraidOfAnimal");
       sb.append(space);
       sb.append(":").append(space);
-      String afraidOfAnimal_name = Animal.VALUES_TO_NAMES.get(this. getAfraidOfAnimal());
-      if (afraidOfAnimal_name != null) {
-        sb.append(afraidOfAnimal_name);
-        sb.append(" (");
-      }
-      sb.append(this. getAfraidOfAnimal());
-      if (afraidOfAnimal_name != null) {
-        sb.append(")");
+      if (this.getAfraidOfAnimal() == null) {
+        sb.append("null");
+      } else {
+        String afraidOfAnimal_name = this.getAfraidOfAnimal() == null ? "null" : this.getAfraidOfAnimal().name();
+        if (afraidOfAnimal_name != null) {
+          sb.append(afraidOfAnimal_name);
+          sb.append(" (");
+        }
+        sb.append(this.getAfraidOfAnimal());
+        if (afraidOfAnimal_name != null) {
+          sb.append(")");
+        }
       }
       first = false;
     }
@@ -1152,10 +1137,10 @@ String space = prettyPrint ? " " : "";
       sb.append("vehicles");
       sb.append(space);
       sb.append(":").append(space);
-      if (this. getVehicles() == null) {
+      if (this.getVehicles() == null) {
         sb.append("null");
       } else {
-        sb.append(TBaseHelper.toString(this. getVehicles(), indent + 1, prettyPrint));
+        sb.append(TBaseHelper.toString(this.getVehicles(), indent + 1, prettyPrint));
       }
       first = false;
     }
@@ -1166,10 +1151,6 @@ String space = prettyPrint ? " " : "";
 
   public void validate() throws TException {
     // check for required fields
-    // check that fields of type enum have valid values
-    if (isSetAfraidOfAnimal() && !Animal.VALID_VALUES.contains(afraidOfAnimal)){
-      throw new TProtocolException("The field 'afraidOfAnimal' has been assigned the invalid value " + afraidOfAnimal);
-    }
   }
 
 }

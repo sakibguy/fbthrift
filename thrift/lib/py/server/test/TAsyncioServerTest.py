@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import asyncio
 import functools
 import socket
 import threading
 import unittest
+from unittest.mock import Mock
 
 from contextlib import contextmanager
 from thrift_asyncio.tutorial import Calculator
@@ -15,8 +29,9 @@ from thrift.server.TAsyncioServer import (
     ThriftAsyncServerFactory,
     ThriftClientProtocolFactory,
     ThriftHeaderClientProtocol,
+    ThriftHeaderServerProtocol,
 )
-from thrift.server.test.handler import (
+from .handler import (
     AsyncCalculatorHandler,
     AsyncSleepHandler,
 )
@@ -24,9 +39,17 @@ from thrift.transport.TTransport import TTransportException
 from thrift.Thrift import TApplicationException
 
 
-def server_loop_runner(loop, sock, handler):
+def server_loop_runner(
+    loop, sock, handler, protocol_factory=None
+):
     return loop.run_until_complete(
-        ThriftAsyncServerFactory(handler, port=None, loop=loop, sock=sock),
+        ThriftAsyncServerFactory(
+            handler,
+            port=None,
+            loop=loop,
+            sock=sock,
+            protocol_factory=protocol_factory,
+        ),
     )
 
 
@@ -339,3 +362,23 @@ class TAsyncioServerTest(unittest.TestCase):
             TApplicationException, 'Call to echo timed out'
         ):
             loop.run_until_complete(test_echo_timeout(sock, loop))
+
+    def test_custom_protocol_factory(self):
+        loop = asyncio.get_event_loop()
+        sock = socket.socket()
+        wrapper_protocol = None
+
+        def wrapper_protocol_factory(*args, **kwargs):
+            nonlocal wrapper_protocol
+            wrapper_protocol = Mock(wraps=ThriftHeaderServerProtocol(*args, **kwargs))
+            return wrapper_protocol
+
+        server_loop_runner(
+            loop, sock, AsyncCalculatorHandler(), wrapper_protocol_factory
+        )
+        add_result = loop.run_until_complete(
+            test_server_with_client(sock, loop)
+        )
+        self.assertEqual(42, add_result)
+        wrapper_protocol.connection_made.assert_called_once()
+        wrapper_protocol.data_received.assert_called()

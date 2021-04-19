@@ -1,11 +1,11 @@
 /*
- * Copyright 2018-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp/concurrency/InitThreadFactory.h>
+
 #include <functional>
 #include <memory>
 
 #include <folly/ScopeGuard.h>
-#include <thrift/lib/cpp/concurrency/InitThreadFactory.h>
 
 namespace apache {
 namespace thrift {
@@ -39,15 +40,11 @@ class InitRunnable : public Runnable {
 
   void run() override {
     threadInitializer_();
-    SCOPE_EXIT {
-      threadFinalizer_();
-    };
+    SCOPE_EXIT { threadFinalizer_(); };
     runnable_->run();
   }
 
-  std::shared_ptr<Thread> thread() override {
-    return runnable_->thread();
-  }
+  std::shared_ptr<Thread> thread() override { return runnable_->thread(); }
 
   void thread(std::shared_ptr<Thread> value) override {
     runnable_->thread(value);
@@ -68,8 +65,7 @@ std::shared_ptr<Thread> InitThreadFactory::newThread(
 }
 
 std::shared_ptr<Thread> InitThreadFactory::newThread(
-    const std::shared_ptr<Runnable>& runnable,
-    DetachState detachState) const {
+    const std::shared_ptr<Runnable>& runnable, DetachState detachState) const {
   return threadFactory_->newThread(
       std::make_shared<InitRunnable>(
           threadInitializer_, threadFinalizer_, runnable),

@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,33 +18,32 @@
 
 #include <thrift/perf/cpp/ClientWorker2.h>
 
+#include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
 #include <thrift/lib/cpp/test/loadgen/RNG.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/perf/cpp/ClientLoadConfig.h>
 
-using namespace boost;
-using namespace apache::thrift::protocol;
-using namespace apache::thrift::transport;
 using namespace apache::thrift::async;
-using namespace apache::thrift;
 
-namespace apache { namespace thrift { namespace test {
+namespace apache {
+namespace thrift {
+namespace test {
 
 const int kTimeout = 60000;
 
 std::shared_ptr<ClientWorker2::Client> ClientWorker2::createConnection() {
   const std::shared_ptr<ClientLoadConfig>& config = getConfig();
-  std::shared_ptr<TAsyncSocket> socket;
-  std::unique_ptr<
-    RequestChannel,
-    folly::DelayedDestruction::Destructor> channel;
+  folly::AsyncSocket::UniquePtr socket;
+  std::unique_ptr<RequestChannel, folly::DelayedDestruction::Destructor>
+      channel;
   if (config->useSSL()) {
-    std::shared_ptr<SSLContext> context = std::make_shared<SSLContext>();
+    std::shared_ptr<folly::SSLContext> context =
+        std::make_shared<folly::SSLContext>();
     if (!config->trustedCAList().empty()) {
       context->loadTrustedCertificates(config->trustedCAList().c_str());
-      context->setVerificationOption(SSLContext::SSLVerifyPeerEnum::VERIFY);
+      context->setVerificationOption(
+          folly::SSLContext::SSLVerifyPeerEnum::VERIFY);
     }
 
     if (!config->ciphers().empty()) {
@@ -61,11 +60,11 @@ std::shared_ptr<ClientWorker2::Client> ClientWorker2::createConnection() {
     // Loop once to connect
     ebm_.getEventBase()->loop();
   } else {
-    socket =
-        TAsyncSocket::newSocket(ebm_.getEventBase(), *config->getAddress());
+    socket = folly::AsyncSocket::newSocket(
+        ebm_.getEventBase(), *config->getAddress());
   }
   std::unique_ptr<HeaderClientChannel, folly::DelayedDestruction::Destructor>
-      headerChannel(HeaderClientChannel::newChannel(socket));
+      headerChannel(HeaderClientChannel::newChannel(std::move(socket)));
   // Always use binary in loadtesting to get apples to apples comparison
   headerChannel->setProtocolId(apache::thrift::protocol::T_BINARY_PROTOCOL);
   if (config->zlib()) {
@@ -78,11 +77,11 @@ std::shared_ptr<ClientWorker2::Client> ClientWorker2::createConnection() {
   channel = std::move(headerChannel);
 
   return std::shared_ptr<ClientWorker2::Client>(
-    new ClientWorker2::Client(std::move(channel)));
+      new ClientWorker2::Client(std::move(channel)));
 }
 
-void ClientWorker2::performOperation(const std::shared_ptr<Client>& client,
-                                    uint32_t opType) {
+void ClientWorker2::performOperation(
+    const std::shared_ptr<Client>& client, uint32_t opType) {
   switch (static_cast<ClientLoadConfig::OperationEnum>(opType)) {
     case ClientLoadConfig::OP_NOOP:
       return performNoop(client);
@@ -127,12 +126,13 @@ void ClientWorker2::performOperation(const std::shared_ptr<Client>& client,
     case ClientLoadConfig::NUM_OPS:
       // fall through
       break;
-    // no default case, so gcc will warn us if a new op is added
-    // and this switch statement is not updated
   }
+  // no default case, so gcc will warn us if a new op is added
+  // and this switch statement is not updated
 
-  T_ERROR("ClientWorker2::performOperation() got unknown operation %" PRIu32,
-          opType);
+  T_ERROR(
+      "ClientWorker2::performOperation() got unknown operation %" PRIu32,
+      opType);
   assert(false);
 }
 
@@ -178,15 +178,16 @@ void ClientWorker2::performThrowError(const std::shared_ptr<Client>& client) {
     client->sync_throwError(code);
     T_ERROR("throwError() didn't throw any exception");
   } catch (const LoadError& error) {
-    assert(static_cast<uint32_t>(error.code) == code);
+    DCHECK_EQ(*error.code_ref(), code);
   }
 }
 
-void ClientWorker2::performThrowUnexpected(const std::shared_ptr<Client>& client) {
+void ClientWorker2::performThrowUnexpected(
+    const std::shared_ptr<Client>& client) {
   try {
     client->sync_throwUnexpected(loadgen::RNG::getU32());
     T_ERROR("throwUnexpected() didn't throw any exception");
-  } catch (const TApplicationException& error) {
+  } catch (const TApplicationException&) {
     // expected; do nothing
   }
 }
@@ -230,8 +231,13 @@ void ClientWorker2::performAdd(const std::shared_ptr<Client>& client) {
   int64_t result = client->sync_add(a, b);
 
   if (result != a + b) {
-    T_ERROR("add(%" PRId64 ", %" PRId64 " gave wrong result %" PRId64
-            "(expected %" PRId64 ")", a, b, result, a + b);
+    T_ERROR(
+        "add(%" PRId64 ", %" PRId64 " gave wrong result %" PRId64
+        "(expected %" PRId64 ")",
+        a,
+        b,
+        result,
+        a + b);
   }
 }
 
@@ -253,4 +259,6 @@ void ClientWorker2::performIterAllFields(
   }
 }
 
-}}} // apache::thrift::test
+} // namespace test
+} // namespace thrift
+} // namespace apache

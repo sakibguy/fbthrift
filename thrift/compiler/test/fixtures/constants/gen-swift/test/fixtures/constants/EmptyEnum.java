@@ -9,20 +9,18 @@ package test.fixtures.constants;
 
 import com.facebook.swift.codec.*;
 
-public enum EmptyEnum
-{
-;
+@SwiftGenerated
+public enum EmptyEnum {
+    ;
 
     private final int value;
 
-    EmptyEnum(int value)
-    {
+    EmptyEnum(int value) {
         this.value = value;
     }
 
     @ThriftEnumValue
-    public int getValue()
-    {
+    public int getValue() {
         return value;
     }
 

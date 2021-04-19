@@ -1,34 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.facebook.thrift.test;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.facebook.thrift.TApplicationException;
 import com.facebook.thrift.TBase;
 import com.facebook.thrift.TException;
 import com.facebook.thrift.TProcessor;
@@ -39,7 +26,6 @@ import com.facebook.thrift.direct_server.TDirectServer;
 import com.facebook.thrift.protocol.TBinaryProtocol;
 import com.facebook.thrift.protocol.THeaderProtocol;
 import com.facebook.thrift.protocol.TProtocol;
-import com.facebook.thrift.protocol.TProtocolFactory;
 import com.facebook.thrift.server.TConnectionContext;
 import com.facebook.thrift.server.THsHaServer;
 import com.facebook.thrift.server.TNonblockingServer;
@@ -49,12 +35,19 @@ import com.facebook.thrift.transport.TFramedTransport;
 import com.facebook.thrift.transport.THeaderTransport;
 import com.facebook.thrift.transport.TMemoryBuffer;
 import com.facebook.thrift.transport.TNonblockingServerSocket;
-import com.facebook.thrift.transport.TTransport;
-import com.facebook.thrift.transport.TTransportException;
-import com.facebook.thrift.transport.TTransportFactory;
 import com.facebook.thrift.transport.TServerSocket;
 import com.facebook.thrift.transport.TSocket;
-
+import com.facebook.thrift.transport.TTransport;
+import com.facebook.thrift.transport.TTransportException;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.*;
 import thrift.test.Insanity;
 import thrift.test.Numberz;
 import thrift.test.ThriftTest;
@@ -62,8 +55,6 @@ import thrift.test.Xception;
 import thrift.test.Xception2;
 import thrift.test.Xtruct;
 import thrift.test.Xtruct2;
-
-import org.junit.*;
 
 public class THeaderJava extends junit.framework.TestCase {
   public int TEST_PORT = -1;
@@ -73,7 +64,12 @@ public class THeaderJava extends junit.framework.TestCase {
   public static final String identity = "me";
 
   public enum ServerType {
-    SIMPLE, NONBLOCKING, HSHA, DIRECT_HSHA, DIRECT_FIBER };
+    SIMPLE,
+    NONBLOCKING,
+    HSHA,
+    DIRECT_HSHA,
+    DIRECT_FIBER
+  };
 
   public class ServerThread implements Runnable {
     private TServer serverEngine;
@@ -84,13 +80,12 @@ public class THeaderJava extends junit.framework.TestCase {
     private ThriftTest.Processor testProcessor;
     TProcessorFactory pFactory;
 
-    public ServerThread(ServerType serverType)
-      throws IOException, TException {
+    public ServerThread(ServerType serverType) throws IOException, TException {
       this(serverType, new TestEventHandler());
     }
 
     public ServerThread(ServerType serverType, TProcessorEventHandler eventHandler)
-      throws IOException, TException {
+        throws IOException, TException {
       // processor
       TestHandler testHandler = new TestHandler();
       testProcessor = new ThriftTest.Processor(testHandler);
@@ -102,7 +97,7 @@ public class THeaderJava extends junit.framework.TestCase {
 
       // Protocol factory
       List<THeaderTransport.ClientTypes> clientTypes =
-        new ArrayList<THeaderTransport.ClientTypes>();
+          new ArrayList<THeaderTransport.ClientTypes>();
       tTransportFactory = new THeaderTransport.Factory(clientTypes);
       tProtocolFactory = new THeaderProtocol.Factory();
 
@@ -126,8 +121,7 @@ public class THeaderJava extends junit.framework.TestCase {
       return tServerSocket;
     }
 
-    private TNonblockingServerSocket makeNonblockingServerSocket()
-        throws TTransportException {
+    private TNonblockingServerSocket makeNonblockingServerSocket() throws TTransportException {
       tNonblockingServerSocket = new TNonblockingServerSocket(0);
       TEST_PORT = tNonblockingServerSocket.getLocalPort();
       return tNonblockingServerSocket;
@@ -135,43 +129,35 @@ public class THeaderJava extends junit.framework.TestCase {
 
     private void makeSimple() throws IOException, TTransportException {
       // Simple Server
-      serverEngine = new TSimpleServer(pFactory,
-                                       makeServerSocket(),
-                                       new TTransportFactory(),
-                                       tProtocolFactory);
+      serverEngine =
+          new TSimpleServer(pFactory, makeServerSocket(), tTransportFactory, tProtocolFactory);
     }
 
     private void makeNonblocking() throws TTransportException {
       // ThreadPool Server
-      serverEngine = new TNonblockingServer(
-        pFactory,
-        makeNonblockingServerSocket(),
-        tTransportFactory,
-        tProtocolFactory);
+      serverEngine =
+          new TNonblockingServer(
+              pFactory, makeNonblockingServerSocket(), tTransportFactory, tProtocolFactory);
     }
 
     private void makeHsHa() throws TTransportException {
       // HsHa Server
-      serverEngine = new THsHaServer(pFactory,
-                                     makeNonblockingServerSocket(),
-                                     tTransportFactory,
-                                     tProtocolFactory);
+      serverEngine =
+          new THsHaServer(
+              pFactory, makeNonblockingServerSocket(), tTransportFactory, tProtocolFactory);
     }
 
     private void makeDirectHsHa() throws TTransportException {
       // Direct Server in HsHa mode
-      serverEngine = TDirectServer.asHsHaServer(0,
-                                                DIRECT_SERVER_THREADS,
-                                                DIRECT_SERVER_PENDING_OPS,
-                                                testProcessor);
+      serverEngine =
+          TDirectServer.asHsHaServer(
+              0, DIRECT_SERVER_THREADS, DIRECT_SERVER_PENDING_OPS, testProcessor);
       TEST_PORT = ((TDirectServer) serverEngine).directServer().getLocalPort();
     }
 
     private void makeDirectFiber() throws TTransportException {
       // Direct Server in Fiber mode
-      serverEngine = TDirectServer.asFiberServer(0,
-                                                 DIRECT_SERVER_THREADS,
-                                                 testProcessor);
+      serverEngine = TDirectServer.asFiberServer(0, DIRECT_SERVER_THREADS, testProcessor);
       TEST_PORT = ((TDirectServer) serverEngine).directServer().getLocalPort();
     }
 
@@ -189,10 +175,9 @@ public class THeaderJava extends junit.framework.TestCase {
         tNonblockingServerSocket.close();
       }
     }
-
   }
 
-  public class TestProcessorFactory extends TProcessorFactory {
+  public static class TestProcessorFactory extends TProcessorFactory {
     public TestProcessorFactory(TProcessor processor, TProcessorEventHandler eventHandler) {
       super(processor);
       processor.setEventHandler(eventHandler);
@@ -212,7 +197,7 @@ public class THeaderJava extends junit.framework.TestCase {
     public Object getContext(String fn_name, TConnectionContext context) {
       TProtocol oprot = context.getOutputProtocol();
       if (oprot instanceof THeaderProtocol) {
-        ((THeaderTransport)oprot.getTransport()).setIdentity(identity);
+        ((THeaderTransport) oprot.getTransport()).setIdentity(identity);
       }
       getContext++;
       return null;
@@ -239,8 +224,7 @@ public class THeaderJava extends junit.framework.TestCase {
     }
 
     @Override
-    public void handlerError(Object handler_context, String fn_name,
-            Throwable th) {
+    public void handlerError(Object handler_context, String fn_name, Throwable th) {
       handlerError++;
     }
   }
@@ -249,8 +233,7 @@ public class THeaderJava extends junit.framework.TestCase {
 
     public TestHandler() {}
 
-    public void testVoid() {
-    }
+    public void testVoid() {}
 
     public String testString(String thing) {
       return thing;
@@ -285,7 +268,7 @@ public class THeaderJava extends junit.framework.TestCase {
       return nest;
     }
 
-    public Map<Integer,Integer> testMap(Map<Integer,Integer> thing) {
+    public Map<Integer, Integer> testMap(Map<Integer, Integer> thing) {
       return thing;
     }
 
@@ -297,7 +280,7 @@ public class THeaderJava extends junit.framework.TestCase {
       return thing;
     }
 
-    public int testEnum(int thing) {
+    public Numberz testEnum(Numberz thing) {
       return thing;
     }
 
@@ -305,12 +288,11 @@ public class THeaderJava extends junit.framework.TestCase {
       return thing;
     }
 
-    public Map<Integer,Map<Integer,Integer>> testMapMap(int hello) {
-      Map<Integer,Map<Integer,Integer>> mapmap =
-        new HashMap<Integer,Map<Integer,Integer>>();
+    public Map<Integer, Map<Integer, Integer>> testMapMap(int hello) {
+      Map<Integer, Map<Integer, Integer>> mapmap = new HashMap<Integer, Map<Integer, Integer>>();
 
-      HashMap<Integer,Integer> pos = new HashMap<Integer,Integer>();
-      HashMap<Integer,Integer> neg = new HashMap<Integer,Integer>();
+      HashMap<Integer, Integer> pos = new HashMap<Integer, Integer>();
+      HashMap<Integer, Integer> neg = new HashMap<Integer, Integer>();
       for (int i = 1; i < 5; i++) {
         pos.put(i, i);
         neg.put(-i, -i);
@@ -322,7 +304,7 @@ public class THeaderJava extends junit.framework.TestCase {
       return mapmap;
     }
 
-    public Map<Long, Map<Integer,Insanity>> testInsanity(Insanity argument) {
+    public Map<Long, Map<Numberz, Insanity>> testInsanity(Insanity argument) {
 
       Xtruct hello = new Xtruct();
       hello.string_thing = "Hello2";
@@ -332,40 +314,41 @@ public class THeaderJava extends junit.framework.TestCase {
 
       Xtruct goodbye = new Xtruct();
       goodbye.string_thing = "Goodbye4";
-      goodbye.byte_thing = (byte)4;
+      goodbye.byte_thing = (byte) 4;
       goodbye.i32_thing = 4;
-      goodbye.i64_thing = (long)4;
+      goodbye.i64_thing = (long) 4;
 
       Insanity crazy = new Insanity();
-      crazy.userMap = new HashMap<Integer, Long>();
+      crazy.userMap = new HashMap<Numberz, Long>();
       crazy.xtructs = new ArrayList<Xtruct>();
 
-      crazy.userMap.put(Numberz.EIGHT, (long)8);
+      crazy.userMap.put(Numberz.EIGHT, (long) 8);
       crazy.xtructs.add(goodbye);
 
       Insanity looney = new Insanity();
-      crazy.userMap.put(Numberz.FIVE, (long)5);
+      crazy.userMap.put(Numberz.FIVE, (long) 5);
       crazy.xtructs.add(hello);
 
-      HashMap<Integer,Insanity> first_map = new HashMap<Integer, Insanity>();
-      HashMap<Integer,Insanity> second_map = new HashMap<Integer, Insanity>();;
+      HashMap<Numberz, Insanity> first_map = new HashMap<Numberz, Insanity>();
+      HashMap<Numberz, Insanity> second_map = new HashMap<Numberz, Insanity>();
+      ;
 
       first_map.put(Numberz.TWO, crazy);
       first_map.put(Numberz.THREE, crazy);
 
       second_map.put(Numberz.SIX, looney);
 
-      Map<Long,Map<Integer,Insanity>> insane =
-        new HashMap<Long, Map<Integer,Insanity>>();
-      insane.put((long)1, first_map);
-      insane.put((long)2, second_map);
+      Map<Long, Map<Numberz, Insanity>> insane = new HashMap<Long, Map<Numberz, Insanity>>();
+      insane.put((long) 1, first_map);
+      insane.put((long) 2, second_map);
 
       return insane;
     }
 
-    public Xtruct testMulti(byte arg0, int arg1, long arg2, Map<Short,String> arg3, int arg4, long arg5) {
+    public Xtruct testMulti(
+        byte arg0, int arg1, long arg2, Map<Short, String> arg3, Numberz arg4, long arg5) {
 
-      Xtruct hello = new Xtruct();;
+      Xtruct hello = new Xtruct();
       hello.string_thing = "Hello2";
       hello.byte_thing = arg0;
       hello.i32_thing = arg1;
@@ -409,56 +392,50 @@ public class THeaderJava extends junit.framework.TestCase {
         throw new RuntimeException(ie);
       }
     }
-
   } // class TestHandler
 
   // Note these are all separate methods to make it easy to view in the
   // unittest runner
   @Test
-  public void testSimpleServerUnframed() throws Exception {
-    doServerClient(ServerType.SIMPLE, true, false, false);
-  }
-
-  @Test
   public void testNonblockingServerFramed() throws Exception {
-    doServerClient(ServerType.SIMPLE, false, true, false);
+    doServerClient(ServerType.SIMPLE, true, false);
   }
 
   @Test
   public void testNonblockingServerHeader() throws Exception {
-    doServerClient(ServerType.SIMPLE, false, false, true);
+    doServerClient(ServerType.SIMPLE, false, true);
   }
 
   @Test
   public void testHsHaServerFramed() throws Exception {
-    doServerClient(ServerType.HSHA, false, true, false);
+    doServerClient(ServerType.HSHA, true, false);
   }
 
   @Test
   public void testHsHaServerHeader() throws Exception {
-    doServerClient(ServerType.HSHA, false, false, true);
+    doServerClient(ServerType.HSHA, false, true);
   }
 
   // TODO: get the header tests working for TDirectServer
 
   // @Test
   // public void testDirectHsHaServerFramed() throws Exception {
-  //   doServerClient(ServerType.DIRECT_HSHA, false, true, false);
+  //   doServerClient(ServerType.DIRECT_HSHA, true, false);
   // }
 
   // @Test
   // public void testDirectHsHaServerHeader() throws Exception {
-  //   doServerClient(ServerType.DIRECT_HSHA, false, false, true);
+  //   doServerClient(ServerType.DIRECT_HSHA, false, true);
   // }
 
   // @Test
   // public void testDirectFiberServerFramed() throws Exception {
-  //   doServerClient(ServerType.DIRECT_FIBER, false, true, false);
+  //   doServerClient(ServerType.DIRECT_FIBER, true, false);
   // }
 
   // @Test
   // public void testDirectFiberServerHeader() throws Exception {
-  //   doServerClient(ServerType.DIRECT_FIBER, false, false, true);
+  //   doServerClient(ServerType.DIRECT_FIBER, false, true);
   // }
 
   @Test
@@ -483,12 +460,11 @@ public class THeaderJava extends junit.framework.TestCase {
     assertEquals("value2", headers.get("test2"));
   }
 
-
-  public void testTransform(THeaderTransport.Transforms transform)
-      throws TException {
+  @Test
+  public void testZlibTransform() throws TException {
     TMemoryBuffer buf = new TMemoryBuffer(200);
     THeaderTransport writer = new THeaderTransport(buf);
-    writer.addTransform(transform);
+    writer.addTransform(THeaderTransport.Transforms.ZLIB_TRANSFORM);
     String frost = "Whose woods these are I think I know";
     byte[] testBytes = frost.getBytes();
     writer.write(testBytes, 0, testBytes.length);
@@ -501,20 +477,7 @@ public class THeaderJava extends junit.framework.TestCase {
   }
 
   @Test
-  public void testZlibTransform() throws TException {
-    testTransform(
-      THeaderTransport.Transforms.ZLIB_TRANSFORM);
-  }
-
-  @Test
-  public void testSnappyTransform() throws TException {
-    testTransform(
-      THeaderTransport.Transforms.SNAPPY_TRANSFORM);
-  }
-
-  @Test
-  public void testUserExceptionHandler()
-    throws Exception {
+  public void testUserExceptionHandler() throws Exception {
     ServerThread st = new ServerThread(ServerType.SIMPLE, new UserExceptionHandler());
     Thread r = new Thread(st);
     r.start();
@@ -523,17 +486,14 @@ public class THeaderJava extends junit.framework.TestCase {
     socket.setTimeout(1000);
     socket.open();
     TProtocol prot = new TBinaryProtocol(socket);
-    List<THeaderTransport.ClientTypes> clientTypes =
-      new ArrayList<THeaderTransport.ClientTypes>();
+    List<THeaderTransport.ClientTypes> clientTypes = new ArrayList<THeaderTransport.ClientTypes>();
     prot = new THeaderProtocol(socket, clientTypes);
 
-    ThriftTest.Client testClient =
-      new ThriftTest.Client(prot);
+    ThriftTest.Client testClient = new ThriftTest.Client(prot);
     try {
       testClient.testMultiException("Xception", "foo");
-    }
-    catch (Xception x) {
-      THeaderTransport headerTransport = (THeaderTransport)prot.getTransport();
+    } catch (Xception x) {
+      THeaderTransport headerTransport = (THeaderTransport) prot.getTransport();
       assertEquals("Xception", headerTransport.getHeaders().get("uex"));
       assertEquals("This is an Xception", headerTransport.getHeaders().get("uexw"));
     }
@@ -545,30 +505,24 @@ public class THeaderJava extends junit.framework.TestCase {
     r.join();
   }
 
-  public void doServerClient(ServerType serverType, boolean unframed,
-                             boolean framed, boolean header)
-    throws TException, IOException, InterruptedException {
+  public void doServerClient(ServerType serverType, boolean framed, boolean header)
+      throws TException, IOException, InterruptedException {
     ServerThread st = new ServerThread(serverType);
     Thread r = new Thread(st);
     r.start();
-    doTransports(unframed, framed, header);
+    doTransports(framed, header);
     st.stop();
     r.interrupt();
     r.join();
   }
 
-  public void doTransports(boolean unframed,
-                            boolean framed, boolean header) throws TException{
+  public void doTransports(boolean framed, boolean header) throws TException {
     TTransport transport;
     TSocket socket = new TSocket("localhost", TEST_PORT);
     socket.setTimeout(1000);
     transport = socket;
     TProtocol prot = new TBinaryProtocol(transport);
-    if (unframed) {
-      testClient(transport, prot); // Unframed
-    }
-    List<THeaderTransport.ClientTypes> clientTypes =
-      new ArrayList<THeaderTransport.ClientTypes>();
+    List<THeaderTransport.ClientTypes> clientTypes = new ArrayList<THeaderTransport.ClientTypes>();
     prot = new THeaderProtocol(transport, clientTypes);
     if (header) {
       testClient(transport, prot); // Header w/compact
@@ -580,62 +534,41 @@ public class THeaderJava extends junit.framework.TestCase {
     }
   }
 
-  public void testClient(TTransport transport, TProtocol prot)
-      throws TException {
-    ThriftTest.Client testClient =
-      new ThriftTest.Client(prot);
+  public void testClient(TTransport transport, TProtocol prot) throws TException {
+    ThriftTest.Client testClient = new ThriftTest.Client(prot);
     Insanity insane = new Insanity();
 
-    /**
-     * CONNECT TEST
-     */
+    /** CONNECT TEST */
     transport.open();
 
     long start = System.nanoTime();
 
-    /**
-     * VOID TEST
-     */
+    /** VOID TEST */
     testClient.testVoid();
 
-    /**
-     * STRING TEST
-     */
+    /** STRING TEST */
     String s = testClient.testString("Test");
 
-    /**
-     * IDENTITY TEST
-     */
+    /** IDENTITY TEST */
     if (prot instanceof THeaderProtocol) {
-      assertEquals(identity,
-                   ((THeaderTransport)prot.getTransport()).getPeerIdentity());
+      assertEquals(identity, ((THeaderTransport) prot.getTransport()).getPeerIdentity());
     }
 
-    /**
-     * BYTE TEST
-     */
-    byte i8 = testClient.testByte((byte)1);
+    /** BYTE TEST */
+    byte i8 = testClient.testByte((byte) 1);
 
-    /**
-     * I32 TEST
-     */
+    /** I32 TEST */
     int i32 = testClient.testI32(-1);
 
-    /**
-     * I64 TEST
-     */
+    /** I64 TEST */
     long i64 = testClient.testI64(-34359738368L);
 
-    /**
-     * DOUBLE TEST
-     */
+    /** DOUBLE TEST */
     double t = 5.325098235;
     double dub = testClient.testDouble(t);
     assertEquals(t, dub);
 
-    /**
-     * STRUCT TEST
-     */
+    /** STRUCT TEST */
     Xtruct out = new Xtruct();
     out.string_thing = "Zero";
     out.byte_thing = (byte) 1;
@@ -644,30 +577,24 @@ public class THeaderJava extends junit.framework.TestCase {
     Xtruct in = testClient.testStruct(out);
     assertEquals(out, in);
 
-    /**
-     * NESTED STRUCT TEST
-     */
+    /** NESTED STRUCT TEST */
     Xtruct2 out2 = new Xtruct2();
-    out2.byte_thing = (short)1;
+    out2.byte_thing = (short) 1;
     out2.struct_thing = out;
     out2.i32_thing = 5;
     Xtruct2 in2 = testClient.testNest(out2);
     in = in2.struct_thing;
     assertEquals(out2, in2);
 
-    /**
-     * MAP TEST
-     */
-    Map<Integer,Integer> mapout = new HashMap<Integer,Integer>();
+    /** MAP TEST */
+    Map<Integer, Integer> mapout = new HashMap<Integer, Integer>();
     for (int i = 0; i < 5; ++i) {
       mapout.put(i, i - 10);
     }
-    Map<Integer,Integer> mapin = testClient.testMap(mapout);
+    Map<Integer, Integer> mapin = testClient.testMap(mapout);
     assertEquals(mapout, mapin);
 
-    /**
-     * SET TEST
-     */
+    /** SET TEST */
     Set<Integer> setout = new HashSet<Integer>();
     for (int i = -2; i < 3; ++i) {
       setout.add(i);
@@ -675,9 +602,7 @@ public class THeaderJava extends junit.framework.TestCase {
     Set<Integer> setin = testClient.testSet(setout);
     assertEquals(setout, setin);
 
-    /**
-     * LIST TEST
-     */
+    /** LIST TEST */
     List<Integer> listout = new ArrayList<Integer>();
     for (int i = -2; i < 3; ++i) {
       listout.add(i);
@@ -685,10 +610,8 @@ public class THeaderJava extends junit.framework.TestCase {
     List<Integer> listin = testClient.testList(listout);
     assertEquals(listout, listin);
 
-    /**
-     * ENUM TEST
-     */
-    int ret = testClient.testEnum(Numberz.ONE);
+    /** ENUM TEST */
+    Numberz ret = testClient.testEnum(Numberz.ONE);
 
     ret = testClient.testEnum(Numberz.TWO);
 
@@ -698,47 +621,37 @@ public class THeaderJava extends junit.framework.TestCase {
 
     ret = testClient.testEnum(Numberz.EIGHT);
 
-    /**
-     * TYPEDEF TEST
-     */
+    /** TYPEDEF TEST */
     long uid = testClient.testTypedef(309858235082523L);
 
-    /**
-     * NESTED MAP TEST
-     */
-    Map<Integer,Map<Integer,Integer>> mm =
-      testClient.testMapMap(1);
+    /** NESTED MAP TEST */
+    Map<Integer, Map<Integer, Integer>> mm = testClient.testMapMap(1);
 
-    /**
-     * INSANITY TEST
-     */
+    /** INSANITY TEST */
     insane = new Insanity();
-    insane.userMap = new HashMap<Integer, Long>();
-    insane.userMap.put(Numberz.FIVE, (long)5000);
+    insane.userMap = new HashMap<Numberz, Long>();
+    insane.userMap.put(Numberz.FIVE, (long) 5000);
     Xtruct truck = new Xtruct();
     truck.string_thing = "Truck";
-    truck.byte_thing = (byte)8;
+    truck.byte_thing = (byte) 8;
     truck.i32_thing = 8;
     truck.i64_thing = 8;
     insane.xtructs = new ArrayList<Xtruct>();
     insane.xtructs.add(truck);
-    Map<Long,Map<Integer,Insanity>> whoa =
-      testClient.testInsanity(insane);
+    Map<Long, Map<Numberz, Insanity>> whoa = testClient.testInsanity(insane);
     for (long key : whoa.keySet()) {
-      Map<Integer,Insanity> val = whoa.get(key);
+      Map<Numberz, Insanity> val = whoa.get(key);
 
-      for (int k2 : val.keySet()) {
+      for (Numberz k2 : val.keySet()) {
         Insanity v2 = val.get(k2);
-        Map<Integer, Long> userMap = v2.userMap;
+        Map<Numberz, Long> userMap = v2.userMap;
         if (userMap != null) {
-          for (int k3 : userMap.keySet()) {
-          }
+          for (Numberz k3 : userMap.keySet()) {}
         }
 
         List<Xtruct> xtructs = v2.xtructs;
         if (xtructs != null) {
-          for (Xtruct x : xtructs) {
-          }
+          for (Xtruct x : xtructs) {}
         }
       }
     }
@@ -748,9 +661,7 @@ public class THeaderJava extends junit.framework.TestCase {
     testClient.testOneway(3);
     long onewayElapsedMillis = (System.nanoTime() - startOneway) / 1000000;
     if (onewayElapsedMillis > 200) {
-      throw new TException("Oneway test failed: took " +
-                          Long.toString(onewayElapsedMillis) +
-                          "ms");
+      throw new TException("Oneway test failed: took " + Long.toString(onewayElapsedMillis) + "ms");
     }
 
     // Just do some basic testing that the event handler is called.
@@ -763,5 +674,4 @@ public class THeaderJava extends junit.framework.TestCase {
 
     transport.close();
   }
-
 }

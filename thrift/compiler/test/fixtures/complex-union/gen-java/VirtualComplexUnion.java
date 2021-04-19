@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -25,7 +23,6 @@ import com.facebook.thrift.protocol.*;
 
 @SuppressWarnings({ "unused", "serial", "unchecked" })
 public class VirtualComplexUnion extends TUnion<VirtualComplexUnion> implements Comparable<VirtualComplexUnion> {
-  public static boolean DEFAULT_PRETTY_PRINT = true;
   private static final TStruct STRUCT_DESC = new TStruct("VirtualComplexUnion");
   private static final TField THING_ONE_FIELD_DESC = new TField("thingOne", TType.STRING, (short)1);
   private static final TField THING_TWO_FIELD_DESC = new TField("thingTwo", TType.STRING, (short)2);
@@ -34,6 +31,7 @@ public class VirtualComplexUnion extends TUnion<VirtualComplexUnion> implements 
   public static final int THINGTWO = 2;
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(THINGONE, new FieldMetaData("thingOne", TFieldRequirementType.DEFAULT, 
@@ -47,43 +45,44 @@ public class VirtualComplexUnion extends TUnion<VirtualComplexUnion> implements 
     super();
   }
 
-  public VirtualComplexUnion(int setField, Object value) {
-    super(setField, value);
+  public VirtualComplexUnion(int setField, Object __value) {
+    super(setField, __value);
   }
 
   public VirtualComplexUnion(VirtualComplexUnion other) {
     super(other);
   }
+
   public VirtualComplexUnion deepCopy() {
     return new VirtualComplexUnion(this);
   }
 
-  public static VirtualComplexUnion thingOne(String value) {
+  public static VirtualComplexUnion thingOne(String __value) {
     VirtualComplexUnion x = new VirtualComplexUnion();
-    x.setThingOne(value);
+    x.setThingOne(__value);
     return x;
   }
 
-  public static VirtualComplexUnion thingTwo(String value) {
+  public static VirtualComplexUnion thingTwo(String __value) {
     VirtualComplexUnion x = new VirtualComplexUnion();
-    x.setThingTwo(value);
+    x.setThingTwo(__value);
     return x;
   }
 
 
   @Override
-  protected void checkType(short setField, Object value) throws ClassCastException {
+  protected void checkType(short setField, Object __value) throws ClassCastException {
     switch (setField) {
       case THINGONE:
-        if (value instanceof String) {
+        if (__value instanceof String) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type String for field 'thingOne', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type String for field 'thingOne', but got " + __value.getClass().getSimpleName());
       case THINGTWO:
-        if (value instanceof String) {
+        if (__value instanceof String) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type String for field 'thingTwo', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type String for field 'thingTwo', but got " + __value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -94,61 +93,58 @@ public class VirtualComplexUnion extends TUnion<VirtualComplexUnion> implements 
     setField_ = 0;
     value_ = null;
     iprot.readStructBegin(metaDataMap);
-    TField field = iprot.readFieldBegin();
-    if (field.type != TType.STOP)
+    TField __field = iprot.readFieldBegin();
+    if (__field.type != TType.STOP)
     {
-      value_ = readValue(iprot, field);
+      value_ = readValue(iprot, __field);
       if (value_ != null)
       {
-        switch (field.id) {
+        switch (__field.id) {
           case THINGONE:
-            if (field.type == THING_ONE_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == THING_ONE_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
           case THINGTWO:
-            if (field.type == THING_TWO_FIELD_DESC.type) {
-              setField_ = field.id;
+            if (__field.type == THING_TWO_FIELD_DESC.type) {
+              setField_ = __field.id;
             }
             break;
         }
       }
       iprot.readFieldEnd();
-      iprot.readFieldBegin();
-      iprot.readFieldEnd();
+      TField __stopField = iprot.readFieldBegin();
+      if (__stopField.type != TType.STOP) {
+        throw new TProtocolException(TProtocolException.INVALID_DATA, "Union 'VirtualComplexUnion' is missing a STOP byte");
+      }
     }
     iprot.readStructEnd();
   }
 
   @Override
-  protected Object readValue(TProtocol iprot, TField field) throws TException {
-    switch (field.id) {
+  protected Object readValue(TProtocol iprot, TField __field) throws TException {
+    switch (__field.id) {
       case THINGONE:
-        if (field.type == THING_ONE_FIELD_DESC.type) {
+        if (__field.type == THING_ONE_FIELD_DESC.type) {
           String thingOne;
           thingOne = iprot.readString();
           return thingOne;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
+        break;
       case THINGTWO:
-        if (field.type == THING_TWO_FIELD_DESC.type) {
+        if (__field.type == THING_TWO_FIELD_DESC.type) {
           String thingTwo;
           thingTwo = iprot.readString();
           return thingTwo;
-        } else {
-          TProtocolUtil.skip(iprot, field.type);
-          return null;
         }
-      default:
-        TProtocolUtil.skip(iprot, field.type);
-        return null;
+        break;
     }
+    TProtocolUtil.skip(iprot, __field.type);
+    return null;
   }
 
   @Override
-  protected void writeValue(TProtocol oprot, short setField, Object value) throws TException {
+  protected void writeValue(TProtocol oprot, short setField, Object __value) throws TException {
     switch (setField) {
       case THINGONE:
         String thingOne = (String)getFieldValue();
@@ -180,32 +176,37 @@ public class VirtualComplexUnion extends TUnion<VirtualComplexUnion> implements 
     return STRUCT_DESC;
   }
 
-  public String  getThingOne() {
-    if (getSetField() == THINGONE) {
-      return (String)getFieldValue();
+  @Override
+  protected Map<Integer, FieldMetaData> getMetaDataMap() { return metaDataMap; }
+
+  private Object __getValue(int expectedFieldId) {
+    if (getSetField() == expectedFieldId) {
+      return getFieldValue();
     } else {
-      throw new RuntimeException("Cannot get field 'thingOne' because union is currently set to " + getFieldDesc(getSetField()).name);
+      throw new RuntimeException("Cannot get field '" + getFieldDesc(expectedFieldId).name + "' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void setThingOne(String value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = THINGONE;
-    value_ = value;
+  private void __setValue(int fieldId, Object __value) {
+    if (__value == null) throw new NullPointerException();
+    setField_ = fieldId;
+    value_ = __value;
   }
 
-  public String  getThingTwo() {
-    if (getSetField() == THINGTWO) {
-      return (String)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'thingTwo' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
+  public String getThingOne() {
+    return (String) __getValue(THINGONE);
   }
 
-  public void setThingTwo(String value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = THINGTWO;
-    value_ = value;
+  public void setThingOne(String __value) {
+    __setValue(THINGONE, __value);
+  }
+
+  public String getThingTwo() {
+    return (String) __getValue(THINGTWO);
+  }
+
+  public void setThingTwo(String __value) {
+    __setValue(THINGTWO, __value);
   }
 
   public boolean equals(Object other) {
@@ -226,68 +227,9 @@ public class VirtualComplexUnion extends TUnion<VirtualComplexUnion> implements 
   }
 
 
-  /**
-   * If you'd like this to perform more respectably, use the hashcode generator option.
-   */
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {getSetField(), getFieldValue()});
   }
-
-  @Override
-  public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
-  }
-
-  @Override
-  public String toString(int indent, boolean prettyPrint) {
-    String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
-    String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
-    StringBuilder sb = new StringBuilder("VirtualComplexUnion");
-    sb.append(space);
-    sb.append("(");
-    sb.append(newLine);
-    boolean first = true;
-
-    // Only print this field if it is the set field
-    if (getSetField() == THINGONE)
-    {
-      sb.append(indentStr);
-      sb.append("thingOne");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getThingOne() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getThingOne(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    // Only print this field if it is the set field
-    if (getSetField() == THINGTWO)
-    {
-      if (!first) sb.append("," + newLine);
-      sb.append(indentStr);
-      sb.append("thingTwo");
-      sb.append(space);
-      sb.append(":").append(space);
-      if (this. getThingTwo() == null) {
-        sb.append("null");
-      } else {
-        sb.append(TBaseHelper.toString(this. getThingTwo(), indent + 1, prettyPrint));
-      }
-      first = false;
-    }
-    sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
-    sb.append(")");
-    return sb.toString();
-  }
-
 
 }

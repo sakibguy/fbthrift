@@ -1,34 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <thrift/lib/cpp/Thrift.h>
-#include <boost/lexical_cast.hpp>
+
 #include <stdarg.h>
 #include <stdio.h>
 
 #include <folly/String.h>
 
-namespace apache { namespace thrift {
+namespace apache {
+namespace thrift {
 
 TOutput GlobalOutput;
 
-void TOutput::printf(const char *message, ...) {
+void TOutput::printf(const char* message, ...) {
   // Try to reduce heap usage, even if printf is called rarely.
   static const int STACK_BUF_SIZE = 256;
   char stack_buf[STACK_BUF_SIZE];
@@ -43,7 +41,7 @@ void TOutput::printf(const char *message, ...) {
     return;
   }
 
-  char *heap_buf = (char*)malloc((need+1) * sizeof(char));
+  char* heap_buf = (char*)malloc((need + 1) * sizeof(char));
   if (heap_buf == nullptr) {
     // Malloc failed.  We might as well print the stack buffer.
     f_(stack_buf);
@@ -51,7 +49,7 @@ void TOutput::printf(const char *message, ...) {
   }
 
   va_start(ap, message);
-  int rval = vsnprintf(heap_buf, need+1, message, ap);
+  int rval = vsnprintf(heap_buf, need + 1, message, ap);
   va_end(ap);
   // TODO(shigin): inform user
   if (rval != -1) {
@@ -60,17 +58,18 @@ void TOutput::printf(const char *message, ...) {
   free(heap_buf);
 }
 
-void TOutput::perror(const char *message, int errno_copy) {
+void TOutput::perror(const char* message, int errno_copy) {
   std::string out = message + strerror_s(errno_copy);
   f_(out.c_str());
 }
 
 std::string TOutput::strerror_s(int errno_copy) {
-  return folly::errnoStr(errno_copy).toStdString();
+  return folly::errnoStr(errno_copy);
 }
 
 TLibraryException::TLibraryException(const char* message, int errnoValue) {
   message_ = std::string(message) + ": " + TOutput::strerror_s(errnoValue);
 }
 
-}} // apache::thrift
+} // namespace thrift
+} // namespace apache

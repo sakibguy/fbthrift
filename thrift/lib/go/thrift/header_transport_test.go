@@ -1,20 +1,17 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package thrift
@@ -117,24 +114,6 @@ func TestHeaderFramedCompact(t *testing.T) {
 	testHeaderToProto(
 		t, FramedCompact, tmb,
 		NewCompactProtocol(NewFramedTransport(tmb)),
-		NewHeaderTransport(tmb),
-	)
-}
-
-func TestHeaderUnframedBinary(t *testing.T) {
-	tmb := NewMemoryBuffer()
-	testHeaderToProto(
-		t, UnframedDeprecated, tmb,
-		NewBinaryProtocol(tmb, true, true),
-		NewHeaderTransport(tmb),
-	)
-}
-
-func TestHeaderUnframedCompact(t *testing.T) {
-	tmb := NewMemoryBuffer()
-	testHeaderToProto(
-		t, UnframedCompactDeprecated, tmb,
-		NewCompactProtocol(tmb),
 		NewHeaderTransport(tmb),
 	)
 }
@@ -382,4 +361,28 @@ func TestHeaderTransportRWMultiple(t *testing.T) {
 	// Some sane thrift req/replies
 	testRWOnce(t, 2, GetStatusCallData, trans)
 	testRWOnce(t, 3, GetStatusReplyData, trans)
+}
+
+func BenchmarkHeaderFlush(b *testing.B) {
+	data := []byte("ASDF")
+
+	for n := 0; n < b.N; n++ {
+		tmb := NewMemoryBuffer()
+		trans1 := NewHeaderTransport(tmb)
+
+		trans1.SetIdentity("localhost")
+		trans1.SetHeader("thrift_protocol", "compact")
+		trans1.SetHeader("thrift_transport", "header")
+		trans1.SetHeader("preferred_cheese", "cheddar")
+		trans1.SetPersistentHeader("preferred_cheese", "gouda")
+
+		_, err := trans1.Write(data)
+		err = trans1.Flush()
+
+		if err != nil {
+			b.Fatalf("failed to flush, %s", err)
+		}
+
+		trans1.Close()
+	}
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,21 +19,20 @@
 #include <string>
 #include <vector>
 
+namespace apache {
+namespace thrift {
+namespace compiler {
+
 /**
  * Split a namespace string using '.' as a token
  */
 std::vector<std::string> split_namespace(const std::string& s);
 
 /**
- * TODO: Only used by t_cpp_gen. Move function to a more appropriate
- *       location or remove once it's not used.
- *
- * Backlashes all occurrances of double-quote
- *    "  ->  \"
+ * strip comments and newlines off cpp annotation text
  */
-void escape_quotes_cpp(std::string& s);
+void strip_cpp_comments_and_newlines(std::string& s);
 
-/**
- * Removes whitespace from the left and right side of a string
- */
-void trim_whitespace(std::string& s);
+} // namespace compiler
+} // namespace thrift
+} // namespace apache

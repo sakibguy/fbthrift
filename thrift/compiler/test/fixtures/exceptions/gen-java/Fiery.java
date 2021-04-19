@@ -13,10 +13,8 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.BitSet;
 import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.facebook.thrift.*;
+import com.facebook.thrift.annotations.*;
 import com.facebook.thrift.async.*;
 import com.facebook.thrift.meta_data.*;
 import com.facebook.thrift.server.*;
@@ -30,11 +28,11 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
 
   public String message;
   public static final int MESSAGE = 1;
-  public static boolean DEFAULT_PRETTY_PRINT = true;
 
   // isset id assignments
 
   public static final Map<Integer, FieldMetaData> metaDataMap;
+
   static {
     Map<Integer, FieldMetaData> tmpMetaDataMap = new HashMap<Integer, FieldMetaData>();
     tmpMetaDataMap.put(MESSAGE, new FieldMetaData("message", TFieldRequirementType.REQUIRED, 
@@ -50,10 +48,31 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
   }
 
   public Fiery(
-    String message)
-  {
+      String message) {
     this();
     this.message = message;
+  }
+
+  public static class Builder {
+    private String message;
+
+    public Builder() {
+    }
+
+    public Builder setMessage(final String message) {
+      this.message = message;
+      return this;
+    }
+
+    public Fiery build() {
+      Fiery result = new Fiery();
+      result.setMessage(this.message);
+      return result;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -69,12 +88,7 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
     return new Fiery(this);
   }
 
-  @Deprecated
-  public Fiery clone() {
-    return new Fiery(this);
-  }
-
-  public String  getMessage() {
+  public String getMessage() {
     return this.message;
   }
 
@@ -92,19 +106,19 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
     return this.message != null;
   }
 
-  public void setMessageIsSet(boolean value) {
-    if (!value) {
+  public void setMessageIsSet(boolean __value) {
+    if (!__value) {
       this.message = null;
     }
   }
 
-  public void setFieldValue(int fieldID, Object value) {
+  public void setFieldValue(int fieldID, Object __value) {
     switch (fieldID) {
     case MESSAGE:
-      if (value == null) {
+      if (__value == null) {
         unsetMessage();
       } else {
-        setMessage((String)value);
+        setMessage((String)__value);
       }
       break;
 
@@ -123,68 +137,46 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
     }
   }
 
-  // Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise
-  public boolean isSet(int fieldID) {
-    switch (fieldID) {
-    case MESSAGE:
-      return isSetMessage();
-    default:
-      throw new IllegalArgumentException("Field " + fieldID + " doesn't exist!");
-    }
-  }
-
   @Override
-  public boolean equals(Object that) {
-    if (that == null)
+  public boolean equals(Object _that) {
+    if (_that == null)
       return false;
-    if (that instanceof Fiery)
-      return this.equals((Fiery)that);
-    return false;
-  }
-
-  public boolean equals(Fiery that) {
-    if (that == null)
-      return false;
-    if (this == that)
+    if (this == _that)
       return true;
+    if (!(_that instanceof Fiery))
+      return false;
+    Fiery that = (Fiery)_that;
 
-    boolean this_present_message = true && this.isSetMessage();
-    boolean that_present_message = true && that.isSetMessage();
-    if (this_present_message || that_present_message) {
-      if (!(this_present_message && that_present_message))
-        return false;
-      if (!TBaseHelper.equalsNobinary(this.message, that.message))
-        return false;
-    }
+    if (!TBaseHelper.equalsNobinary(this.isSetMessage(), that.isSetMessage(), this.message, that.message)) { return false; }
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    return Arrays.deepHashCode(new Object[] {message});
   }
 
   public void read(TProtocol iprot) throws TException {
-    TField field;
+    TField __field;
     iprot.readStructBegin(metaDataMap);
     while (true)
     {
-      field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      __field = iprot.readFieldBegin();
+      if (__field.type == TType.STOP) { 
         break;
       }
-      switch (field.id)
+      switch (__field.id)
       {
         case MESSAGE:
-          if (field.type == TType.STRING) {
+          if (__field.type == TType.STRING) {
             this.message = iprot.readString();
           } else { 
-            TProtocolUtil.skip(iprot, field.type);
+            TProtocolUtil.skip(iprot, __field.type);
           }
           break;
         default:
-          TProtocolUtil.skip(iprot, field.type);
+          TProtocolUtil.skip(iprot, __field.type);
           break;
       }
       iprot.readFieldEnd();
@@ -211,19 +203,14 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
 
   @Override
   public String toString() {
-    return toString(DEFAULT_PRETTY_PRINT);
-  }
-
-  @Override
-  public String toString(boolean prettyPrint) {
-    return toString(1, prettyPrint);
+    return toString(1, true);
   }
 
   @Override
   public String toString(int indent, boolean prettyPrint) {
     String indentStr = prettyPrint ? TBaseHelper.getIndentedString(indent) : "";
     String newLine = prettyPrint ? "\n" : "";
-String space = prettyPrint ? " " : "";
+    String space = prettyPrint ? " " : "";
     StringBuilder sb = new StringBuilder("Fiery");
     sb.append(space);
     sb.append("(");
@@ -234,10 +221,10 @@ String space = prettyPrint ? " " : "";
     sb.append("message");
     sb.append(space);
     sb.append(":").append(space);
-    if (this. getMessage() == null) {
+    if (this.getMessage() == null) {
       sb.append("null");
     } else {
-      sb.append(TBaseHelper.toString(this. getMessage(), indent + 1, prettyPrint));
+      sb.append(TBaseHelper.toString(this.getMessage(), indent + 1, prettyPrint));
     }
     first = false;
     sb.append(newLine + TBaseHelper.reduceIndent(indentStr));
@@ -250,7 +237,6 @@ String space = prettyPrint ? " " : "";
     if (message == null) {
       throw new TProtocolException(TProtocolException.MISSING_REQUIRED_FIELD, "Required field 'message' was not present! Struct: " + toString());
     }
-    // check that fields of type enum have valid values
   }
 
 }

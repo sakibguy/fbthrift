@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,16 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <thrift/lib/cpp2/frozen/FrozenUtil.h>
 
 #include <cstdlib>
 
 #include <folly/Conv.h>
 
-DEFINE_bool(
-    thrift_frozen_util_disable_mlock,
-    false,
+// clang-format off
+DEFINE_bool(thrift_frozen_util_disable_mlock, false,
     "Don't mlock() files mmaped by mapFrozen() call.");
+DEFINE_bool(thrift_frozen_util_mlock_on_fault, false,
+    "Use mlock2(MLOCK_ONFAULT) instead of mlock().");
+// clang-format on
 
 namespace apache {
 namespace thrift {

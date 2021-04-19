@@ -1,11 +1,11 @@
 /*
- * Copyright 2017-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#include <folly/init/Init.h>
-#include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <folly/init/Init.h>
+#include <folly/portability/GFlags.h>
 #include <proxygen/httpserver/HTTPServerOptions.h>
 #include <thrift/example/cpp2/server/ChatRoomService.h>
 #include <thrift/example/cpp2/server/EchoService.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/transport/core/ThriftProcessor.h>
 #include <thrift/lib/cpp2/transport/http2/common/HTTP2RoutingHandler.h>
-#include <thrift/lib/cpp2/transport/rsocket/server/RSRoutingHandler.h>
 
 DEFINE_int32(chatroom_port, 7777, "Chatroom Server port");
 DEFINE_int32(echo_port, 7778, "Echo Server port");
@@ -34,7 +33,6 @@ using apache::thrift::ThriftServerAsyncProcessorFactory;
 using example::chatroom::ChatRoomServiceHandler;
 using example::chatroom::EchoHandler;
 using proxygen::HTTPServerOptions;
-using proxygen::RequestHandlerChain;
 
 std::unique_ptr<HTTP2RoutingHandler> createHTTP2RoutingHandler(
     std::shared_ptr<ThriftServer> server) {
@@ -55,8 +53,6 @@ std::shared_ptr<ThriftServer> newServer(int32_t port) {
   auto server = std::make_shared<ThriftServer>();
   server->setPort(port);
   server->setProcessorFactory(proc_factory);
-  server->addRoutingHandler(
-      std::make_unique<apache::thrift::RSRoutingHandler>());
   server->addRoutingHandler(createHTTP2RoutingHandler(server));
   return server;
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 namespace apache {
 namespace thrift {
 namespace frozen {
@@ -30,9 +31,7 @@ struct KeyExtractor {
 
   // To support VectorAsHashMap
   static const K& getKey(const std::pair<K, V>&& pair) = delete;
-  static const K& getKey(const std::pair<K, V>& pair) {
-    return pair.first;
-  }
+  static const K& getKey(const std::pair<K, V>& pair) { return pair.first; }
 
   static const std::pair<const K, V>* getPointer(
       const std::pair<const K, V>&&) = delete;
@@ -57,13 +56,9 @@ struct KeyExtractor {
 template <class K>
 struct SelfKey {
   using KeyType = K;
-  static const K& getKey(const K& item) {
-    return item;
-  }
+  static const K& getKey(const K& item) { return item; }
 
-  static const K* getPointer(const K& item) {
-    return &item;
-  }
+  static const K* getPointer(const K& item) { return &item; }
 
   static typename Layout<K>::View getViewKey(
       typename Layout<K>::View itemView) {
@@ -75,7 +70,8 @@ template <
     class T,
     class K,
     class V,
-    template <class, class, class, class> class Table>
+    template <class, class, class, class>
+    class Table>
 struct MapTableLayout
     : public Table<T, std::pair<const K, V>, KeyExtractor<K, V>, K> {
   typedef Table<T, std::pair<const K, V>, KeyExtractor<K, V>, K> Base;
@@ -90,8 +86,8 @@ struct MapTableLayout
     View(const LayoutSelf* layout, ViewPosition position)
         : Base::View(layout, position) {}
 
-    mapped_type getDefault(const key_type& key, mapped_type def = mapped_type())
-        const {
+    mapped_type getDefault(
+        const key_type& key, mapped_type def = mapped_type()) const {
       auto found = this->find(key);
       if (found == this->end()) {
         return std::move(def);
@@ -117,9 +113,7 @@ struct MapTableLayout
     }
   };
 
-  View view(ViewPosition self) const {
-    return View(this, self);
-  }
+  View view(ViewPosition self) const { return View(this, self); }
 
   void print(std::ostream& os, int level) const override {
     Base::print(os, level);
@@ -140,29 +134,32 @@ struct SetTableLayout : public Table<T, V, SelfKey<V>, V> {
 
 template <class T>
 struct Layout<T, typename std::enable_if<IsOrderedMap<T>::value>::type>
-    : public detail::MapTableLayout<
+    : public apache::thrift::frozen::detail::MapTableLayout<
           T,
           typename T::key_type,
           typename T::mapped_type,
-          detail::SortedTableLayout> {};
+          apache::thrift::frozen::detail::SortedTableLayout> {};
 
 template <class T>
 struct Layout<T, typename std::enable_if<IsOrderedSet<T>::value>::type>
-    : public detail::
-          SetTableLayout<T, typename T::value_type, detail::SortedTableLayout> {
-};
+    : public apache::thrift::frozen::detail::SetTableLayout<
+          T,
+          typename T::value_type,
+          apache::thrift::frozen::detail::SortedTableLayout> {};
 template <class T>
 struct Layout<T, typename std::enable_if<IsHashMap<T>::value>::type>
-    : public detail::MapTableLayout<
+    : public apache::thrift::frozen::detail::MapTableLayout<
           T,
           typename T::key_type,
           typename T::mapped_type,
-          detail::HashTableLayout> {};
+          apache::thrift::frozen::detail::HashTableLayout> {};
 
 template <class T>
 struct Layout<T, typename std::enable_if<IsHashSet<T>::value>::type>
-    : public detail::
-          SetTableLayout<T, typename T::value_type, detail::HashTableLayout> {};
+    : public apache::thrift::frozen::detail::SetTableLayout<
+          T,
+          typename T::value_type,
+          apache::thrift::frozen::detail::HashTableLayout> {};
 } // namespace frozen
 } // namespace thrift
 } // namespace apache
@@ -181,4 +178,6 @@ THRIFT_DECLARE_TRAIT_TEMPLATE(IsHashSet, folly::F14VectorSet)
 THRIFT_DECLARE_TRAIT_TEMPLATE(IsHashSet, folly::F14FastSet)
 
 THRIFT_DECLARE_TRAIT_TEMPLATE(IsOrderedMap, std::map)
+THRIFT_DECLARE_TRAIT_TEMPLATE(IsOrderedMap, folly::sorted_vector_map)
 THRIFT_DECLARE_TRAIT_TEMPLATE(IsOrderedSet, std::set)
+THRIFT_DECLARE_TRAIT_TEMPLATE(IsOrderedSet, folly::sorted_vector_set)

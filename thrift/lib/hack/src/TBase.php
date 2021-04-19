@@ -1,14 +1,21 @@
 <?hh
-
-/**
-* Copyright (c) 2006- Facebook
-* Distributed under the Thrift Software License
-*
-* See accompanying file LICENSE or visit the Thrift site at:
-* http://developers.facebook.com/thrift/
-*
-* @package thrift
-*/
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @package thrift
+ */
 
 /**
  * Base class from which other Thrift structs extend. This is so that we can
@@ -64,8 +71,10 @@ abstract class TBase {
       $vspec = $spec['val'];
     }
     $var = array();
-    $_ktype = $_vtype = $size = 0;
-    $xfer += $input->readMapBegin($_ktype, $_vtype, $size);
+    $_ktype = 0;
+    $_vtype = 0;
+    $size = 0;
+    $xfer += $input->readMapBegin(inout $_ktype, inout $_vtype, inout $size);
     for ($i = 0; $i < $size; ++$i) {
       $key = $val = null;
       if ($kread !== null) {
@@ -173,9 +182,9 @@ abstract class TBase {
     $fname = null;
     $ftype = 0;
     $fid = 0;
-    $xfer += $input->readStructBegin($fname);
+    $xfer += $input->readStructBegin(inout $fname);
     while (true) {
-      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      $xfer += $input->readFieldBegin(inout $fname, inout $ftype, inout $fid);
       if ($ftype == TType::STOP) {
         break;
       }

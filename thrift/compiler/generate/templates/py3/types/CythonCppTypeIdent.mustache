@@ -1,12 +1,12 @@
 {{!
 
-  Copyright 2016 Facebook, Inc.
+  Copyright (c) Facebook, Inc. and its affiliates.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+      http://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,10 +32,10 @@ This is the equivalent of CythonCpp[Basic]Type, for use as part of an identifier
 }}{{/type:hasCustomType?}}{{!
 }}{{^type:hasCustomType?}}{{!
 }}{{#type:bool?}}cbool{{/type:bool?}}{{!
-}}{{#type:byte?}}int8_t{{/type:byte?}}{{!
-}}{{#type:i16?}}int16_t{{/type:i16?}}{{!
-}}{{#type:i32?}}int32_t{{/type:i32?}}{{!
-}}{{#type:i64?}}int64_t{{/type:i64?}}{{!
+}}{{#type:byte?}}cint8_t{{/type:byte?}}{{!
+}}{{#type:i16?}}cint16_t{{/type:i16?}}{{!
+}}{{#type:i32?}}cint32_t{{/type:i32?}}{{!
+}}{{#type:i64?}}cint64_t{{/type:i64?}}{{!
 }}{{#type:double?}}double{{/type:double?}}{{!
 }}{{#type:float?}}float{{/type:float?}}{{!
 }}{{#type:string?}}string{{/type:string?}}{{!
@@ -54,14 +54,14 @@ This is the equivalent of CythonCpp[Basic]Type, for use as part of an identifier
   }}{{/program:typeContext?}}{{/type:externalProgram?}}{{!
 }}{{/type:defaultTemplate?}}{{/type:container?}}{{!
 }}{{#type:list?}}{{type:cythonTemplate}}__{{!
-  }}{{#type:listElemType}}{{> types/CythonCppTypeIdent}}{{/type:listElemType}}{{!
+  }}{{#type:list_elem_type}}{{> types/CythonCppTypeIdent}}{{/type:list_elem_type}}{{!
 }}{{/type:list?}}{{!
 }}{{#type:set?}}{{type:cythonTemplate}}__{{!
-  }}{{#type:setElemType}}{{> types/CythonCppTypeIdent}}{{/type:setElemType}}{{!
+  }}{{#type:set_elem_type}}{{> types/CythonCppTypeIdent}}{{/type:set_elem_type}}{{!
 }}{{/type:set?}}{{!
 }}{{#type:map?}}{{type:cythonTemplate}}__{{!
-  }}{{#type:keyType}}{{> types/CythonCppTypeIdent}}{{/type:keyType}}_{{!
-  }}{{#type:valueType}}{{> types/CythonCppTypeIdent}}{{/type:valueType}}{{!
+  }}{{#type:key_type}}{{> types/CythonCppTypeIdent}}{{/type:key_type}}_{{!
+  }}{{#type:value_type}}{{> types/CythonCppTypeIdent}}{{/type:value_type}}{{!
 }}{{/type:map?}}{{!
 }}{{#type:enum}}{{!
   }}{{#type:externalProgram?}}{{> common/ModulePath}}_{{/type:externalProgram?}}{{!
@@ -70,5 +70,13 @@ This is the equivalent of CythonCpp[Basic]Type, for use as part of an identifier
   }}{{/program:typeContext?}}{{/type:externalProgram?}}{{!
   }}c{{enum:name}}{{!
 }}{{/type:enum}}{{!
+}}{{#type:streamresponse?}}{{!
+  }}{{#type:stream_has_first_response?}}cResponseAndServerStream__{{!
+  }}{{#type:stream_first_response_type}}{{ >types/CythonCppTypeIdent}}{{/type:stream_first_response_type}}_{{!
+  }}{{/type:stream_has_first_response?}}{{!
+  }}{{^type:stream_has_first_response?}}cServerStream__{{!
+  }}{{/type:stream_has_first_response?}}{{!
+  }}{{#type:stream_elem_type}}{{ >types/CythonCppTypeIdent}}{{/type:stream_elem_type}}{{!
+}}{{/type:streamresponse?}}{{!
 }}{{#type:void?}}cFollyUnit{{/type:void?}}{{!
 }}{{/type:hasCustomType?}}

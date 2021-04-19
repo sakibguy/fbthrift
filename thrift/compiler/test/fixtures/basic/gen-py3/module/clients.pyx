@@ -4,31 +4,44 @@
 # DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
 #  @generated
 #
+from libc.stdint cimport (
+    int8_t as cint8_t,
+    int16_t as cint16_t,
+    int32_t as cint32_t,
+    int64_t as cint64_t,
+)
 from libcpp.memory cimport shared_ptr, make_shared, unique_ptr, make_unique
 from libcpp.string cimport string
 from libcpp cimport bool as cbool
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 from libcpp.vector cimport vector as vector
 from libcpp.set cimport set as cset
 from libcpp.map cimport map as cmap
+from libcpp.utility cimport move as cmove
 from cython.operator cimport dereference as deref, typeid
 from cpython.ref cimport PyObject
-from thrift.py3.client cimport cRequestChannel_ptr, makeClientWrapper
+from thrift.py3.client cimport cRequestChannel_ptr, makeClientWrapper, cClientWrapper
 from thrift.py3.exceptions cimport try_make_shared_exception, create_py_exception
 from folly cimport cFollyTry, cFollyUnit, c_unit
+from folly.cast cimport down_cast_ptr
 from libcpp.typeinfo cimport type_info
 import thrift.py3.types
 cimport thrift.py3.types
 import thrift.py3.client
 cimport thrift.py3.client
-from thrift.py3.common cimport RpcOptions as __RpcOptions
-from thrift.py3.common import RpcOptions as __RpcOptions
+from thrift.py3.common cimport (
+    RpcOptions as __RpcOptions,
+    cThriftServiceContext as __fbthrift_cThriftServiceContext,
+    cThriftMetadata as __fbthrift_cThriftMetadata,
+    ServiceMetadata,
+    extractMetadataFromServiceContext,
+    MetadataBox as __MetadataBox,
+)
 
 from folly.futures cimport bridgeFutureWith
 from folly.executor cimport get_executor
-cimport folly.iobuf as __iobuf
-import folly.iobuf as __iobuf
+cimport folly.iobuf as _fbthrift_iobuf
+import folly.iobuf as _fbthrift_iobuf
 from folly.iobuf cimport move as move_iobuf
 cimport cython
 
@@ -39,11 +52,10 @@ from asyncio import get_event_loop as asyncio_get_event_loop, shield as asyncio_
 cimport module.types as _module_types
 import module.types as _module_types
 
+cimport module.services_reflection as _services_reflection
+
 from module.clients_wrapper cimport cMyServiceAsyncClient, cMyServiceClientWrapper
-from module.clients_wrapper cimport cMyServiceFastAsyncClient, cMyServiceFastClientWrapper
-from module.clients_wrapper cimport cMyServiceEmptyAsyncClient, cMyServiceEmptyClientWrapper
-from module.clients_wrapper cimport cMyServicePrioParentAsyncClient, cMyServicePrioParentClientWrapper
-from module.clients_wrapper cimport cMyServicePrioChildAsyncClient, cMyServicePrioChildClientWrapper
+from module.clients_wrapper cimport cDbMixedStackArgumentsAsyncClient, cDbMixedStackArgumentsClientWrapper
 
 
 cdef void MyService_ping_callback(
@@ -68,7 +80,33 @@ cdef void MyService_getRandomData_callback(
         pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
     else:
         try:
-            pyfuture.set_result(result.value().decode('UTF-8'))
+            pyfuture.set_result(result.value().data().decode('UTF-8'))
+        except Exception as ex:
+            pyfuture.set_exception(ex.with_traceback(None))
+
+cdef void MyService_sink_callback(
+    cFollyTry[cFollyUnit]&& result,
+    PyObject* userdata
+):
+    client, pyfuture, options = <object> userdata  
+    if result.hasException():
+        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
+    else:
+        try:
+            pyfuture.set_result(None)
+        except Exception as ex:
+            pyfuture.set_exception(ex.with_traceback(None))
+
+cdef void MyService_putDataById_callback(
+    cFollyTry[cFollyUnit]&& result,
+    PyObject* userdata
+):
+    client, pyfuture, options = <object> userdata  
+    if result.hasException():
+        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
+    else:
+        try:
+            pyfuture.set_result(None)
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
@@ -94,11 +132,11 @@ cdef void MyService_getDataById_callback(
         pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
     else:
         try:
-            pyfuture.set_result(result.value().decode('UTF-8'))
+            pyfuture.set_result(result.value().data().decode('UTF-8'))
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
-cdef void MyService_putDataById_callback(
+cdef void MyService_deleteDataById_callback(
     cFollyTry[cFollyUnit]&& result,
     PyObject* userdata
 ):
@@ -124,20 +162,7 @@ cdef void MyService_lobDataById_callback(
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
-cdef void MyServiceFast_ping_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(None)
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServiceFast_getRandomData_callback(
+cdef void DbMixedStackArguments_getDataByKey0_callback(
     cFollyTry[string]&& result,
     PyObject* userdata
 ):
@@ -146,24 +171,11 @@ cdef void MyServiceFast_getRandomData_callback(
         pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
     else:
         try:
-            pyfuture.set_result(result.value().decode('UTF-8'))
+            pyfuture.set_result(result.value())
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
-cdef void MyServiceFast_hasDataById_callback(
-    cFollyTry[cbool]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(<bint>result.value())
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServiceFast_getDataById_callback(
+cdef void DbMixedStackArguments_getDataByKey1_callback(
     cFollyTry[string]&& result,
     PyObject* userdata
 ):
@@ -172,72 +184,7 @@ cdef void MyServiceFast_getDataById_callback(
         pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
     else:
         try:
-            pyfuture.set_result(result.value().decode('UTF-8'))
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServiceFast_putDataById_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(None)
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServiceFast_lobDataById_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(None)
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServicePrioParent_ping_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(None)
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServicePrioParent_pong_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(None)
-        except Exception as ex:
-            pyfuture.set_exception(ex.with_traceback(None))
-
-cdef void MyServicePrioChild_pang_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata
-):
-    client, pyfuture, options = <object> userdata  
-    if result.hasException():
-        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
-    else:
-        try:
-            pyfuture.set_result(None)
+            pyfuture.set_result(result.value())
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
@@ -246,78 +193,17 @@ cdef object _MyService_annotations = _py_types.MappingProxyType({
 })
 
 
+@cython.auto_pickle(False)
 cdef class MyService(thrift.py3.client.Client):
     annotations = _MyService_annotations
-
-    def __cinit__(MyService self):
-        loop = asyncio_get_event_loop()
-        self._connect_future = loop.create_future()
-        self._deferred_headers = {}
 
     cdef const type_info* _typeid(MyService self):
         return &typeid(cMyServiceAsyncClient)
 
-    @staticmethod
-    cdef _module_MyService_set_client(MyService inst, shared_ptr[cMyServiceClientWrapper] c_obj):
-        """So the class hierarchy talks to the correct pointer type"""
-        inst._module_MyService_client = c_obj
-
-    cdef _module_MyService_reset_client(MyService self):
-        """So the class hierarchy resets the shared pointer up the chain"""
-        self._module_MyService_client.reset()
-
-    def __dealloc__(MyService self):
-        if self._connect_future.done() and not self._connect_future.exception():
-            print(f'thrift-py3 client: {self!r} was not cleaned up, use the async context manager', file=sys.stderr)
-            if self._module_MyService_client:
-                deref(self._module_MyService_client).disconnect().get()
-        self._module_MyService_reset_client()
-
     cdef bind_client(MyService self, cRequestChannel_ptr&& channel):
-        MyService._module_MyService_set_client(
-            self,
-            makeClientWrapper[cMyServiceAsyncClient, cMyServiceClientWrapper](
-                thrift.py3.client.move(channel)
-            ),
+        self._client = makeClientWrapper[cMyServiceAsyncClient, cMyServiceClientWrapper](
+            cmove(channel)
         )
-
-    async def __aenter__(MyService self):
-        await asyncio_shield(self._connect_future)
-        if self._context_entered:
-            raise asyncio_InvalidStateError('Client context has been used already')
-        self._context_entered = True
-        for key, value in self._deferred_headers.items():
-            self.set_persistent_header(key, value)
-        self._deferred_headers = None
-        return self
-
-    def __aexit__(MyService self, *exc):
-        self._check_connect_future()
-        loop = asyncio_get_event_loop()
-        future = loop.create_future()
-        userdata = (self, future)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyService_client).disconnect(),
-            closed_MyService_py3_client_callback,
-            <PyObject *>userdata  # So we keep client alive until disconnect
-        )
-        # To break any future usage of this client
-        # Also to prevent dealloc from trying to disconnect in a blocking way.
-        badfuture = loop.create_future()
-        badfuture.set_exception(asyncio_InvalidStateError('Client Out of Context'))
-        badfuture.exception()
-        self._connect_future = badfuture
-        return asyncio_shield(future)
-
-    def set_persistent_header(MyService self, str key, str value):
-        if not self._module_MyService_client:
-            self._deferred_headers[key] = value
-            return
-
-        cdef string ckey = <bytes> key.encode('utf-8')
-        cdef string cvalue = <bytes> value.encode('utf-8')
-        deref(self._module_MyService_client).setPersistentHeader(ckey, cvalue)
 
     @cython.always_allow_keywords(True)
     def ping(
@@ -332,7 +218,7 @@ cdef class MyService(thrift.py3.client.Client):
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[cFollyUnit](
             self._executor,
-            deref(self._module_MyService_client).ping(rpc_options._cpp_obj, 
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).ping(rpc_options._cpp_obj, 
             ),
             MyService_ping_callback,
             <PyObject *> __userdata
@@ -352,9 +238,63 @@ cdef class MyService(thrift.py3.client.Client):
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[string](
             self._executor,
-            deref(self._module_MyService_client).getRandomData(rpc_options._cpp_obj, 
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).getRandomData(rpc_options._cpp_obj, 
             ),
             MyService_getRandomData_callback,
+            <PyObject *> __userdata
+        )
+        return asyncio_shield(__future)
+
+    @cython.always_allow_keywords(True)
+    def sink(
+            MyService self,
+            sink not None,
+            __RpcOptions rpc_options=None
+    ):
+        if rpc_options is None:
+            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
+        if not isinstance(sink, int):
+            raise TypeError(f'sink is not a {int !r}.')
+        else:
+            sink = <cint64_t> sink
+        self._check_connect_future()
+        __loop = asyncio_get_event_loop()
+        __future = __loop.create_future()
+        __userdata = (self, __future, rpc_options)
+        bridgeFutureWith[cFollyUnit](
+            self._executor,
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).sink(rpc_options._cpp_obj, 
+                sink,
+            ),
+            MyService_sink_callback,
+            <PyObject *> __userdata
+        )
+        return asyncio_shield(__future)
+
+    @cython.always_allow_keywords(True)
+    def putDataById(
+            MyService self,
+            id not None,
+            str data not None,
+            __RpcOptions rpc_options=None
+    ):
+        if rpc_options is None:
+            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
+        if not isinstance(id, int):
+            raise TypeError(f'id is not a {int !r}.')
+        else:
+            id = <cint64_t> id
+        self._check_connect_future()
+        __loop = asyncio_get_event_loop()
+        __future = __loop.create_future()
+        __userdata = (self, __future, rpc_options)
+        bridgeFutureWith[cFollyUnit](
+            self._executor,
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).putDataById(rpc_options._cpp_obj, 
+                id,
+                data.encode('UTF-8'),
+            ),
+            MyService_putDataById_callback,
             <PyObject *> __userdata
         )
         return asyncio_shield(__future)
@@ -370,14 +310,14 @@ cdef class MyService(thrift.py3.client.Client):
         if not isinstance(id, int):
             raise TypeError(f'id is not a {int !r}.')
         else:
-            id = <int64_t> id
+            id = <cint64_t> id
         self._check_connect_future()
         __loop = asyncio_get_event_loop()
         __future = __loop.create_future()
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[cbool](
             self._executor,
-            deref(self._module_MyService_client).hasDataById(rpc_options._cpp_obj, 
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).hasDataById(rpc_options._cpp_obj, 
                 id,
             ),
             MyService_hasDataById_callback,
@@ -396,14 +336,14 @@ cdef class MyService(thrift.py3.client.Client):
         if not isinstance(id, int):
             raise TypeError(f'id is not a {int !r}.')
         else:
-            id = <int64_t> id
+            id = <cint64_t> id
         self._check_connect_future()
         __loop = asyncio_get_event_loop()
         __future = __loop.create_future()
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[string](
             self._executor,
-            deref(self._module_MyService_client).getDataById(rpc_options._cpp_obj, 
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).getDataById(rpc_options._cpp_obj, 
                 id,
             ),
             MyService_getDataById_callback,
@@ -412,10 +352,9 @@ cdef class MyService(thrift.py3.client.Client):
         return asyncio_shield(__future)
 
     @cython.always_allow_keywords(True)
-    def putDataById(
+    def deleteDataById(
             MyService self,
             id not None,
-            str data not None,
             __RpcOptions rpc_options=None
     ):
         if rpc_options is None:
@@ -423,18 +362,17 @@ cdef class MyService(thrift.py3.client.Client):
         if not isinstance(id, int):
             raise TypeError(f'id is not a {int !r}.')
         else:
-            id = <int64_t> id
+            id = <cint64_t> id
         self._check_connect_future()
         __loop = asyncio_get_event_loop()
         __future = __loop.create_future()
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[cFollyUnit](
             self._executor,
-            deref(self._module_MyService_client).putDataById(rpc_options._cpp_obj, 
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).deleteDataById(rpc_options._cpp_obj, 
                 id,
-                data.encode('UTF-8'),
             ),
-            MyService_putDataById_callback,
+            MyService_deleteDataById_callback,
             <PyObject *> __userdata
         )
         return asyncio_shield(__future)
@@ -451,14 +389,14 @@ cdef class MyService(thrift.py3.client.Client):
         if not isinstance(id, int):
             raise TypeError(f'id is not a {int !r}.')
         else:
-            id = <int64_t> id
+            id = <cint64_t> id
         self._check_connect_future()
         __loop = asyncio_get_event_loop()
         __future = __loop.create_future()
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[cFollyUnit](
             self._executor,
-            deref(self._module_MyService_client).lobDataById(rpc_options._cpp_obj, 
+            down_cast_ptr[cMyServiceClientWrapper, cClientWrapper](self._client.get()).lobDataById(rpc_options._cpp_obj, 
                 id,
                 data.encode('UTF-8'),
             ),
@@ -468,113 +406,42 @@ cdef class MyService(thrift.py3.client.Client):
         return asyncio_shield(__future)
 
 
+    @classmethod
+    def __get_reflection__(cls):
+        return _services_reflection.get_reflection__MyService(for_clients=True)
 
-cdef void closed_MyService_py3_client_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata,
-):
-    client, pyfuture = <object> userdata 
-    pyfuture.set_result(None)
-cdef object _MyServiceFast_annotations = _py_types.MappingProxyType({
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        cdef __fbthrift_cThriftServiceContext context
+        ServiceMetadata[_services_reflection.cMyServiceSvIf].gen(meta, context)
+        extractMetadataFromServiceContext(meta, context)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.MyService"
+
+cdef object _DbMixedStackArguments_annotations = _py_types.MappingProxyType({
 })
 
 
-cdef class MyServiceFast(thrift.py3.client.Client):
-    annotations = _MyServiceFast_annotations
+@cython.auto_pickle(False)
+cdef class DbMixedStackArguments(thrift.py3.client.Client):
+    annotations = _DbMixedStackArguments_annotations
 
-    def __cinit__(MyServiceFast self):
-        loop = asyncio_get_event_loop()
-        self._connect_future = loop.create_future()
-        self._deferred_headers = {}
+    cdef const type_info* _typeid(DbMixedStackArguments self):
+        return &typeid(cDbMixedStackArgumentsAsyncClient)
 
-    cdef const type_info* _typeid(MyServiceFast self):
-        return &typeid(cMyServiceFastAsyncClient)
-
-    @staticmethod
-    cdef _module_MyServiceFast_set_client(MyServiceFast inst, shared_ptr[cMyServiceFastClientWrapper] c_obj):
-        """So the class hierarchy talks to the correct pointer type"""
-        inst._module_MyServiceFast_client = c_obj
-
-    cdef _module_MyServiceFast_reset_client(MyServiceFast self):
-        """So the class hierarchy resets the shared pointer up the chain"""
-        self._module_MyServiceFast_client.reset()
-
-    def __dealloc__(MyServiceFast self):
-        if self._connect_future.done() and not self._connect_future.exception():
-            print(f'thrift-py3 client: {self!r} was not cleaned up, use the async context manager', file=sys.stderr)
-            if self._module_MyServiceFast_client:
-                deref(self._module_MyServiceFast_client).disconnect().get()
-        self._module_MyServiceFast_reset_client()
-
-    cdef bind_client(MyServiceFast self, cRequestChannel_ptr&& channel):
-        MyServiceFast._module_MyServiceFast_set_client(
-            self,
-            makeClientWrapper[cMyServiceFastAsyncClient, cMyServiceFastClientWrapper](
-                thrift.py3.client.move(channel)
-            ),
+    cdef bind_client(DbMixedStackArguments self, cRequestChannel_ptr&& channel):
+        self._client = makeClientWrapper[cDbMixedStackArgumentsAsyncClient, cDbMixedStackArgumentsClientWrapper](
+            cmove(channel)
         )
-
-    async def __aenter__(MyServiceFast self):
-        await asyncio_shield(self._connect_future)
-        if self._context_entered:
-            raise asyncio_InvalidStateError('Client context has been used already')
-        self._context_entered = True
-        for key, value in self._deferred_headers.items():
-            self.set_persistent_header(key, value)
-        self._deferred_headers = None
-        return self
-
-    def __aexit__(MyServiceFast self, *exc):
-        self._check_connect_future()
-        loop = asyncio_get_event_loop()
-        future = loop.create_future()
-        userdata = (self, future)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServiceFast_client).disconnect(),
-            closed_MyServiceFast_py3_client_callback,
-            <PyObject *>userdata  # So we keep client alive until disconnect
-        )
-        # To break any future usage of this client
-        # Also to prevent dealloc from trying to disconnect in a blocking way.
-        badfuture = loop.create_future()
-        badfuture.set_exception(asyncio_InvalidStateError('Client Out of Context'))
-        badfuture.exception()
-        self._connect_future = badfuture
-        return asyncio_shield(future)
-
-    def set_persistent_header(MyServiceFast self, str key, str value):
-        if not self._module_MyServiceFast_client:
-            self._deferred_headers[key] = value
-            return
-
-        cdef string ckey = <bytes> key.encode('utf-8')
-        cdef string cvalue = <bytes> value.encode('utf-8')
-        deref(self._module_MyServiceFast_client).setPersistentHeader(ckey, cvalue)
 
     @cython.always_allow_keywords(True)
-    def ping(
-            MyServiceFast self,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServiceFast_client).ping(rpc_options._cpp_obj, 
-            ),
-            MyServiceFast_ping_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-    @cython.always_allow_keywords(True)
-    def getRandomData(
-            MyServiceFast self,
+    def getDataByKey0(
+            DbMixedStackArguments self,
+            str key not None,
             __RpcOptions rpc_options=None
     ):
         if rpc_options is None:
@@ -585,444 +452,50 @@ cdef class MyServiceFast(thrift.py3.client.Client):
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[string](
             self._executor,
-            deref(self._module_MyServiceFast_client).getRandomData(rpc_options._cpp_obj, 
+            down_cast_ptr[cDbMixedStackArgumentsClientWrapper, cClientWrapper](self._client.get()).getDataByKey0(rpc_options._cpp_obj, 
+                key.encode('UTF-8'),
             ),
-            MyServiceFast_getRandomData_callback,
+            DbMixedStackArguments_getDataByKey0_callback,
             <PyObject *> __userdata
         )
         return asyncio_shield(__future)
 
     @cython.always_allow_keywords(True)
-    def hasDataById(
-            MyServiceFast self,
-            id not None,
+    def getDataByKey1(
+            DbMixedStackArguments self,
+            str key not None,
             __RpcOptions rpc_options=None
     ):
         if rpc_options is None:
             rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        if not isinstance(id, int):
-            raise TypeError(f'id is not a {int !r}.')
-        else:
-            id = <int64_t> id
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cbool](
-            self._executor,
-            deref(self._module_MyServiceFast_client).hasDataById(rpc_options._cpp_obj, 
-                id,
-            ),
-            MyServiceFast_hasDataById_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-    @cython.always_allow_keywords(True)
-    def getDataById(
-            MyServiceFast self,
-            id not None,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        if not isinstance(id, int):
-            raise TypeError(f'id is not a {int !r}.')
-        else:
-            id = <int64_t> id
         self._check_connect_future()
         __loop = asyncio_get_event_loop()
         __future = __loop.create_future()
         __userdata = (self, __future, rpc_options)
         bridgeFutureWith[string](
             self._executor,
-            deref(self._module_MyServiceFast_client).getDataById(rpc_options._cpp_obj, 
-                id,
+            down_cast_ptr[cDbMixedStackArgumentsClientWrapper, cClientWrapper](self._client.get()).getDataByKey1(rpc_options._cpp_obj, 
+                key.encode('UTF-8'),
             ),
-            MyServiceFast_getDataById_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-    @cython.always_allow_keywords(True)
-    def putDataById(
-            MyServiceFast self,
-            id not None,
-            str data not None,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        if not isinstance(id, int):
-            raise TypeError(f'id is not a {int !r}.')
-        else:
-            id = <int64_t> id
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServiceFast_client).putDataById(rpc_options._cpp_obj, 
-                id,
-                data.encode('UTF-8'),
-            ),
-            MyServiceFast_putDataById_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-    @cython.always_allow_keywords(True)
-    def lobDataById(
-            MyServiceFast self,
-            id not None,
-            str data not None,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        if not isinstance(id, int):
-            raise TypeError(f'id is not a {int !r}.')
-        else:
-            id = <int64_t> id
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServiceFast_client).lobDataById(rpc_options._cpp_obj, 
-                id,
-                data.encode('UTF-8'),
-            ),
-            MyServiceFast_lobDataById_callback,
+            DbMixedStackArguments_getDataByKey1_callback,
             <PyObject *> __userdata
         )
         return asyncio_shield(__future)
 
 
-
-cdef void closed_MyServiceFast_py3_client_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata,
-):
-    client, pyfuture = <object> userdata 
-    pyfuture.set_result(None)
-cdef object _MyServiceEmpty_annotations = _py_types.MappingProxyType({
-})
-
-
-cdef class MyServiceEmpty(thrift.py3.client.Client):
-    annotations = _MyServiceEmpty_annotations
-
-    def __cinit__(MyServiceEmpty self):
-        loop = asyncio_get_event_loop()
-        self._connect_future = loop.create_future()
-        self._deferred_headers = {}
-
-    cdef const type_info* _typeid(MyServiceEmpty self):
-        return &typeid(cMyServiceEmptyAsyncClient)
+    @classmethod
+    def __get_reflection__(cls):
+        return _services_reflection.get_reflection__DbMixedStackArguments(for_clients=True)
 
     @staticmethod
-    cdef _module_MyServiceEmpty_set_client(MyServiceEmpty inst, shared_ptr[cMyServiceEmptyClientWrapper] c_obj):
-        """So the class hierarchy talks to the correct pointer type"""
-        inst._module_MyServiceEmpty_client = c_obj
-
-    cdef _module_MyServiceEmpty_reset_client(MyServiceEmpty self):
-        """So the class hierarchy resets the shared pointer up the chain"""
-        self._module_MyServiceEmpty_client.reset()
-
-    def __dealloc__(MyServiceEmpty self):
-        if self._connect_future.done() and not self._connect_future.exception():
-            print(f'thrift-py3 client: {self!r} was not cleaned up, use the async context manager', file=sys.stderr)
-            if self._module_MyServiceEmpty_client:
-                deref(self._module_MyServiceEmpty_client).disconnect().get()
-        self._module_MyServiceEmpty_reset_client()
-
-    cdef bind_client(MyServiceEmpty self, cRequestChannel_ptr&& channel):
-        MyServiceEmpty._module_MyServiceEmpty_set_client(
-            self,
-            makeClientWrapper[cMyServiceEmptyAsyncClient, cMyServiceEmptyClientWrapper](
-                thrift.py3.client.move(channel)
-            ),
-        )
-
-    async def __aenter__(MyServiceEmpty self):
-        await asyncio_shield(self._connect_future)
-        if self._context_entered:
-            raise asyncio_InvalidStateError('Client context has been used already')
-        self._context_entered = True
-        for key, value in self._deferred_headers.items():
-            self.set_persistent_header(key, value)
-        self._deferred_headers = None
-        return self
-
-    def __aexit__(MyServiceEmpty self, *exc):
-        self._check_connect_future()
-        loop = asyncio_get_event_loop()
-        future = loop.create_future()
-        userdata = (self, future)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServiceEmpty_client).disconnect(),
-            closed_MyServiceEmpty_py3_client_callback,
-            <PyObject *>userdata  # So we keep client alive until disconnect
-        )
-        # To break any future usage of this client
-        # Also to prevent dealloc from trying to disconnect in a blocking way.
-        badfuture = loop.create_future()
-        badfuture.set_exception(asyncio_InvalidStateError('Client Out of Context'))
-        badfuture.exception()
-        self._connect_future = badfuture
-        return asyncio_shield(future)
-
-    def set_persistent_header(MyServiceEmpty self, str key, str value):
-        if not self._module_MyServiceEmpty_client:
-            self._deferred_headers[key] = value
-            return
-
-        cdef string ckey = <bytes> key.encode('utf-8')
-        cdef string cvalue = <bytes> value.encode('utf-8')
-        deref(self._module_MyServiceEmpty_client).setPersistentHeader(ckey, cvalue)
-
-
-
-cdef void closed_MyServiceEmpty_py3_client_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata,
-):
-    client, pyfuture = <object> userdata 
-    pyfuture.set_result(None)
-cdef object _MyServicePrioParent_annotations = _py_types.MappingProxyType({
-    """priority""": "HIGH",
-})
-
-
-cdef class MyServicePrioParent(thrift.py3.client.Client):
-    annotations = _MyServicePrioParent_annotations
-
-    def __cinit__(MyServicePrioParent self):
-        loop = asyncio_get_event_loop()
-        self._connect_future = loop.create_future()
-        self._deferred_headers = {}
-
-    cdef const type_info* _typeid(MyServicePrioParent self):
-        return &typeid(cMyServicePrioParentAsyncClient)
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        cdef __fbthrift_cThriftServiceContext context
+        ServiceMetadata[_services_reflection.cDbMixedStackArgumentsSvIf].gen(meta, context)
+        extractMetadataFromServiceContext(meta, context)
+        return __MetadataBox.box(cmove(meta))
 
     @staticmethod
-    cdef _module_MyServicePrioParent_set_client(MyServicePrioParent inst, shared_ptr[cMyServicePrioParentClientWrapper] c_obj):
-        """So the class hierarchy talks to the correct pointer type"""
-        inst._module_MyServicePrioParent_client = c_obj
+    def __get_thrift_name__():
+        return "module.DbMixedStackArguments"
 
-    cdef _module_MyServicePrioParent_reset_client(MyServicePrioParent self):
-        """So the class hierarchy resets the shared pointer up the chain"""
-        self._module_MyServicePrioParent_client.reset()
-
-    def __dealloc__(MyServicePrioParent self):
-        if self._connect_future.done() and not self._connect_future.exception():
-            print(f'thrift-py3 client: {self!r} was not cleaned up, use the async context manager', file=sys.stderr)
-            if self._module_MyServicePrioParent_client:
-                deref(self._module_MyServicePrioParent_client).disconnect().get()
-        self._module_MyServicePrioParent_reset_client()
-
-    cdef bind_client(MyServicePrioParent self, cRequestChannel_ptr&& channel):
-        MyServicePrioParent._module_MyServicePrioParent_set_client(
-            self,
-            makeClientWrapper[cMyServicePrioParentAsyncClient, cMyServicePrioParentClientWrapper](
-                thrift.py3.client.move(channel)
-            ),
-        )
-
-    async def __aenter__(MyServicePrioParent self):
-        await asyncio_shield(self._connect_future)
-        if self._context_entered:
-            raise asyncio_InvalidStateError('Client context has been used already')
-        self._context_entered = True
-        for key, value in self._deferred_headers.items():
-            self.set_persistent_header(key, value)
-        self._deferred_headers = None
-        return self
-
-    def __aexit__(MyServicePrioParent self, *exc):
-        self._check_connect_future()
-        loop = asyncio_get_event_loop()
-        future = loop.create_future()
-        userdata = (self, future)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServicePrioParent_client).disconnect(),
-            closed_MyServicePrioParent_py3_client_callback,
-            <PyObject *>userdata  # So we keep client alive until disconnect
-        )
-        # To break any future usage of this client
-        # Also to prevent dealloc from trying to disconnect in a blocking way.
-        badfuture = loop.create_future()
-        badfuture.set_exception(asyncio_InvalidStateError('Client Out of Context'))
-        badfuture.exception()
-        self._connect_future = badfuture
-        return asyncio_shield(future)
-
-    def set_persistent_header(MyServicePrioParent self, str key, str value):
-        if not self._module_MyServicePrioParent_client:
-            self._deferred_headers[key] = value
-            return
-
-        cdef string ckey = <bytes> key.encode('utf-8')
-        cdef string cvalue = <bytes> value.encode('utf-8')
-        deref(self._module_MyServicePrioParent_client).setPersistentHeader(ckey, cvalue)
-
-    @cython.always_allow_keywords(True)
-    def ping(
-            MyServicePrioParent self,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServicePrioParent_client).ping(rpc_options._cpp_obj, 
-            ),
-            MyServicePrioParent_ping_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-    @cython.always_allow_keywords(True)
-    def pong(
-            MyServicePrioParent self,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServicePrioParent_client).pong(rpc_options._cpp_obj, 
-            ),
-            MyServicePrioParent_pong_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-
-
-cdef void closed_MyServicePrioParent_py3_client_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata,
-):
-    client, pyfuture = <object> userdata 
-    pyfuture.set_result(None)
-cdef object _MyServicePrioChild_annotations = _py_types.MappingProxyType({
-})
-
-
-cdef class MyServicePrioChild(MyServicePrioParent):
-    annotations = _MyServicePrioChild_annotations
-
-    def __cinit__(MyServicePrioChild self):
-        loop = asyncio_get_event_loop()
-        self._connect_future = loop.create_future()
-        self._deferred_headers = {}
-
-    cdef const type_info* _typeid(MyServicePrioChild self):
-        return &typeid(cMyServicePrioChildAsyncClient)
-
-    @staticmethod
-    cdef _module_MyServicePrioChild_set_client(MyServicePrioChild inst, shared_ptr[cMyServicePrioChildClientWrapper] c_obj):
-        """So the class hierarchy talks to the correct pointer type"""
-        inst._module_MyServicePrioChild_client = c_obj
-        MyServicePrioParent._module_MyServicePrioParent_set_client(inst, <shared_ptr[cMyServicePrioParentClientWrapper]>c_obj)
-
-    cdef _module_MyServicePrioChild_reset_client(MyServicePrioChild self):
-        """So the class hierarchy resets the shared pointer up the chain"""
-        self._module_MyServicePrioChild_client.reset()
-        MyServicePrioParent._module_MyServicePrioParent_reset_client(self)
-
-    def __dealloc__(MyServicePrioChild self):
-        if self._connect_future.done() and not self._connect_future.exception():
-            print(f'thrift-py3 client: {self!r} was not cleaned up, use the async context manager', file=sys.stderr)
-            if self._module_MyServicePrioChild_client:
-                deref(self._module_MyServicePrioChild_client).disconnect().get()
-        self._module_MyServicePrioChild_reset_client()
-
-    cdef bind_client(MyServicePrioChild self, cRequestChannel_ptr&& channel):
-        MyServicePrioChild._module_MyServicePrioChild_set_client(
-            self,
-            makeClientWrapper[cMyServicePrioChildAsyncClient, cMyServicePrioChildClientWrapper](
-                thrift.py3.client.move(channel)
-            ),
-        )
-
-    async def __aenter__(MyServicePrioChild self):
-        await asyncio_shield(self._connect_future)
-        if self._context_entered:
-            raise asyncio_InvalidStateError('Client context has been used already')
-        self._context_entered = True
-        for key, value in self._deferred_headers.items():
-            self.set_persistent_header(key, value)
-        self._deferred_headers = None
-        return self
-
-    def __aexit__(MyServicePrioChild self, *exc):
-        self._check_connect_future()
-        loop = asyncio_get_event_loop()
-        future = loop.create_future()
-        userdata = (self, future)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServicePrioChild_client).disconnect(),
-            closed_MyServicePrioChild_py3_client_callback,
-            <PyObject *>userdata  # So we keep client alive until disconnect
-        )
-        # To break any future usage of this client
-        # Also to prevent dealloc from trying to disconnect in a blocking way.
-        badfuture = loop.create_future()
-        badfuture.set_exception(asyncio_InvalidStateError('Client Out of Context'))
-        badfuture.exception()
-        self._connect_future = badfuture
-        return asyncio_shield(future)
-
-    def set_persistent_header(MyServicePrioChild self, str key, str value):
-        if not self._module_MyServicePrioChild_client:
-            self._deferred_headers[key] = value
-            return
-
-        cdef string ckey = <bytes> key.encode('utf-8')
-        cdef string cvalue = <bytes> value.encode('utf-8')
-        deref(self._module_MyServicePrioChild_client).setPersistentHeader(ckey, cvalue)
-
-    @cython.always_allow_keywords(True)
-    def pang(
-            MyServicePrioChild self,
-            __RpcOptions rpc_options=None
-    ):
-        if rpc_options is None:
-            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
-        self._check_connect_future()
-        __loop = asyncio_get_event_loop()
-        __future = __loop.create_future()
-        __userdata = (self, __future, rpc_options)
-        bridgeFutureWith[cFollyUnit](
-            self._executor,
-            deref(self._module_MyServicePrioChild_client).pang(rpc_options._cpp_obj, 
-            ),
-            MyServicePrioChild_pang_callback,
-            <PyObject *> __userdata
-        )
-        return asyncio_shield(__future)
-
-
-
-cdef void closed_MyServicePrioChild_py3_client_callback(
-    cFollyTry[cFollyUnit]&& result,
-    PyObject* userdata,
-):
-    client, pyfuture = <object> userdata 
-    pyfuture.set_result(None)

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,37 +19,36 @@
 
 #include <string>
 
-#include <thrift/lib/cpp/transport/TRpcTransport.h>
-#include <thrift/lib/cpp/transport/TVirtualTransport.h>
 #include <folly/SocketAddress.h>
 #include <folly/portability/SysTime.h>
+#include <thrift/lib/cpp/transport/TRpcTransport.h>
+#include <thrift/lib/cpp/transport/TVirtualTransport.h>
 
-namespace apache { namespace thrift { namespace transport {
+namespace apache {
+namespace thrift {
+namespace transport {
 
 /**
  * TCP Socket implementation of the TTransport interface.
  *
  */
-class TSocket : public TVirtualTransport< TSocket,
-                                          TTransportDefaults<TRpcTransport> > {
-
-public:
+class TSocket
+    : public TVirtualTransport<TSocket, TTransportDefaults<TRpcTransport>> {
+ public:
   /**
    * Struct that contains socket options related stuff
    */
   struct Options {
-
-    Options():
-      connTimeout(0),
-      sendTimeout(0),
-      recvTimeout(0),
-      sendBufSize(0),
-      recvBufSize(0),
-      lingerOn(false),
-      lingerVal(0),
-      noDelay(true),
-      reuseAddr(false) {
-      }
+    Options()
+        : connTimeout(0),
+          sendTimeout(0),
+          recvTimeout(0),
+          sendBufSize(0),
+          recvBufSize(0),
+          lingerOn(false),
+          lingerVal(0),
+          noDelay(true),
+          reuseAddr(false) {}
 
     /** Connect timeout in ms */
     int connTimeout;
@@ -124,12 +123,8 @@ public:
 
   /**
    * Constructor to create socket from raw UNIX handle.
-   *
-   * This is used by the TServerSocket class to create a TSocket from file
-   * descriptors returned by accept().
    */
   explicit TSocket(int socket);
-
 
   /**
    * Destroyes the socket object, closing it if necessary.
@@ -203,14 +198,13 @@ public:
    */
   void setPort(int port);
 
-
   /**
    * Sets the socket options enabled in the
    * TSocket::Options object options_;
    * Note you can try to individually set any option
    * using the methods provided below e.g. setSendBufSize
    */
-  void setSocketOptions(const Options& oh );
+  void setSocketOptions(const Options& oh);
 
   /**
    * get the options_ object
@@ -320,9 +314,7 @@ public:
   /**
    * Returns the underlying socket file descriptor.
    */
-  int getSocketFD() {
-    return socket_;
-  }
+  int getSocketFD() { return socket_; }
 
   /**
    * Steals the underlying socket file descriptor.
@@ -349,7 +341,7 @@ public:
 
  protected:
   /** connect, called by open */
-  void openConnection(struct addrinfo *res);
+  void openConnection(struct addrinfo* res);
 
   /** Host to connect to */
   std::string host_;
@@ -384,14 +376,15 @@ public:
   /** Whether to use low minimum TCP retransmission timeout */
   static bool useLowMinRto_;
 
-private:
+ private:
   void unix_open();
   void local_open();
 };
 
 std::ostream& operator<<(std::ostream& os, const TSocket::Options& o);
 
-}}} // apache::thrift::transport
+} // namespace transport
+} // namespace thrift
+} // namespace apache
 
 #endif // #ifndef _THRIFT_TRANSPORT_TSOCKET_H_
-

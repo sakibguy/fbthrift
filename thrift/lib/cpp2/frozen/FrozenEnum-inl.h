@@ -1,11 +1,11 @@
 /*
- * Copyright 2014-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 namespace apache {
 namespace thrift {
 namespace frozen {
@@ -30,9 +31,7 @@ struct EnumLayout : public PackedIntegerLayout<Underlying> {
   typedef PackedIntegerLayout<Underlying> Base;
   EnumLayout() : Base(typeid(T)) {}
 
-  FieldPosition maximize() {
-    return Base::maximize();
-  }
+  FieldPosition maximize() { return Base::maximize(); }
 
   FieldPosition layout(LayoutRoot& root, const T& o, LayoutPosition self) {
     return Base::layout(root, static_cast<Underlying>(o), self);
@@ -60,12 +59,14 @@ struct EnumLayout : public PackedIntegerLayout<Underlying> {
     thaw(self, v);
     return v;
   }
+
+  static size_t hash(const T& v) { return std::hash<T>()(v); }
 };
 } // namespace detail
 
 template <class T>
 struct Layout<T, typename std::enable_if<std::is_enum<T>::value>::type>
-    : public detail::EnumLayout<T> {};
+    : public apache::thrift::frozen::detail::EnumLayout<T> {};
 } // namespace frozen
 } // namespace thrift
 } // namespace apache

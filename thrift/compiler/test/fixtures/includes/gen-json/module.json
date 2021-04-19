@@ -1,8 +1,9 @@
 {
+  "__fbthrift": {"@generated": 0},
   "thrift_module" : "module",
   "structs" : {
     "MyStruct" : {
-      "lineno" : 4,
+      "lineno" : 20,
       "is_exception" : false,
       "is_union" : false,
       "fields" : {
@@ -23,7 +24,8 @@
           "required" : true,
           "default_value" : 42
         }
-      }
+      },
+      "annotation_last_lineno" : -1
     }
   }
 }

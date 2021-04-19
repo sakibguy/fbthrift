@@ -1,11 +1,11 @@
 /*
- * Copyright 2014 Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,82 +14,46 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp2/frozen/FrozenUtil.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
-#include <thrift/lib/cpp2/test/gen-cpp2/ProtocolBenchData_types.h>
+#include <thrift/lib/cpp2/test/Structs.h>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <folly/Benchmark.h>
-#include <folly/Format.h>
 #include <folly/Optional.h>
+#include <folly/portability/GFlags.h>
 
 #include <vector>
 
 using namespace std;
 using namespace folly;
 using namespace apache::thrift;
-using namespace ::cpp2;
+using namespace thrift::benchmark;
 
-// Only declaration, no definition.
-// This will error if used with a type other than the explicit
-// instantiations below.
-template <typename Struct>
-Struct create();
+struct FrozenSerializer {
+  template <class T>
+  static void serialize(const T& obj, folly::IOBufQueue* out) {
+    auto p = new string(frozen::freezeToString(obj));
+    out->append(folly::IOBuf::takeOwnership(
+        p->data(),
+        p->size(),
+        [](void*, void* p) { delete static_cast<string*>(p); },
+        static_cast<void*>(p)));
+  }
+  template <class T>
+  static size_t deserialize(folly::IOBuf* iobuf, T& t) {
+    auto view = frozen::mapFrozen<T>(iobuf->coalesce());
+    t = view.thaw();
+    return 0;
+  }
+};
 
-template <> Empty create<Empty>() {
-  return Empty();
-}
+// The benckmark is to measure single struct use case, the iteration here is
+// more like a benchmark artifact, so avoid doing optimizationon iteration
+// usecase in this benchmark (e.g. move string definition out of while loop)
 
-template <> SmallInt create<SmallInt>() {
-  return SmallInt(FRAGILE, 5);
-}
-
-template <> BigInt create<BigInt>() {
-  return BigInt(FRAGILE, 0x1234567890abcdefL);
-}
-
-template <> SmallString create<SmallString>() {
-  return SmallString(FRAGILE, "small string");
-}
-
-template <> BigString create<BigString>() {
-  return BigString(FRAGILE, string(10000, 'a'));
-}
-
-template <> BigBinary create<BigBinary>() {
-  auto buf = folly::IOBuf::create(10000);
-  buf->append(10000);
-  return BigBinary(FRAGILE, std::move(buf));
-}
-
-template <> LargeBinary create<LargeBinary>() {
-  auto buf = folly::IOBuf::create(10000000);
-  buf->append(10000000);
-  return LargeBinary(FRAGILE, std::move(buf));
-}
-
-template <> Mixed create<Mixed>() {
-  return Mixed(FRAGILE, 5, 12345, true, "hello");
-}
-
-template <> SmallListInt create<SmallListInt>() {
-  return SmallListInt(FRAGILE, vector<int>(10, 5));
-}
-
-template <> BigListInt create<BigListInt>() {
-  return BigListInt(FRAGILE, vector<int>(10000, 5));
-}
-
-template <> BigListMixed create<BigListMixed>() {
-  return BigListMixed(FRAGILE, vector<Mixed>(10000, create<Mixed>()));
-}
-
-template <> LargeListMixed create<LargeListMixed>() {
-  return LargeListMixed(FRAGILE, vector<Mixed>(1000000, create<Mixed>()));
-}
-
-template <typename Serializer, typename Struct>
-void writeBench(size_t iters) {
+template <typename Serializer, typename Struct, typename Counter>
+void writeBench(size_t iters, Counter&&) {
   BenchmarkSuspender susp;
   auto strct = create<Struct>();
   susp.dismiss();
@@ -101,13 +65,15 @@ void writeBench(size_t iters) {
   susp.rehire();
 }
 
-template <typename Serializer, typename Struct>
-void readBench(size_t iters) {
+template <typename Serializer, typename Struct, typename Counter>
+void readBench(size_t iters, Counter&& counter) {
   BenchmarkSuspender susp;
   auto strct = create<Struct>();
   IOBufQueue q;
   Serializer::serialize(strct, &q);
   auto buf = q.move();
+  // coalesce the IOBuf chain to test fast path
+  buf->coalesce();
   susp.dismiss();
 
   while (iters--) {
@@ -115,32 +81,43 @@ void readBench(size_t iters) {
     Serializer::deserialize(buf.get(), data);
   }
   susp.rehire();
+  counter["serialized_size"] = buf->computeChainDataLength();
 }
 
-#define X1(proto, rdwr, bench) \
-  BENCHMARK(proto ## Protocol_ ## rdwr ## _ ## bench, iters) { \
-    rdwr ## Bench<proto##Serializer, bench>(iters); \
+#define X1(proto, rdwr, bench)                                           \
+  BENCHMARK_COUNTERS(proto##Protocol_##rdwr##_##bench, counter, iters) { \
+    rdwr##Bench<proto##Serializer, bench>(iters, counter);               \
   }
 
-#define X2(proto, bench) X1(proto, write, bench) \
-                         X1(proto, read, bench)
+#define X2(proto, bench)  \
+  X1(proto, write, bench) \
+  X1(proto, read, bench)
 
-#define X(proto) \
-  X2(proto, Empty)  \
-  X2(proto, SmallInt)  \
-  X2(proto, BigInt) \
-  X2(proto, SmallString) \
-  X2(proto, BigString) \
-  X2(proto, BigBinary) \
-  X2(proto, LargeBinary) \
-  X2(proto, Mixed) \
-  X2(proto, SmallListInt) \
-  X2(proto, BigListInt) \
-  X2(proto, BigListMixed) \
-  X2(proto, LargeListMixed) \
+#define X(proto)             \
+  X2(proto, Empty)           \
+  X2(proto, SmallInt)        \
+  X2(proto, BigInt)          \
+  X2(proto, SmallString)     \
+  X2(proto, BigString)       \
+  X2(proto, BigBinary)       \
+  X2(proto, LargeBinary)     \
+  X2(proto, Mixed)           \
+  X2(proto, MixedInt)        \
+  X2(proto, SmallListInt)    \
+  X2(proto, BigListInt)      \
+  X2(proto, BigListMixed)    \
+  X2(proto, BigListMixedInt) \
+  X2(proto, LargeListMixed)  \
+  X2(proto, LargeMapInt)     \
+  X2(proto, NestedMap)       \
+  X2(proto, ComplexStruct)
 
 X(Binary)
 X(Compact)
+X(SimpleJSON)
+X(JSON)
+X(Nimble)
+X(Frozen)
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);

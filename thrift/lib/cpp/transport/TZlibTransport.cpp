@@ -1,32 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <thrift/lib/cpp/transport/TZlibTransport.h>
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <algorithm>
+
 #include <zlib.h>
 
 using std::string;
 
-namespace apache { namespace thrift { namespace transport {
+namespace apache {
+namespace thrift {
+namespace transport {
 
 // Don't call this outside of the constructor.
 void TZlibTransport::initZlib() {
@@ -38,17 +38,17 @@ void TZlibTransport::initZlib() {
 
     rstream_->zalloc = Z_NULL;
     wstream_->zalloc = Z_NULL;
-    rstream_->zfree  = Z_NULL;
-    wstream_->zfree  = Z_NULL;
+    rstream_->zfree = Z_NULL;
+    wstream_->zfree = Z_NULL;
     rstream_->opaque = Z_NULL;
     wstream_->opaque = Z_NULL;
 
-    rstream_->next_in   = crbuf_;
-    wstream_->next_in   = uwbuf_;
-    rstream_->next_out  = urbuf_;
-    wstream_->next_out  = cwbuf_;
-    rstream_->avail_in  = 0;
-    wstream_->avail_in  = 0;
+    rstream_->next_in = crbuf_;
+    wstream_->next_in = uwbuf_;
+    rstream_->next_out = urbuf_;
+    wstream_->next_out = cwbuf_;
+    rstream_->avail_in = 0;
+    wstream_->avail_in = 0;
     rstream_->avail_out = urbuf_size_;
     wstream_->avail_out = cwbuf_size_;
 
@@ -79,10 +79,11 @@ inline void TZlibTransport::checkZlibRv(int status, const char* message) {
   }
 }
 
-inline void TZlibTransport::checkZlibRvNothrow(int status, const char* message) {
+inline void TZlibTransport::checkZlibRvNothrow(
+    int status, const char* message) {
   if (status != Z_OK) {
     string output = "TZlibTransport: zlib failure in destructor: " +
-      TZlibTransportException::errorMessage(status, message);
+        TZlibTransportException::errorMessage(status, message);
     GlobalOutput(output.c_str());
   }
 }
@@ -117,8 +118,6 @@ bool TZlibTransport::isOpen() {
 bool TZlibTransport::peek() {
   return (readAvail() > 0) || (rstream_->avail_in > 0) || transport_->peek();
 }
-
-
 
 // READING STRATEGY
 //
@@ -172,7 +171,7 @@ uint32_t TZlibTransport::read(uint8_t* buf, uint32_t len) {
     }
 
     // The uncompressed read buffer is empty, so reset the stream fields.
-    rstream_->next_out  = urbuf_;
+    rstream_->next_out = urbuf_;
     rstream_->avail_out = urbuf_size_;
     urpos_ = 0;
 
@@ -197,7 +196,7 @@ bool TZlibTransport::readFromZlib() {
     if (got == 0) {
       return false;
     }
-    rstream_->next_in  = crbuf_;
+    rstream_->next_in = crbuf_;
     rstream_->avail_in = got;
   }
 
@@ -212,7 +211,6 @@ bool TZlibTransport::readFromZlib() {
 
   return true;
 }
-
 
 // WRITING STRATEGY
 //
@@ -234,8 +232,8 @@ bool TZlibTransport::readFromZlib() {
 
 void TZlibTransport::write(const uint8_t* buf, uint32_t len) {
   if (output_finished_) {
-    throw TTransportException(TTransportException::BAD_ARGS,
-                              "write() called after finish()");
+    throw TTransportException(
+        TTransportException::BAD_ARGS, "write() called after finish()");
   }
 
   // zlib's "deflate" function has enough logic in it that I think
@@ -254,25 +252,25 @@ void TZlibTransport::write(const uint8_t* buf, uint32_t len) {
   }
 }
 
-void TZlibTransport::flush()  {
+void TZlibTransport::flush() {
   if (output_finished_) {
-    throw TTransportException(TTransportException::BAD_ARGS,
-                              "flush() called after finish()");
+    throw TTransportException(
+        TTransportException::BAD_ARGS, "flush() called after finish()");
   }
 
   flushToTransport(Z_FULL_FLUSH);
 }
 
-void TZlibTransport::finish()  {
+void TZlibTransport::finish() {
   if (output_finished_) {
-    throw TTransportException(TTransportException::BAD_ARGS,
-                              "finish() called more than once");
+    throw TTransportException(
+        TTransportException::BAD_ARGS, "finish() called more than once");
   }
 
   flushToTransport(Z_FINISH);
 }
 
-void TZlibTransport::flushToTransport(int flush)  {
+void TZlibTransport::flushToTransport(int flush) {
   // write pending data in uwbuf_ to zlib
   flushToZlib(uwbuf_, uwpos_, flush);
   uwpos_ = 0;
@@ -287,7 +285,7 @@ void TZlibTransport::flushToTransport(int flush)  {
 }
 
 void TZlibTransport::flushToZlib(const uint8_t* buf, int len, int flush) {
-  wstream_->next_in  = const_cast<uint8_t*>(buf);
+  wstream_->next_in = const_cast<uint8_t*>(buf);
   wstream_->avail_in = len;
 
   while (true) {
@@ -298,7 +296,7 @@ void TZlibTransport::flushToZlib(const uint8_t* buf, int len, int flush) {
     // If our ouput buffer is full, flush to the underlying transport.
     if (wstream_->avail_out == 0) {
       transport_->write(cwbuf_, cwbuf_size_);
-      wstream_->next_out  = cwbuf_;
+      wstream_->next_out = cwbuf_;
       wstream_->avail_out = cwbuf_size_;
     }
 
@@ -334,8 +332,8 @@ void TZlibTransport::consume(uint32_t len) {
   if (readAvail() >= len) {
     urpos_ += len;
   } else {
-    throw TTransportException(TTransportException::BAD_ARGS,
-                              "consume did not follow a borrow.");
+    throw TTransportException(
+        TTransportException::BAD_ARGS, "consume did not follow a borrow.");
   }
 }
 
@@ -356,7 +354,7 @@ void TZlibTransport::verifyChecksum() {
 
   // Reset the rstream fields, in case avail_out is 0.
   // (Since readAvail() is 0, we know there is no unread data in urbuf_)
-  rstream_->next_out  = urbuf_;
+  rstream_->next_out = urbuf_;
   rstream_->avail_out = urbuf_size_;
   urpos_ = 0;
 
@@ -379,9 +377,10 @@ void TZlibTransport::verifyChecksum() {
     // if no more data is available.  For those transport types, verifyChecksum
     // will raise the following exception if the checksum is not available from
     // the underlying transport yet.
-    throw TTransportException(TTransportException::CORRUPTED_DATA,
-                              "checksum not available yet in "
-                              "verifyChecksum()");
+    throw TTransportException(
+        TTransportException::CORRUPTED_DATA,
+        "checksum not available yet in "
+        "verifyChecksum()");
   }
 
   // If input_ended_ is true now, the checksum has been verified
@@ -391,10 +390,12 @@ void TZlibTransport::verifyChecksum() {
 
   // The caller invoked us before the actual end of the data stream
   assert(rstream_->avail_out < urbuf_size_);
-  throw TTransportException(TTransportException::CORRUPTED_DATA,
-                            "verifyChecksum() called before end of "
-                            "zlib stream");
+  throw TTransportException(
+      TTransportException::CORRUPTED_DATA,
+      "verifyChecksum() called before end of "
+      "zlib stream");
 }
 
-
-}}} // apache::thrift::transport
+} // namespace transport
+} // namespace thrift
+} // namespace apache

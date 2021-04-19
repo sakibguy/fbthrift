@@ -6,9 +6,10 @@ package include
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"fmt"
-	thrift "github.com/facebook/fbthrift-go"
+	thrift "github.com/facebook/fbthrift/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -16,14 +17,15 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = sync.Mutex{}
 var _ = bytes.Equal
+var _ = context.Background
 
 var GoUnusedProtection__ int;
 
-type SomeMap map[int32]string
+type SomeMap = map[int32]string
 
 func SomeMapPtr(v SomeMap) *SomeMap { return &v }
 
-type SomeListOfTypeMap []map[int32]string
+type SomeListOfTypeMap = []SomeMap
 
 func SomeListOfTypeMapPtr(v SomeListOfTypeMap) *SomeListOfTypeMap { return &v }
 

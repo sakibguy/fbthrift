@@ -5,27 +5,54 @@
 #  @generated
 #
 
+from libc.stdint cimport (
+    int8_t as cint8_t,
+    int16_t as cint16_t,
+    int32_t as cint32_t,
+    int64_t as cint64_t,
+    uint32_t as cuint32_t,
+)
 from libcpp.string cimport string
-from libcpp cimport bool as cbool
+from libcpp cimport bool as cbool, nullptr, nullptr_t
 from cpython cimport bool as pbool
-from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
 from libcpp.memory cimport shared_ptr, unique_ptr
+from libcpp.utility cimport move as cmove
 from libcpp.vector cimport vector
 from libcpp.set cimport set as cset
 from libcpp.map cimport map as cmap, pair as cpair
 from thrift.py3.exceptions cimport cTException
-cimport folly.iobuf as __iobuf
+cimport folly.iobuf as _fbthrift_iobuf
 cimport thrift.py3.exceptions
 cimport thrift.py3.types
-from folly.optional cimport cOptional
+from thrift.py3.types cimport (
+    bstring,
+    bytes_to_string,
+    field_ref as __field_ref,
+    optional_field_ref as __optional_field_ref,
+    required_field_ref as __required_field_ref,
+)
+from thrift.py3.common cimport (
+    RpcOptions as __RpcOptions,
+    Protocol as __Protocol,
+    cThriftMetadata as __fbthrift_cThriftMetadata,
+    MetadataBox as __MetadataBox,
+)
+from folly.optional cimport cOptional as __cOptional
+
+cimport module1.types_fields as _fbthrift_types_fields
+
+cdef extern from "gen-py3/module1/types.h":
+  pass
 
 
-cdef extern from "gen-cpp2/module1_types.h" namespace "module1":
-    cdef cppclass cEnum "module1::Enum":
-        bint operator==(cEnum&)
-    cEnum Enum__ONE "module1::Enum::ONE"
-    cEnum Enum__TWO "module1::Enum::TWO"
-    cEnum Enum__THREE "module1::Enum::THREE"
+cdef extern from "gen-cpp2/module1_metadata.h" namespace "apache::thrift::detail::md":
+    cdef cppclass EnumMetadata[T]:
+        @staticmethod
+        void gen(__fbthrift_cThriftMetadata &metadata)
+cdef extern from "gen-cpp2/module1_types.h" namespace "::module1":
+    cdef cppclass cEnum "::module1::Enum":
+        pass
+
 
 
 
@@ -33,72 +60,49 @@ cdef extern from "gen-cpp2/module1_types.h" namespace "module1":
 cdef class Enum(thrift.py3.types.CompiledEnum):
     pass
 
+cdef extern from "gen-cpp2/module1_metadata.h" namespace "apache::thrift::detail::md":
+    cdef cppclass ExceptionMetadata[T]:
+        @staticmethod
+        void gen(__fbthrift_cThriftMetadata &metadata)
+cdef extern from "gen-cpp2/module1_metadata.h" namespace "apache::thrift::detail::md":
+    cdef cppclass StructMetadata[T]:
+        @staticmethod
+        void gen(__fbthrift_cThriftMetadata &metadata)
+cdef extern from "gen-cpp2/module1_types_custom_protocol.h" namespace "::module1":
 
-cdef cEnum Enum_to_cpp(Enum value)
-
-
-
-cdef extern from "gen-cpp2/module1_types_custom_protocol.h" namespace "module1":
-    # Forward Declaration
-    cdef cppclass cStruct "module1::Struct"
-
-cdef extern from "gen-cpp2/module1_types.h" namespace "module1":
-    cdef cppclass cStruct__isset "module1::Struct::__isset":
-        bint first
-        bint second
-
-    cdef cppclass cStruct "module1::Struct":
+    cdef cppclass cStruct "::module1::Struct":
         cStruct() except +
         cStruct(const cStruct&) except +
         bint operator==(cStruct&)
-        int32_t first
+        bint operator!=(cStruct&)
+        bint operator<(cStruct&)
+        bint operator>(cStruct&)
+        bint operator<=(cStruct&)
+        bint operator>=(cStruct&)
+        __field_ref[cint32_t] first_ref()
+        __field_ref[string] second_ref()
+        cint32_t first
         string second
-        cStruct__isset __isset
 
 
-cdef extern from "<utility>" namespace "std" nogil:
-    cdef shared_ptr[cStruct] move(unique_ptr[cStruct])
-    cdef shared_ptr[cStruct] move_shared "std::move"(shared_ptr[cStruct])
-    cdef unique_ptr[cStruct] move_unique "std::move"(unique_ptr[cStruct])
-
-cdef extern from "<memory>" namespace "std" nogil:
-    cdef shared_ptr[const cStruct] const_pointer_cast "std::const_pointer_cast<const module1::Struct>"(shared_ptr[cStruct])
-
-# Forward Definition of the cython struct
-cdef class Struct(thrift.py3.types.Struct)
 
 
 cdef class Struct(thrift.py3.types.Struct):
-    cdef object __hash
-    cdef object __weakref__
     cdef shared_ptr[cStruct] _cpp_obj
-
-    @staticmethod
-    cdef unique_ptr[cStruct] _make_instance(
-        cStruct* base_instance,
-        object first,
-        object second
-    ) except *
+    cdef _fbthrift_types_fields.__Struct_FieldsSetter _fields_setter
 
     @staticmethod
     cdef create(shared_ptr[cStruct])
 
 
-cdef class List__Enum:
-    cdef object __hash
-    cdef object __weakref__
+cdef class List__Enum(thrift.py3.types.List):
     cdef shared_ptr[vector[cEnum]] _cpp_obj
     @staticmethod
     cdef create(shared_ptr[vector[cEnum]])
     @staticmethod
-    cdef unique_ptr[vector[cEnum]] _make_instance(object items) except *
+    cdef shared_ptr[vector[cEnum]] _make_instance(object items) except *
 
-cdef extern from "<utility>" namespace "std" nogil:
-    cdef shared_ptr[vector[cEnum]] move(unique_ptr[vector[cEnum]])
-    cdef unique_ptr[vector[cEnum]] move_unique "std::move"(unique_ptr[vector[cEnum]])
-cdef extern from "<memory>" namespace "std" nogil:
-    cdef shared_ptr[const vector[cEnum]] const_pointer_cast "std::const_pointer_cast<const std::vector<module1::Enum>>"(shared_ptr[vector[cEnum]])
 
-cdef extern from "gen-cpp2/module1_constants.h" namespace "module1":
-    cdef cStruct cc1 "module1::module1_constants::c1"()
-    cdef vector[cEnum] ce1s "module1::module1_constants::e1s"()
+cdef extern from "gen-cpp2/module1_constants.h" namespace "::module1":
+    cdef cStruct cc1 "::module1::module1_constants::c1"()
+    cdef vector[cEnum] ce1s "::module1::module1_constants::e1s"()
