@@ -87,6 +87,7 @@ class Bar;
 namespace cpp2 {
 typedef ::apache::thrift::adapt_detail::adapted_t<my::Adapter2, ::std::set<::std::string>> SetWithAdapter;
 typedef ::std::vector<::apache::thrift::adapt_detail::adapted_t<my::Adapter1, ::std::string>> ListWithElemAdapter;
+typedef ::apache::thrift::adapt_detail::adapted_t<my::Adapter2, ::cpp2::Bar> StructWithAdapter;
 
 } // cpp2
 // END typedefs
@@ -129,7 +130,7 @@ class Foo final  {
   Foo(const Foo&) = default;
 
 
-  Foo& operator=(Foo&&) = default;
+  Foo& operator=(Foo&&) noexcept;
 
   Foo& operator=(const Foo&) = default;
   void __clear();
@@ -439,7 +440,7 @@ class Bar final  {
   Bar(const Bar&) = default;
 
 
-  Bar& operator=(Bar&&) = default;
+  Bar& operator=(Bar&&) noexcept;
 
   Bar& operator=(const Bar&) = default;
   void __clear();

@@ -128,10 +128,6 @@ class RocketClientChannel final : public ClientChannel {
 
   void setFlushList(FlushList* flushList);
 
-  void setNegotiatedCompressionAlgorithm(CompressionAlgorithm compressionAlgo);
-
-  void setAutoCompressSizeLimit(int32_t size);
-
   // must be called from evb thread
   void terminateInteraction(InteractionId id) override;
 
@@ -174,12 +170,12 @@ class RocketClientChannel final : public ClientChannel {
       RequestClientCallback::Ptr cb);
 
   void sendSingleRequestNoResponse(
-      const RequestRpcMetadata& metadata,
+      RequestRpcMetadata&& metadata,
       std::unique_ptr<folly::IOBuf> buf,
       RequestClientCallback::Ptr cb);
 
   void sendSingleRequestSingleResponse(
-      const RequestRpcMetadata& metadata,
+      RequestRpcMetadata&& metadata,
       std::chrono::milliseconds timeout,
       std::unique_ptr<folly::IOBuf> buf,
       RequestClientCallback::Ptr cb);

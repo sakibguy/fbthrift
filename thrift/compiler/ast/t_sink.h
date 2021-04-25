@@ -20,7 +20,7 @@
 #include <string>
 #include <utility>
 
-#include <thrift/compiler/ast/t_struct.h>
+#include <thrift/compiler/ast/t_throws.h>
 #include <thrift/compiler/ast/t_type.h>
 
 namespace apache {
@@ -36,44 +36,32 @@ class t_sink : public t_type {
  public:
   explicit t_sink(
       t_type_ref sink_type,
-      t_struct* sink_exceptions,
+      std::unique_ptr<t_throws> sink_exceptions,
       t_type_ref final_response_type,
-      t_struct* final_response_exceptions)
+      std::unique_ptr<t_throws> final_response_exceptions)
       : sink_type_(std::move(sink_type)),
-        sink_exceptions_(sink_exceptions),
+        sink_exceptions_(std::move(sink_exceptions)),
         final_response_type_(std::move(final_response_type)),
-        final_response_exceptions_(final_response_exceptions) {}
+        final_response_exceptions_(std::move(final_response_exceptions)) {}
+
+  const t_type_ref* sink_type() const { return &sink_type_; }
+  const t_throws* sink_exceptions() const {
+    return t_throws::get_or_empty(sink_exceptions_);
+  }
+  const t_type_ref* final_response_type() const {
+    return &final_response_type_;
+  }
+
+  const t_throws* final_response_exceptions() const {
+    return t_throws::get_or_empty(final_response_exceptions_);
+  }
 
   void set_first_response_type(std::unique_ptr<t_type_ref> first_response) {
     first_response_type_ = std::move(first_response);
   }
-
   bool has_first_response() const { return first_response_type_ != nullptr; }
-
-  const t_type* get_first_response_type() const {
-    return first_response_type_->type();
-  }
-
-  const t_type* get_sink_type() const { return sink_type_.type(); }
-
-  // TODO: remove old function "xception" once everything has been swtiched to
-  // "exception"
-  t_struct* get_sink_xceptions() const { return get_sink_exceptions(); }
-
-  t_struct* get_sink_exceptions() const { return sink_exceptions_; }
-
-  const t_type* get_final_response_type() const {
-    return final_response_type_.type();
-  }
-
-  // TODO: remove old function "xception" once everything has been swtiched to
-  // "exception"
-  t_struct* get_final_response_xceptions() const {
-    return get_final_response_exceptions();
-  }
-
-  t_struct* get_final_response_exceptions() const {
-    return final_response_exceptions_;
+  const t_type_ref* first_response_type() const {
+    return first_response_type_.get();
   }
 
   bool is_sink() const override { return true; }
@@ -90,9 +78,9 @@ class t_sink : public t_type {
 
  private:
   t_type_ref sink_type_;
-  t_struct* sink_exceptions_;
+  std::unique_ptr<t_throws> sink_exceptions_;
   t_type_ref final_response_type_;
-  t_struct* final_response_exceptions_;
+  std::unique_ptr<t_throws> final_response_exceptions_;
   std::unique_ptr<t_type_ref> first_response_type_;
 
  public:
@@ -101,20 +89,31 @@ class t_sink : public t_type {
 
   explicit t_sink(
       const t_type* sink_type,
-      t_struct* sink_exceptions,
+      std::unique_ptr<t_throws> sink_exceptions,
       const t_type* final_response_type,
-      t_struct* final_response_exceptions)
+      std::unique_ptr<t_throws> final_response_exceptions)
       : t_sink(
             t_type_ref(sink_type),
-            sink_exceptions,
+            std::move(sink_exceptions),
             t_type_ref(final_response_type),
-            final_response_exceptions) {}
+            std::move(final_response_exceptions)) {}
 
   void set_first_response(const t_type* first_response) {
     set_first_response_type(std::make_unique<t_type_ref>(first_response));
   }
 
   bool sink_has_first_response() const { return has_first_response(); }
+  t_throws* get_final_response_xceptions() const {
+    return final_response_exceptions_.get();
+  }
+  t_throws* get_sink_xceptions() const { return sink_exceptions_.get(); }
+  const t_type* get_sink_type() const { return sink_type()->type(); }
+  const t_type* get_first_response_type() const {
+    return first_response_type_->type();
+  }
+  const t_type* get_final_response_type() const {
+    return final_response_type()->type();
+  }
 };
 
 } // namespace compiler

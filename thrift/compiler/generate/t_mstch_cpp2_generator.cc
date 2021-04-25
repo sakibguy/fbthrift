@@ -401,7 +401,7 @@ class mstch_cpp2_type : public mstch_type {
             {"type:transitively_refers_to_struct?",
              &mstch_cpp2_type::transitively_refers_to_struct},
             {"type:cpp_type", &mstch_cpp2_type::cpp_type},
-            {"type:cpp_native_type", &mstch_cpp2_type::cpp_native_type},
+            {"type:cpp_standard_type", &mstch_cpp2_type::cpp_standard_type},
             {"type:cpp_adapter", &mstch_cpp2_type::cpp_adapter},
             {"type:resolved_cpp_type", &mstch_cpp2_type::resolved_cpp_type},
             {"type:string_or_binary?", &mstch_cpp2_type::is_string_or_binary},
@@ -489,8 +489,8 @@ class mstch_cpp2_type : public mstch_type {
     return false;
   }
   mstch::node cpp_type() { return context_->resolver().get_type_name(type_); }
-  mstch::node cpp_native_type() {
-    return context_->resolver().get_native_type_name(type_);
+  mstch::node cpp_standard_type() {
+    return context_->resolver().get_standard_type_name(type_);
   }
   mstch::node cpp_adapter() {
     if (const auto& adapter = cpp2::type_resolver::find_adapter(type_)) {
@@ -566,6 +566,7 @@ class mstch_cpp2_field : public mstch_field {
             {"field:cpp_deprecated_accessor_type",
              &mstch_cpp2_field::cpp_deprecated_accessor_type},
             {"field:next_field_key", &mstch_cpp2_field::next_field_key},
+            {"field:prev_field_key", &mstch_cpp2_field::prev_field_key},
             {"field:next_field_type", &mstch_cpp2_field::next_field_type},
             {"field:non_opt_cpp_ref?", &mstch_cpp2_field::non_opt_cpp_ref},
             {"field:cpp_ref?", &mstch_cpp2_field::cpp_ref},
@@ -638,6 +639,9 @@ class mstch_cpp2_field : public mstch_field {
       }
     }
     return mstch::node();
+  }
+  mstch::node prev_field_key() {
+    return std::to_string(field_->get_prev()->get_key());
   }
   mstch::node next_field_key() {
     return std::to_string(field_->get_next()->get_key());
@@ -739,7 +743,6 @@ class mstch_cpp2_struct : public mstch_struct {
              &mstch_cpp2_struct::cpp_declare_equal_to},
             {"struct:cpp_noncopyable", &mstch_cpp2_struct::cpp_noncopyable},
             {"struct:cpp_noncomparable", &mstch_cpp2_struct::cpp_noncomparable},
-            {"struct:cpp_noexcept_move", &mstch_cpp2_struct::cpp_noexcept_move},
             {"struct:is_eligible_for_constexpr?",
              &mstch_cpp2_struct::is_eligible_for_constexpr},
             {"struct:virtual", &mstch_cpp2_struct::cpp_virtual},
@@ -828,9 +831,6 @@ class mstch_cpp2_struct : public mstch_struct {
   }
   mstch::node cpp_noncomparable() {
     return strct_->has_annotation("cpp2.noncomparable");
-  }
-  mstch::node cpp_noexcept_move() {
-    return strct_->has_annotation("cpp.noexcept_move");
   }
   mstch::node is_eligible_for_constexpr() {
     return is_eligible_for_constexpr_(strct_) ||

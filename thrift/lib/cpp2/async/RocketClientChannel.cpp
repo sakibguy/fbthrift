@@ -224,6 +224,14 @@ FOLLY_NODISCARD folly::exception_wrapper processFirstResponse(
                 (*otherMetadataRef)[isProxiedResponse ? "puexw" : "uexw"] =
                     *exceptionWhatRef;
               }
+              if (auto dExClass = exceptionMetadataRef->declaredException_ref()
+                                      ->errorClassification_ref()) {
+                auto metaStr =
+                    apache::thrift::detail::serializeErrorClassification(
+                        *dExClass);
+                (*otherMetadataRef)[std::string(detail::kHeaderExMeta)] =
+                    std::move(metaStr);
+              }
               payload = LegacySerializedResponse(
                             protocolId,
                             methodName,
@@ -625,19 +633,6 @@ void RocketClientChannel::setFlushList(FlushList* flushList) {
   }
 }
 
-void RocketClientChannel::setNegotiatedCompressionAlgorithm(
-    CompressionAlgorithm compressionAlgo) {
-  if (rclient_) {
-    rclient_->setNegotiatedCompressionAlgorithm(compressionAlgo);
-  }
-}
-
-void RocketClientChannel::setAutoCompressSizeLimit(int32_t size) {
-  if (rclient_) {
-    rclient_->setAutoCompressSizeLimit(size);
-  }
-}
-
 RocketClientChannel::Ptr RocketClientChannel::newChannel(
     folly::AsyncTransport::UniquePtr socket) {
   return RocketClientChannel::Ptr(
@@ -706,13 +701,15 @@ void RocketClientChannel::sendRequestStream(
   auto buf = std::move(request.buffer);
   setCompression(metadata, buf->computeChainDataLength());
 
+  auto payload = rocket::pack(metadata, std::move(buf));
+  assert(metadata.name_ref());
   return rclient_->sendRequestStream(
-      rocket::pack(metadata, std::move(buf)),
+      std::move(payload),
       firstResponseTimeout,
       rpcOptions.getChunkTimeout(),
       rpcOptions.getChunkBufferSize(),
       new FirstRequestProcessorStream(
-          protocolId_, std::move(methodName), clientCallback, evb_));
+          protocolId_, std::move(*metadata.name_ref()), clientCallback, evb_));
 }
 
 void RocketClientChannel::sendRequestSink(
@@ -742,11 +739,13 @@ void RocketClientChannel::sendRequestSink(
   auto buf = std::move(request.buffer);
   setCompression(metadata, buf->computeChainDataLength());
 
+  auto payload = rocket::pack(metadata, std::move(buf));
+  assert(metadata.name_ref());
   return rclient_->sendRequestSink(
-      rocket::pack(metadata, std::move(buf)),
+      std::move(payload),
       firstResponseTimeout,
       new FirstRequestProcessorSink(
-          protocolId_, std::move(methodName), clientCallback, evb_),
+          protocolId_, std::move(*metadata.name_ref()), clientCallback, evb_),
       rpcOptions.getEnablePageAlignment(),
       header->getDesiredCompressionConfig());
 }
@@ -780,12 +779,13 @@ void RocketClientChannel::sendThriftRequest(
 
   switch (kind) {
     case RpcKind::SINGLE_REQUEST_NO_RESPONSE:
-      sendSingleRequestNoResponse(metadata, std::move(buf), std::move(cb));
+      sendSingleRequestNoResponse(
+          std::move(metadata), std::move(buf), std::move(cb));
       break;
 
     case RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE:
       sendSingleRequestSingleResponse(
-          metadata, timeout, std::move(buf), std::move(cb));
+          std::move(metadata), timeout, std::move(buf), std::move(cb));
       break;
 
     case RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE:
@@ -799,7 +799,7 @@ void RocketClientChannel::sendThriftRequest(
 }
 
 void RocketClientChannel::sendSingleRequestNoResponse(
-    const RequestRpcMetadata& metadata,
+    RequestRpcMetadata&& metadata,
     std::unique_ptr<folly::IOBuf> buf,
     RequestClientCallback::Ptr cb) {
   auto requestPayload = rocket::pack(metadata, std::move(buf));
@@ -816,7 +816,7 @@ void RocketClientChannel::sendSingleRequestNoResponse(
 }
 
 void RocketClientChannel::sendSingleRequestSingleResponse(
-    const RequestRpcMetadata& metadata,
+    RequestRpcMetadata&& metadata,
     std::chrono::milliseconds timeout,
     std::unique_ptr<folly::IOBuf> buf,
     RequestClientCallback::Ptr cb) {
@@ -824,11 +824,13 @@ void RocketClientChannel::sendSingleRequestSingleResponse(
   auto requestPayload = rocket::pack(metadata, std::move(buf));
   const auto requestWireSize = requestPayload.dataSize();
   const bool isSync = cb->isSync();
+  assert(metadata.protocol_ref());
+  assert(metadata.name_ref());
   SingleRequestSingleResponseCallback callback(
       std::move(cb),
       inflightGuard(),
-      static_cast<uint16_t>(metadata.protocol_ref().value_unchecked()),
-      metadata.name_ref().value_or({}),
+      static_cast<uint16_t>(*metadata.protocol_ref()),
+      std::move(*metadata.name_ref()),
       requestSerializedSize,
       requestWireSize);
 

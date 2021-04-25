@@ -267,13 +267,19 @@ class HeaderClientChannel : public ClientChannel,
 
   void setConnectionAgentName(std::string_view name);
 
+  void setDesiredCompressionConfig(CompressionConfig compressionConfig) {
+    compressionConfig_ = compressionConfig;
+  }
+
  protected:
   explicit HeaderClientChannel(std::shared_ptr<Cpp2Channel> cpp2Channel);
 
   bool clientSupportHeader() override;
 
  private:
-  void setRequestHeaderOptions(apache::thrift::transport::THeader* header);
+  void setRequestHeaderOptions(
+      apache::thrift::transport::THeader* header, ssize_t payloadSize);
+  void preprocessHeader(apache::thrift::transport::THeader* header);
   void attachMetadataOnce(apache::thrift::transport::THeader* header);
 
   // Transport upgrade from header to rocket for raw header client. If
@@ -367,6 +373,8 @@ class HeaderClientChannel : public ClientChannel,
    * was in progress) should be sent using rocket transport.
    */
   std::deque<HeaderRequestContext> pendingRequests_;
+
+  folly::Optional<CompressionConfig> compressionConfig_;
 
   class RocketUpgradeCallback;
   friend class TransportUpgradeTest;

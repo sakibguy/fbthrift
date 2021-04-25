@@ -28,6 +28,7 @@
 
 #include <thrift/compiler/ast/base_types.h>
 #include <thrift/compiler/ast/t_union.h>
+#include <thrift/compiler/generate/common.h>
 #include <thrift/compiler/generate/t_oop_generator.h>
 
 namespace apache {
@@ -394,17 +395,8 @@ class t_hack_generator : public t_oop_generator {
     return tenum->has_annotation("bitmask");
   }
 
-  // Recursively traverse any typdefs and return the first found adapter name.
   const std::string* get_hack_adapter(const t_type* type) {
-    while (true) {
-      if (const auto* adapter = type->get_annotation_or_null("hack.adapter")) {
-        return adapter;
-      } else if (const auto* ttypedef = dynamic_cast<const t_typedef*>(type)) {
-        type = ttypedef->get_type();
-      } else {
-        return nullptr;
-      }
-    }
+    return t_typedef::get_first_annotation_or_null(type, {"hack.adapter"});
   }
 
   std::string hack_namespace(const t_program* p) {
@@ -510,14 +502,17 @@ class t_hack_generator : public t_oop_generator {
    * - If we're operating on a list, we'll want to use varray / vec over
    *   darray / dict
    */
-  std::string generate_to_array_method(const t_type* t) {
+  std::string generate_to_array_method(
+      const t_type* t, const std::string& array) {
     if (!t->is_container()) {
       throw std::logic_error("not a container");
     }
     if (array_migration_) {
-      return t->is_list() ? "varray" : "ThriftUtil::toDArray";
+      return t->is_list()
+          ? "varray(" + array + ")"
+          : "ThriftUtil::toDArray(" + array + ", static::class)";
     } else {
-      return t->is_list() ? "vec" : "dict";
+      return t->is_list() ? "vec(" + array + ")" : "dict(" + array + ")";
     }
   }
 
@@ -2023,7 +2018,8 @@ void t_hack_generator::generate_php_struct_shape_collection_value_lambda(
     if (arraysets_ || no_use_hack_collections_) {
       out << "darray($" << tmp << "),\n";
     } else {
-      out << "ThriftUtil::toDArray(Dict\\fill_keys($" << tmp << ", true)),\n";
+      out << "ThriftUtil::toDArray(Dict\\fill_keys($" << tmp
+          << ", true), static::class),\n";
     }
   } else if (t->is_map() || t->is_list()) {
     const t_type* val_type;
@@ -2035,7 +2031,7 @@ void t_hack_generator::generate_php_struct_shape_collection_value_lambda(
     val_type = val_type->get_true_type();
 
     if (!val_type->is_container() && !val_type->is_struct()) {
-      out << generate_to_array_method(t) << "($" << tmp << "),\n";
+      out << generate_to_array_method(t, "$" + tmp) << ",\n";
       return;
     }
 
@@ -2045,7 +2041,7 @@ void t_hack_generator::generate_php_struct_shape_collection_value_lambda(
     indent_down();
     indent(out) << ")\n";
     indent_up();
-    indent(out) << "|> " << generate_to_array_method(t) << "($$),\n";
+    indent(out) << "|> " << generate_to_array_method(t, "$$") << ",\n";
     indent_down();
   }
 }
@@ -2444,11 +2440,11 @@ void t_hack_generator::generate_php_struct_shape_methods(
             val << std::endl;
             indent_up();
             indent(val) << "|> " << (nullable ? "$$ === null ? null : " : "")
-                        << generate_to_array_method(t) << "($$),\n";
+                        << generate_to_array_method(t, "$$") << ",\n";
             indent_down();
           } else {
-            val << generate_to_array_method(t) << "($this->"
-                << field->get_name() << "),\n";
+            val << generate_to_array_method(t, "$this->" + field->get_name())
+                << ",\n";
           }
         }
       } else if (arraysets_ || arrays_ || no_use_hack_collections_) {
@@ -2465,7 +2461,7 @@ void t_hack_generator::generate_php_struct_shape_methods(
         } else {
           val << "$this->" << field->get_name();
         }
-        val << "->toValuesArray(), true)),\n";
+        val << "->toValuesArray(), true), static::class),\n";
         if (nullable) {
           indent_down();
         }
@@ -2649,30 +2645,12 @@ void t_hack_generator::generate_adapter_type_checks(
     std::ofstream& out, const t_struct* tstruct) {
   // Adapter name -> original type of the field that the adapter is for.
   std::set<std::pair<std::string, std::string>> adapter_types_;
-
-  std::function<void(const t_type*)> collect_adapters_recursively =
-      [&](const t_type* t) {
-        // Check the adapter before resolving typedefs.
-        if (const auto* adapter = get_hack_adapter(t)) {
-          adapter_types_.emplace(
-              *adapter,
-              type_to_typehint(
-                  t, false, false, false, /* ignore_adapter */ true));
-        }
-
-        t = t->get_true_type();
-        if (const auto* tmap = dynamic_cast<const t_map*>(t)) {
-          collect_adapters_recursively(tmap->get_key_type());
-          collect_adapters_recursively(tmap->get_val_type());
-        } else if (const auto* tlist = dynamic_cast<const t_list*>(t)) {
-          collect_adapters_recursively(tlist->get_elem_type());
-        } else if (const auto* tset = dynamic_cast<const t_set*>(t)) {
-          collect_adapters_recursively(tset->get_elem_type());
-        }
-      };
-
-  for (const auto* field : tstruct->fields()) {
-    collect_adapters_recursively(field->get_type());
+  for (const auto* t : collect_types(tstruct)) {
+    if (const auto* adapter = get_hack_adapter(t)) {
+      adapter_types_.emplace(
+          *adapter,
+          type_to_typehint(t, false, false, false, /* ignore_adapter */ true));
+    }
   }
 
   if (adapter_types_.empty()) {
