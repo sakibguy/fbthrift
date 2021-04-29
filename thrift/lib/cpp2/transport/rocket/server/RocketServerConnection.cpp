@@ -63,17 +63,28 @@ RocketServerConnection::RocketServerConnection(
     std::chrono::milliseconds streamStarvationTimeout,
     std::chrono::milliseconds writeBatchingInterval,
     size_t writeBatchingSize,
-    folly::Optional<IngressMemoryLimitStateRef> ingressMemoryLimitStateRef)
+    folly::Optional<IngressMemoryLimitStateRef> ingressMemoryLimitStateRef,
+    size_t egressBufferBackpressureThreshold,
+    double egressBufferRecoveryFactor)
     : evb_(*socket->getEventBase()),
       socket_(std::move(socket)),
+      rawSocket_(
+          socket_ ? socket_->getUnderlyingTransport<folly::AsyncSocket>()
+                  : nullptr),
       frameHandler_(std::move(frameHandler)),
       streamStarvationTimeout_(streamStarvationTimeout),
+      egressBufferMaxSize_(egressBufferBackpressureThreshold),
+      egressBufferRecoverySize_(
+          egressBufferBackpressureThreshold * egressBufferRecoveryFactor),
       writeBatcher_(*this, writeBatchingInterval, writeBatchingSize),
       socketDrainer_(*this),
       ingressMemoryLimitStateRef_(std::move(ingressMemoryLimitStateRef)) {
   CHECK(socket_);
   CHECK(frameHandler_);
   socket_->setReadCB(&parser_);
+  if (rawSocket_) {
+    rawSocket_->setBufferCallback(egressBufferMaxSize_ ? this : nullptr);
+  }
 }
 
 RocketStreamClientCallback& RocketServerConnection::createStreamClientCallback(
@@ -509,8 +520,21 @@ void RocketServerConnection::handleSinkFrame(
             freeStream(streamId, true);
           }
         } else {
-          notViolateContract =
-              clientCallback.onSinkNext(std::move(*streamPayload));
+          auto payloadMetadataRef =
+              streamPayload->metadata.payloadMetadata_ref();
+          if (payloadMetadataRef &&
+              payloadMetadataRef->getType() ==
+                  PayloadMetadata::exceptionMetadata) {
+            notViolateContract = clientCallback.onSinkError(
+                apache::thrift::detail::EncodedStreamError(
+                    std::move(streamPayload.value())));
+            if (notViolateContract) {
+              freeStream(streamId, true);
+            }
+          } else {
+            notViolateContract =
+                clientCallback.onSinkNext(std::move(*streamPayload));
+          }
         }
       }
 
@@ -688,6 +712,21 @@ void RocketServerConnection::writeErr(
 
   inflightWritesQueue_.pop();
   close(std::move(ew));
+}
+
+void RocketServerConnection::onEgressBuffered() {
+  auto buffered = rawSocket_->getAppBytesBuffered();
+  if (UNLIKELY(buffered > egressBufferMaxSize_ && !streamsPaused_)) {
+    pauseStreams();
+  } else if (UNLIKELY(streamsPaused_ && buffered < egressBufferRecoverySize_)) {
+    resumeStreams();
+  }
+}
+
+void RocketServerConnection::onEgressBufferCleared() {
+  if (UNLIKELY(streamsPaused_)) {
+    resumeStreams();
+  }
 }
 
 void RocketServerConnection::scheduleStreamTimeout(
@@ -883,6 +922,32 @@ RocketServerConnection::ReadPausableHandle::pause() && {
   DCHECK(connection_ != nullptr) << "pause() has been called on this handle";
   connection_->socket_->setReadCB(nullptr);
   return ReadResumableHandle(std::exchange(connection_, nullptr));
+}
+
+void RocketServerConnection::pauseStreams() {
+  DCHECK(!streamsPaused_);
+  streamsPaused_ = true;
+  for (auto it = streams_.begin(); it != streams_.end(); it++) {
+    folly::variant_match(
+        it->second,
+        [](const std::unique_ptr<RocketStreamClientCallback>& stream) {
+          stream->pauseStream();
+        },
+        [](const auto&) {});
+  }
+}
+
+void RocketServerConnection::resumeStreams() {
+  DCHECK(streamsPaused_);
+  streamsPaused_ = false;
+  for (auto it = streams_.begin(); it != streams_.end(); it++) {
+    folly::variant_match(
+        it->second,
+        [](const std::unique_ptr<RocketStreamClientCallback>& stream) {
+          stream->resumeStream();
+        },
+        [](const auto&) {});
+  }
 }
 
 } // namespace rocket

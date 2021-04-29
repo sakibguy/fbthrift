@@ -19,7 +19,13 @@ template <class Protocol_>
 void <%struct:name%>::readNoXfer(Protocol_* iprot) {
   apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
 
+<%^struct:indexing?%>
   _readState.readStructBegin(iprot);
+<%/struct:indexing?%>
+<%#struct:indexing?%>
+  Protocol_ indexReader;
+  _readState.readStructBegin(iprot, &indexReader);
+<%/struct:indexing?%>
 
   using apache::thrift::TProtocolException;
 
@@ -41,13 +47,18 @@ void <%struct:name%>::readNoXfer(Protocol_* iprot) {
 <%/first?%>
 _readField_<%field:cpp_name%>:
 <%#field:lazy?%>
-  if (iprot->kHasDeferredRead()) {
-    auto cursor = iprot->getCursor();
-    iprot->skip(apache::thrift::protocol::<% > module_types_tcc/struct_type%>);
-    cursor.clone(__fbthrift_serializedData_.<%field:cpp_name%>, iprot->getCursor() - cursor);
-    __fbthrift_serializedData_.<%field:cpp_name%>.makeManaged();
+  if (auto iobuf = _readState.tryFastSkip(
+          iprot,
+          <%field:key%>,
+          apache::thrift::protocol::<% > module_types_tcc/struct_type%>,
+          apache::thrift::fixed_cost_skip_v<Protocol_,
+                                            <% > common/type_class%>,
+                                            <% > types/type%>>)) {
+    __fbthrift_serializedData_.<%field:cpp_name%> = *iobuf;
     __fbthrift_isDeserialized_.<%field:cpp_name%> = false;
   } else {
+    __fbthrift_serializedData_.<%field:cpp_name%>.clear();
+    __fbthrift_isDeserialized_.<%field:cpp_name%> = true;
 <%/field:lazy?%>
 <%^field:lazy?%>
   {
@@ -149,7 +160,7 @@ const <%field:cpp_storage_type%>& <%struct:name%>::__fbthrift_read_field_<%field
     return <%field:cpp_name%>;
   }
 
-  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_.<%field:cpp_name%>);
+  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
   if (!__fbthrift_isDeserialized_.<%field:cpp_name%>) {
 <%#field:cpp_ref?%>
     auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<<%field:cpp_storage_type%>>();

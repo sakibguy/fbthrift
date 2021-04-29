@@ -72,6 +72,9 @@ bool RocketStreamClientCallback::onFirstResponse(
   }
 
   serverCallbackOrCancelled_ = reinterpret_cast<intptr_t>(serverCallback);
+  if (UNLIKELY(connection_.areStreamsPaused())) {
+    pauseStream();
+  }
 
   DCHECK_NE(tokens_, 0u);
   int tokens = 0;
@@ -126,6 +129,7 @@ bool RocketStreamClientCallback::onStreamNext(StreamPayload&& payload) {
 
   connection_.sendPayload(
       streamId_, pack(std::move(payload)), Flags::none().next(true));
+
   return true;
 }
 
@@ -149,6 +153,27 @@ void RocketStreamClientCallback::onStreamError(folly::exception_wrapper ew) {
             streamId_,
             RocketException(
                 ErrorCode::APPLICATION_ERROR, std::move(err.encoded)));
+      },
+      [this](::apache::thrift::detail::EncodedStreamError& err) {
+        if (connection_.getVersion() >= 8) {
+          // apply compression if client has specified compression codec
+          if (compressionConfig_) {
+            apache::thrift::rocket::detail::setCompressionCodec(
+                *compressionConfig_,
+                err.encoded.metadata,
+                err.encoded.payload->computeChainDataLength());
+          }
+          connection_.sendPayload(
+              streamId_,
+              pack(std::move(err.encoded)),
+              Flags::none().next(true).complete(true));
+        } else {
+          connection_.sendError(
+              streamId_,
+              RocketException(
+                  ErrorCode::APPLICATION_ERROR,
+                  std::move(err.encoded.payload)));
+        }
       },
       [this, &ew](...) {
         connection_.sendError(
@@ -179,6 +204,9 @@ bool RocketStreamClientCallback::onStreamHeaders(HeadersPayload&& payload) {
 void RocketStreamClientCallback::resetServerCallback(
     StreamServerCallback& serverCallback) {
   serverCallbackOrCancelled_ = reinterpret_cast<intptr_t>(&serverCallback);
+  if (UNLIKELY(connection_.areStreamsPaused())) {
+    pauseStream();
+  }
 }
 
 bool RocketStreamClientCallback::request(uint32_t tokens) {
@@ -193,6 +221,22 @@ bool RocketStreamClientCallback::request(uint32_t tokens) {
 
 void RocketStreamClientCallback::headers(HeadersPayload&& payload) {
   std::ignore = serverCallback()->onSinkHeaders(std::move(payload));
+}
+
+void RocketStreamClientCallback::pauseStream() {
+  DCHECK(connection_.areStreamsPaused());
+  if (UNLIKELY(!serverCallbackReady())) {
+    return;
+  }
+  serverCallback()->pauseStream();
+}
+
+void RocketStreamClientCallback::resumeStream() {
+  DCHECK(!connection_.areStreamsPaused());
+  if (UNLIKELY(!serverCallbackReady())) {
+    return;
+  }
+  serverCallback()->resumeStream();
 }
 
 void RocketStreamClientCallback::onStreamCancel() {

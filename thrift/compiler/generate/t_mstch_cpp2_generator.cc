@@ -22,6 +22,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include <thrift/compiler/gen/cpp/type_resolver.h>
 #include <thrift/compiler/generate/t_mstch_generator.h>
 #include <thrift/compiler/generate/t_mstch_objects.h>
 #include <thrift/compiler/lib/cpp2/util.h>
@@ -186,13 +187,13 @@ class cpp2_generator_context {
     return cpp2::is_orderable(seen, memo, type);
   }
 
-  cpp2::type_resolver& resolver() { return resolver_; }
+  gen::cpp::type_resolver& resolver() { return resolver_; }
 
  private:
   cpp2_generator_context() = default;
 
   std::unordered_map<t_type const*, bool> is_orderable_memo_;
-  cpp2::type_resolver resolver_;
+  gen::cpp::type_resolver resolver_;
 };
 
 class t_mstch_cpp2_generator : public t_mstch_generator {
@@ -493,7 +494,7 @@ class mstch_cpp2_type : public mstch_type {
     return context_->resolver().get_standard_type_name(type_);
   }
   mstch::node cpp_adapter() {
-    if (const auto& adapter = cpp2::type_resolver::find_adapter(type_)) {
+    if (const auto& adapter = gen::cpp::type_resolver::find_adapter(type_)) {
       return *adapter;
     }
     return {};
@@ -750,6 +751,7 @@ class mstch_cpp2_struct : public mstch_struct {
             {"struct:isset_fields?", &mstch_cpp2_struct::has_isset_fields},
             {"struct:isset_fields", &mstch_cpp2_struct::isset_fields},
             {"struct:lazy_fields?", &mstch_cpp2_struct::has_lazy_fields},
+            {"struct:indexing?", &mstch_cpp2_struct::indexing},
             {"struct:is_large?", &mstch_cpp2_struct::is_large},
             {"struct:fatal_annotations?",
              &mstch_cpp2_struct::has_fatal_annotations},
@@ -866,6 +868,7 @@ class mstch_cpp2_struct : public mstch_struct {
     }
     return false;
   }
+  mstch::node indexing() { return has_lazy_fields(); }
   mstch::node has_isset_fields() {
     for (const auto* field : strct_->fields()) {
       if (field_has_isset(field)) {
@@ -1145,7 +1148,7 @@ class mstch_cpp2_service : public mstch_service {
   mstch::node oneway_functions() {
     std::vector<t_function const*> oneway_functions;
     for (auto const* function : service_->get_functions()) {
-      if (function->is_oneway()) {
+      if (function->qualifier() == t_function_qualifier::one_way) {
         oneway_functions.push_back(function);
       }
     }
@@ -1153,7 +1156,7 @@ class mstch_cpp2_service : public mstch_service {
   }
   mstch::node has_oneway() {
     for (auto const* function : service_->get_functions()) {
-      if (function->is_oneway()) {
+      if (function->qualifier() == t_function_qualifier::one_way) {
         return true;
       }
     }
@@ -2106,12 +2109,38 @@ class splits_validator : public validator {
  private:
   int32_t split_count_;
 };
+
+class lazy_field_validator : public validator {
+ public:
+  using validator::visit;
+  bool visit(t_field* field) override {
+    if (field_is_lazy(field)) {
+      auto t = field->get_type()->get_true_type();
+      boost::optional<std::string> field_type;
+      if (t->is_any_int() || t->is_bool() || t->is_byte()) {
+        field_type = "Integral field";
+      }
+      if (t->is_floating_point()) {
+        field_type = "Floating point field";
+      }
+      if (field_type) {
+        add_error(
+            field->get_lineno(),
+            *field_type + " `" + field->get_name() +
+                "` can not be marked as lazy, "
+                "since doing so won't bring any benefit.");
+      }
+    }
+    return true;
+  }
+};
 } // namespace
 
 void t_mstch_cpp2_generator::fill_validator_list(validator_list& l) const {
   l.add<annotation_validator>();
   l.add<service_method_validator>(this->parsed_options_);
   l.add<splits_validator>(cpp2::get_split_count(parsed_options_));
+  l.add<lazy_field_validator>();
 }
 
 THRIFT_REGISTER_GENERATOR(mstch_cpp2, "cpp2", "");

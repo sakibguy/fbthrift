@@ -324,6 +324,13 @@ uint32_t CompactProtocolWriter::writeBinary(const folly::IOBuf& str) {
   return result + static_cast<uint32_t>(size);
 }
 
+void CompactProtocolWriter::rewriteDouble(double dub, int64_t offset) {
+  auto cursor = RWCursor(out_);
+  cursor.advanceToEnd();
+  cursor -= offset;
+  cursor.writeBE(folly::bit_cast<uint64_t>(dub));
+}
+
 /**
  * Functions that return the serialized size
  */
@@ -849,6 +856,32 @@ constexpr std::size_t CompactProtocolReader::fixedSizeInContainer(TType type) {
     default:
       return 0;
   }
+}
+
+folly::Optional<folly::IOBuf>
+CompactProtocolReader::StructReadState::tryFastSkip(
+    CompactProtocolReader* iprot, int16_t id, TType type, bool fixedCostSkip) {
+  if (fixedCostSkip) {
+    return tryFastSkipImpl(iprot, [&] { iprot->skip(type); });
+  }
+
+  if (indexReader_ && currentIndexFieldId_ == id) {
+    return tryFastSkipImpl(
+        iprot, [&] { iprot->skipBytes(currentIndexFieldSize_); });
+  }
+
+  return {};
+}
+
+template <class Skip>
+folly::IOBuf CompactProtocolReader::StructReadState::tryFastSkipImpl(
+    CompactProtocolReader* iprot, Skip skip) {
+  auto cursor = iprot->getCursor();
+  skip();
+  folly::IOBuf buf;
+  cursor.clone(buf, iprot->getCursor() - cursor);
+  buf.makeManaged();
+  return buf;
 }
 
 } // namespace thrift

@@ -33,7 +33,8 @@ template <class Protocol_>
 void Foo::readNoXfer(Protocol_* iprot) {
   apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
 
-  _readState.readStructBegin(iprot);
+  Protocol_ indexReader;
+  _readState.readStructBegin(iprot, &indexReader);
 
   using apache::thrift::TProtocolException;
 
@@ -46,13 +47,18 @@ void Foo::readNoXfer(Protocol_* iprot) {
     goto _loop;
   }
 _readField_field1:
-  if (iprot->kHasDeferredRead()) {
-    auto cursor = iprot->getCursor();
-    iprot->skip(apache::thrift::protocol::T_STRING);
-    cursor.clone(__fbthrift_serializedData_.field1, iprot->getCursor() - cursor);
-    __fbthrift_serializedData_.field1.makeManaged();
+  if (auto iobuf = _readState.tryFastSkip(
+          iprot,
+          1,
+          apache::thrift::protocol::T_STRING,
+          apache::thrift::fixed_cost_skip_v<Protocol_,
+                                            ::apache::thrift::type_class::string,
+                                            ::std::string>)) {
+    __fbthrift_serializedData_.field1 = *iobuf;
     __fbthrift_isDeserialized_.field1 = false;
   } else {
+    __fbthrift_serializedData_.field1.clear();
+    __fbthrift_isDeserialized_.field1 = true;
     auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<::std::unique_ptr<::std::string>>();
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string>::readWithContext(*iprot, *ptr, _readState);
     this->field1 = std::move(ptr);
@@ -83,13 +89,18 @@ _readField_field2:
     goto _loop;
   }
 _readField_field3:
-  if (iprot->kHasDeferredRead()) {
-    auto cursor = iprot->getCursor();
-    iprot->skip(apache::thrift::protocol::T_LIST);
-    cursor.clone(__fbthrift_serializedData_.field3, iprot->getCursor() - cursor);
-    __fbthrift_serializedData_.field3.makeManaged();
+  if (auto iobuf = _readState.tryFastSkip(
+          iprot,
+          3,
+          apache::thrift::protocol::T_LIST,
+          apache::thrift::fixed_cost_skip_v<Protocol_,
+                                            ::apache::thrift::type_class::list<::apache::thrift::type_class::integral>,
+                                            ::std::vector<::std::int32_t>>)) {
+    __fbthrift_serializedData_.field3 = *iobuf;
     __fbthrift_isDeserialized_.field3 = false;
   } else {
+    __fbthrift_serializedData_.field3.clear();
+    __fbthrift_isDeserialized_.field3 = true;
     _readState.beforeSubobject(iprot);
     this->field3 = ::std::vector<::std::int32_t>();
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::readWithContext(*iprot, this->field3, _readState);
@@ -190,7 +201,7 @@ const ::std::unique_ptr<::std::string>& Foo::__fbthrift_read_field_field1() cons
     return field1;
   }
 
-  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_.field1);
+  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
   if (!__fbthrift_isDeserialized_.field1) {
     auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<::std::unique_ptr<::std::string>>();
 
@@ -215,7 +226,7 @@ const ::std::vector<::std::int32_t>& Foo::__fbthrift_read_field_field3() const {
     return field3;
   }
 
-  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_.field3);
+  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
   if (!__fbthrift_isDeserialized_.field3) {
     auto* ptr = &this->field3;
     this->field3 = ::std::vector<::std::int32_t>();
@@ -291,33 +302,47 @@ template <class Protocol_>
 uint32_t Foo::write(Protocol_* prot_) const {
   uint32_t xfer = 0;
   xfer += prot_->writeStructBegin("Foo");
+  ::apache::thrift::detail::IndexWriter<Protocol_> indexWriter(prot_, xfer);
   bool previousFieldHasValue = true;
   {
-    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_STRING, 1, 0>(*prot_, "field1", previousFieldHasValue);
+    constexpr int16_t kPrevFieldId = ::apache::thrift::detail::kSizeField.id;
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_STRING, 1, kPrevFieldId>(*prot_, "field1", previousFieldHasValue);
     previousFieldHasValue = true;
+    indexWriter.recordFieldStart();
     if (this->field1) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string>::write(*prot_, *this->field1);
     }
+    indexWriter.recordFieldEnd(::apache::thrift::type_class::string{}, *this->field1, 1);
     xfer += prot_->writeFieldEnd();
   }
   {
-    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_STRING, 2, 1>(*prot_, "field2", previousFieldHasValue);
+    constexpr int16_t kPrevFieldId = 1;
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_STRING, 2, kPrevFieldId>(*prot_, "field2", previousFieldHasValue);
     previousFieldHasValue = true;
+    indexWriter.recordFieldStart();
     xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string>::write(*prot_, this->field2);
+    indexWriter.recordFieldEnd(::apache::thrift::type_class::string{}, this->field2, 2);
     xfer += prot_->writeFieldEnd();
   }
   {
-    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_LIST, 3, 2>(*prot_, "field3", previousFieldHasValue);
+    constexpr int16_t kPrevFieldId = 2;
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_LIST, 3, kPrevFieldId>(*prot_, "field3", previousFieldHasValue);
     previousFieldHasValue = true;
+    indexWriter.recordFieldStart();
     xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::write(*prot_, this->field3);
+    indexWriter.recordFieldEnd(::apache::thrift::type_class::list<::apache::thrift::type_class::integral>{}, this->field3, 3);
     xfer += prot_->writeFieldEnd();
   }
   {
-    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_LIST, 4, 3>(*prot_, "field4", previousFieldHasValue);
+    constexpr int16_t kPrevFieldId = 3;
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_LIST, 4, kPrevFieldId>(*prot_, "field4", previousFieldHasValue);
     previousFieldHasValue = true;
+    indexWriter.recordFieldStart();
     xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::write(*prot_, this->field4);
+    indexWriter.recordFieldEnd(::apache::thrift::type_class::list<::apache::thrift::type_class::integral>{}, this->field4, 4);
     xfer += prot_->writeFieldEnd();
   }
+  indexWriter.finalize();
   xfer += prot_->writeFieldStop();
   xfer += prot_->writeStructEnd();
   return xfer;

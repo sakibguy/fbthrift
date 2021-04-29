@@ -100,6 +100,23 @@ struct EncodedFirstResponseError : std::exception {
   FirstResponsePayload encoded;
 };
 
+struct EncodedStreamError : std::exception {
+  explicit EncodedStreamError(StreamPayload payload)
+      : encoded(std::move(payload)) {}
+
+  EncodedStreamError(const EncodedStreamError& other)
+      : encoded(other.encoded.payload->clone(), other.encoded.metadata) {}
+  EncodedStreamError& operator=(const EncodedStreamError& other) {
+    encoded =
+        StreamPayload(other.encoded.payload->clone(), other.encoded.metadata);
+    return *this;
+  }
+  EncodedStreamError(EncodedStreamError&&) = default;
+  EncodedStreamError& operator=(EncodedStreamError&&) = default;
+
+  StreamPayload encoded;
+};
+
 } // namespace detail
 
 /**
@@ -134,6 +151,9 @@ class StreamServerCallback {
 
   // not terminating
   virtual void resetClientCallback(StreamClientCallback&) = 0;
+
+  virtual void pauseStream() {}
+  virtual void resumeStream() {}
 };
 
 class StreamClientCallback {

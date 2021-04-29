@@ -130,10 +130,6 @@ class HeaderClientChannel : public ClientChannel,
             std::move(rocketRequestSetupMetadata));
   }
 
-  void setReadBufferSize(uint32_t readBufferSize) {
-    cpp2Channel_->setReadBufferSize(readBufferSize);
-  }
-
   // Client interface from RequestChannel
   using RequestChannel::sendRequestNoResponse;
   using RequestChannel::sendRequestResponse;
@@ -170,16 +166,6 @@ class HeaderClientChannel : public ClientChannel,
     }
     return getTransport()->getSendTimeout();
   }
-
-  // If a Close Callback is set, should we reregister callbacks for it
-  // alone?  Basically, this means that loop() will return if the only thing
-  // outstanding is close callbacks.
-  void setKeepRegisteredForClose(bool keepRegisteredForClose) {
-    keepRegisteredForClose_ = keepRegisteredForClose;
-    setBaseReceivedCallback();
-  }
-
-  bool getKeepRegisteredForClose() { return keepRegisteredForClose_; }
 
   folly::EventBase* getEventBase() const override {
     if (isUpgradedToRocket()) {
@@ -218,8 +204,6 @@ class HeaderClientChannel : public ClientChannel,
       protocolId_ = protocolId;
     }
   }
-
-  bool expireCallback(uint32_t seqId);
 
   CLIENT_TYPE getClientType() override {
     if (isUpgradedToRocket()) {
@@ -300,8 +284,6 @@ class HeaderClientChannel : public ClientChannel,
   CloseCallback* closeCallback_;
 
   uint32_t timeout_;
-
-  bool keepRegisteredForClose_;
 
   std::shared_ptr<Cpp2Channel> cpp2Channel_;
 
