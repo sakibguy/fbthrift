@@ -75,6 +75,7 @@ AStruct::AStruct(apache::thrift::FragileConstructor, ::std::int32_t FieldA__arg)
   __isset.FieldA = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void AStruct::__clear() {
   // clear all fields
   this->FieldA = 0;
@@ -153,9 +154,12 @@ void TccStructTraits<::a::different::ns::AStructB>::translateFieldName(
 namespace a { namespace different { namespace ns {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+AStructB::AStructB(const AStructB&) = default;
+AStructB& AStructB::operator=(const AStructB&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 AStructB::AStructB(AStructB&& other) noexcept  :
     FieldA(std::move(other.FieldA)) {}
-
 
 AStructB& AStructB::operator=(FOLLY_MAYBE_UNUSED AStructB&& other) noexcept {
     this->FieldA = std::move(other.FieldA);
@@ -168,6 +172,7 @@ THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 AStructB::AStructB(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::a::different::ns::AStruct> FieldA__arg) :
     FieldA(std::move(FieldA__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void AStructB::__clear() {
   // clear all fields
   if (this->FieldA) this->FieldA.reset(new typename decltype(this->FieldA)::element_type());

@@ -211,7 +211,8 @@ class Color final  {
       red(0),
       green(0),
       blue(0),
-      alpha(0) {}
+      alpha(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Color(apache::thrift::FragileConstructor, double red__arg, double green__arg, double blue__arg, double alpha__arg);
@@ -330,6 +331,7 @@ class Color final  {
     return red;
   }
 
+  [[deprecated]]
   double& set_red(double red_) {
     red = red_;
     __isset.red = true;
@@ -340,6 +342,7 @@ class Color final  {
     return green;
   }
 
+  [[deprecated]]
   double& set_green(double green_) {
     green = green_;
     __isset.green = true;
@@ -350,6 +353,7 @@ class Color final  {
     return blue;
   }
 
+  [[deprecated]]
   double& set_blue(double blue_) {
     blue = blue_;
     __isset.blue = true;
@@ -360,6 +364,7 @@ class Color final  {
     return alpha;
   }
 
+  [[deprecated]]
   double& set_alpha(double alpha_) {
     alpha = alpha_;
     __isset.alpha = true;
@@ -424,12 +429,11 @@ class Vehicle final  {
 
   Vehicle(Vehicle&&) noexcept;
 
-  Vehicle(const Vehicle&) = default;
+  Vehicle(const Vehicle& src);
 
 
   Vehicle& operator=(Vehicle&&) noexcept;
-
-  Vehicle& operator=(const Vehicle&) = default;
+  Vehicle& operator=(const Vehicle& src);
   void __clear();
 
   ~Vehicle();
@@ -561,6 +565,7 @@ class Vehicle final  {
   ::cpp2::Color get_color() &&;
 
   template <typename T_Vehicle_color_struct_setter = ::cpp2::Color>
+  [[deprecated]]
   ::cpp2::Color& set_color(T_Vehicle_color_struct_setter&& color_) {
     color = std::forward<T_Vehicle_color_struct_setter>(color_);
     __isset.color = true;
@@ -577,6 +582,7 @@ class Vehicle final  {
   ::std::string* get_licensePlate() && = delete;
 
   template <typename T_Vehicle_licensePlate_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_licensePlate(T_Vehicle_licensePlate_struct_setter&& licensePlate_) {
     licensePlate = std::forward<T_Vehicle_licensePlate_struct_setter>(licensePlate_);
     __isset.licensePlate = true;
@@ -593,6 +599,7 @@ class Vehicle final  {
   ::std::string* get_description() && = delete;
 
   template <typename T_Vehicle_description_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_description(T_Vehicle_description_struct_setter&& description_) {
     description = std::forward<T_Vehicle_description_struct_setter>(description_);
     __isset.description = true;
@@ -609,6 +616,7 @@ class Vehicle final  {
   ::std::string* get_name() && = delete;
 
   template <typename T_Vehicle_name_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_name(T_Vehicle_name_struct_setter&& name_) {
     name = std::forward<T_Vehicle_name_struct_setter>(name_);
     __isset.name = true;
@@ -624,6 +632,7 @@ class Vehicle final  {
   }
   bool* get_hasAC() && = delete;
 
+  [[deprecated]]
   bool& set_hasAC(bool hasAC_) {
     hasAC = hasAC_;
     __isset.hasAC = true;
@@ -688,12 +697,11 @@ class Person final  {
 
   Person(Person&&) noexcept;
 
-  Person(const Person&) = default;
+  Person(const Person& src);
 
 
   Person& operator=(Person&&) noexcept;
-
-  Person& operator=(const Person&) = default;
+  Person& operator=(const Person& src);
   void __clear();
 
   ~Person();
@@ -941,6 +949,7 @@ class Person final  {
     return id;
   }
 
+  [[deprecated]]
   ::cpp2::PersonID& set_id(::cpp2::PersonID id_) {
     id = id_;
     __isset.id = true;
@@ -956,6 +965,7 @@ class Person final  {
   }
 
   template <typename T_Person_name_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_name(T_Person_name_struct_setter&& name_) {
     name = std::forward<T_Person_name_struct_setter>(name_);
     __isset.name = true;
@@ -971,6 +981,7 @@ class Person final  {
   }
   ::std::int16_t* get_age() && = delete;
 
+  [[deprecated]]
   ::std::int16_t& set_age(::std::int16_t age_) {
     age = age_;
     __isset.age = true;
@@ -987,6 +998,7 @@ class Person final  {
   ::std::string* get_address() && = delete;
 
   template <typename T_Person_address_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_address(T_Person_address_struct_setter&& address_) {
     address = std::forward<T_Person_address_struct_setter>(address_);
     __isset.address = true;
@@ -997,6 +1009,7 @@ class Person final  {
   ::cpp2::Color* get_favoriteColor() && = delete;
 
   template <typename T_Person_favoriteColor_struct_setter = ::cpp2::Color>
+  [[deprecated]]
   ::cpp2::Color& set_favoriteColor(T_Person_favoriteColor_struct_setter&& favoriteColor_) {
     favoriteColor = std::forward<T_Person_favoriteColor_struct_setter>(favoriteColor_);
     __isset.favoriteColor = true;
@@ -1007,6 +1020,7 @@ class Person final  {
   ::std::set<::cpp2::PersonID>* get_friends() && = delete;
 
   template <typename T_Person_friends_struct_setter = ::std::set<::cpp2::PersonID>>
+  [[deprecated]]
   ::std::set<::cpp2::PersonID>& set_friends(T_Person_friends_struct_setter&& friends_) {
     friends = std::forward<T_Person_friends_struct_setter>(friends_);
     __isset.friends = true;
@@ -1022,6 +1036,7 @@ class Person final  {
   }
   ::cpp2::PersonID* get_bestFriend() && = delete;
 
+  [[deprecated]]
   ::cpp2::PersonID& set_bestFriend(::cpp2::PersonID bestFriend_) {
     bestFriend = bestFriend_;
     __isset.bestFriend = true;
@@ -1032,6 +1047,7 @@ class Person final  {
   ::std::map<::cpp2::Animal, ::std::string>* get_petNames() && = delete;
 
   template <typename T_Person_petNames_struct_setter = ::std::map<::cpp2::Animal, ::std::string>>
+  [[deprecated]]
   ::std::map<::cpp2::Animal, ::std::string>& set_petNames(T_Person_petNames_struct_setter&& petNames_) {
     petNames = std::forward<T_Person_petNames_struct_setter>(petNames_);
     __isset.petNames = true;
@@ -1047,6 +1063,7 @@ class Person final  {
   }
   ::cpp2::Animal* get_afraidOfAnimal() && = delete;
 
+  [[deprecated]]
   ::cpp2::Animal& set_afraidOfAnimal(::cpp2::Animal afraidOfAnimal_) {
     afraidOfAnimal = afraidOfAnimal_;
     __isset.afraidOfAnimal = true;
@@ -1057,6 +1074,7 @@ class Person final  {
   ::std::vector<::cpp2::Vehicle>* get_vehicles() && = delete;
 
   template <typename T_Person_vehicles_struct_setter = ::std::vector<::cpp2::Vehicle>>
+  [[deprecated]]
   ::std::vector<::cpp2::Vehicle>& set_vehicles(T_Person_vehicles_struct_setter&& vehicles_) {
     vehicles = std::forward<T_Person_vehicles_struct_setter>(vehicles_);
     __isset.vehicles = true;

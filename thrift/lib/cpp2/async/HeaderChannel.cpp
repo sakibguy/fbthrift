@@ -57,5 +57,43 @@ void HeaderChannel::addRpcOptionHeaders(
     }
   }
 }
+
+void HeaderChannel::preprocessHeader(
+    apache::thrift::transport::THeader* header) {
+  header->mutableWriteHeaders().insert(
+      persistentWriteHeaders_.begin(), persistentWriteHeaders_.end());
+
+  if (compressionConfig_ && !header->getDesiredCompressionConfig()) {
+    header->setDesiredCompressionConfig(*compressionConfig_);
+  }
+
+  if (auto& writeTransforms = header->getWriteTransforms();
+      !writeTransforms.empty()) {
+    DCHECK(writeTransforms.size() == 1);
+    auto transform = writeTransforms.back();
+    writeTransforms.clear();
+
+    if (!header->getDesiredCompressionConfig()) {
+      apache::thrift::CompressionConfig compressionConfig;
+      switch (transform) {
+        case transport::THeader::ZLIB_TRANSFORM: {
+          apache::thrift::CodecConfig codec;
+          codec.set_zlibConfig(apache::thrift::ZlibCompressionCodecConfig());
+          compressionConfig.set_codecConfig(codec);
+          break;
+        }
+        case transport::THeader::ZSTD_TRANSFORM: {
+          apache::thrift::CodecConfig codec;
+          codec.set_zstdConfig(apache::thrift::ZstdCompressionCodecConfig());
+          compressionConfig.set_codecConfig(codec);
+          break;
+        }
+        default:
+          LOG(DFATAL) << "Unsupported transform: " << transform;
+      }
+      header->setDesiredCompressionConfig(compressionConfig);
+    }
+  }
+}
 } // namespace thrift
 } // namespace apache

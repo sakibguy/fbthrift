@@ -206,13 +206,22 @@ struct PayloadAppClientExceptionMetadata {
 struct PayloadAppServerExceptionMetadata {
 }
 
+struct PayloadAppUnknownExceptionMetdata {
+  // We only use the blame field for now
+  1: optional ErrorClassification errorClassification;
+}
+
 union PayloadExceptionMetadata {
   1: PayloadDeclaredExceptionMetadata declaredException;
   2: PayloadProxyExceptionMetadata proxyException;
-  // Replaced by PayloadProxyExceptionMetadata + ProxiedPayloadMetadata
+  // Deprecated
+  // replaced by PayloadProxyExceptionMetadata + ProxiedPayloadMetadata
   3: PayloadProxiedExceptionMetadata DEPRECATED_proxiedException;
-  4: PayloadAppClientExceptionMetadata appClientException;
-  5: PayloadAppServerExceptionMetadata appServerException;
+  // replaced by PayloadAppUnknownExceptionMetdata
+  4: PayloadAppClientExceptionMetadata DEPRECATED_appClientException;
+  // replaced by PayloadAppUnknownExceptionMetdata
+  5: PayloadAppServerExceptionMetadata DEPRECATED_appServerException;
+  6: PayloadAppUnknownExceptionMetdata appUnknownException;
 }
 
 struct PayloadExceptionMetadataBase {
@@ -301,6 +310,18 @@ struct ResponseRpcError {
   4: optional ResponseRpcErrorCode code;
   // Server load. Returned to client if loadMetric was set in RequestRpcMetadata
   5: optional i64 load;
+}
+
+enum StreamRpcErrorCode {
+  UNKNOWN = 0,
+  CREDIT_TIMEOUT = 1,
+  CHUNK_TIMEOUT = 2,
+}
+
+struct StreamRpcError {
+  1: optional string name_utf8;
+  2: optional string what_utf8;
+  4: optional StreamRpcErrorCode code;
 }
 
 struct StreamPayloadMetadata {

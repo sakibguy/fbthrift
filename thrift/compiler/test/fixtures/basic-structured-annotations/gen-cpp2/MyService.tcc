@@ -27,6 +27,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_first(apache::thrift::ResponseChan
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_first(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -41,21 +45,17 @@ void MyServiceAsyncProcessor::process_first(apache::thrift::ResponseChannelReque
         ew, std::move(req), ctx, eb, "first");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::cpp2::annotated_inline_string>>>(std::move(req), std::move(ctxStack), return_first<ProtocolIn_,ProtocolOut_>, throw_wrapped_first<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_first(std::move(callback));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_first(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::cpp2::annotated_inline_string const& _return) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_first(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::cpp2::annotated_inline_string const& _return) {
   ProtocolOut_ prot;
   MyService_first_presult result;
   result.get<0>().value = const_cast<::cpp2::annotated_inline_string*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("first", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("first", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -83,6 +83,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_second(apache::thrift::ResponseCha
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_second(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -99,21 +103,17 @@ void MyServiceAsyncProcessor::process_second(apache::thrift::ResponseChannelRequ
         ew, std::move(req), ctx, eb, "second");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<bool>>(std::move(req), std::move(ctxStack), return_second<ProtocolIn_,ProtocolOut_>, throw_wrapped_second<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_second(std::move(callback), args.get<0>().ref());
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_second(int32_t protoSeqId, apache::thrift::ContextStack* ctx, bool const& _return) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_second(int32_t protoSeqId, apache::thrift::ContextStack* ctx, bool const& _return) {
   ProtocolOut_ prot;
   MyService_second_presult result;
   result.get<0>().value = const_cast<bool*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("second", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("second", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

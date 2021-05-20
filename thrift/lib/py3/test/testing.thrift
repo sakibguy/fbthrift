@@ -144,6 +144,16 @@ struct easy {
   4: Integers an_int;
 } (anno1 = "foo", bar)
 
+struct PrivateCppRefField {
+  # (cpp.experimental.lazy) field is always private
+  1: optional easy field1 (cpp.ref, cpp.experimental.lazy);
+  2: optional easy field2 (cpp.ref_type = "shared", cpp.experimental.lazy);
+  3: optional easy field3 (
+    cpp.ref_type = "shared_const",
+    cpp.experimental.lazy,
+  );
+}
+
 struct Nested3 {
   1: easy c;
 }
@@ -292,6 +302,7 @@ struct ComplexRef {
   10: optional set<ComplexRef> set_const_shared_ref (
     cpp2.ref_type = "shared_const",
   );
+  11: optional ComplexRef recursive (cpp.box);
 }
 
 struct StructuredAnnotation {
@@ -301,11 +312,11 @@ struct StructuredAnnotation {
   5: StructuredAnnotation recurse (cpp.ref = "True");
 }
 
-@StructuredAnnotation {
+@StructuredAnnotation{
   first = {1.1: 2},
   second = 3,
   third = ["a", "b"],
-  recurse = StructuredAnnotation {third = ["3", "4"]},
+  recurse = StructuredAnnotation{third = ["3", "4"]},
 }
 service TestingService {
   string getName();

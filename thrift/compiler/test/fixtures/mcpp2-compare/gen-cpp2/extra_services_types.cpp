@@ -36,6 +36,10 @@ void TccStructTraits<::extra::svc::containerStruct2>::translateFieldName(
 namespace extra { namespace svc {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+containerStruct2::containerStruct2(const containerStruct2&) = default;
+containerStruct2& containerStruct2::operator=(const containerStruct2&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 containerStruct2::containerStruct2() :
       fieldA(0),
       req_fieldA(0),
@@ -54,7 +58,8 @@ containerStruct2::containerStruct2() :
   4}),
       fieldE(apache::thrift::StringTraits<std::string>::fromStringLiteral("somestring")),
       req_fieldE(apache::thrift::StringTraits<std::string>::fromStringLiteral("somestring")),
-      opt_fieldE(apache::thrift::StringTraits<std::string>::fromStringLiteral("somestring")) {}
+      opt_fieldE(apache::thrift::StringTraits<std::string>::fromStringLiteral("somestring")) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -76,7 +81,6 @@ containerStruct2::containerStruct2(containerStruct2&& other) noexcept  :
     req_fieldE(std::move(other.req_fieldE)),
     opt_fieldE(std::move(other.opt_fieldE)),
     __isset(other.__isset) {}
-
 containerStruct2& containerStruct2::operator=(FOLLY_MAYBE_UNUSED containerStruct2&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->req_fieldA = std::move(other.req_fieldA);
@@ -123,6 +127,7 @@ containerStruct2::containerStruct2(apache::thrift::FragileConstructor, bool fiel
   __isset.opt_fieldE = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void containerStruct2::__clear() {
   // clear all fields
   this->fieldA = 0;

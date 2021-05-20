@@ -48,7 +48,7 @@
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_constants.h>
 
 namespace {
-const int64_t kRocketServerMaxVersion = 7;
+const int64_t kRocketServerMaxVersion = 8;
 }
 
 THRIFT_FLAG_DEFINE_bool(rocket_server_legacy_protocol_key, true);
@@ -88,13 +88,13 @@ ThriftRocketServerHandler::ThriftRocketServerHandler(
       version_(static_cast<int32_t>(std::min(
           kRocketServerMaxVersion, THRIFT_FLAG(rocket_server_max_version)))) {
   connContext_.setTransportType(Cpp2ConnContext::TransportType::ROCKET);
-  if (auto* handler = worker_->getServer()->getEventHandlerUnsafe()) {
+  for (const auto& handler : worker_->getServer()->getEventHandlersUnsafe()) {
     handler->newConnection(&connContext_);
   }
 }
 
 ThriftRocketServerHandler::~ThriftRocketServerHandler() {
-  if (auto* handler = worker_->getServer()->getEventHandlerUnsafe()) {
+  for (const auto& handler : worker_->getServer()->getEventHandlersUnsafe()) {
     handler->connectionDestroyed(&connContext_);
   }
   // Ensure each connAccepted() call has a matching connClosed()
@@ -173,7 +173,9 @@ void ThriftRocketServerHandler::handleSetupFrame(
         valid &= !!(cpp2Processor_ = std::move(processorInfo->cpp2Processor_));
         valid &= !!(threadManager_ = std::move(processorInfo->threadManager_));
         valid &= !!(serverConfigs_ = &processorInfo->serverConfigs_);
-        valid &= !!(requestsRegistry_ = processorInfo->requestsRegistry_);
+        requestsRegistry_ = processorInfo->requestsRegistry_ != nullptr
+            ? processorInfo->requestsRegistry_
+            : worker_->getRequestsRegistry();
         if (!valid) {
           return connection.close(
               folly::make_exception_wrapper<RocketException>(
@@ -184,7 +186,8 @@ void ThriftRocketServerHandler::handleSetupFrame(
       }
     }
     // no custom frame handler was found, do the default
-    cpp2Processor_ = worker_->getServer()->getCpp2Processor();
+    cpp2Processor_ =
+        worker_->getServer()->getProcessorFactory()->getProcessor();
     threadManager_ = worker_->getServer()->getThreadManager();
     serverConfigs_ = worker_->getServer();
     requestsRegistry_ = worker_->getRequestsRegistry();
@@ -373,6 +376,20 @@ void ThriftRocketServerHandler::handleRequestCommon(
     return;
   }
 
+  if (metadata.crc32c_ref()) {
+    try {
+      if (auto compression = metadata.compression_ref()) {
+        data = uncompressBuffer(std::move(data), *compression);
+      }
+    } catch (...) {
+      handleDecompressionFailure(
+          makeActiveRequest(
+              std::move(metadata), rocket::Payload{}, std::move(reqCtx)),
+          folly::exceptionStr(std::current_exception()).toStdString());
+      return;
+    }
+  }
+
   // check the checksum
   const bool badChecksum = metadata.crc32c_ref() &&
       (*metadata.crc32c_ref() != checksum::crc32c(*data));
@@ -462,7 +479,9 @@ void ThriftRocketServerHandler::handleRequestCommon(
         std::move(request),
         SerializedCompressedRequest(
             std::move(data),
-            metadata.compression_ref().value_or(CompressionAlgorithm::NONE)),
+            metadata.crc32c_ref() ? CompressionAlgorithm::NONE
+                                  : metadata.compression_ref().value_or(
+                                        CompressionAlgorithm::NONE)),
         protocolId,
         cpp2ReqCtx,
         eventBase_,

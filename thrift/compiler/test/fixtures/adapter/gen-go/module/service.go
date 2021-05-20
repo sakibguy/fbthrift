@@ -223,6 +223,11 @@ type serviceProcessorFunc struct {
   handler Service
 }
 
+func (p *ServiceFuncResult) Exception() thrift.WritableException {
+  if p == nil { return nil }
+  return nil
+}
+
 func (p *serviceProcessorFunc) Read(iprot thrift.Protocol) (thrift.Struct, thrift.Exception) {
   args := ServiceFuncArgs{}
   if err := args.Read(iprot); err != nil {
@@ -444,7 +449,7 @@ func (p *ServiceFuncArgs) String() string {
 //  - Success
 type ServiceFuncResult struct {
   thrift.IResponse
-  Success *int32 `thrift:"success,0" db:"success" json:"success,omitempty"`
+  Success *int32 `thrift:"success,0,optional" db:"success" json:"success,omitempty"`
 }
 
 func NewServiceFuncResult() *ServiceFuncResult {

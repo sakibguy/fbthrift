@@ -143,7 +143,8 @@ class MyDataItem final  {
 
  public:
 
-  MyDataItem() {}
+  MyDataItem() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyDataItem(apache::thrift::FragileConstructor);
@@ -213,19 +214,19 @@ class MyStruct final  {
 
   MyStruct() :
       MyIntField(0),
-      myEnum( ::cpp2::MyEnum::MyValue1) {}
+      myEnum( ::cpp2::MyEnum::MyValue1) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyStruct(apache::thrift::FragileConstructor, ::std::int64_t MyIntField__arg, ::std::string MyStringField__arg, ::cpp2::MyDataItem MyDataField__arg, ::cpp2::MyEnum myEnum__arg);
 
   MyStruct(MyStruct&&) noexcept;
 
-  MyStruct(const MyStruct&) = default;
+  MyStruct(const MyStruct& src);
 
 
   MyStruct& operator=(MyStruct&&) noexcept;
-
-  MyStruct& operator=(const MyStruct&) = default;
+  MyStruct& operator=(const MyStruct& src);
   void __clear();
  private:
   ::std::int64_t MyIntField;
@@ -332,6 +333,7 @@ class MyStruct final  {
     return MyIntField;
   }
 
+  [[deprecated]]
   ::std::int64_t& set_MyIntField(::std::int64_t MyIntField_) {
     MyIntField = MyIntField_;
     __isset.MyIntField = true;
@@ -347,6 +349,7 @@ class MyStruct final  {
   }
 
   template <typename T_MyStruct_MyStringField_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_MyStringField(T_MyStruct_MyStringField_struct_setter&& MyStringField_) {
     MyStringField = std::forward<T_MyStruct_MyStringField_struct_setter>(MyStringField_);
     __isset.MyStringField = true;
@@ -356,6 +359,7 @@ class MyStruct final  {
   ::cpp2::MyDataItem get_MyDataField() &&;
 
   template <typename T_MyStruct_MyDataField_struct_setter = ::cpp2::MyDataItem>
+  [[deprecated]]
   ::cpp2::MyDataItem& set_MyDataField(T_MyStruct_MyDataField_struct_setter&& MyDataField_) {
     MyDataField = std::forward<T_MyStruct_MyDataField_struct_setter>(MyDataField_);
     __isset.MyDataField = true;
@@ -366,6 +370,7 @@ class MyStruct final  {
     return myEnum;
   }
 
+  [[deprecated]]
   ::cpp2::MyEnum& set_myEnum(::cpp2::MyEnum myEnum_) {
     myEnum = myEnum_;
     __isset.myEnum = true;
@@ -613,17 +618,23 @@ class MyUnion final  {
   }
 
   ::cpp2::MyEnum const& get_myEnum() const {
-    assert(type_ == Type::myEnum);
+    if (type_ != Type::myEnum) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.myEnum;
   }
 
   ::cpp2::MyStruct const& get_myStruct() const {
-    assert(type_ == Type::myStruct);
+    if (type_ != Type::myStruct) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.myStruct;
   }
 
   ::cpp2::MyDataItem const& get_myDataItem() const {
-    assert(type_ == Type::myDataItem);
+    if (type_ != Type::myDataItem) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.myDataItem;
   }
 

@@ -39,10 +39,6 @@ bool field_has_isset(const t_field* field) {
       !cpp2::is_explicit_ref(field);
 }
 
-bool field_is_lazy(const t_field* field) {
-  return field->has_annotation("cpp.experimental.lazy");
-}
-
 std::string const& get_cpp_template(const t_type* type) {
   return type->get_annotation({"cpp.template", "cpp2.template"});
 }
@@ -88,18 +84,18 @@ bool same_types(const t_type* a, const t_type* b) {
 
   switch (resolved_a->get_type_value()) {
     case t_type::type::t_list: {
-      const auto* list_a = dynamic_cast<const t_list*>(resolved_a);
-      const auto* list_b = dynamic_cast<const t_list*>(resolved_b);
+      const auto* list_a = static_cast<const t_list*>(resolved_a);
+      const auto* list_b = static_cast<const t_list*>(resolved_b);
       return same_types(list_a->get_elem_type(), list_b->get_elem_type());
     }
     case t_type::type::t_set: {
-      const auto* set_a = dynamic_cast<const t_set*>(resolved_a);
-      const auto* set_b = dynamic_cast<const t_set*>(resolved_b);
+      const auto* set_a = static_cast<const t_set*>(resolved_a);
+      const auto* set_b = static_cast<const t_set*>(resolved_b);
       return same_types(set_a->get_elem_type(), set_b->get_elem_type());
     }
     case t_type::type::t_map: {
-      const auto* map_a = dynamic_cast<const t_map*>(resolved_a);
-      const auto* map_b = dynamic_cast<const t_map*>(resolved_b);
+      const auto* map_a = static_cast<const t_map*>(resolved_a);
+      const auto* map_b = static_cast<const t_map*>(resolved_b);
       return same_types(map_a->get_key_type(), map_b->get_key_type()) &&
           same_types(map_a->get_val_type(), map_b->get_val_type());
     }
@@ -520,11 +516,8 @@ class mstch_cpp2_type : public mstch_type {
         type_->has_annotation("cpp.use_allocator");
   }
   mstch::node is_non_empty_struct() {
-    if (resolved_type_->is_struct() || resolved_type_->is_xception()) {
-      auto as_struct = dynamic_cast<t_struct const*>(resolved_type_);
-      return as_struct->has_fields();
-    }
-    return false;
+    auto as_struct = dynamic_cast<t_struct const*>(resolved_type_);
+    return as_struct && as_struct->has_fields();
   }
   mstch::node namespace_cpp2() {
     return t_mstch_cpp2_generator::get_namespace_array(type_->program());
@@ -572,8 +565,6 @@ class mstch_cpp2_field : public mstch_field {
             {"field:non_opt_cpp_ref?", &mstch_cpp2_field::non_opt_cpp_ref},
             {"field:cpp_ref?", &mstch_cpp2_field::cpp_ref},
             {"field:cpp_ref_unique?", &mstch_cpp2_field::cpp_ref_unique},
-            {"field:cpp_ref_unique_either?",
-             &mstch_cpp2_field::cpp_ref_unique_either},
             {"field:cpp_ref_shared?", &mstch_cpp2_field::cpp_ref_shared},
             {"field:cpp_ref_shared_const?",
              &mstch_cpp2_field::cpp_ref_shared_const},
@@ -589,6 +580,9 @@ class mstch_cpp2_field : public mstch_field {
             {"field:visibility", &mstch_cpp2_field::visibility},
             {"field:metadata_name", &mstch_cpp2_field::metadata_name},
             {"field:lazy?", &mstch_cpp2_field::lazy},
+            {"field:boxed_ref?", &mstch_cpp2_field::boxed_ref},
+            {"field:transitively_refers_to_unique?",
+             &mstch_cpp2_field::transitively_refers_to_unique},
         });
   }
   mstch::node name_hash() {
@@ -611,12 +605,14 @@ class mstch_cpp2_field : public mstch_field {
     return cpp2::is_explicit_ref(field_) &&
         field_->get_req() != t_field::e_req::optional;
   }
-  mstch::node lazy() { return field_is_lazy(field_); }
-  mstch::node cpp_ref_unique() { return cpp2::is_unique_ref(field_); }
-  mstch::node cpp_ref_unique_either() {
-    return boost::get<bool>(cpp_ref_unique()) ||
-        cpp2::is_implicit_ref(field_->get_type());
+  mstch::node lazy() { return cpp2::is_lazy(field_); }
+  mstch::node boxed_ref() {
+    return gen::cpp::find_ref_type(field_) == gen::cpp::reference_type::boxed;
   }
+  mstch::node transitively_refers_to_unique() {
+    return cpp2::field_transitively_refers_to_unique(field_);
+  }
+  mstch::node cpp_ref_unique() { return cpp2::is_unique_ref(field_); }
   mstch::node cpp_ref_shared() {
     return cpp2::get_ref_type(field_) == "shared";
   }
@@ -627,8 +623,7 @@ class mstch_cpp2_field : public mstch_field {
     return field_->get_type()->has_annotation("cpp2.noncopyable");
   }
   mstch::node enum_has_value() {
-    if (field_->get_type()->is_enum()) {
-      auto const* enm = dynamic_cast<t_enum const*>(field_->get_type());
+    if (auto enm = dynamic_cast<t_enum const*>(field_->get_type())) {
       auto const* const_value = field_->get_value();
       using cv = t_const_value::t_const_value_type;
       if (const_value->get_type() == cv::CV_INTEGER) {
@@ -694,7 +689,7 @@ class mstch_cpp2_field : public mstch_field {
   mstch::node visibility() {
     auto req = field_->get_req();
     bool isPrivate = true;
-    if (field_is_lazy(field_)) {
+    if (cpp2::is_lazy(field_)) {
       // Lazy field has to be private.
     } else if (cpp2::is_ref(field_) || req == t_field::e_req::required) {
       isPrivate = false;
@@ -812,7 +807,7 @@ class mstch_cpp2_struct : public mstch_struct {
   }
   mstch::node nondefault_copy_ctor_and_assignment() {
     for (auto const* f : strct_->fields()) {
-      if (is_cpp_ref_unique_either(f) || field_is_lazy(f)) {
+      if (cpp2::field_transitively_refers_to_unique(f) || cpp2::is_lazy(f)) {
         return true;
       }
     }
@@ -829,7 +824,30 @@ class mstch_cpp2_struct : public mstch_struct {
         {"cpp.declare_equal_to", "cpp2.declare_equal_to"});
   }
   mstch::node cpp_noncopyable() {
-    return strct_->has_annotation("cpp2.noncopyable");
+    if (strct_->has_annotation("cpp2.noncopyable")) {
+      return true;
+    }
+    bool result = false;
+    cpp2::for_each_transitive_field(strct_, [&result](const t_field* field) {
+      if (!field->get_type()->has_annotation("cpp2.noncopyable")) {
+        return true;
+      }
+      switch (gen::cpp::find_ref_type(field)) {
+        case gen::cpp::reference_type::shared_const:
+        case gen::cpp::reference_type::shared_mutable: {
+          return true;
+        }
+        case gen::cpp::reference_type::boxed:
+        case gen::cpp::reference_type::none:
+        case gen::cpp::reference_type::unique:
+        case gen::cpp::reference_type::unrecognized: {
+          break;
+        }
+      }
+      result = true;
+      return false;
+    });
+    return result;
   }
   mstch::node cpp_noncomparable() {
     return strct_->has_annotation("cpp2.noncomparable");
@@ -841,7 +859,10 @@ class mstch_cpp2_struct : public mstch_struct {
   mstch::node cpp_virtual() {
     return strct_->has_annotation({"cpp.virtual", "cpp2.virtual"});
   }
-  mstch::node message() { return strct_->get_annotation("message"); }
+  mstch::node message() {
+    return strct_->is_exception() ? strct_->get_annotation("message")
+                                  : mstch::node();
+  }
   mstch::node cpp_allocator() {
     return strct_->get_annotation("cpp.allocator");
   }
@@ -862,7 +883,7 @@ class mstch_cpp2_struct : public mstch_struct {
   }
   mstch::node has_lazy_fields() {
     for (const auto* field : strct_->get_members()) {
-      if (field_is_lazy(field)) {
+      if (cpp2::is_lazy(field)) {
         return true;
       }
     }
@@ -894,6 +915,9 @@ class mstch_cpp2_struct : public mstch_struct {
     // enough members and at least one has a non-trivial destructor
     // (involving at least a branch and a likely deallocation).
     // TODO(ott): Support unions.
+    if (strct_->is_exception()) {
+      return true;
+    }
     constexpr size_t kLargeStructThreshold = 4;
     if (strct_->fields().size() <= kLargeStructThreshold) {
       return false;
@@ -1561,21 +1585,18 @@ class mstch_cpp2_program : public mstch_program {
         }
 
         auto add_dependency = [&](const t_type* type) {
-          if (type->is_struct()) {
-            // TODO(afuller): Remove const cast, once the return type also has
-            // const elements.
-            auto* strct =
-                const_cast<t_struct*>(dynamic_cast<const t_struct*>(type));
+          if (auto strct = dynamic_cast<const t_struct*>(type)) {
             // We're only interested in types defined in the current program.
-            if (strct->program() == program) {
-              deps.emplace_back(strct);
+            if (!strct->is_exception() && strct->program() == program) {
+              // TODO(afuller): Remove const cast, once the return type also has
+              // const elements.
+              deps.emplace_back(const_cast<t_struct*>(strct));
             }
           }
         };
 
         auto t = f->get_type()->get_true_type();
-        if (t->is_map()) {
-          const auto* map = dynamic_cast<const t_map*>(t);
+        if (auto map = dynamic_cast<t_map const*>(t)) {
           add_dependency(map->get_key_type());
           add_dependency(map->get_val_type());
         } else {
@@ -2114,7 +2135,7 @@ class lazy_field_validator : public validator {
  public:
   using validator::visit;
   bool visit(t_field* field) override {
-    if (field_is_lazy(field)) {
+    if (cpp2::is_lazy(field)) {
       auto t = field->get_type()->get_true_type();
       boost::optional<std::string> field_type;
       if (t->is_any_int() || t->is_bool() || t->is_byte()) {

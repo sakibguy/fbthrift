@@ -2901,6 +2901,7 @@ pub mod server {
                     crate::services::some_service::BounceMapExn::Success(res)
                 }
                 ::std::result::Result::Err(crate::services::some_service::BounceMapExn::ApplicationException(aexn)) => {
+                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
                     return ::std::result::Result::Err(aexn.into())
                 }
                 ::std::result::Result::Err(crate::services::some_service::BounceMapExn::Success(_)) => {
@@ -2971,6 +2972,7 @@ pub mod server {
                     crate::services::some_service::BinaryKeyedMapExn::Success(res)
                 }
                 ::std::result::Result::Err(crate::services::some_service::BinaryKeyedMapExn::ApplicationException(aexn)) => {
+                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
                     return ::std::result::Result::Err(aexn.into())
                 }
                 ::std::result::Result::Err(crate::services::some_service::BinaryKeyedMapExn::Success(_)) => {
@@ -3375,7 +3377,7 @@ mod r#impl {
         P: ::fbthrift::ProtocolReader,
     {
         let value: LocalImpl<T> = ::fbthrift::Deserialize::read(p)?;
-        Ok(value.0)
+        ::std::result::Result::Ok(value.0)
     }
 
     impl<P> ::fbthrift::Serialize<P> for LocalImpl<::sorted_vector_map::SortedVectorMap<::std::primitive::i32, ::std::string::String>>
@@ -3428,7 +3430,7 @@ mod r#impl {
                 }
             }
             p.read_map_end()?;
-            Ok(LocalImpl(map))
+            ::std::result::Result::Ok(LocalImpl(map))
         }
     }
 
@@ -3477,7 +3479,7 @@ mod r#impl {
                 }
             }
             p.read_set_end()?;
-            Ok(LocalImpl(set))
+            ::std::result::Result::Ok(LocalImpl(set))
         }
     }
 }

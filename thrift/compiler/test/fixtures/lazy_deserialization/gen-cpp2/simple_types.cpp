@@ -36,17 +36,18 @@ void TccStructTraits<::apache::thrift::test::Foo>::translateFieldName(
 namespace apache { namespace thrift { namespace test {
 
 Foo::Foo(const Foo& srcObj) {
-  srcObj.field1_ref();
-  __fbthrift_isDeserialized_.field1 = true;
-  __fbthrift_serializedData_.field1.clear();
-  if (srcObj.field1) field1.reset(new ::std::string(*srcObj.field1));
+  std::lock_guard<std::mutex> lock(srcObj.__fbthrift_deserializationMutex_);
+  __fbthrift_serializedData_ = srcObj.__fbthrift_serializedData_;
+  __fbthrift_isDeserialized_.field1.store(srcObj.__fbthrift_isDeserialized_.field1.load(std::memory_order::memory_order_relaxed),
+                                                      std::memory_order::memory_order_relaxed);
+  field1 = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::string>(srcObj.field1);
   field2 = srcObj.field2;
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.field2 = srcObj.__isset.field2;
 THRIFT_IGNORE_ISSET_USE_WARNING_END
-  srcObj.field3_ref();
-  __fbthrift_isDeserialized_.field3 = true;
-  __fbthrift_serializedData_.field3.clear();
+  __fbthrift_isDeserialized_.field3.store(srcObj.__fbthrift_isDeserialized_.field3.load(std::memory_order::memory_order_relaxed),
+                                                      std::memory_order::memory_order_relaxed);
   field3 = srcObj.field3;
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.field3 = srcObj.__isset.field3;
@@ -69,12 +70,22 @@ Foo::Foo(Foo&& other) noexcept  :
     field2(std::move(other.field2)),
     field3(std::move(other.field3)),
     field4(std::move(other.field4)),
-    __isset(other.__isset) {}
-
+    __isset(other.__isset),
+    __fbthrift_serializedData_(std::move(other.__fbthrift_serializedData_)) {
+  const auto relaxed = std::memory_order::memory_order_relaxed;
+  __fbthrift_isDeserialized_.field1.store(other.__fbthrift_isDeserialized_.field1, relaxed);
+  other.__fbthrift_isDeserialized_.field1.store(true, relaxed);
+  __fbthrift_isDeserialized_.field3.store(other.__fbthrift_isDeserialized_.field3, relaxed);
+  other.__fbthrift_isDeserialized_.field3.store(true, relaxed);
+}
 Foo& Foo::operator=(FOLLY_MAYBE_UNUSED Foo&& other) noexcept {
+    const auto relaxed = std::memory_order::memory_order_relaxed;
+    __fbthrift_serializedData_ = std::move(other.__fbthrift_serializedData_);
     this->field1 = std::move(other.field1);
+    __fbthrift_isDeserialized_.field1.store(other.__fbthrift_isDeserialized_.field1.exchange(true), relaxed);
     this->field2 = std::move(other.field2);
     this->field3 = std::move(other.field3);
+    __fbthrift_isDeserialized_.field3.store(other.__fbthrift_isDeserialized_.field3.exchange(true), relaxed);
     this->field4 = std::move(other.field4);
     __isset = other.__isset;
     return *this;
@@ -93,6 +104,56 @@ Foo::Foo(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::string> fi
   __isset.field4 = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+const ::std::unique_ptr<::std::string>& Foo::__fbthrift_read_field_field1() const {
+
+  if (__fbthrift_isDeserialized_.field1) {
+    return field1;
+  }
+
+  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
+  if (!__fbthrift_isDeserialized_.field1) {
+    ::apache::thrift::CompactProtocolReader reader;
+    reader.setInput(&__fbthrift_serializedData_.field1);
+    ::apache::thrift::CompactProtocolReader *iprot = &reader;
+    apache::thrift::detail::ProtocolReaderStructReadState<::apache::thrift::CompactProtocolReader> _readState;
+    auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<::std::unique_ptr<::std::string>>();
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string>::readWithContext(*iprot, *ptr, _readState);
+    this->field1 = std::move(ptr);
+        __fbthrift_isDeserialized_.field1 = true;
+  }
+  return field1;
+}
+
+::std::unique_ptr<::std::string>& Foo::__fbthrift_read_field_field1() {
+  std::as_const(*this).__fbthrift_read_field_field1();
+  return field1;
+}
+const ::std::vector<::std::int32_t>& Foo::__fbthrift_read_field_field3() const {
+
+  if (__fbthrift_isDeserialized_.field3) {
+    return field3;
+  }
+
+  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
+  if (!__fbthrift_isDeserialized_.field3) {
+    ::apache::thrift::CompactProtocolReader reader;
+    reader.setInput(&__fbthrift_serializedData_.field3);
+    ::apache::thrift::CompactProtocolReader *iprot = &reader;
+    apache::thrift::detail::ProtocolReaderStructReadState<::apache::thrift::CompactProtocolReader> _readState;
+    _readState.beforeSubobject(iprot);
+    this->field3 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::readWithContext(*iprot, this->field3, _readState);
+    _readState.afterSubobject(iprot);
+        __fbthrift_isDeserialized_.field3 = true;
+  }
+  return field3;
+}
+
+::std::vector<::std::int32_t>& Foo::__fbthrift_read_field_field3() {
+  std::as_const(*this).__fbthrift_read_field_field3();
+  return field3;
+}
+
 void Foo::__clear() {
   // clear all fields
   this->field1 = apache::thrift::StringTraits<std::string>::fromStringLiteral("");

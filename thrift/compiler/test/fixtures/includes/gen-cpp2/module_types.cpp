@@ -36,12 +36,15 @@ void TccStructTraits<::cpp2::MyStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStruct::MyStruct(const MyStruct&) = default;
+MyStruct& MyStruct::operator=(const MyStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct(MyStruct&& other) noexcept  :
     MyIncludedField(std::move(other.MyIncludedField)),
     MyOtherIncludedField(std::move(other.MyOtherIncludedField)),
     MyIncludedInt(std::move(other.MyIncludedInt)),
     __isset(other.__isset) {}
-
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->MyIncludedField = std::move(other.MyIncludedField);
     this->MyOtherIncludedField = std::move(other.MyOtherIncludedField);
@@ -62,6 +65,7 @@ MyStruct::MyStruct(apache::thrift::FragileConstructor, ::cpp2::Included MyInclud
   __isset.MyIncludedInt = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStruct::__clear() {
   // clear all fields
   this->MyIncludedField.__clear();

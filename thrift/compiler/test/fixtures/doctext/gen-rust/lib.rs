@@ -169,6 +169,13 @@ pub mod types {
         const TTYPE: ::fbthrift::TType = <::std::primitive::i32 as ::fbthrift::GetTType>::TTYPE;
     }
 
+    impl number {
+      pub fn new(v: ::std::primitive::i32) -> Self {
+        Self(v)
+      }
+    }
+
+
     impl<P> ::fbthrift::Serialize<P> for number
     where
         P: ::fbthrift::ProtocolWriter,
@@ -1090,6 +1097,7 @@ pub mod server {
                     crate::services::c::FExn::Success(res)
                 }
                 ::std::result::Result::Err(crate::services::c::FExn::ApplicationException(aexn)) => {
+                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
                     return ::std::result::Result::Err(aexn.into())
                 }
                 ::std::result::Result::Err(crate::services::c::FExn::Success(_)) => {
@@ -1178,6 +1186,7 @@ pub mod server {
                     crate::services::c::ThingExn::Success(res)
                 }
                 ::std::result::Result::Err(crate::services::c::ThingExn::ApplicationException(aexn)) => {
+                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
                     return ::std::result::Result::Err(aexn.into())
                 }
                 ::std::result::Result::Err(crate::services::c::ThingExn::Success(_)) => {
@@ -1186,7 +1195,10 @@ pub mod server {
                         "thing",
                     )
                 }
-                ::std::result::Result::Err(exn) => exn,
+                ::std::result::Result::Err(exn) => {
+                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&exn), &format!("{:?}", exn))?;
+                    exn
+                }
             };
             ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
             let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
@@ -1606,7 +1618,7 @@ pub mod errors {
     /// Errors for C functions.
     pub mod c {
 
-        pub trait AsBang{
+        pub trait AsBang {
             fn as_bang(&self) -> Option<&crate::types::Bang>;
         }
 

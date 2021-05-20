@@ -33,6 +33,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_ping(apache::thrift::ResponseChann
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_ping(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -47,19 +51,15 @@ void MyServiceAsyncProcessor::process_ping(apache::thrift::ResponseChannelReques
         ew, std::move(req), ctx, eb, "ping");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_ping<ProtocolIn_,ProtocolOut_>, throw_wrapped_ping<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_ping(std::move(callback));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_ping(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_ping(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   MyService_ping_presult result;
-  return serializeResponse("ping", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("ping", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -87,6 +87,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_getRandomData(apache::thrift::Resp
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_getRandomData(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -101,21 +105,17 @@ void MyServiceAsyncProcessor::process_getRandomData(apache::thrift::ResponseChan
         ew, std::move(req), ctx, eb, "getRandomData");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::std::string>>>(std::move(req), std::move(ctxStack), return_getRandomData<ProtocolIn_,ProtocolOut_>, throw_wrapped_getRandomData<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_getRandomData(std::move(callback));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_getRandomData(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_getRandomData(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
   ProtocolOut_ prot;
   MyService_getRandomData_presult result;
   result.get<0>().value = const_cast<::std::string*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("getRandomData", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("getRandomData", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -143,6 +143,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_hasDataById(apache::thrift::Respon
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_hasDataById(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -159,21 +163,17 @@ void MyServiceAsyncProcessor::process_hasDataById(apache::thrift::ResponseChanne
         ew, std::move(req), ctx, eb, "hasDataById");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<bool>>(std::move(req), std::move(ctxStack), return_hasDataById<ProtocolIn_,ProtocolOut_>, throw_wrapped_hasDataById<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_hasDataById(std::move(callback), args.get<0>().ref());
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_hasDataById(int32_t protoSeqId, apache::thrift::ContextStack* ctx, bool const& _return) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_hasDataById(int32_t protoSeqId, apache::thrift::ContextStack* ctx, bool const& _return) {
   ProtocolOut_ prot;
   MyService_hasDataById_presult result;
   result.get<0>().value = const_cast<bool*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("hasDataById", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("hasDataById", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -199,6 +199,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_getDataById(apache::thrift::Respon
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_getDataById(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -215,21 +219,17 @@ void MyServiceAsyncProcessor::process_getDataById(apache::thrift::ResponseChanne
         ew, std::move(req), ctx, eb, "getDataById");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::std::string>>>(std::move(req), std::move(ctxStack), return_getDataById<ProtocolIn_,ProtocolOut_>, throw_wrapped_getDataById<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_eb_getDataById(std::move(callback), args.get<0>().ref());
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_getDataById(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_getDataById(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
   ProtocolOut_ prot;
   MyService_getDataById_presult result;
   result.get<0>().value = const_cast<::std::string*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("getDataById", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("getDataById", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -257,6 +257,10 @@ void MyServiceAsyncProcessor::setUpAndProcess_putDataById(apache::thrift::Respon
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyServiceAsyncProcessor::process_putDataById(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -275,19 +279,15 @@ void MyServiceAsyncProcessor::process_putDataById(apache::thrift::ResponseChanne
         ew, std::move(req), ctx, eb, "putDataById");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_putDataById<ProtocolIn_,ProtocolOut_>, throw_wrapped_putDataById<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_putDataById(std::move(callback), args.get<0>().ref(), std::move(uarg_data));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyServiceAsyncProcessor::return_putDataById(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse MyServiceAsyncProcessor::return_putDataById(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   MyService_putDataById_presult result;
-  return serializeResponse("putDataById", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("putDataById", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

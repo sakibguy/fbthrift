@@ -117,19 +117,19 @@ class MyStruct final  {
  public:
 
   MyStruct() :
-      MyIntField(0) {}
+      MyIntField(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyStruct(apache::thrift::FragileConstructor, ::std::int64_t MyIntField__arg, ::std::string MyStringField__arg);
 
   MyStruct(MyStruct&&) noexcept;
 
-  MyStruct(const MyStruct&) = default;
+  MyStruct(const MyStruct& src);
 
 
   MyStruct& operator=(MyStruct&&) noexcept;
-
-  MyStruct& operator=(const MyStruct&) = default;
+  MyStruct& operator=(const MyStruct& src);
   void __clear();
  private:
   ::std::int64_t MyIntField;
@@ -190,6 +190,7 @@ class MyStruct final  {
     return MyIntField;
   }
 
+  [[deprecated]]
   ::std::int64_t& set_MyIntField(::std::int64_t MyIntField_) {
     MyIntField = MyIntField_;
     __isset.MyIntField = true;
@@ -205,6 +206,7 @@ class MyStruct final  {
   }
 
   template <typename T_MyStruct_MyStringField_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_MyStringField(T_MyStruct_MyStringField_struct_setter&& MyStringField_) {
     MyStringField = std::forward<T_MyStruct_MyStringField_struct_setter>(MyStringField_);
     __isset.MyStringField = true;

@@ -25,6 +25,7 @@
 #include <thrift/lib/cpp2/transport/rocket/test/util/gen-cpp2/TransportUpgrade.h>
 
 THRIFT_FLAG_DECLARE_bool(raw_client_rocket_upgrade_enabled);
+THRIFT_FLAG_DECLARE_int64(raw_client_rocket_upgrade_timeout_ms);
 THRIFT_FLAG_DECLARE_bool(server_rocket_upgrade_enabled);
 
 namespace apache {
@@ -74,39 +75,37 @@ class TransportUpgradeTest : public TestSetup {
     }
   }
 
-  template <typename F>
   void testRawClientRocketUpgradeSync(
-      bool serverUpgradeEnabled, F configureHeaderChannel) {
+      bool serverUpgradeEnabled,
+      HeaderClientChannel::Options options = HeaderClientChannel::Options()) {
     // enable raw client transport upgrade to rocket
     THRIFT_FLAG_SET_MOCK(raw_client_rocket_upgrade_enabled, true);
     THRIFT_FLAG_SET_MOCK(server_rocket_upgrade_enabled, serverUpgradeEnabled);
 
     folly::EventBase evb;
     auto socket = folly::AsyncSocket::newSocket(&evb, "::1", port_);
-    auto channel = HeaderClientChannel::newChannel(std::move(socket));
-    configureHeaderChannel(*channel);
+    auto channel =
+        HeaderClientChannel::newChannel(std::move(socket), std::move(options));
 
     auto client =
         std::make_unique<TransportUpgradeAsyncClient>(std::move(channel));
     auto result = client->sync_addTwoNumbers(13, 42);
     EXPECT_EQ(55, result);
 
-    auto* headerChannel =
-        dynamic_cast<HeaderClientChannel*>(client->getChannel());
-    ASSERT_NE(nullptr, headerChannel);
+    auto* upgradeChannel =
+        dynamic_cast<HeaderClientChannel::RocketUpgradeChannel*>(
+            client->getChannel());
+    ASSERT_NE(nullptr, upgradeChannel);
     if (serverUpgradeEnabled) {
-      ASSERT_NE(nullptr, headerChannel->rocketChannel_);
+      ASSERT_NE(nullptr, upgradeChannel->rocketChannel_);
     } else {
-      ASSERT_EQ(nullptr, headerChannel->rocketChannel_);
+      ASSERT_EQ(nullptr, upgradeChannel->rocketChannel_);
     }
   }
-  void testRawClientRocketUpgradeSync(bool serverUpgradeEnabled) {
-    testRawClientRocketUpgradeSync(serverUpgradeEnabled, [](auto&&) {});
-  }
 
-  template <typename F>
   void testRawClientRocketUpgradeAsync(
-      bool serverUpgradeEnabled, F configureHeaderChannel) {
+      bool serverUpgradeEnabled,
+      HeaderClientChannel::Options options = HeaderClientChannel::Options()) {
     // enable raw client transport upgrade to rocket
     THRIFT_FLAG_SET_MOCK(raw_client_rocket_upgrade_enabled, true);
     THRIFT_FLAG_SET_MOCK(server_rocket_upgrade_enabled, serverUpgradeEnabled);
@@ -115,8 +114,7 @@ class TransportUpgradeTest : public TestSetup {
     std::vector<folly::SemiFuture<folly::Unit>> futures;
 
     auto channel = HeaderClientChannel::newChannel(
-        folly::AsyncSocket::newSocket(&evb, "::1", port_));
-    configureHeaderChannel(*channel);
+        folly::AsyncSocket::newSocket(&evb, "::1", port_), std::move(options));
     auto client =
         std::make_unique<TransportUpgradeAsyncClient>(std::move(channel));
     auto f1 = client->semifuture_addTwoNumbers(1, 2).via(&evb).thenTry(
@@ -154,17 +152,15 @@ class TransportUpgradeTest : public TestSetup {
 
     folly::collectAllUnsafe(std::move(futures)).getVia(&evb);
 
-    auto* headerChannel =
-        dynamic_cast<HeaderClientChannel*>(client->getChannel());
-    ASSERT_NE(nullptr, headerChannel);
+    auto* upgradeChannel =
+        dynamic_cast<HeaderClientChannel::RocketUpgradeChannel*>(
+            client->getChannel());
+    ASSERT_NE(nullptr, upgradeChannel);
     if (serverUpgradeEnabled) {
-      ASSERT_NE(nullptr, headerChannel->rocketChannel_);
+      ASSERT_NE(nullptr, upgradeChannel->rocketChannel_);
     } else {
-      ASSERT_EQ(nullptr, headerChannel->rocketChannel_);
+      ASSERT_EQ(nullptr, upgradeChannel->rocketChannel_);
     }
-  }
-  void testRawClientRocketUpgradeAsync(bool serverUpgradeEnabled) {
-    testRawClientRocketUpgradeAsync(serverUpgradeEnabled, [](auto&&) {});
   }
 
  protected:
@@ -189,33 +185,35 @@ TEST_F(TransportUpgradeTest, RawClientRocketUpgradeAsyncDisabled) {
   testRawClientRocketUpgradeAsync(false /*serverUpgradeEnabled*/);
 }
 
-namespace {
-void useBinaryProtocol(HeaderClientChannel& channel) {
-  channel.setProtocolId(protocol::T_BINARY_PROTOCOL);
-}
-} // namespace
-
 TEST_F(TransportUpgradeTest, RawClientRocketUpgradeSyncEnabled_BinaryProtocol) {
   testRawClientRocketUpgradeSync(
-      true /*serverUpgradeEnabled*/, useBinaryProtocol);
+      true /*serverUpgradeEnabled*/,
+      HeaderClientChannel::Options().setProtocolId(
+          protocol::T_BINARY_PROTOCOL));
 }
 
 TEST_F(
     TransportUpgradeTest, RawClientRocketUpgradeSyncDisabled_BinaryProtocol) {
   testRawClientRocketUpgradeSync(
-      false /*serverUpgradeEnabled*/, useBinaryProtocol);
+      false /*serverUpgradeEnabled*/,
+      HeaderClientChannel::Options().setProtocolId(
+          protocol::T_BINARY_PROTOCOL));
 }
 
 TEST_F(
     TransportUpgradeTest, RawClientRocketUpgradeAsyncEnabled_BinaryProtocol) {
   testRawClientRocketUpgradeAsync(
-      true /*serverUpgradeEnabled*/, useBinaryProtocol);
+      true /*serverUpgradeEnabled*/,
+      HeaderClientChannel::Options().setProtocolId(
+          protocol::T_BINARY_PROTOCOL));
 }
 
 TEST_F(
     TransportUpgradeTest, RawClientRocketUpgradeAsyncDisabled_BinaryProtocol) {
   testRawClientRocketUpgradeAsync(
-      false /*serverUpgradeEnabled*/, useBinaryProtocol);
+      false /*serverUpgradeEnabled*/,
+      HeaderClientChannel::Options().setProtocolId(
+          protocol::T_BINARY_PROTOCOL));
 }
 
 TEST_F(TransportUpgradeTest, RawClientRocketUpgradeOneway) {
@@ -236,10 +234,11 @@ TEST_F(TransportUpgradeTest, RawClientRocketUpgradeOneway) {
 
   EXPECT_EQ(84, client->sync_addTwoNumbers(11, 73));
 
-  auto* headerChannel =
-      dynamic_cast<HeaderClientChannel*>(client->getChannel());
-  ASSERT_NE(nullptr, headerChannel);
-  ASSERT_NE(nullptr, headerChannel->rocketChannel_);
+  auto* upgradeChannel =
+      dynamic_cast<HeaderClientChannel::RocketUpgradeChannel*>(
+          client->getChannel());
+  ASSERT_NE(nullptr, upgradeChannel);
+  ASSERT_NE(nullptr, upgradeChannel->rocketChannel_);
 }
 
 TEST_F(TransportUpgradeTest, RawClientNoUpgrade) {
@@ -260,7 +259,6 @@ TEST_F(TransportUpgradeTest, RawClientNoUpgrade) {
   auto* headerChannel =
       dynamic_cast<HeaderClientChannel*>(client->getChannel());
   ASSERT_NE(nullptr, headerChannel);
-  ASSERT_EQ(nullptr, headerChannel->rocketChannel_);
 }
 
 TEST_F(TransportUpgradeTest, RawClientRocketUpgradeTimeout) {
@@ -286,31 +284,30 @@ TEST_F(TransportUpgradeTest, RawClientRocketUpgradeTimeout) {
           .thenValue([&](auto&&) { slowWritingSocket->flushBufferedWrites(); });
   futures.push_back(std::move(sf));
 
-  // upgrade request uses the same timeout as the first request if timeout is
-  // set in RpcOptions
-  auto options = RpcOptions().setTimeout(std::chrono::milliseconds(100));
-  sf = client.semifuture_addTwoNumbers(options, 41, 19)
-           .via(&evb)
-           .thenTry([&](auto&& response) {
-             EXPECT_TRUE(response.hasException());
-             EXPECT_TRUE(response.exception()
-                             .template is_compatible_with<
-                                 transport::TTransportException>());
-             response.exception()
-                 .template with_exception<transport::TTransportException>(
-                     [](const auto& tex) {
-                       EXPECT_EQ(
-                           transport::TTransportException::
-                               TTransportExceptionType::TIMED_OUT,
-                           tex.getType());
-                     });
+  THRIFT_FLAG_SET_MOCK(raw_client_rocket_upgrade_timeout_ms, 100);
 
-             // upgrade should not have succeeded
-             auto* headerChannel =
-                 dynamic_cast<HeaderClientChannel*>(client.getChannel());
-             ASSERT_NE(nullptr, headerChannel);
-             ASSERT_EQ(nullptr, headerChannel->rocketChannel_);
-           });
+  sf = client.semifuture_addTwoNumbers(41, 19).via(&evb).thenTry(
+      [&](auto&& response) {
+        EXPECT_TRUE(response.hasException());
+        EXPECT_TRUE(
+            response.exception()
+                .template is_compatible_with<transport::TTransportException>());
+        response.exception()
+            .template with_exception<transport::TTransportException>(
+                [](const auto& tex) {
+                  EXPECT_EQ(
+                      transport::TTransportException::TTransportExceptionType::
+                          TIMED_OUT,
+                      tex.getType());
+                });
+
+        // upgrade should not have succeeded
+        auto* upgradeChannel =
+            dynamic_cast<HeaderClientChannel::RocketUpgradeChannel*>(
+                client.getChannel());
+        ASSERT_NE(nullptr, upgradeChannel);
+        ASSERT_EQ(nullptr, upgradeChannel->rocketChannel_);
+      });
   futures.push_back(std::move(sf));
 
   folly::collectAllUnsafe(std::move(futures)).getVia(&evb);

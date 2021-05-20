@@ -69,19 +69,19 @@ class IncludedB final  {
  public:
 
   IncludedB() :
-      i32Field(0) {}
+      i32Field(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   IncludedB(apache::thrift::FragileConstructor, ::std::int32_t i32Field__arg, ::std::string strField__arg);
 
   IncludedB(IncludedB&&) noexcept;
 
-  IncludedB(const IncludedB&) = default;
+  IncludedB(const IncludedB& src);
 
 
   IncludedB& operator=(IncludedB&&) noexcept;
-
-  IncludedB& operator=(const IncludedB&) = default;
+  IncludedB& operator=(const IncludedB& src);
   void __clear();
  private:
   ::std::int32_t i32Field;
@@ -142,6 +142,7 @@ class IncludedB final  {
     return i32Field;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_i32Field(::std::int32_t i32Field_) {
     i32Field = i32Field_;
     __isset.i32Field = true;
@@ -157,6 +158,7 @@ class IncludedB final  {
   }
 
   template <typename T_IncludedB_strField_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_strField(T_IncludedB_strField_struct_setter&& strField_) {
     strField = std::forward<T_IncludedB_strField_struct_setter>(strField_);
     __isset.strField = true;

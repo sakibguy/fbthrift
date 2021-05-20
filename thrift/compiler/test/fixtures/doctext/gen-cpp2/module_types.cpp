@@ -75,6 +75,7 @@ A::A(apache::thrift::FragileConstructor, ::std::int32_t useless_field__arg) :
   __isset.useless_field = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void A::__clear() {
   // clear all fields
   this->useless_field = 0;
@@ -259,10 +260,21 @@ void TccStructTraits<::cpp2::Bang>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Bang::Bang(const Bang&) = default;
+Bang& Bang::operator=(const Bang&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Bang::Bang() {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+Bang::~Bang() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Bang::Bang(Bang&& other) noexcept  :
     message(std::move(other.message)),
     __isset(other.__isset) {}
-
 Bang& Bang::operator=(FOLLY_MAYBE_UNUSED Bang&& other) noexcept {
     this->message = std::move(other.message);
     __isset = other.__isset;
@@ -277,6 +289,7 @@ Bang::Bang(apache::thrift::FragileConstructor, ::std::string message__arg) :
   __isset.message = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Bang::__clear() {
   // clear all fields
   this->message = apache::thrift::StringTraits<std::string>::fromStringLiteral("");

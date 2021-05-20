@@ -32,6 +32,10 @@ void CAsyncProcessor::setUpAndProcess_f(apache::thrift::ResponseChannelRequest::
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void CAsyncProcessor::process_f(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -46,19 +50,15 @@ void CAsyncProcessor::process_f(apache::thrift::ResponseChannelRequest::UniquePt
         ew, std::move(req), ctx, eb, "f");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_f<ProtocolIn_,ProtocolOut_>, throw_wrapped_f<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_f(std::move(callback));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue CAsyncProcessor::return_f(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse CAsyncProcessor::return_f(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   C_f_presult result;
-  return serializeResponse("f", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("f", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -86,6 +86,10 @@ void CAsyncProcessor::setUpAndProcess_numbers(apache::thrift::ResponseChannelReq
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void CAsyncProcessor::process_numbers(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -98,10 +102,6 @@ void CAsyncProcessor::process_numbers(apache::thrift::ResponseChannelRequest::Un
     folly::exception_wrapper ew(std::current_exception(), ex);
     apache::thrift::detail::ap::process_handle_exn_deserialization<ProtocolOut_>(
         ew, std::move(req), ctx, eb, "numbers");
-    return;
-  }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
     return;
   }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::ServerStream<::cpp2::number>>>(std::move(req), std::move(ctxStack), return_numbers<ProtocolIn_,ProtocolOut_>, throw_wrapped_numbers<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx, apache::thrift::ServerInterface::getBlockingThreadManager(tm));
@@ -117,7 +117,7 @@ apache::thrift::ResponseAndServerStreamFactory CAsyncProcessor::return_numbers(i
 
       using ExMapType = apache::thrift::detail::ap::EmptyExMapType;
   auto encodedStream = apache::thrift::detail::ap::encode_server_stream<ProtocolOut_, StreamPResultType, ExMapType>(std::move(returnStream), std::move(executor));
-  return {serializeResponse("numbers", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
+  return {serializeLegacyResponse("numbers", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -145,6 +145,10 @@ void CAsyncProcessor::setUpAndProcess_thing(apache::thrift::ResponseChannelReque
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void CAsyncProcessor::process_thing(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -165,21 +169,17 @@ void CAsyncProcessor::process_thing(apache::thrift::ResponseChannelRequest::Uniq
         ew, std::move(req), ctx, eb, "thing");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::std::string>>>(std::move(req), std::move(ctxStack), return_thing<ProtocolIn_,ProtocolOut_>, throw_wrapped_thing<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_thing(std::move(callback), args.get<0>().ref(), std::move(uarg_b), std::move(uarg_c));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue CAsyncProcessor::return_thing(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
+apache::thrift::LegacySerializedResponse CAsyncProcessor::return_thing(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
   ProtocolOut_ prot;
   C_thing_presult result;
   result.get<0>().value = const_cast<::std::string*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("thing", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("thing", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -189,9 +189,11 @@ void CAsyncProcessor::throw_wrapped_thing(apache::thrift::ResponseChannelRequest
   }
   C_thing_presult result;
   if (ew.with_exception([&]( ::cpp2::Bang& e) {
-    ctx->userExceptionWrapped(true, ew);
+    if (ctx) {
+      ctx->userExceptionWrapped(true, ew);
+    }
     ::apache::thrift::util::appendExceptionToHeader(ew, *reqCtx);
-    ::apache::thrift::util::appendErrorClassificationToHeader< ::cpp2::Bang>(*reqCtx);                                                                
+    ::apache::thrift::util::appendErrorClassificationToHeader< ::cpp2::Bang>(*reqCtx);
     result.get<1>().ref() = e;
     result.setIsSet(1, true);
   }
@@ -203,9 +205,9 @@ void CAsyncProcessor::throw_wrapped_thing(apache::thrift::ResponseChannelRequest
     return;
   }
   ProtocolOut_ prot;
-  auto queue = serializeResponse("thing", &prot, protoSeqId, ctx, result);
-  queue.append(apache::thrift::transport::THeader::transform(queue.move(), reqCtx->getHeader()->getWriteTransforms()));
-  return req->sendReply(queue.move());
+  auto response = serializeLegacyResponse("thing", &prot, protoSeqId, ctx, result);
+  response.buffer = apache::thrift::transport::THeader::transform(std::move(response.buffer), reqCtx->getHeader()->getWriteTransforms());
+  return req->sendReply(std::move(response.buffer));
 }
 
 

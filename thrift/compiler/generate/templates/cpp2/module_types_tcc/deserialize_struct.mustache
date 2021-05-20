@@ -17,15 +17,9 @@
 %><%^program:tablebased?%>
 template <class Protocol_>
 void <%struct:name%>::readNoXfer(Protocol_* iprot) {
-  apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
+  apache::thrift::detail::ProtocolReaderStructReadState<%#struct:indexing?%>WithIndex<%/struct:indexing?%><Protocol_> _readState;
 
-<%^struct:indexing?%>
   _readState.readStructBegin(iprot);
-<%/struct:indexing?%>
-<%#struct:indexing?%>
-  Protocol_ indexReader;
-  _readState.readStructBegin(iprot, &indexReader);
-<%/struct:indexing?%>
 
   using apache::thrift::TProtocolException;
 
@@ -65,15 +59,15 @@ _readField_<%field:cpp_name%>:
 <%/field:lazy?%>
     <% > module_types_tcc/deserialize_field%>
 
+  }
 <%#program:enforce_required?%><%#field:required?%>
-    isset_<%field:cpp_name%> = true;
+  isset_<%field:cpp_name%> = true;
 <%/field:required?%><%/program:enforce_required?%>
 <%^field:required?%><%^field:cpp_ref?%>
-    THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-    this->__isset.<%field:cpp_name%> = true;
-    THRIFT_IGNORE_ISSET_USE_WARNING_END
+  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->__isset.<%field:cpp_name%> = true;
+  THRIFT_IGNORE_ISSET_USE_WARNING_END
 <%/field:cpp_ref?%><%/field:required?%>
-  }
 
 <%^last?%>
 <%#field:next_field_type%>
@@ -150,49 +144,6 @@ _skip:
     }
   }
 }
-<%#struct:lazy_fields?%>
-<%#struct:fields%>
-<%#field:type%>
-<%#field:lazy?%>
-const <%field:cpp_storage_type%>& <%struct:name%>::__fbthrift_read_field_<%field:cpp_name%>() const {
-
-  if (__fbthrift_isDeserialized_.<%field:cpp_name%>) {
-    return <%field:cpp_name%>;
-  }
-
-  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
-  if (!__fbthrift_isDeserialized_.<%field:cpp_name%>) {
-<%#field:cpp_ref?%>
-    auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<<%field:cpp_storage_type%>>();
-<%/field:cpp_ref?%>
-<%^field:cpp_ref?%>
-    auto* ptr = &this-><%field:cpp_name%>;
-<%#type:resolves_to_container?%>
-    this-><%field:cpp_name%> = <%type:cpp_type%>(<%#type:cpp_use_allocator?%>this->get_allocator()<%/type:cpp_use_allocator?%>);
-<%/type:resolves_to_container?%>
-<%/field:cpp_ref?%>
-
-    ::apache::thrift::CompactProtocolReader reader;
-    reader.setInput(&__fbthrift_serializedData_.<%field:cpp_name%>);
-    ::apache::thrift::detail::pm::protocol_methods<<% > common/type_class%>, <%type:cpp_type%>>::read(reader, *ptr);
-
-<%#field:cpp_ref?%>
-    this-><%field:cpp_name%> = std::move(ptr);
-<%/field:cpp_ref?%>
-
-    __fbthrift_isDeserialized_.<%field:cpp_name%> = true;
-  }
-  return <%field:cpp_name%>;
-}
-
-<%field:cpp_storage_type%>& <%struct:name%>::__fbthrift_read_field_<%field:cpp_name%>() {
-  std::as_const(*this).__fbthrift_read_field_<%field:cpp_name%>();
-  return <%field:cpp_name%>;
-}
-<%/field:lazy?%>
-<%/field:type%>
-<%/struct:fields%>
-<%/struct:lazy_fields?%>
 <%/program:tablebased?%>
 <%#program:tablebased?%>
 template <class Protocol_>

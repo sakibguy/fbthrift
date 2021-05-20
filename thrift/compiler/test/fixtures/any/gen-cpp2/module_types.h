@@ -76,19 +76,19 @@ class MyStruct final  {
 
  public:
 
-  MyStruct() {}
+  MyStruct() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyStruct(apache::thrift::FragileConstructor, ::std::string myString__arg);
 
   MyStruct(MyStruct&&) noexcept;
 
-  MyStruct(const MyStruct&) = default;
+  MyStruct(const MyStruct& src);
 
 
   MyStruct& operator=(MyStruct&&) noexcept;
-
-  MyStruct& operator=(const MyStruct&) = default;
+  MyStruct& operator=(const MyStruct& src);
   void __clear();
  private:
   ::std::string myString;
@@ -131,6 +131,7 @@ class MyStruct final  {
   }
 
   template <typename T_MyStruct_myString_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_myString(T_MyStruct_myString_struct_setter&& myString_) {
     myString = std::forward<T_MyStruct_myString_struct_setter>(myString_);
     __isset.myString = true;
@@ -307,7 +308,9 @@ class MyUnion final  {
   }
 
   ::std::string const& get_myString() const {
-    assert(type_ == Type::myString);
+    if (type_ != Type::myString) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.myString;
   }
 
@@ -407,20 +410,23 @@ class MyException final : public apache::thrift::TException {
 
  public:
 
-  MyException() {}
+  MyException();
+
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyException(apache::thrift::FragileConstructor, ::std::string myString__arg);
 
   MyException(MyException&&) noexcept;
 
-  MyException(const MyException&) = default;
+  MyException(const MyException& src);
 
 
   MyException& operator=(MyException&&) noexcept;
-
-  MyException& operator=(const MyException&) = default;
+  MyException& operator=(const MyException& src);
   void __clear();
+
+  ~MyException() override;
+
  private:
   ::std::string myString;
 
@@ -462,6 +468,7 @@ class MyException final : public apache::thrift::TException {
   }
 
   template <typename T_MyException_myString_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_myString(T_MyException_myString_struct_setter&& myString_) {
     myString = std::forward<T_MyException_myString_struct_setter>(myString_);
     __isset.myString = true;

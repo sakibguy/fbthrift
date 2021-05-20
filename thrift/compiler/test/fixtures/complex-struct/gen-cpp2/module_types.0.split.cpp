@@ -69,13 +69,16 @@ void TccStructTraits<::cpp2::MyStructFloatFieldThrowExp>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStructFloatFieldThrowExp::MyStructFloatFieldThrowExp(const MyStructFloatFieldThrowExp&) = default;
+MyStructFloatFieldThrowExp& MyStructFloatFieldThrowExp::operator=(const MyStructFloatFieldThrowExp&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStructFloatFieldThrowExp::MyStructFloatFieldThrowExp(MyStructFloatFieldThrowExp&& other) noexcept  :
     myLongField(std::move(other.myLongField)),
     MyByteField(std::move(other.MyByteField)),
     myStringField(std::move(other.myStringField)),
     myFloatField(std::move(other.myFloatField)),
     __isset(other.__isset) {}
-
 MyStructFloatFieldThrowExp& MyStructFloatFieldThrowExp::operator=(FOLLY_MAYBE_UNUSED MyStructFloatFieldThrowExp&& other) noexcept {
     this->myLongField = std::move(other.myLongField);
     this->MyByteField = std::move(other.MyByteField);
@@ -99,6 +102,7 @@ MyStructFloatFieldThrowExp::MyStructFloatFieldThrowExp(apache::thrift::FragileCo
   __isset.myFloatField = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStructFloatFieldThrowExp::__clear() {
   // clear all fields
   this->myLongField = 0;
@@ -197,11 +201,14 @@ void TccStructTraits<::cpp2::SimpleStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SimpleStruct::SimpleStruct(const SimpleStruct&) = default;
+SimpleStruct& SimpleStruct::operator=(const SimpleStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SimpleStruct::SimpleStruct(SimpleStruct&& other) noexcept  :
     age(std::move(other.age)),
     name(std::move(other.name)),
     __isset(other.__isset) {}
-
 SimpleStruct& SimpleStruct::operator=(FOLLY_MAYBE_UNUSED SimpleStruct&& other) noexcept {
     this->age = std::move(other.age);
     this->name = std::move(other.name);
@@ -219,6 +226,7 @@ SimpleStruct::SimpleStruct(apache::thrift::FragileConstructor, ::std::int64_t ag
   __isset.name = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SimpleStruct::__clear() {
   // clear all fields
   this->age = 60LL;
@@ -304,6 +312,7 @@ namespace cpp2 {
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyDataItem::MyDataItem(apache::thrift::FragileConstructor) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyDataItem::__clear() {
   // clear all fields
 }
@@ -366,7 +375,12 @@ void TccStructTraits<::cpp2::ComplexNestedStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-ComplexNestedStruct::ComplexNestedStruct() {}
+ComplexNestedStruct::ComplexNestedStruct(const ComplexNestedStruct&) = default;
+ComplexNestedStruct& ComplexNestedStruct::operator=(const ComplexNestedStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+ComplexNestedStruct::ComplexNestedStruct() {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -393,7 +407,6 @@ ComplexNestedStruct::ComplexNestedStruct(ComplexNestedStruct&& other) noexcept  
     mapKeySetValInt(std::move(other.mapKeySetValInt)),
     mapKeyListValSet(std::move(other.mapKeyListValSet)),
     __isset(other.__isset) {}
-
 ComplexNestedStruct& ComplexNestedStruct::operator=(FOLLY_MAYBE_UNUSED ComplexNestedStruct&& other) noexcept {
     this->setOfSetOfInt = std::move(other.setOfSetOfInt);
     this->listofListOfListOfListOfEnum = std::move(other.listofListOfListOfListOfEnum);
@@ -459,6 +472,7 @@ ComplexNestedStruct::ComplexNestedStruct(apache::thrift::FragileConstructor, ::s
   __isset.mapKeyListValSet = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void ComplexNestedStruct::__clear() {
   // clear all fields
   this->setOfSetOfInt.clear();
@@ -873,10 +887,22 @@ void TccStructTraits<::cpp2::reqXcep>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+reqXcep::reqXcep(const reqXcep&) = default;
+reqXcep& reqXcep::operator=(const reqXcep&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+reqXcep::reqXcep() :
+      errorCode(0) {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+reqXcep::~reqXcep() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 reqXcep::reqXcep(reqXcep&& other) noexcept  :
     message(std::move(other.message)),
     errorCode(std::move(other.errorCode)) {}
-
 
 reqXcep& reqXcep::operator=(FOLLY_MAYBE_UNUSED reqXcep&& other) noexcept {
     this->message = std::move(other.message);
@@ -891,6 +917,7 @@ reqXcep::reqXcep(apache::thrift::FragileConstructor, ::std::string message__arg,
     message(std::move(message__arg)),
     errorCode(std::move(errorCode__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void reqXcep::__clear() {
   // clear all fields
   this->message = apache::thrift::StringTraits<std::string>::fromStringLiteral("");

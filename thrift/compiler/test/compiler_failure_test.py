@@ -622,12 +622,10 @@ class CompilerFailureTest(unittest.TestCase):
         write_file("foo.thrift", "\n".join(lines))
 
         expected_error = [
-            f"[FAILURE:foo.thrift:{id_count + 1}] Too many fields in `Foo`"
-        ] + [
             f"[WARNING:foo.thrift:{i+3}] No field key specified for field_{i}, "
             "resulting protocol may have conflicts or not be backwards compatible!"
             for i in range(id_count)
-        ] * 2
+        ] * 2 + [f"[FAILURE:foo.thrift:{id_count + 1}] Too many fields in `Foo`"]
         expected_error = "\n".join(expected_error) + "\n"
 
         ret, out, err = self.run_thrift("foo.thrift")
@@ -688,4 +686,94 @@ class CompilerFailureTest(unittest.TestCase):
                 "[FAILURE:foo.thrift:6] Floating point field `field` can not be"
                 + " marked as lazy, since doing so won't bring any benefit.\n"
             ),
+        )
+
+    def test_recursive_union(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                union A {
+                    1: i64 field (cpp.box)
+                }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            textwrap.dedent(
+                "[FAILURE:foo.thrift:2] Unions cannot contain fields with the "
+                "`cpp.box` annotation. Remove the annotation from `field`.\n"
+            ),
+        )
+
+    def test_recursive_ref(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                struct A {
+                    1: optional i64 field (cpp.ref, cpp.box)
+                }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            textwrap.dedent(
+                "[FAILURE:foo.thrift:2] The `cpp.box` annotation cannot be combined "
+                "with the `ref` or `ref_type` annotations. Remove one of the "
+                "annotations from `field`.\n"
+            ),
+        )
+
+    def test_recursive_optional(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                struct A {
+                    1: i64 field (cpp.box)
+                }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            textwrap.dedent(
+                "[FAILURE:foo.thrift:2] The `cpp.box` annotation can only be used with "
+                "optional fields. Make sure field is optional.\n"
+            ),
+        )
+
+    def test_nonexist_field_name(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                struct Foo {}
+                typedef list<Foo> List
+                const List l = [{"foo": "bar"}];
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            textwrap.dedent("[FAILURE:foo.thrift:3] field `foo` does not exist.\n"),
         )

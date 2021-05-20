@@ -62,6 +62,9 @@ ServerStreamFn<T> ServerGeneratorStream::fromAsyncGenerator(
               stream->serverClose();
             };
 
+            // Make sure the generator is destroyed before the interaction.
+            auto gen_ = std::move(gen);
+
             while (true) {
               if (credits == 0 || pauseStream) {
                 ReadyCallback ready;
@@ -97,7 +100,7 @@ ServerStreamFn<T> ServerGeneratorStream::fromAsyncGenerator(
 
               auto&& next = co_await folly::coro::co_awaitTry(
                   folly::coro::co_withCancellation(
-                      stream->cancelSource_.getToken(), gen.next()));
+                      stream->cancelSource_.getToken(), gen_.next()));
               if (next.hasValue()) {
                 if constexpr (WithHeader) {
                   if (!next->payload) {

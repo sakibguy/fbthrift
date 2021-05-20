@@ -36,10 +36,15 @@ void TccStructTraits<::cpp2::Foo>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Foo::Foo(const Foo&) = default;
+Foo& Foo::operator=(const Foo&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Foo::Foo() :
       intField(my::Adapter1::fromThrift(0)),
       optionalIntField(my::Adapter1::fromThrift(0)),
-      intFieldWithDefault(my::Adapter1::fromThrift(13)) {}
+      intFieldWithDefault(my::Adapter1::fromThrift(13)) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -55,7 +60,6 @@ Foo::Foo(Foo&& other) noexcept  :
     mapField(std::move(other.mapField)),
     optionalMapField(std::move(other.optionalMapField)),
     __isset(other.__isset) {}
-
 Foo& Foo::operator=(FOLLY_MAYBE_UNUSED Foo&& other) noexcept {
     this->intField = std::move(other.intField);
     this->optionalIntField = std::move(other.optionalIntField);
@@ -88,6 +92,7 @@ Foo::Foo(apache::thrift::FragileConstructor, ::apache::thrift::adapt_detail::ada
   __isset.optionalMapField = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Foo::__clear() {
   // clear all fields
   this->intField = my::Adapter1::fromThrift(0);
@@ -242,13 +247,16 @@ void TccStructTraits<::cpp2::Bar>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Bar::Bar(const Bar&) = default;
+Bar& Bar::operator=(const Bar&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Bar::Bar(Bar&& other) noexcept  :
     structField(std::move(other.structField)),
     optionalStructField(std::move(other.optionalStructField)),
     structListField(std::move(other.structListField)),
     optionalStructListField(std::move(other.optionalStructListField)),
     __isset(other.__isset) {}
-
 Bar& Bar::operator=(FOLLY_MAYBE_UNUSED Bar&& other) noexcept {
     this->structField = std::move(other.structField);
     this->optionalStructField = std::move(other.optionalStructField);
@@ -272,6 +280,7 @@ Bar::Bar(apache::thrift::FragileConstructor, ::apache::thrift::adapt_detail::ada
   __isset.optionalStructListField = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Bar::__clear() {
   // clear all fields
   this->structField.__clear();

@@ -397,12 +397,15 @@ void TccStructTraits<::cpp2::Val>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Val::Val(const Val&) = default;
+Val& Val::operator=(const Val&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Val::Val(Val&& other) noexcept  :
     strVal(std::move(other.strVal)),
     intVal(std::move(other.intVal)),
     typedefValue(std::move(other.typedefValue)),
     __isset(other.__isset) {}
-
 Val& Val::operator=(FOLLY_MAYBE_UNUSED Val&& other) noexcept {
     this->strVal = std::move(other.strVal);
     this->intVal = std::move(other.intVal);
@@ -423,6 +426,7 @@ Val::Val(apache::thrift::FragileConstructor, ::std::string strVal__arg, ::std::i
   __isset.typedefValue = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Val::__clear() {
   // clear all fields
   this->strVal = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -771,6 +775,7 @@ NonCopyableStruct::NonCopyableStruct(apache::thrift::FragileConstructor, ::std::
   __isset.num = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void NonCopyableStruct::__clear() {
   // clear all fields
   this->num = 0;

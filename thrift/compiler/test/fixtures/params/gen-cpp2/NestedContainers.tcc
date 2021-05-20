@@ -33,6 +33,10 @@ void NestedContainersAsyncProcessor::setUpAndProcess_mapList(apache::thrift::Res
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void NestedContainersAsyncProcessor::process_mapList(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -49,19 +53,15 @@ void NestedContainersAsyncProcessor::process_mapList(apache::thrift::ResponseCha
         ew, std::move(req), ctx, eb, "mapList");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_mapList<ProtocolIn_,ProtocolOut_>, throw_wrapped_mapList<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_mapList(std::move(callback), std::move(uarg_foo));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue NestedContainersAsyncProcessor::return_mapList(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse NestedContainersAsyncProcessor::return_mapList(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   NestedContainers_mapList_presult result;
-  return serializeResponse("mapList", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("mapList", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -89,6 +89,10 @@ void NestedContainersAsyncProcessor::setUpAndProcess_mapSet(apache::thrift::Resp
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void NestedContainersAsyncProcessor::process_mapSet(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -105,19 +109,15 @@ void NestedContainersAsyncProcessor::process_mapSet(apache::thrift::ResponseChan
         ew, std::move(req), ctx, eb, "mapSet");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_mapSet<ProtocolIn_,ProtocolOut_>, throw_wrapped_mapSet<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_mapSet(std::move(callback), std::move(uarg_foo));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue NestedContainersAsyncProcessor::return_mapSet(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse NestedContainersAsyncProcessor::return_mapSet(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   NestedContainers_mapSet_presult result;
-  return serializeResponse("mapSet", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("mapSet", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -145,6 +145,10 @@ void NestedContainersAsyncProcessor::setUpAndProcess_listMap(apache::thrift::Res
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void NestedContainersAsyncProcessor::process_listMap(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -161,19 +165,15 @@ void NestedContainersAsyncProcessor::process_listMap(apache::thrift::ResponseCha
         ew, std::move(req), ctx, eb, "listMap");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_listMap<ProtocolIn_,ProtocolOut_>, throw_wrapped_listMap<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_listMap(std::move(callback), std::move(uarg_foo));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue NestedContainersAsyncProcessor::return_listMap(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse NestedContainersAsyncProcessor::return_listMap(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   NestedContainers_listMap_presult result;
-  return serializeResponse("listMap", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("listMap", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -201,6 +201,10 @@ void NestedContainersAsyncProcessor::setUpAndProcess_listSet(apache::thrift::Res
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void NestedContainersAsyncProcessor::process_listSet(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -217,19 +221,15 @@ void NestedContainersAsyncProcessor::process_listSet(apache::thrift::ResponseCha
         ew, std::move(req), ctx, eb, "listSet");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_listSet<ProtocolIn_,ProtocolOut_>, throw_wrapped_listSet<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_listSet(std::move(callback), std::move(uarg_foo));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue NestedContainersAsyncProcessor::return_listSet(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse NestedContainersAsyncProcessor::return_listSet(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   NestedContainers_listSet_presult result;
-  return serializeResponse("listSet", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("listSet", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -257,6 +257,10 @@ void NestedContainersAsyncProcessor::setUpAndProcess_turtles(apache::thrift::Res
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void NestedContainersAsyncProcessor::process_turtles(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -273,19 +277,15 @@ void NestedContainersAsyncProcessor::process_turtles(apache::thrift::ResponseCha
         ew, std::move(req), ctx, eb, "turtles");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_turtles<ProtocolIn_,ProtocolOut_>, throw_wrapped_turtles<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_turtles(std::move(callback), std::move(uarg_foo));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue NestedContainersAsyncProcessor::return_turtles(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse NestedContainersAsyncProcessor::return_turtles(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   NestedContainers_turtles_presult result;
-  return serializeResponse("turtles", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("turtles", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

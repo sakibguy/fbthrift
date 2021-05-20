@@ -36,7 +36,17 @@ namespace compiler {
  */
 class t_enum : public t_type {
  public:
-  explicit t_enum(t_program* program) : t_type(program) {}
+  t_enum(t_program* program, std::string name)
+      : t_type(program, std::move(name)) {}
+
+  void set_values(t_enum_value_list values) {
+    enum_values_raw_.clear();
+    enum_values_.clear();
+    constants_.clear();
+    for (auto& value : values) {
+      append(std::move(value));
+    }
+  }
 
   void append(std::unique_ptr<t_enum_value> enum_value) {
     if (!enum_value->has_value()) {
@@ -60,9 +70,11 @@ class t_enum : public t_type {
     append(std::move(enum_value), std::move(tconst));
   }
 
-  const std::vector<const t_const*> enum_values() const {
-    return raw_constants_;
+  node_list_view<t_enum_value> enum_values() { return enum_values_; }
+  node_list_view<const t_enum_value> enum_values() const {
+    return enum_values_;
   }
+  node_list_view<const t_const> enum_consts() const { return constants_; }
 
   const t_enum_value* find_value(const int32_t enum_value) const {
     for (auto const& it : enum_values_) {
@@ -73,17 +85,11 @@ class t_enum : public t_type {
     return nullptr;
   }
 
-  bool is_enum() const override { return true; }
-
   std::string get_full_name() const override { return make_full_name("enum"); }
 
-  type get_type_value() const override { return type::t_enum; }
-
  private:
-  std::vector<std::unique_ptr<t_enum_value>> enum_values_;
-  std::vector<std::unique_ptr<t_const>> constants_;
-
-  std::vector<const t_const*> raw_constants_;
+  t_enum_value_list enum_values_;
+  node_list<t_const> constants_;
 
   // TODO(afuller): These methods are only provided for backwards
   // compatibility. Update all references and remove everything below.
@@ -92,7 +98,6 @@ class t_enum : public t_type {
       std::unique_ptr<t_enum_value> enum_value,
       std::unique_ptr<t_const> constant) {
     enum_values_raw_.push_back(enum_value.get());
-    raw_constants_.push_back(constant.get());
     enum_values_.push_back(std::move(enum_value));
     constants_.push_back(std::move(constant));
   }
@@ -100,6 +105,9 @@ class t_enum : public t_type {
   const std::vector<t_enum_value*>& get_enum_values() const {
     return enum_values_raw_;
   }
+
+  bool is_enum() const override { return true; }
+  type get_type_value() const override { return type::t_enum; }
 
  private:
   std::vector<t_enum_value*> enum_values_raw_;

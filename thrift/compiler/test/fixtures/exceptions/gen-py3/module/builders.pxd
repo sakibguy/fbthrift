@@ -13,10 +13,6 @@ cimport thrift.py3.builder
 
 cimport module.types as _module_types
 
-cdef class Banal_Builder(thrift.py3.builder.StructBuilder):
-    pass
-
-
 cdef class Fiery_Builder(thrift.py3.builder.StructBuilder):
     cdef public str message
 
@@ -33,5 +29,14 @@ cdef class ComplexFieldNames_Builder(thrift.py3.builder.StructBuilder):
 cdef class CustomFieldNames_Builder(thrift.py3.builder.StructBuilder):
     cdef public str error_message
     cdef public str internal_error_message
+
+
+cdef class ExceptionWithPrimitiveField_Builder(thrift.py3.builder.StructBuilder):
+    cdef public str message
+    cdef public pint error_code
+
+
+cdef class Banal_Builder(thrift.py3.builder.StructBuilder):
+    pass
 
 

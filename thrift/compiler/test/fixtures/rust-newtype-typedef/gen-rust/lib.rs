@@ -34,6 +34,12 @@ pub mod types {
         const TTYPE: ::fbthrift::TType = <::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32> as ::fbthrift::GetTType>::TTYPE;
     }
 
+    impl MapType {
+      pub fn new(v: ::sorted_vector_map::SortedVectorMap) -> Self {
+        Self(v)
+      }
+    }
+
     impl<P> ::fbthrift::Serialize<P> for MapType
     where
         P: ::fbthrift::ProtocolWriter,
@@ -55,6 +61,12 @@ pub mod types {
 
     impl ::fbthrift::GetTType for BinType {
         const TTYPE: ::fbthrift::TType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::TTYPE;
+    }
+
+    impl BinType {
+      pub fn new(v: ::smallvec::SmallVec<[u8; 16]>) -> Self {
+        Self(v)
+      }
     }
 
     impl<P> ::fbthrift::Serialize<P> for BinType
@@ -79,6 +91,13 @@ pub mod types {
     impl ::fbthrift::GetTType for BytesType {
         const TTYPE: ::fbthrift::TType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::TTYPE;
     }
+
+    impl BytesType {
+      pub fn new(v: ::fbthrift::builtin_types::Bytes) -> Self {
+        Self(v)
+      }
+    }
+
 
     impl<P> ::fbthrift::Serialize<P> for BytesType
     where
@@ -215,7 +234,7 @@ mod r#impl {
         P: ::fbthrift::ProtocolReader,
     {
         let value: LocalImpl<T> = ::fbthrift::Deserialize::read(p)?;
-        Ok(value.0)
+        ::std::result::Result::Ok(value.0)
     }
 
     impl<P> ::fbthrift::Serialize<P> for LocalImpl<::smallvec::SmallVec<[u8; 16]>>
@@ -334,7 +353,7 @@ mod r#impl {
                 }
             }
             p.read_map_end()?;
-            Ok(LocalImpl(map))
+            ::std::result::Result::Ok(LocalImpl(map))
         }
     }
 }

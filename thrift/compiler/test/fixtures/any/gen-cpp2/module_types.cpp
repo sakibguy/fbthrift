@@ -61,10 +61,13 @@ const char* MyStruct::__fbthrift_cpp2_gen_thrift_uri() {
 }
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStruct::MyStruct(const MyStruct&) = default;
+MyStruct& MyStruct::operator=(const MyStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct(MyStruct&& other) noexcept  :
     myString(std::move(other.myString)),
     __isset(other.__isset) {}
-
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->myString = std::move(other.myString);
     __isset = other.__isset;
@@ -79,6 +82,7 @@ MyStruct::MyStruct(apache::thrift::FragileConstructor, ::std::string myString__a
   __isset.myString = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStruct::__clear() {
   // clear all fields
   this->myString = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -264,10 +268,21 @@ const char* MyException::__fbthrift_cpp2_gen_thrift_uri() {
 }
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyException::MyException(const MyException&) = default;
+MyException& MyException::operator=(const MyException&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyException::MyException() {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+MyException::~MyException() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyException::MyException(MyException&& other) noexcept  :
     myString(std::move(other.myString)),
     __isset(other.__isset) {}
-
 MyException& MyException::operator=(FOLLY_MAYBE_UNUSED MyException&& other) noexcept {
     this->myString = std::move(other.myString);
     __isset = other.__isset;
@@ -282,6 +297,7 @@ MyException::MyException(apache::thrift::FragileConstructor, ::std::string myStr
   __isset.myString = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyException::__clear() {
   // clear all fields
   this->myString = apache::thrift::StringTraits<std::string>::fromStringLiteral("");

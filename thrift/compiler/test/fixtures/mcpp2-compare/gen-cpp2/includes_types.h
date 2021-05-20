@@ -122,7 +122,8 @@ class AStruct final  {
  public:
 
   AStruct() :
-      FieldA(0) {}
+      FieldA(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   AStruct(apache::thrift::FragileConstructor, ::std::int32_t FieldA__arg);
@@ -172,6 +173,7 @@ class AStruct final  {
     return FieldA;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_FieldA(::std::int32_t FieldA_) {
     FieldA = FieldA_;
     __isset.FieldA = true;
@@ -229,19 +231,19 @@ class AStructB final  {
  public:
 
   AStructB() :
-      FieldA(std::make_shared<::a::different::ns::AStruct>()) {}
+      FieldA(std::make_shared<::a::different::ns::AStruct>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   AStructB(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::a::different::ns::AStruct> FieldA__arg);
 
   AStructB(AStructB&&) noexcept;
 
-  AStructB(const AStructB&) = default;
+  AStructB(const AStructB& src);
 
 
   AStructB& operator=(AStructB&&) noexcept;
-
-  AStructB& operator=(const AStructB&) = default;
+  AStructB& operator=(const AStructB& src);
   void __clear();
  public:
   ::std::shared_ptr<const ::a::different::ns::AStruct> FieldA;

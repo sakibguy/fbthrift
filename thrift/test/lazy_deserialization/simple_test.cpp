@@ -32,14 +32,41 @@ Struct gen() {
 }
 
 TEST(Serialization, Copyable) {
-  auto foo = gen<LazyFoo>();
-  LazyFoo bar = foo, baz;
-  baz = foo;
+  auto base = gen<LazyFoo>();
+  auto bar = base; // copy constructor
+  LazyFoo baz;
+  baz = base; // copy assignment
 
   EXPECT_EQ(bar.field1_ref(), baz.field1_ref());
   EXPECT_EQ(bar.field2_ref(), baz.field2_ref());
   EXPECT_EQ(bar.field3_ref(), baz.field3_ref());
   EXPECT_EQ(bar.field4_ref(), baz.field4_ref());
+
+  auto foo = gen<Foo>();
+
+  EXPECT_EQ(foo.field1_ref(), bar.field1_ref());
+  EXPECT_EQ(foo.field2_ref(), bar.field2_ref());
+  EXPECT_EQ(foo.field3_ref(), bar.field3_ref());
+  EXPECT_EQ(foo.field4_ref(), bar.field4_ref());
+}
+
+TEST(Serialization, Moveable) {
+  auto temp = gen<LazyFoo>();
+  auto bar = std::move(temp); // move constructor
+  LazyFoo baz;
+  baz = gen<LazyFoo>(); // move assignment
+
+  EXPECT_EQ(bar.field1_ref(), baz.field1_ref());
+  EXPECT_EQ(bar.field2_ref(), baz.field2_ref());
+  EXPECT_EQ(bar.field3_ref(), baz.field3_ref());
+  EXPECT_EQ(bar.field4_ref(), baz.field4_ref());
+
+  auto foo = gen<Foo>();
+
+  EXPECT_EQ(foo.field1_ref(), bar.field1_ref());
+  EXPECT_EQ(foo.field2_ref(), bar.field2_ref());
+  EXPECT_EQ(foo.field3_ref(), bar.field3_ref());
+  EXPECT_EQ(foo.field4_ref(), bar.field4_ref());
 }
 
 TEST(Serialization, FooToLazyFoo) {
@@ -157,6 +184,17 @@ TEST(Serialization, Evolution) {
   EXPECT_TRUE(foo.field2_ref()->empty());
   EXPECT_TRUE(foo.field3_ref()->empty());
   EXPECT_TRUE(foo.field4_ref()->empty());
+}
+
+TEST(Serialization, OptionalField) {
+  auto s = CompactSerializer::serialize<std::string>(gen<Foo>());
+  auto foo = CompactSerializer::deserialize<OptionalFoo>(s);
+  auto lazyFoo = CompactSerializer::deserialize<OptionalLazyFoo>(s);
+
+  EXPECT_EQ(foo.field1_ref(), lazyFoo.field1_ref());
+  EXPECT_EQ(foo.field2_ref(), lazyFoo.field2_ref());
+  EXPECT_EQ(foo.field3_ref(), lazyFoo.field3_ref());
+  EXPECT_EQ(foo.field4_ref(), lazyFoo.field4_ref());
 }
 
 } // namespace apache::thrift::test

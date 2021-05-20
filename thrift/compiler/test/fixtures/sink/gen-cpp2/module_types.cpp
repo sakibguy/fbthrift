@@ -36,10 +36,13 @@ void TccStructTraits<::cpp2::InitialResponse>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+InitialResponse::InitialResponse(const InitialResponse&) = default;
+InitialResponse& InitialResponse::operator=(const InitialResponse&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 InitialResponse::InitialResponse(InitialResponse&& other) noexcept  :
     content(std::move(other.content)),
     __isset(other.__isset) {}
-
 InitialResponse& InitialResponse::operator=(FOLLY_MAYBE_UNUSED InitialResponse&& other) noexcept {
     this->content = std::move(other.content);
     __isset = other.__isset;
@@ -54,6 +57,7 @@ InitialResponse::InitialResponse(apache::thrift::FragileConstructor, ::std::stri
   __isset.content = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void InitialResponse::__clear() {
   // clear all fields
   this->content = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -128,10 +132,13 @@ void TccStructTraits<::cpp2::FinalResponse>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+FinalResponse::FinalResponse(const FinalResponse&) = default;
+FinalResponse& FinalResponse::operator=(const FinalResponse&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 FinalResponse::FinalResponse(FinalResponse&& other) noexcept  :
     content(std::move(other.content)),
     __isset(other.__isset) {}
-
 FinalResponse& FinalResponse::operator=(FOLLY_MAYBE_UNUSED FinalResponse&& other) noexcept {
     this->content = std::move(other.content);
     __isset = other.__isset;
@@ -146,6 +153,7 @@ FinalResponse::FinalResponse(apache::thrift::FragileConstructor, ::std::string c
   __isset.content = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void FinalResponse::__clear() {
   // clear all fields
   this->content = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -220,10 +228,13 @@ void TccStructTraits<::cpp2::SinkPayload>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SinkPayload::SinkPayload(const SinkPayload&) = default;
+SinkPayload& SinkPayload::operator=(const SinkPayload&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SinkPayload::SinkPayload(SinkPayload&& other) noexcept  :
     content(std::move(other.content)),
     __isset(other.__isset) {}
-
 SinkPayload& SinkPayload::operator=(FOLLY_MAYBE_UNUSED SinkPayload&& other) noexcept {
     this->content = std::move(other.content);
     __isset = other.__isset;
@@ -238,6 +249,7 @@ SinkPayload::SinkPayload(apache::thrift::FragileConstructor, ::std::string conte
   __isset.content = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SinkPayload::__clear() {
   // clear all fields
   this->content = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -312,10 +324,13 @@ void TccStructTraits<::cpp2::CompatibleWithKeywordSink>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+CompatibleWithKeywordSink::CompatibleWithKeywordSink(const CompatibleWithKeywordSink&) = default;
+CompatibleWithKeywordSink& CompatibleWithKeywordSink::operator=(const CompatibleWithKeywordSink&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 CompatibleWithKeywordSink::CompatibleWithKeywordSink(CompatibleWithKeywordSink&& other) noexcept  :
     sink(std::move(other.sink)),
     __isset(other.__isset) {}
-
 CompatibleWithKeywordSink& CompatibleWithKeywordSink::operator=(FOLLY_MAYBE_UNUSED CompatibleWithKeywordSink&& other) noexcept {
     this->sink = std::move(other.sink);
     __isset = other.__isset;
@@ -330,6 +345,7 @@ CompatibleWithKeywordSink::CompatibleWithKeywordSink(apache::thrift::FragileCons
   __isset.sink = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void CompatibleWithKeywordSink::__clear() {
   // clear all fields
   this->sink = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -404,10 +420,21 @@ void TccStructTraits<::cpp2::InitialException>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+InitialException::InitialException(const InitialException&) = default;
+InitialException& InitialException::operator=(const InitialException&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+InitialException::InitialException() {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+InitialException::~InitialException() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 InitialException::InitialException(InitialException&& other) noexcept  :
     reason(std::move(other.reason)),
     __isset(other.__isset) {}
-
 InitialException& InitialException::operator=(FOLLY_MAYBE_UNUSED InitialException&& other) noexcept {
     this->reason = std::move(other.reason);
     __isset = other.__isset;
@@ -422,6 +449,7 @@ InitialException::InitialException(apache::thrift::FragileConstructor, ::std::st
   __isset.reason = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void InitialException::__clear() {
   // clear all fields
   this->reason = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -496,10 +524,21 @@ void TccStructTraits<::cpp2::SinkException1>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SinkException1::SinkException1(const SinkException1&) = default;
+SinkException1& SinkException1::operator=(const SinkException1&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SinkException1::SinkException1() {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+SinkException1::~SinkException1() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SinkException1::SinkException1(SinkException1&& other) noexcept  :
     reason(std::move(other.reason)),
     __isset(other.__isset) {}
-
 SinkException1& SinkException1::operator=(FOLLY_MAYBE_UNUSED SinkException1&& other) noexcept {
     this->reason = std::move(other.reason);
     __isset = other.__isset;
@@ -514,6 +553,7 @@ SinkException1::SinkException1(apache::thrift::FragileConstructor, ::std::string
   __isset.reason = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SinkException1::__clear() {
   // clear all fields
   this->reason = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -588,10 +628,22 @@ void TccStructTraits<::cpp2::SinkException2>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SinkException2::SinkException2(const SinkException2&) = default;
+SinkException2& SinkException2::operator=(const SinkException2&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SinkException2::SinkException2() :
+      reason(0) {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+SinkException2::~SinkException2() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SinkException2::SinkException2(SinkException2&& other) noexcept  :
     reason(std::move(other.reason)),
     __isset(other.__isset) {}
-
 SinkException2& SinkException2::operator=(FOLLY_MAYBE_UNUSED SinkException2&& other) noexcept {
     this->reason = std::move(other.reason);
     __isset = other.__isset;
@@ -606,6 +658,7 @@ SinkException2::SinkException2(apache::thrift::FragileConstructor, ::std::int64_
   __isset.reason = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SinkException2::__clear() {
   // clear all fields
   this->reason = 0;

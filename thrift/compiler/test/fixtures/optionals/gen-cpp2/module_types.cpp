@@ -81,6 +81,7 @@ Color::Color(apache::thrift::FragileConstructor, double red__arg, double green__
   __isset.alpha = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Color::__clear() {
   // clear all fields
   this->red = 0;
@@ -179,8 +180,13 @@ void TccStructTraits<::cpp2::Vehicle>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Vehicle::Vehicle(const Vehicle&) = default;
+Vehicle& Vehicle::operator=(const Vehicle&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Vehicle::Vehicle() :
-      hasAC(false) {}
+      hasAC(false) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -194,7 +200,6 @@ Vehicle::Vehicle(Vehicle&& other) noexcept  :
     name(std::move(other.name)),
     hasAC(std::move(other.hasAC)),
     __isset(other.__isset) {}
-
 Vehicle& Vehicle::operator=(FOLLY_MAYBE_UNUSED Vehicle&& other) noexcept {
     this->color = std::move(other.color);
     this->licensePlate = std::move(other.licensePlate);
@@ -221,6 +226,7 @@ Vehicle::Vehicle(apache::thrift::FragileConstructor, ::cpp2::Color color__arg, :
   __isset.hasAC = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Vehicle::__clear() {
   // clear all fields
   this->color.__clear();
@@ -347,11 +353,16 @@ void TccStructTraits<::cpp2::Person>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Person::Person(const Person&) = default;
+Person& Person::operator=(const Person&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Person::Person() :
       id(0),
       age(0),
       bestFriend(0),
-      afraidOfAnimal(static_cast< ::cpp2::Animal>(0)) {}
+      afraidOfAnimal(static_cast< ::cpp2::Animal>(0)) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -370,7 +381,6 @@ Person::Person(Person&& other) noexcept  :
     afraidOfAnimal(std::move(other.afraidOfAnimal)),
     vehicles(std::move(other.vehicles)),
     __isset(other.__isset) {}
-
 Person& Person::operator=(FOLLY_MAYBE_UNUSED Person&& other) noexcept {
     this->id = std::move(other.id);
     this->name = std::move(other.name);
@@ -412,6 +422,7 @@ Person::Person(apache::thrift::FragileConstructor, ::cpp2::PersonID id__arg, ::s
   __isset.vehicles = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Person::__clear() {
   // clear all fields
   this->id = 0;

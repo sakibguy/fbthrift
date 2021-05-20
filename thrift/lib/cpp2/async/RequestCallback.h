@@ -30,6 +30,8 @@
 #include <thrift/lib/cpp2/async/ClientSinkBridge.h>
 #include <thrift/lib/cpp2/async/ClientStreamBridge.h>
 #include <thrift/lib/cpp2/async/Interaction.h>
+#include <thrift/lib/cpp2/async/RpcTypes.h>
+#include <thrift/lib/cpp2/protocol/Protocol.h>
 
 namespace apache {
 namespace thrift {
@@ -51,38 +53,41 @@ class ClientReceiveState {
       uint16_t _protocolId,
       std::unique_ptr<folly::IOBuf> _buf,
       std::unique_ptr<apache::thrift::transport::THeader> _header,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx)
+      std::unique_ptr<apache::thrift::ContextStack> _ctx)
       : protocolId_(_protocolId),
         ctx_(std::move(_ctx)),
-        buf_(std::move(_buf)),
-        header_(std::move(_header)) {}
+        header_(std::move(_header)) {
+    initFromLegacyFormat(std::move(_buf));
+  }
   ClientReceiveState(
       uint16_t _protocolId,
       std::unique_ptr<folly::IOBuf> _buf,
       std::unique_ptr<apache::thrift::transport::THeader> _header,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx,
+      std::unique_ptr<apache::thrift::ContextStack> _ctx,
       const RpcSizeStats& _rpcWireSizeStats)
       : protocolId_(_protocolId),
         ctx_(std::move(_ctx)),
-        buf_(std::move(_buf)),
         header_(std::move(_header)),
-        rpcSizeStats_(_rpcWireSizeStats) {}
+        rpcSizeStats_(_rpcWireSizeStats) {
+    initFromLegacyFormat(std::move(_buf));
+  }
   ClientReceiveState(
       uint16_t _protocolId,
       std::unique_ptr<folly::IOBuf> buf,
       std::unique_ptr<apache::thrift::transport::THeader> _header,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx,
+      std::unique_ptr<apache::thrift::ContextStack> _ctx,
       apache::thrift::detail::ClientStreamBridge::ClientPtr streamBridge,
       const BufferOptions& bufferOptions)
       : protocolId_(_protocolId),
         ctx_(std::move(_ctx)),
-        buf_(std::move(buf)),
         header_(std::move(_header)),
         streamBridge_(std::move(streamBridge)),
-        bufferOptions_(bufferOptions) {}
+        bufferOptions_(bufferOptions) {
+    initFromLegacyFormat(std::move(buf));
+  }
   ClientReceiveState(
       folly::exception_wrapper _excw,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx)
+      std::unique_ptr<apache::thrift::ContextStack> _ctx)
       : protocolId_(-1),
         ctx_(std::move(_ctx)),
         header_(std::make_unique<apache::thrift::transport::THeader>()),
@@ -92,12 +97,26 @@ class ClientReceiveState {
       std::unique_ptr<folly::IOBuf> _buf,
       apache::thrift::detail::ClientSinkBridge::Ptr sink,
       std::unique_ptr<apache::thrift::transport::THeader> _header,
-      std::shared_ptr<apache::thrift::ContextStack> _ctx)
+      std::unique_ptr<apache::thrift::ContextStack> _ctx)
       : protocolId_(_protocolId),
         ctx_(std::move(_ctx)),
-        buf_(std::move(_buf)),
         header_(std::move(_header)),
-        sink_(std::move(sink)) {}
+        sink_(std::move(sink)) {
+    initFromLegacyFormat(std::move(_buf));
+  }
+  ClientReceiveState(
+      uint16_t _protocolId,
+      MessageType mtype,
+      SerializedResponse response,
+      std::unique_ptr<apache::thrift::transport::THeader> _header,
+      std::unique_ptr<apache::thrift::ContextStack> _ctx,
+      const RpcSizeStats& _rpcWireSizeStats)
+      : protocolId_(_protocolId),
+        messageType_(mtype),
+        ctx_(std::move(_ctx)),
+        response_(std::move(response)),
+        header_(std::move(_header)),
+        rpcSizeStats_(_rpcWireSizeStats) {}
 
   bool isException() const { return excw_ ? true : false; }
 
@@ -107,9 +126,16 @@ class ClientReceiveState {
 
   uint16_t protocolId() const { return protocolId_; }
 
-  folly::IOBuf* buf() const { return buf_.get(); }
+  bool hasResponseBuffer() const { return (bool)response_.buffer; }
 
-  std::unique_ptr<folly::IOBuf> extractBuf() { return std::move(buf_); }
+  MessageType messageType() const { return messageType_; }
+
+  SerializedResponse& serializedResponse() { return response_; }
+  const SerializedResponse& serializedResponse() const { return response_; }
+
+  SerializedResponse extractSerializedResponse() {
+    return std::move(response_);
+  }
 
   apache::thrift::detail::ClientStreamBridge::ClientPtr extractStreamBridge() {
     return std::move(streamBridge_);
@@ -135,7 +161,7 @@ class ClientReceiveState {
 
   void resetProtocolId(uint16_t protocolId) { protocolId_ = protocolId; }
 
-  void resetCtx(std::shared_ptr<apache::thrift::ContextStack> _ctx) {
+  void resetCtx(std::unique_ptr<apache::thrift::ContextStack> _ctx) {
     ctx_ = std::move(_ctx);
   }
 
@@ -143,14 +169,17 @@ class ClientReceiveState {
 
  private:
   uint16_t protocolId_;
-  std::shared_ptr<apache::thrift::ContextStack> ctx_;
-  std::unique_ptr<folly::IOBuf> buf_;
+  MessageType messageType_{T_CALL};
+  std::unique_ptr<apache::thrift::ContextStack> ctx_;
+  SerializedResponse response_{nullptr};
   std::unique_ptr<apache::thrift::transport::THeader> header_;
   folly::exception_wrapper excw_;
   apache::thrift::detail::ClientStreamBridge::ClientPtr streamBridge_;
   apache::thrift::detail::ClientSinkBridge::Ptr sink_;
   BufferOptions bufferOptions_;
   RpcSizeStats rpcSizeStats_;
+
+  void initFromLegacyFormat(std::unique_ptr<folly::IOBuf> buffer);
 };
 
 class RequestClientCallback {
@@ -254,7 +283,7 @@ class RequestCallback : public RequestClientCallback {
   struct Context {
     bool oneWay{false};
     uint16_t protocolId;
-    std::shared_ptr<apache::thrift::ContextStack> ctx;
+    std::unique_ptr<apache::thrift::ContextStack> ctx;
   };
 
  private:

@@ -72,6 +72,7 @@ namespace cpp2 {
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyDataItem::MyDataItem(apache::thrift::FragileConstructor) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyDataItem::__clear() {
   // clear all fields
 }
@@ -134,12 +135,17 @@ void TccStructTraits<::cpp2::MyStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStruct::MyStruct(const MyStruct&) = default;
+MyStruct& MyStruct::operator=(const MyStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct() :
       MyIntField(0),
       myEnum( ::cpp2::MyEnum::MyValue1),
       oneway(0),
       readonly(0),
-      idempotent(0) {}
+      idempotent(0) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -155,7 +161,6 @@ MyStruct::MyStruct(MyStruct&& other) noexcept  :
     readonly(std::move(other.readonly)),
     idempotent(std::move(other.idempotent)),
     __isset(other.__isset) {}
-
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->MyIntField = std::move(other.MyIntField);
     this->MyStringField = std::move(other.MyStringField);
@@ -188,6 +193,7 @@ MyStruct::MyStruct(apache::thrift::FragileConstructor, ::std::int64_t MyIntField
   __isset.idempotent = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStruct::__clear() {
   // clear all fields
   this->MyIntField = 0;

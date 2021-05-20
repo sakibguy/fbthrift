@@ -249,15 +249,15 @@ void ThriftServer::setup() {
   addRoutingHandler(
       std::make_unique<apache::thrift::RocketRoutingHandler>(*this));
 
-  // Initialize event base for this thread, ensure event_init() is called
-  serveEventBase_ = eventBaseManager_->getEventBase();
+  // Initialize event base for this thread
+  auto serveEventBase = eventBaseManager_->getEventBase();
+  serveEventBase_ = serveEventBase;
   if (idleServerTimeout_.count() > 0) {
-    idleServer_.emplace(
-        *this, serveEventBase_.load()->timer(), idleServerTimeout_);
+    idleServer_.emplace(*this, serveEventBase->timer(), idleServerTimeout_);
   }
   // Print some libevent stats
   VLOG(1) << "libevent " << folly::EventBase::getLibeventVersion() << " method "
-          << folly::EventBase::getLibeventMethod();
+          << serveEventBase->getLibeventMethod();
 
   try {
 #ifndef _WIN32
@@ -302,7 +302,7 @@ void ThriftServer::setup() {
     });
     if (thriftProcessor_) {
       thriftProcessor_->setThreadManager(threadManager_.get());
-      thriftProcessor_->setCpp2Processor(getCpp2Processor());
+      thriftProcessor_->setCpp2Processor(getProcessorFactory()->getProcessor());
     }
 
     if (!serverChannel_) {
@@ -324,11 +324,6 @@ void ThriftServer::setup() {
             nAcceptors_,
             std::make_shared<folly::NamedThreadFactory>("Acceptor Thread"));
       }
-
-      // Resize the SSL handshake pool
-      size_t nSSLHandshakeWorkers = getNumSSLHandshakeWorkerThreads();
-      VLOG(1) << "Using " << nSSLHandshakeWorkers << " SSL handshake threads";
-      sslHandshakePool_->setNumThreads(nSSLHandshakeWorkers);
 
       auto acceptorFactory = acceptorFactory_
           ? acceptorFactory_
@@ -377,13 +372,21 @@ void ThriftServer::setup() {
           }
         });
       }
-
-      // Notify handler of the preServe event
-      if (eventHandler_ != nullptr) {
-        eventHandler_->preServe(&addresses_.at(0));
-      }
     } else {
       startDuplex();
+    }
+
+    // Notify handler of the preStart event
+    for (const auto& eventHandler : getEventHandlersUnsafe()) {
+      eventHandler->preStart(&addresses_.at(0));
+    }
+
+    // Called after setup
+    callOnStartServing();
+
+    // Notify handler of the preServe event
+    for (const auto& eventHandler : getEventHandlersUnsafe()) {
+      eventHandler->preServe(&addresses_.at(0));
     }
 
     // Do not allow setters to be called past this point until the IO worker
@@ -404,7 +407,7 @@ void ThriftServer::setupThreadManager() {
   if (!threadManager_) {
     std::shared_ptr<apache::thrift::concurrency::ThreadManager> threadManager(
         PriorityThreadManager::newPriorityThreadManager(
-            getNumCPUWorkerThreads(), true /*stats*/));
+            getNumCPUWorkerThreads()));
     threadManager->enableCodel(getEnableCodel());
     // If a thread factory has been specified, use it.
     if (threadFactory_) {
@@ -517,6 +520,9 @@ void ThriftServer::stop() {
 }
 
 void ThriftServer::stopListening() {
+  // Called before cleanUp
+  callOnStopServing();
+
   {
     auto sockets = getSockets();
     folly::Baton<> done;
@@ -546,7 +552,6 @@ void ThriftServer::stopWorkers() {
   DCHECK(!duplexWorker_);
   ServerBootstrap::stop();
   ServerBootstrap::join();
-  sslHandshakePool_->join();
   configMutable_ = true;
 }
 
@@ -604,6 +609,37 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
       }
     }
   });
+}
+
+void ThriftServer::callOnStartServing() {
+  calledOnStopServing_ = false;
+  auto handlerList = getProcessorFactory()->getServiceHandlers();
+  std::vector<folly::SemiFuture<folly::Unit>> futures;
+  futures.reserve(handlerList.size());
+  for (auto handler : handlerList) {
+    futures.emplace_back(handler->semifuture_onStartServing());
+  }
+  folly::collectAll(futures.begin(), futures.end())
+      .via(getThreadManager().get())
+      .get();
+}
+
+void ThriftServer::callOnStopServing() {
+  // We have to make sure callOnStopServing() is not called twice when both
+  // stopListening() and cleanUp() are called
+  if (calledOnStopServing_.exchange(true)) {
+    // callOnStopServing() was called earlier
+    return;
+  }
+  auto handlerList = getProcessorFactory()->getServiceHandlers();
+  std::vector<folly::SemiFuture<folly::Unit>> futures;
+  futures.reserve(handlerList.size());
+  for (auto handler : handlerList) {
+    futures.emplace_back(handler->semifuture_onStopServing());
+  }
+  folly::collectAll(futures.begin(), futures.end())
+      .via(getThreadManager().get())
+      .get();
 }
 
 void ThriftServer::stopCPUWorkers() {

@@ -78,7 +78,8 @@ class Foo final  {
 
  public:
 
-  Foo() {}
+  Foo() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Foo(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::string> field1__arg, ::std::string field2__arg, ::std::vector<::std::int32_t> field3__arg, ::std::vector<::std::int32_t> field4__arg);
@@ -190,6 +191,7 @@ class Foo final  {
   }
 
   template <typename T_Foo_field2_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_field2(T_Foo_field2_struct_setter&& field2_) {
     field2 = std::forward<T_Foo_field2_struct_setter>(field2_);
     __isset.field2 = true;
@@ -199,6 +201,7 @@ class Foo final  {
   ::std::vector<::std::int32_t> get_field4() &&;
 
   template <typename T_Foo_field4_struct_setter = ::std::vector<::std::int32_t>>
+  [[deprecated]]
   ::std::vector<::std::int32_t>& set_field4(T_Foo_field4_struct_setter&& field4_) {
     field4 = std::forward<T_Foo_field4_struct_setter>(field4_);
     __isset.field4 = true;

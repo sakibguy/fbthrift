@@ -48,6 +48,10 @@ void PubSubStreamingServiceAsyncProcessor::setUpAndProcess_returnstream(apache::
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void PubSubStreamingServiceAsyncProcessor::process_returnstream(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -66,10 +70,6 @@ void PubSubStreamingServiceAsyncProcessor::process_returnstream(apache::thrift::
         ew, std::move(req), ctx, eb, "returnstream");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::ServerStream<::std::int32_t>>>(std::move(req), std::move(ctxStack), return_returnstream<ProtocolIn_,ProtocolOut_>, throw_wrapped_returnstream<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx, apache::thrift::ServerInterface::getBlockingThreadManager(tm));
   iface_->async_tm_returnstream(std::move(callback), args.get<0>().ref(), args.get<1>().ref());
 }
@@ -83,7 +83,7 @@ apache::thrift::ResponseAndServerStreamFactory PubSubStreamingServiceAsyncProces
 
       using ExMapType = apache::thrift::detail::ap::EmptyExMapType;
   auto encodedStream = apache::thrift::detail::ap::encode_server_stream<ProtocolOut_, StreamPResultType, ExMapType>(std::move(returnStream), std::move(executor));
-  return {serializeResponse("returnstream", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
+  return {serializeLegacyResponse("returnstream", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -111,6 +111,10 @@ void PubSubStreamingServiceAsyncProcessor::setUpAndProcess_streamthrows(apache::
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void PubSubStreamingServiceAsyncProcessor::process_streamthrows(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -125,10 +129,6 @@ void PubSubStreamingServiceAsyncProcessor::process_streamthrows(apache::thrift::
     folly::exception_wrapper ew(std::current_exception(), ex);
     apache::thrift::detail::ap::process_handle_exn_deserialization<ProtocolOut_>(
         ew, std::move(req), ctx, eb, "streamthrows");
-    return;
-  }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
     return;
   }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::ServerStream<::std::int32_t>>>(std::move(req), std::move(ctxStack), return_streamthrows<ProtocolIn_,ProtocolOut_>, throw_wrapped_streamthrows<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx, apache::thrift::ServerInterface::getBlockingThreadManager(tm));
@@ -154,7 +154,7 @@ apache::thrift::ResponseAndServerStreamFactory PubSubStreamingServiceAsyncProces
     }
   };
   auto encodedStream = apache::thrift::detail::ap::encode_server_stream<ProtocolOut_, StreamPResultType, ExMapType>(std::move(returnStream), std::move(executor));
-  return {serializeResponse("streamthrows", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
+  return {serializeLegacyResponse("streamthrows", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -182,6 +182,10 @@ void PubSubStreamingServiceAsyncProcessor::setUpAndProcess_boththrows(apache::th
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void PubSubStreamingServiceAsyncProcessor::process_boththrows(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -196,10 +200,6 @@ void PubSubStreamingServiceAsyncProcessor::process_boththrows(apache::thrift::Re
     folly::exception_wrapper ew(std::current_exception(), ex);
     apache::thrift::detail::ap::process_handle_exn_deserialization<ProtocolOut_>(
         ew, std::move(req), ctx, eb, "boththrows");
-    return;
-  }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
     return;
   }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::ServerStream<::std::int32_t>>>(std::move(req), std::move(ctxStack), return_boththrows<ProtocolIn_,ProtocolOut_>, throw_wrapped_boththrows<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx, apache::thrift::ServerInterface::getBlockingThreadManager(tm));
@@ -225,7 +225,7 @@ apache::thrift::ResponseAndServerStreamFactory PubSubStreamingServiceAsyncProces
     }
   };
   auto encodedStream = apache::thrift::detail::ap::encode_server_stream<ProtocolOut_, StreamPResultType, ExMapType>(std::move(returnStream), std::move(executor));
-  return {serializeResponse("boththrows", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
+  return {serializeLegacyResponse("boththrows", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -235,9 +235,11 @@ void PubSubStreamingServiceAsyncProcessor::throw_wrapped_boththrows(apache::thri
   }
   PubSubStreamingService_boththrows_presult result;
   if (ew.with_exception([&]( ::cpp2::FooEx& e) {
-    ctx->userExceptionWrapped(true, ew);
+    if (ctx) {
+      ctx->userExceptionWrapped(true, ew);
+    }
     ::apache::thrift::util::appendExceptionToHeader(ew, *reqCtx);
-    ::apache::thrift::util::appendErrorClassificationToHeader< ::cpp2::FooEx>(*reqCtx);                                                                
+    ::apache::thrift::util::appendErrorClassificationToHeader< ::cpp2::FooEx>(*reqCtx);
     result.fields.get<0>().ref() = e;
     result.fields.setIsSet(0, true);
   }
@@ -249,9 +251,9 @@ void PubSubStreamingServiceAsyncProcessor::throw_wrapped_boththrows(apache::thri
     return;
   }
   ProtocolOut_ prot;
-  auto queue = serializeResponse("boththrows", &prot, protoSeqId, ctx, result.fields);
-  queue.append(apache::thrift::transport::THeader::transform(queue.move(), reqCtx->getHeader()->getWriteTransforms()));
-  std::ignore = req->sendStreamReply(queue.move(), apache::thrift::StreamServerCallbackPtr(nullptr));
+  auto response = serializeLegacyResponse("boththrows", &prot, protoSeqId, ctx, result.fields);
+  response.buffer = apache::thrift::transport::THeader::transform(std::move(response.buffer), reqCtx->getHeader()->getWriteTransforms());
+  std::ignore = req->sendStreamReply(std::move(response.buffer), apache::thrift::StreamServerCallbackPtr(nullptr));
 }
 
 template <typename ProtocolIn_, typename ProtocolOut_>
@@ -266,6 +268,10 @@ void PubSubStreamingServiceAsyncProcessor::setUpAndProcess_responseandstreamthro
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void PubSubStreamingServiceAsyncProcessor::process_responseandstreamthrows(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -280,10 +286,6 @@ void PubSubStreamingServiceAsyncProcessor::process_responseandstreamthrows(apach
     folly::exception_wrapper ew(std::current_exception(), ex);
     apache::thrift::detail::ap::process_handle_exn_deserialization<ProtocolOut_>(
         ew, std::move(req), ctx, eb, "responseandstreamthrows");
-    return;
-  }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
     return;
   }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>>>(std::move(req), std::move(ctxStack), return_responseandstreamthrows<ProtocolIn_,ProtocolOut_>, throw_wrapped_responseandstreamthrows<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx, apache::thrift::ServerInterface::getBlockingThreadManager(tm));
@@ -311,7 +313,7 @@ apache::thrift::ResponseAndServerStreamFactory PubSubStreamingServiceAsyncProces
     }
   };
   auto encodedStream = apache::thrift::detail::ap::encode_server_stream<ProtocolOut_, StreamPResultType, ExMapType>(std::move(returnStream), std::move(executor));
-  return {serializeResponse("responseandstreamthrows", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
+  return {serializeLegacyResponse("responseandstreamthrows", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -321,9 +323,11 @@ void PubSubStreamingServiceAsyncProcessor::throw_wrapped_responseandstreamthrows
   }
   PubSubStreamingService_responseandstreamthrows_presult result;
   if (ew.with_exception([&]( ::cpp2::FooEx& e) {
-    ctx->userExceptionWrapped(true, ew);
+    if (ctx) {
+      ctx->userExceptionWrapped(true, ew);
+    }
     ::apache::thrift::util::appendExceptionToHeader(ew, *reqCtx);
-    ::apache::thrift::util::appendErrorClassificationToHeader< ::cpp2::FooEx>(*reqCtx);                                                                
+    ::apache::thrift::util::appendErrorClassificationToHeader< ::cpp2::FooEx>(*reqCtx);
     result.fields.get<1>().ref() = e;
     result.fields.setIsSet(1, true);
   }
@@ -335,9 +339,9 @@ void PubSubStreamingServiceAsyncProcessor::throw_wrapped_responseandstreamthrows
     return;
   }
   ProtocolOut_ prot;
-  auto queue = serializeResponse("responseandstreamthrows", &prot, protoSeqId, ctx, result.fields);
-  queue.append(apache::thrift::transport::THeader::transform(queue.move(), reqCtx->getHeader()->getWriteTransforms()));
-  std::ignore = req->sendStreamReply(queue.move(), apache::thrift::StreamServerCallbackPtr(nullptr));
+  auto response = serializeLegacyResponse("responseandstreamthrows", &prot, protoSeqId, ctx, result.fields);
+  response.buffer = apache::thrift::transport::THeader::transform(std::move(response.buffer), reqCtx->getHeader()->getWriteTransforms());
+  std::ignore = req->sendStreamReply(std::move(response.buffer), apache::thrift::StreamServerCallbackPtr(nullptr));
 }
 
 template <typename ProtocolIn_, typename ProtocolOut_>
@@ -350,6 +354,10 @@ void PubSubStreamingServiceAsyncProcessor::setUpAndProcess_returnstreamFast(apac
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void PubSubStreamingServiceAsyncProcessor::process_returnstreamFast(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -368,10 +376,6 @@ void PubSubStreamingServiceAsyncProcessor::process_returnstreamFast(apache::thri
         ew, std::move(req), ctx, eb, "returnstreamFast");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::ServerStream<::std::int32_t>>>(std::move(req), std::move(ctxStack), return_returnstreamFast<ProtocolIn_,ProtocolOut_>, throw_wrapped_returnstreamFast<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx, eb);
   iface_->async_eb_returnstreamFast(std::move(callback), args.get<0>().ref(), args.get<1>().ref());
 }
@@ -385,7 +389,7 @@ apache::thrift::ResponseAndServerStreamFactory PubSubStreamingServiceAsyncProces
 
       using ExMapType = apache::thrift::detail::ap::EmptyExMapType;
   auto encodedStream = apache::thrift::detail::ap::encode_server_stream<ProtocolOut_, StreamPResultType, ExMapType>(std::move(returnStream), std::move(executor));
-  return {serializeResponse("returnstreamFast", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
+  return {serializeLegacyResponse("returnstreamFast", &prot, protoSeqId, ctx, result), std::move(encodedStream)};
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

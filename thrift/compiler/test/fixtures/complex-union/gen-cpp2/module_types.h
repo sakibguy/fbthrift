@@ -483,32 +483,44 @@ class ComplexUnion final  {
   }
 
   ::std::int64_t const& get_intValue() const {
-    assert(type_ == Type::intValue);
+    if (type_ != Type::intValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.intValue;
   }
 
   ::std::string const& get_stringValue() const {
-    assert(type_ == Type::stringValue);
+    if (type_ != Type::stringValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.stringValue;
   }
 
   ::std::vector<::std::int64_t> const& get_intListValue() const {
-    assert(type_ == Type::intListValue);
+    if (type_ != Type::intListValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.intListValue;
   }
 
   ::std::vector<::std::string> const& get_stringListValue() const {
-    assert(type_ == Type::stringListValue);
+    if (type_ != Type::stringListValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.stringListValue;
   }
 
   ::cpp2::containerTypedef const& get_typedefValue() const {
-    assert(type_ == Type::typedefValue);
+    if (type_ != Type::typedefValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.typedefValue;
   }
 
   ::std::unique_ptr<::std::string> const& get_stringRef() const {
-    assert(type_ == Type::stringRef);
+    if (type_ != Type::stringRef) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.stringRef;
   }
 
@@ -908,12 +920,16 @@ class ListUnion final  {
   }
 
   ::std::vector<::std::int64_t> const& get_intListValue() const {
-    assert(type_ == Type::intListValue);
+    if (type_ != Type::intListValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.intListValue;
   }
 
   ::std::vector<::std::string> const& get_stringListValue() const {
-    assert(type_ == Type::stringListValue);
+    if (type_ != Type::stringListValue) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.stringListValue;
   }
 
@@ -1197,12 +1213,16 @@ class DataUnion final  {
   }
 
   ::std::string const& get_binaryData() const {
-    assert(type_ == Type::binaryData);
+    if (type_ != Type::binaryData) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.binaryData;
   }
 
   ::std::string const& get_stringData() const {
-    assert(type_ == Type::stringData);
+    if (type_ != Type::stringData) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.stringData;
   }
 
@@ -1325,19 +1345,19 @@ class Val final  {
  public:
 
   Val() :
-      intVal(0) {}
+      intVal(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Val(apache::thrift::FragileConstructor, ::std::string strVal__arg, ::std::int32_t intVal__arg, ::cpp2::containerTypedef typedefValue__arg);
 
   Val(Val&&) noexcept;
 
-  Val(const Val&) = default;
+  Val(const Val& src);
 
 
   Val& operator=(Val&&) noexcept;
-
-  Val& operator=(const Val&) = default;
+  Val& operator=(const Val& src);
   void __clear();
  private:
   ::std::string strVal;
@@ -1426,6 +1446,7 @@ class Val final  {
   }
 
   template <typename T_Val_strVal_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_strVal(T_Val_strVal_struct_setter&& strVal_) {
     strVal = std::forward<T_Val_strVal_struct_setter>(strVal_);
     __isset.strVal = true;
@@ -1436,6 +1457,7 @@ class Val final  {
     return intVal;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_intVal(::std::int32_t intVal_) {
     intVal = intVal_;
     __isset.intVal = true;
@@ -1445,6 +1467,7 @@ class Val final  {
   ::cpp2::containerTypedef get_typedefValue() &&;
 
   template <typename T_Val_typedefValue_struct_setter = ::cpp2::containerTypedef>
+  [[deprecated]]
   ::cpp2::containerTypedef& set_typedefValue(T_Val_typedefValue_struct_setter&& typedefValue_) {
     typedefValue = std::forward<T_Val_typedefValue_struct_setter>(typedefValue_);
     __isset.typedefValue = true;
@@ -1663,12 +1686,16 @@ class ValUnion final  {
   }
 
   ::cpp2::Val const& get_v1() const {
-    assert(type_ == Type::v1);
+    if (type_ != Type::v1) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.v1;
   }
 
   ::cpp2::Val const& get_v2() const {
-    assert(type_ == Type::v2);
+    if (type_ != Type::v2) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.v2;
   }
 
@@ -1953,12 +1980,16 @@ class VirtualComplexUnion  {
   }
 
   ::std::string const& get_thingOne() const {
-    assert(type_ == Type::thingOne);
+    if (type_ != Type::thingOne) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.thingOne;
   }
 
   ::std::string const& get_thingTwo() const {
-    assert(type_ == Type::thingTwo);
+    if (type_ != Type::thingTwo) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.thingTwo;
   }
 
@@ -2081,7 +2112,8 @@ class NonCopyableStruct final  {
  public:
 
   NonCopyableStruct() :
-      num(0) {}
+      num(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   NonCopyableStruct(apache::thrift::FragileConstructor, ::std::int64_t num__arg);
@@ -2127,6 +2159,7 @@ class NonCopyableStruct final  {
     return num;
   }
 
+  [[deprecated]]
   ::std::int64_t& set_num(::std::int64_t num_) {
     num = num_;
     __isset.num = true;
@@ -2259,7 +2292,9 @@ class NonCopyableUnion final  {
   }
 
   ::cpp2::NonCopyableStruct const& get_s() const {
-    assert(type_ == Type::s);
+    if (type_ != Type::s) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.s;
   }
 

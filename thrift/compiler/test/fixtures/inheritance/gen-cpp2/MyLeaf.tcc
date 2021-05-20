@@ -25,6 +25,10 @@ void MyLeafAsyncProcessor::setUpAndProcess_do_leaf(apache::thrift::ResponseChann
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void MyLeafAsyncProcessor::process_do_leaf(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -39,19 +43,15 @@ void MyLeafAsyncProcessor::process_do_leaf(apache::thrift::ResponseChannelReques
         ew, std::move(req), ctx, eb, "do_leaf");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<void>>(std::move(req), std::move(ctxStack), return_do_leaf<ProtocolIn_,ProtocolOut_>, throw_wrapped_do_leaf<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_do_leaf(std::move(callback));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue MyLeafAsyncProcessor::return_do_leaf(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
+apache::thrift::LegacySerializedResponse MyLeafAsyncProcessor::return_do_leaf(int32_t protoSeqId, apache::thrift::ContextStack* ctx) {
   ProtocolOut_ prot;
   MyLeaf_do_leaf_presult result;
-  return serializeResponse("do_leaf", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("do_leaf", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

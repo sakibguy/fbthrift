@@ -99,19 +99,19 @@ class Mixin1 final  {
 
  public:
 
-  Mixin1() {}
+  Mixin1() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Mixin1(apache::thrift::FragileConstructor, ::std::string field1__arg);
 
   Mixin1(Mixin1&&) noexcept;
 
-  Mixin1(const Mixin1&) = default;
+  Mixin1(const Mixin1& src);
 
 
   Mixin1& operator=(Mixin1&&) noexcept;
-
-  Mixin1& operator=(const Mixin1&) = default;
+  Mixin1& operator=(const Mixin1& src);
   void __clear();
  private:
   ::std::string field1;
@@ -154,6 +154,7 @@ class Mixin1 final  {
   }
 
   template <typename T_Mixin1_field1_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_field1(T_Mixin1_field1_struct_setter&& field1_) {
     field1 = std::forward<T_Mixin1_field1_struct_setter>(field1_);
     __isset.field1 = true;
@@ -210,19 +211,19 @@ class Mixin2 final  {
 
  public:
 
-  Mixin2() {}
+  Mixin2() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Mixin2(apache::thrift::FragileConstructor, ::cpp2::Mixin1 m1__arg, ::std::string field2__arg);
 
   Mixin2(Mixin2&&) noexcept;
 
-  Mixin2(const Mixin2&) = default;
+  Mixin2(const Mixin2& src);
 
 
   Mixin2& operator=(Mixin2&&) noexcept;
-
-  Mixin2& operator=(const Mixin2&) = default;
+  Mixin2& operator=(const Mixin2& src);
   void __clear();
  private:
   ::cpp2::Mixin1 m1;
@@ -286,6 +287,7 @@ class Mixin2 final  {
   ::cpp2::Mixin1 get_m1() &&;
 
   template <typename T_Mixin2_m1_struct_setter = ::cpp2::Mixin1>
+  [[deprecated]]
   ::cpp2::Mixin1& set_m1(T_Mixin2_m1_struct_setter&& m1_) {
     m1 = std::forward<T_Mixin2_m1_struct_setter>(m1_);
     __isset.m1 = true;
@@ -302,6 +304,7 @@ class Mixin2 final  {
   ::std::string* get_field2() && = delete;
 
   template <typename T_Mixin2_field2_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_field2(T_Mixin2_field2_struct_setter&& field2_) {
     field2 = std::forward<T_Mixin2_field2_struct_setter>(field2_);
     __isset.field2 = true;
@@ -358,19 +361,19 @@ class Mixin3Base final  {
 
  public:
 
-  Mixin3Base() {}
+  Mixin3Base() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Mixin3Base(apache::thrift::FragileConstructor, ::std::string field3__arg);
 
   Mixin3Base(Mixin3Base&&) noexcept;
 
-  Mixin3Base(const Mixin3Base&) = default;
+  Mixin3Base(const Mixin3Base& src);
 
 
   Mixin3Base& operator=(Mixin3Base&&) noexcept;
-
-  Mixin3Base& operator=(const Mixin3Base&) = default;
+  Mixin3Base& operator=(const Mixin3Base& src);
   void __clear();
  private:
   ::std::string field3;
@@ -413,6 +416,7 @@ class Mixin3Base final  {
   }
 
   template <typename T_Mixin3Base_field3_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_field3(T_Mixin3Base_field3_struct_setter&& field3_) {
     field3 = std::forward<T_Mixin3Base_field3_struct_setter>(field3_);
     __isset.field3 = true;
@@ -469,19 +473,19 @@ class Foo final  {
 
  public:
 
-  Foo() {}
+  Foo() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Foo(apache::thrift::FragileConstructor, ::std::string field4__arg, ::cpp2::Mixin2 m2__arg, ::cpp2::Mixin3 m3__arg);
 
   Foo(Foo&&) noexcept;
 
-  Foo(const Foo&) = default;
+  Foo(const Foo& src);
 
 
   Foo& operator=(Foo&&) noexcept;
-
-  Foo& operator=(const Foo&) = default;
+  Foo& operator=(const Foo& src);
   void __clear();
  private:
   ::std::string field4;
@@ -586,6 +590,7 @@ class Foo final  {
   }
 
   template <typename T_Foo_field4_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_field4(T_Foo_field4_struct_setter&& field4_) {
     field4 = std::forward<T_Foo_field4_struct_setter>(field4_);
     __isset.field4 = true;
@@ -595,6 +600,7 @@ class Foo final  {
   ::cpp2::Mixin2 get_m2() &&;
 
   template <typename T_Foo_m2_struct_setter = ::cpp2::Mixin2>
+  [[deprecated]]
   ::cpp2::Mixin2& set_m2(T_Foo_m2_struct_setter&& m2_) {
     m2 = std::forward<T_Foo_m2_struct_setter>(m2_);
     __isset.m2 = true;
@@ -604,6 +610,7 @@ class Foo final  {
   ::cpp2::Mixin3 get_m3() &&;
 
   template <typename T_Foo_m3_struct_setter = ::cpp2::Mixin3>
+  [[deprecated]]
   ::cpp2::Mixin3& set_m3(T_Foo_m3_struct_setter&& m3_) {
     m3 = std::forward<T_Foo_m3_struct_setter>(m3_);
     __isset.m3 = true;

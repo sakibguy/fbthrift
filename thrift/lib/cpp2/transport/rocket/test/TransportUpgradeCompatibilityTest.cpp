@@ -145,7 +145,7 @@ TEST_P(TransportUpgradeCompatibilityTest, RequestResponse_Connection_CloseNow) {
       EXPECT_TRUE(false) << "future_add should have thrown";
     } catch (TTransportException& ex) {
       EXPECT_EQ(TTransportException::UNKNOWN, ex.getType());
-      EXPECT_STREQ("Channel is !good()", ex.what());
+      EXPECT_PRED_FORMAT2(IsSubstring, "Channel is !good()", ex.what());
     }
   });
 }
@@ -158,7 +158,9 @@ TEST_P(TransportUpgradeCompatibilityTest, RequestResponse_ResponseSizeTooBig) {
   compatibilityTest_->TestRequestResponse_ResponseSizeTooBig();
 }
 
-TEST_P(TransportUpgradeCompatibilityTest, RequestResponse_Checksumming) {
+// TODO(T90625074)
+TEST_P(
+    TransportUpgradeCompatibilityTest, DISABLED_RequestResponse_Checksumming) {
   SKIP_IF(GetParam() == false)
       << "Checksum not implemented for header transport";
   compatibilityTest_->TestRequestResponse_Checksumming();

@@ -34,7 +34,7 @@ namespace compiler {
  */
 class t_enum_value : public t_named {
  public:
-  t_enum_value() = default;
+  explicit t_enum_value(std::string name) : t_named(std::move(name)) {}
 
   /**
    * t_enum_value setters
@@ -60,6 +60,8 @@ class t_enum_value : public t_named {
   int32_t value_{0};
   bool has_value_{false};
 };
+
+using t_enum_value_list = node_list<t_enum_value>;
 
 } // namespace compiler
 } // namespace thrift

@@ -295,12 +295,13 @@ StreamChannelStatus RocketClient::handlePayloadFrame(
         serverCallback.onInitialError(std::move(firstResponse.exception()));
         return StreamChannelStatus::Complete;
       }
-      serverCallback.onInitialPayload(std::move(*firstResponse), evb_);
+      auto status =
+          serverCallback.onInitialPayload(std::move(*firstResponse), evb_);
+      if (status != StreamChannelStatus::Alive) {
+        return status;
+      }
       if (complete) {
-        // onInitialPayload could have resulted in canceling the stream.
-        if (streams_.find(streamId) != streams_.end()) {
-          return serverCallback.onStreamComplete();
-        }
+        return serverCallback.onStreamComplete();
       }
       return StreamChannelStatus::Alive;
     }
@@ -464,7 +465,7 @@ folly::Try<Payload> RocketClient::sendRequestResponseSync(
     std::chrono::milliseconds timeout,
     WriteSuccessCallback* writeSuccessCallback) {
   DestructorGuard dg(this);
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::CLIENT);
   auto setupFrame = std::move(setupFrame_);
   RequestContext ctx(
       RequestResponseFrame(makeStreamId(), std::move(request)),
@@ -488,7 +489,7 @@ void RocketClient::sendRequestResponse(
       setupFrame.get(),
       callback.get());
   auto callbackWithGuard = [dg = DestructorGuard(this),
-                            g = makeRequestCountGuard(),
+                            g = makeRequestCountGuard(RequestType::CLIENT),
                             callback =
                                 std::move(callback)](auto&& response) mutable {
     callback->onResponsePayload(std::move(response));
@@ -536,7 +537,7 @@ void RocketClient::sendRequestResponse(
 folly::Try<void> RocketClient::sendRequestFnfSync(Payload&& request) {
   CHECK(folly::fibers::onFiber());
   DestructorGuard dg(this);
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::CLIENT);
   auto setupFrame = std::move(setupFrame_);
   RequestContext ctx(
       RequestFnfFrame(makeStreamId(), std::move(request)),
@@ -557,7 +558,7 @@ void RocketClient::sendRequestFnf(
       setupFrame.get());
   auto callbackWithGuard =
       [dg = DestructorGuard(this),
-       g = makeRequestCountGuard(),
+       g = makeRequestCountGuard(RequestType::CLIENT),
        callback = std::move(callback)](auto&& writeResult) mutable {
         callback->onWrite(std::move(writeResult));
       };
@@ -832,7 +833,7 @@ bool RocketClient::sendVersionDependentFrame(
 }
 
 bool RocketClient::sendRequestN(StreamId streamId, int32_t n) {
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::INTERNAL);
   if (UNLIKELY(n <= 0)) {
     return true;
   }
@@ -850,7 +851,7 @@ bool RocketClient::sendRequestN(StreamId streamId, int32_t n) {
 }
 
 void RocketClient::cancelStream(StreamId streamId) {
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::INTERNAL);
   freeStream(streamId);
   std::ignore = sendFrame(
       CancelFrame(streamId),
@@ -866,7 +867,9 @@ void RocketClient::sendPayload(
     StreamId streamId, StreamPayload&& payload, Flags flags) {
   std::ignore = sendFrame(
       PayloadFrame(streamId, pack(std::move(payload)), flags),
-      [this, dg = DestructorGuard(this), g = makeRequestCountGuard()](
+      [this,
+       dg = DestructorGuard(this),
+       g = makeRequestCountGuard(RequestType::INTERNAL)](
           transport::TTransportException ex) {
         FB_LOG_EVERY_MS(ERROR, 1000)
             << "sendPayload failed, closing now: " << ex.what();
@@ -878,7 +881,9 @@ void RocketClient::sendError(StreamId streamId, RocketException&& rex) {
   freeStream(streamId);
   std::ignore = sendFrame(
       ErrorFrame(streamId, std::move(rex)),
-      [this, dg = DestructorGuard(this), g = makeRequestCountGuard()](
+      [this,
+       dg = DestructorGuard(this),
+       g = makeRequestCountGuard(RequestType::INTERNAL)](
           transport::TTransportException ex) {
         FB_LOG_EVERY_MS(ERROR, 1000)
             << "sendError failed, closing now: " << ex.what();
@@ -887,7 +892,7 @@ void RocketClient::sendError(StreamId streamId, RocketException&& rex) {
 }
 
 void RocketClient::sendComplete(StreamId streamId, bool closeStream) {
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::INTERNAL);
   if (closeStream) {
     freeStream(streamId);
   }
@@ -899,7 +904,7 @@ void RocketClient::sendComplete(StreamId streamId, bool closeStream) {
 
 bool RocketClient::sendHeadersPush(
     StreamId streamId, HeadersPayload&& payload) {
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::INTERNAL);
   auto onError = [dg = DestructorGuard(this), this, g = std::move(g)](
                      transport::TTransportException ex) {
     FB_LOG_EVERY_MS(ERROR, 1000)
@@ -936,7 +941,7 @@ bool RocketClient::sendHeadersPush(
 
 bool RocketClient::sendSinkError(StreamId streamId, StreamPayload&& payload) {
   freeStream(streamId);
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::INTERNAL);
   auto onError = [dg = DestructorGuard(this), this, g = std::move(g)](
                      transport::TTransportException ex) {
     FB_LOG_EVERY_MS(ERROR, 1000)
@@ -970,7 +975,7 @@ bool RocketClient::sendSinkError(StreamId streamId, StreamPayload&& payload) {
 
 void RocketClient::sendExtAlignedPage(
     StreamId streamId, std::unique_ptr<folly::IOBuf> payload, Flags flags) {
-  auto g = makeRequestCountGuard();
+  auto g = makeRequestCountGuard(RequestType::INTERNAL);
   auto onError = [dg = DestructorGuard(this), this, g = std::move(g)](
                      transport::TTransportException ex) {
     FB_LOG_EVERY_MS(ERROR, 1000)

@@ -38,7 +38,6 @@ RequestRpcMetadata makeRequestRpcMetadata(
     ManagedStringView&& methodName,
     std::chrono::milliseconds defaultChannelTimeout,
     transport::THeader& header,
-    const transport::THeader::StringToStringMap& persistentWriteHeaders,
     const std::optional<int32_t>& version) {
   RequestRpcMetadata metadata;
   metadata.protocol_ref() = protocolId;
@@ -73,8 +72,6 @@ RequestRpcMetadata makeRequestRpcMetadata(
       writeHeaders[entry.first] = entry.second;
     }
   }
-  writeHeaders.insert(
-      persistentWriteHeaders.begin(), persistentWriteHeaders.end());
 
   auto clientId = header.clientId();
   auto serviceTraceMeta = header.serviceTraceMeta();

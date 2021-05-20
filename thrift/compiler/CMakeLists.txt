@@ -36,13 +36,13 @@ add_library(
 
   ast/t_base_type.cc
   ast/t_function.cc
+  ast/t_interface.cc
   ast/t_named.cc
   ast/t_node.cc
   ast/t_paramlist.cc
   ast/t_program.cc
   ast/t_scope.cc
-  ast/t_service.cc
-  ast/t_struct.cc
+  ast/t_structured.cc
   ast/t_type.cc
   ast/t_typedef.cc
   ast/visitor.cc
@@ -55,9 +55,12 @@ add_library(
 
   common.cc
   filesystem.cc
-  parse/parsing_driver.cc
   platform.cc
   util.cc
+
+  parse/parsing_driver.cc
+  sema/diagnostic.cc
+
   ${FLEX_ThriftScanner_OUTPUTS}
   ${BISON_ThriftParser_OUTPUTS}
 )
@@ -135,7 +138,6 @@ add_executable(
   main.cc
   compiler.cc
   mutator/mutator.cc
-  validator/diagnostic.cc
   validator/validator.cc
   ast/visitor.cc
 )

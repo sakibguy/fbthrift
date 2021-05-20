@@ -28,6 +28,7 @@
 
 #include <boost/optional.hpp>
 
+#include <thrift/compiler/ast/t_const_value.h>
 #include <thrift/compiler/ast/t_exception.h>
 #include <thrift/compiler/ast/t_interaction.h>
 #include <thrift/compiler/ast/t_named.h>
@@ -37,6 +38,7 @@
 #include <thrift/compiler/ast/t_scope.h>
 #include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/parse/yy_scanner.h>
+#include <thrift/compiler/sema/diagnostic.h>
 
 /**
  * Provide the custom fbthrift_compiler_parse_lex signature to flex.
@@ -53,14 +55,6 @@ namespace compiler {
 namespace yy {
 class parser;
 }
-
-enum class diagnostic_level {
-  FAILURE = 0,
-  YY_ERROR = 1,
-  WARNING = 2,
-  VERBOSE = 3,
-  DBG = 4,
-};
 
 // Define an enum class for all types that have lineno embedded.
 enum class LineType {
@@ -79,8 +73,7 @@ enum class LineType {
 };
 
 // Parsing only representations.
-using t_struct_annotations = std::vector<std::unique_ptr<t_const>>;
-using t_field_list = std::vector<std::unique_ptr<t_field>>;
+using t_struct_annotations = node_list<t_const>;
 struct t_annotations {
   std::map<std::string, std::string> strings;
   std::map<std::string, std::shared_ptr<const t_const>> objects;
@@ -91,7 +84,6 @@ struct t_def_attrs {
   t_doc doc;
   std::unique_ptr<t_struct_annotations> struct_annotations;
 };
-using t_function_list = std::vector<std::unique_ptr<t_function>>;
 
 // A const pointer to an AST node.
 //
@@ -129,26 +121,6 @@ class t_ref {
 
  private:
   const T* ptr_ = nullptr;
-};
-
-struct diagnostic_message {
-  diagnostic_level level;
-  std::string filename;
-  int lineno;
-  std::string last_token;
-  std::string message;
-
-  diagnostic_message(
-      diagnostic_level level_,
-      std::string filename_,
-      int lineno_,
-      std::string last_token_,
-      std::string message_)
-      : level{level_},
-        filename{std::move(filename_)},
-        lineno{lineno_},
-        last_token{std::move(last_token_)},
-        message{std::move(message_)} {}
 };
 
 enum class parsing_mode {
@@ -276,8 +248,7 @@ class parsing_driver {
    * Diagnostic messages (warnings, debug messages, etc.) are stored in the
    * vector passed in via params.messages.
    */
-  std::unique_ptr<t_program_bundle> parse(
-      std::vector<diagnostic_message>& messages);
+  std::unique_ptr<t_program_bundle> parse(diagnostic_results& results);
 
   /**
    * Diagnostic message callbacks.
@@ -288,7 +259,7 @@ class parsing_driver {
       return;
     }
     auto message = construct_diagnostic_message(
-        diagnostic_level::DBG, fmt, std::forward<Arg>(arg)...);
+        diagnostic_level::debug, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
   }
 
@@ -298,14 +269,14 @@ class parsing_driver {
       return;
     }
     auto message = construct_diagnostic_message(
-        diagnostic_level::VERBOSE, fmt, std::forward<Arg>(arg)...);
+        diagnostic_level::info, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
   }
 
   template <typename... Arg>
   void yyerror(const char* fmt, Arg&&... arg) {
     auto message = construct_diagnostic_message(
-        diagnostic_level::YY_ERROR, fmt, std::forward<Arg>(arg)...);
+        diagnostic_level::parse_error, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
   }
 
@@ -315,14 +286,14 @@ class parsing_driver {
       return;
     }
     auto message = construct_diagnostic_message(
-        diagnostic_level::WARNING, fmt, std::forward<Arg>(arg)...);
+        diagnostic_level::warning, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(message));
   }
 
   template <typename... Arg>
   [[noreturn]] void failure(const char* fmt, Arg&&... arg) {
     auto msg = construct_diagnostic_message(
-        diagnostic_level::FAILURE, fmt, std::forward<Arg>(arg)...);
+        diagnostic_level::failure, fmt, std::forward<Arg>(arg)...);
     diagnostic_messages_.push_back(std::move(msg));
     end_parsing();
   }
@@ -407,13 +378,13 @@ class parsing_driver {
       std::unique_ptr<t_def_attrs> attrs,
       std::unique_ptr<t_annotations> annotations);
   void finish_node(
-      t_struct* node,
+      t_structured* node,
       LineType lineType,
       std::unique_ptr<t_def_attrs> attrs,
       std::unique_ptr<t_field_list> fields,
       std::unique_ptr<t_annotations> annotations);
   void finish_node(
-      t_service* node,
+      t_interface* node,
       LineType lineType,
       std::unique_ptr<t_def_attrs> attrs,
       std::unique_ptr<t_function_list> functions,
@@ -491,7 +462,7 @@ class parsing_driver {
 
   std::vector<deleter> deleters_;
   std::stack<std::pair<LineType, int>> lineno_stack_;
-  std::vector<diagnostic_message> diagnostic_messages_;
+  std::vector<diagnostic> diagnostic_messages_;
 
   // Populate the attributes on the given node.
   static void set_attributes(
@@ -507,7 +478,7 @@ class parsing_driver {
   // Returns the starting line number.
   int pop_node(LineType lineType);
 
-  void append_fields(t_struct& tstruct, t_field_list&& fields);
+  void append_fields(t_structured& tstruct, t_field_list&& fields);
 
   // Returns true if the node should be
   // added to the program. Otherwise, the driver itself
@@ -562,7 +533,7 @@ class parsing_driver {
   }
 
   template <typename... Arg>
-  diagnostic_message construct_diagnostic_message(
+  diagnostic construct_diagnostic_message(
       diagnostic_level level, const char* fmt, Arg&&... arg) {
     const size_t buffer_size = 1024;
     std::array<char, buffer_size> buffer;
@@ -599,12 +570,13 @@ class parsing_driver {
       message = std::string{dyn_buffer.data()};
     }
 
-    return diagnostic_message{
+    return diagnostic{
         level,
+        std::move(message),
         program->path(),
         scanner->get_lineno(),
         scanner->get_text(),
-        message};
+    };
   }
 };
 

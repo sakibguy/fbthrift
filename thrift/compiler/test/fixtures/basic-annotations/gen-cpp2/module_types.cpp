@@ -69,10 +69,13 @@ void TccStructTraits<::cpp2::MyStructNestedAnnotation>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStructNestedAnnotation::MyStructNestedAnnotation(const MyStructNestedAnnotation&) = default;
+MyStructNestedAnnotation& MyStructNestedAnnotation::operator=(const MyStructNestedAnnotation&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStructNestedAnnotation::MyStructNestedAnnotation(MyStructNestedAnnotation&& other) noexcept  :
     name(std::move(other.name)),
     __isset(other.__isset) {}
-
 MyStructNestedAnnotation& MyStructNestedAnnotation::operator=(FOLLY_MAYBE_UNUSED MyStructNestedAnnotation&& other) noexcept {
     this->name = std::move(other.name);
     __isset = other.__isset;
@@ -87,6 +90,7 @@ MyStructNestedAnnotation::MyStructNestedAnnotation(apache::thrift::FragileConstr
   __isset.name = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStructNestedAnnotation::__clear() {
   // clear all fields
   this->name = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -161,8 +165,13 @@ void TccStructTraits<::cpp2::MyStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStruct::MyStruct(const MyStruct&) = default;
+MyStruct& MyStruct::operator=(const MyStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct() :
-      majorVer(0) {}
+      majorVer(0) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -177,7 +186,6 @@ MyStruct::MyStruct(MyStruct&& other) noexcept  :
     annotation_with_trailing_comma(std::move(other.annotation_with_trailing_comma)),
     empty_annotations(std::move(other.empty_annotations)),
     __isset(other.__isset) {}
-
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->majorVer = std::move(other.majorVer);
     this->package = std::move(other.package);
@@ -207,6 +215,7 @@ MyStruct::MyStruct(apache::thrift::FragileConstructor, ::std::int64_t majorVer__
   __isset.empty_annotations = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStruct::__clear() {
   // clear all fields
   this->majorVer = 0;
@@ -321,11 +330,14 @@ void TccStructTraits<::cpp2::SecretStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SecretStruct::SecretStruct(const SecretStruct&) = default;
+SecretStruct& SecretStruct::operator=(const SecretStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SecretStruct::SecretStruct(SecretStruct&& other) noexcept  :
     id(std::move(other.id)),
     password(std::move(other.password)),
     __isset(other.__isset) {}
-
 SecretStruct& SecretStruct::operator=(FOLLY_MAYBE_UNUSED SecretStruct&& other) noexcept {
     this->id = std::move(other.id);
     this->password = std::move(other.password);
@@ -343,6 +355,7 @@ SecretStruct::SecretStruct(apache::thrift::FragileConstructor, ::std::int64_t id
   __isset.password = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SecretStruct::__clear() {
   // clear all fields
   this->id = 0;

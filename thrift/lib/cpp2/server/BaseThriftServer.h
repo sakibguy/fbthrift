@@ -187,9 +187,6 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   //! Number of io worker threads (may be set) (should be # of CPU cores)
   ServerAttributeStatic<size_t> nWorkers_{T_ASYNC_DEFAULT_WORKER_THREADS};
 
-  //! Number of SSL handshake worker threads (may be set)
-  ServerAttributeStatic<size_t> nSSLHandshakeWorkers_{0};
-
   //! Number of CPU worker threads
   ServerAttributeStatic<size_t> nPoolThreads_{T_ASYNC_DEFAULT_WORKER_THREADS};
 
@@ -325,14 +322,15 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    */
   ServerAttributeDynamic<double> egressBufferRecoveryFactor_{0.75};
 
+  std::shared_ptr<server::TServerEventHandler> eventHandler_;
+  std::vector<std::shared_ptr<server::TServerEventHandler>> eventHandlers_;
+
  protected:
   //! The server's listening addresses
   std::vector<folly::SocketAddress> addresses_;
 
   //! The server's listening port
   int port_ = -1;
-
-  std::shared_ptr<server::TServerEventHandler> eventHandler_;
 
   /**
    * The thread manager used for sync calls.
@@ -409,20 +407,37 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   }
 
   /**
-   * If a view of the event handler is needed that does not need to extend its
-   * lifetime beyond that of the BaseThriftServer, this method allows obtaining
-   * the raw pointer rather than the more expensive shared_ptr.
-   * Since unsynchronized setServerEventHandler / getEventHandler calls are not
-   * permitted, use cases that get the handler, inform it of some action, and
-   * then discard the handle immediately can use getEventHandlerUnsafe.
+   * If a view of the event handlers is needed that does not need to extend
+   * their lifetime beyond that of the BaseThriftServer, this method allows
+   * obtaining the raw pointer rather than the more expensive shared_ptr. Since
+   * unsynchronized setServerEventHandler / addServerEventHandler /
+   * getEventHandler calls are not permitted, use cases that get the handler,
+   * inform it of some action, and then discard the handle immediately can use
+   * getEventHandlersUnsafe.
    */
-  server::TServerEventHandler* getEventHandlerUnsafe() {
-    return eventHandler_.get();
+  const std::vector<std::shared_ptr<server::TServerEventHandler>>&
+  getEventHandlersUnsafe() {
+    return eventHandlers_;
   }
 
+  /**
+   * DEPRECATED! Please use addServerEventHandler instead.
+   */
   void setServerEventHandler(
       std::shared_ptr<server::TServerEventHandler> eventHandler) {
+    if (eventHandler_) {
+      eventHandlers_.erase(std::find(
+          eventHandlers_.begin(), eventHandlers_.end(), eventHandler_));
+    }
     eventHandler_ = std::move(eventHandler);
+    if (eventHandler_) {
+      eventHandlers_.push_back(eventHandler_);
+    }
+  }
+
+  void addServerEventHandler(
+      std::shared_ptr<server::TServerEventHandler> eventHandler) {
+    eventHandlers_.push_back(eventHandler);
   }
 
   /**
@@ -584,10 +599,6 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
     return observer_.copy();
   }
 
-  std::unique_ptr<apache::thrift::AsyncProcessor> getCpp2Processor() {
-    return cpp2Pfac_->getProcessor();
-  }
-
   /**
    * Set the address(es) to listen on.
    */
@@ -730,24 +741,6 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   }
 
   /**
-   * Set the number of SSL handshake worker threads.
-   */
-  void setNumSSLHandshakeWorkerThreads(
-      size_t nSSLHandshakeThreads,
-      AttributeSource source = AttributeSource::OVERRIDE,
-      StaticAttributeTag = StaticAttributeTag{}) {
-    setStaticAttribute(
-        nSSLHandshakeWorkers_, std::move(nSSLHandshakeThreads), source);
-  }
-
-  /**
-   * Get the number of threads used to perform SSL handshakes
-   */
-  size_t getNumSSLHandshakeWorkerThreads() const {
-    return nSSLHandshakeWorkers_.get();
-  }
-
-  /**
    * Codel queuing timeout - limit queueing time before overload
    * http://en.wikipedia.org/wiki/CoDel
    */
@@ -783,8 +776,8 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
     cpp2Pfac_ = pFac;
   }
 
-  std::shared_ptr<apache::thrift::AsyncProcessorFactory> getProcessorFactory()
-      const {
+  const std::shared_ptr<apache::thrift::AsyncProcessorFactory>&
+  getProcessorFactory() const {
     return cpp2Pfac_;
   }
 

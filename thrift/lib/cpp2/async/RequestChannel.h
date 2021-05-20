@@ -42,7 +42,7 @@
 #include <thrift/lib/cpp2/transport/core/EnvelopeUtil.h>
 #include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
 #include <thrift/lib/cpp2/util/Checksum.h>
-#include <thrift/lib/cpp2/util/ManagedStringView.h>
+#include <thrift/lib/cpp2/util/MethodMetadata.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace folly {
@@ -89,7 +89,7 @@ class RequestChannel : virtual public folly::DelayedDestruction {
   template <RpcKind Kind>
   void sendRequestAsync(
       apache::thrift::RpcOptions&&,
-      apache::thrift::ManagedStringView&& methodName,
+      apache::thrift::MethodMetadata&& methodMetadata,
       SerializedRequest&&,
       std::shared_ptr<apache::thrift::transport::THeader>,
       typename apache::thrift::detail::RequestClientCallbackType<Kind>::Ptr) =
@@ -105,7 +105,7 @@ class RequestChannel : virtual public folly::DelayedDestruction {
    */
   virtual void sendRequestResponse(
       const RpcOptions&,
-      apache::thrift::ManagedStringView&& methodName,
+      apache::thrift::MethodMetadata&& methodMetadata,
       SerializedRequest&&,
       std::shared_ptr<apache::thrift::transport::THeader>,
       RequestClientCallback::Ptr) = 0;
@@ -116,7 +116,7 @@ class RequestChannel : virtual public folly::DelayedDestruction {
    */
   virtual void sendRequestNoResponse(
       const RpcOptions&,
-      apache::thrift::ManagedStringView&& methodName,
+      apache::thrift::MethodMetadata&& methodMetadata,
       SerializedRequest&&,
       std::shared_ptr<apache::thrift::transport::THeader>,
       RequestClientCallback::Ptr) = 0;
@@ -131,14 +131,14 @@ class RequestChannel : virtual public folly::DelayedDestruction {
    */
   virtual void sendRequestStream(
       const RpcOptions& rpcOptions,
-      apache::thrift::ManagedStringView&& methodName,
+      apache::thrift::MethodMetadata&& methodMetadata,
       SerializedRequest&&,
       std::shared_ptr<transport::THeader> header,
       StreamClientCallback* clientCallback);
 
   virtual void sendRequestSink(
       const RpcOptions& rpcOptions,
-      apache::thrift::ManagedStringView&& methodName,
+      apache::thrift::MethodMetadata&& methodMetadata,
       SerializedRequest&&,
       std::shared_ptr<transport::THeader> header,
       SinkClientCallback* clientCallback);
@@ -172,14 +172,14 @@ class RequestChannel : virtual public folly::DelayedDestruction {
 template <>
 void RequestChannel::sendRequestAsync<RpcKind::SINGLE_REQUEST_NO_RESPONSE>(
     apache::thrift::RpcOptions&&,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&&,
     std::shared_ptr<apache::thrift::transport::THeader>,
     RequestClientCallback::Ptr);
 template <>
 void RequestChannel::sendRequestAsync<RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE>(
     apache::thrift::RpcOptions&&,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&&,
     std::shared_ptr<apache::thrift::transport::THeader>,
     RequestClientCallback::Ptr);
@@ -187,14 +187,14 @@ template <>
 void RequestChannel::sendRequestAsync<
     RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE>(
     apache::thrift::RpcOptions&&,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&&,
     std::shared_ptr<apache::thrift::transport::THeader>,
     StreamClientCallback*);
 template <>
 void RequestChannel::sendRequestAsync<RpcKind::SINK>(
     apache::thrift::RpcOptions&&,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&&,
     std::shared_ptr<apache::thrift::transport::THeader>,
     SinkClientCallback*);
@@ -212,7 +212,11 @@ class ClientSyncCallback : public RequestClientCallback {
         }
       }
     }
-    doneBaton_.wait();
+
+    // Check if it's ready to avoid unnecessarily preempting a fiber.
+    if (!doneBaton_.ready()) {
+      doneBaton_.wait();
+    }
   }
 
   // This approach avoids an inner coroutine frame
@@ -224,7 +228,7 @@ class ClientSyncCallback : public RequestClientCallback {
     }
   }
   void onResponse(ClientReceiveState&& rs) noexcept override {
-    assert(rs.buf());
+    assert(rs.hasResponseBuffer());
     assert(!oneWay);
     *rs_ = std::move(rs);
     doneBaton_.post();
@@ -294,7 +298,7 @@ template <class Protocol>
 SerializedRequest preprocessSendT(
     Protocol* prot,
     const apache::thrift::RpcOptions& rpcOptions,
-    apache::thrift::ContextStack& ctx,
+    apache::thrift::ContextStack* ctx,
     apache::thrift::transport::THeader& header,
     folly::StringPiece methodName,
     folly::FunctionRef<void(Protocol*)> writefunc,
@@ -312,17 +316,24 @@ SerializedRequest preprocessSendT(
     prot->setOutput(&queue, bufSize);
     auto guard = folly::makeGuard([&] { prot->setOutput(nullptr); });
     try {
-      ctx.preWrite();
+      if (ctx) {
+        ctx->preWrite();
+      }
       writefunc(prot);
       ::apache::thrift::SerializedMessage smsg;
       smsg.protocolType = prot->protocolType();
       smsg.buffer = queue.front();
       smsg.methodName = methodName;
-      ctx.onWriteData(smsg);
-      ctx.postWrite(folly::to_narrow(queue.chainLength()));
+      if (ctx) {
+        ctx->onWriteData(smsg);
+        ctx->postWrite(folly::to_narrow(queue.chainLength()));
+        ctx->resetClientRequestContextHeader();
+      }
     } catch (const apache::thrift::TException& ex) {
-      ctx.handlerErrorWrapped(
-          folly::exception_wrapper(std::current_exception(), ex));
+      if (ctx) {
+        ctx->handlerErrorWrapped(
+            folly::exception_wrapper(std::current_exception(), ex));
+      }
       throw;
     }
 
@@ -340,18 +351,24 @@ void clientSendT(
     apache::thrift::RpcOptions&& rpcOptions,
     typename apache::thrift::detail::RequestClientCallbackType<Kind>::Ptr
         callback,
-    apache::thrift::ContextStack& ctx,
+    apache::thrift::ContextStack* ctx,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     RequestChannel* channel,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     folly::FunctionRef<void(Protocol*)> writefunc,
     folly::FunctionRef<size_t(Protocol*)> sizefunc) {
   auto request = preprocessSendT(
-      prot, rpcOptions, ctx, *header, methodName.view(), writefunc, sizefunc);
+      prot,
+      rpcOptions,
+      ctx,
+      *header,
+      methodMetadata.name_view(),
+      writefunc,
+      sizefunc);
 
   channel->sendRequestAsync<Kind>(
       std::move(rpcOptions),
-      std::move(methodName),
+      std::move(methodMetadata),
       std::move(request),
       std::move(header),
       std::move(callback));

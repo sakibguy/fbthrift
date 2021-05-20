@@ -21,7 +21,7 @@
 
 #include <thrift/compiler/ast/visitor.h>
 #include <thrift/compiler/lib/cpp2/util.h>
-#include <thrift/compiler/validator/diagnostic.h>
+#include <thrift/compiler/sema/diagnostic.h>
 
 #include <boost/optional.hpp>
 
@@ -268,6 +268,37 @@ class reserved_field_id_validator : virtual public validator {
    */
   bool visit(t_struct* s) override;
 };
+
+class recursive_union_validator : virtual public validator {
+  using validator::visit;
+
+  /**
+   * Enforces that the cpp.box annotation is not used in unions.
+   *
+   * TODO(daandemeyer): Remove when cpp.box union support is added.
+   */
+  bool visit(t_struct* s) override;
+};
+
+class recursive_ref_validator : virtual public validator {
+  using validator::visit;
+
+  /**
+   * Enforces that the cpp.box annotation is not used in combination with the
+   * cpp.ref or cpp.ref_type annotations.
+   */
+  bool visit(t_struct* s) override;
+};
+
+class recursive_optional_validator : virtual public validator {
+  using validator::visit;
+
+  /**
+   * Enforces that the cpp.box annotation is only used with optional fields.
+   */
+  bool visit(t_struct* s) override;
+};
+
 } // namespace compiler
 } // namespace thrift
 } // namespace apache

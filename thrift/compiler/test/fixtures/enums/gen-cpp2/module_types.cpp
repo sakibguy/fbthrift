@@ -69,13 +69,16 @@ void TccStructTraits<::cpp2::SomeStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+SomeStruct::SomeStruct(const SomeStruct&) = default;
+SomeStruct& SomeStruct::operator=(const SomeStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SomeStruct::SomeStruct(SomeStruct&& other) noexcept  :
     reasonable(std::move(other.reasonable)),
     fine(std::move(other.fine)),
     questionable(std::move(other.questionable)),
     tags(std::move(other.tags)),
     __isset(other.__isset) {}
-
 SomeStruct& SomeStruct::operator=(FOLLY_MAYBE_UNUSED SomeStruct&& other) noexcept {
     this->reasonable = std::move(other.reasonable);
     this->fine = std::move(other.fine);
@@ -99,6 +102,7 @@ SomeStruct::SomeStruct(apache::thrift::FragileConstructor, ::cpp2::Metasyntactic
   __isset.tags = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SomeStruct::__clear() {
   // clear all fields
   this->reasonable =  ::cpp2::Metasyntactic::FOO;

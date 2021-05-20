@@ -327,7 +327,7 @@ bool generate(
 
       bool has_failure = false;
       for (const auto& d : diagnostics) {
-        has_failure = has_failure || (d.getType() == diagnostic::type::failure);
+        has_failure = has_failure || (d.level() == diagnostic_level::failure);
         std::cerr << d << std::endl;
       }
       if (has_failure) {
@@ -398,7 +398,7 @@ std::string get_include_path(
 
 compile_result compile(const std::vector<std::string>& arguments) {
   compile_result result;
-  result.retcode = compile_retcode::FAILURE;
+  result.retcode = compile_retcode::failure;
 
   // Parese arguments.
   g_stage = "arguments";
@@ -412,40 +412,37 @@ compile_result compile(const std::vector<std::string>& arguments) {
   // Parse it!
   g_stage = "parse";
   parsing_driver driver{input_filename, std::move(pparams)};
-  auto program = driver.parse(result.diagnostics);
+  auto program = driver.parse(result.detail);
   if (!program) {
     return result;
   }
 
   // Mutate it!
-  mutator::mutate(program->get_root_program());
-  program->get_root_program()->set_include_prefix(
+  try {
+    mutator::mutate(program->root_program());
+  } catch (MutatorException& e) {
+    result.detail.add(std::move(e.message));
+    return result;
+  }
+
+  program->root_program()->set_include_prefix(
       get_include_path(gparams.targets, input_filename));
 
   // Validate it!
-  auto diagnostics = validator::validate(program->get_root_program());
-  bool has_failure = false;
-  for (const auto& d : diagnostics) {
-    has_failure = has_failure || (d.getType() == diagnostic::type::failure);
-    std::cerr << d << std::endl;
-  }
-  if (has_failure) {
+  result.detail.add_all(validator::validate(program->root_program()));
+  if (result.detail.has_failure()) {
     return result;
   }
 
   // Generate it!
   g_stage = "generation";
   try {
-    if (generate(gparams, program->get_root_program())) {
-      result.retcode = compile_retcode::SUCCESS;
+    if (generate(gparams, program->root_program())) {
+      result.retcode = compile_retcode::success;
     }
   } catch (const std::exception& e) {
-    result.diagnostics.push_back(diagnostic_message(
-        diagnostic_level::FAILURE,
-        program->get_root_program()->path(),
-        0,
-        {},
-        e.what()));
+    result.detail.add(
+        {diagnostic_level::failure, e.what(), program->root_program()->path()});
   }
   return result;
 }

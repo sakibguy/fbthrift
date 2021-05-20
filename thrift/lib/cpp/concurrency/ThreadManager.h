@@ -405,13 +405,16 @@ class PriorityThreadManager : public ThreadManager {
 };
 
 // Adapter class that converts a folly::Executor to a ThreadManager interface
-class ThreadManagerExecutorAdapter : public ThreadManager {
+class ThreadManagerExecutorAdapter : public ThreadManager,
+                                     public folly::DefaultKeepAliveExecutor {
  public:
   /* implicit */
   ThreadManagerExecutorAdapter(std::shared_ptr<folly::Executor> exe);
   explicit ThreadManagerExecutorAdapter(folly::Executor::KeepAlive<> ka);
   explicit ThreadManagerExecutorAdapter(
       std::array<std::shared_ptr<Executor>, N_PRIORITIES>);
+
+  ~ThreadManagerExecutorAdapter() override;
 
   void join() override;
   void start() override;
@@ -425,12 +428,12 @@ class ThreadManagerExecutorAdapter : public ThreadManager {
   void addWorker(size_t value = 1) override;
   void removeWorker(size_t value = 1) override;
 
-  size_t idleWorkerCount() const override { return 0; }
-  size_t workerCount() const override { return 0; }
-  size_t pendingUpstreamTaskCount() const override { return 0; }
-  size_t pendingTaskCount() const override { return 0; }
-  size_t totalTaskCount() const override { return 0; }
-  size_t expiredTaskCount() override { return 0; }
+  size_t idleWorkerCount() const override;
+  size_t workerCount() const override;
+  size_t pendingUpstreamTaskCount() const override;
+  size_t pendingTaskCount() const override;
+  size_t totalTaskCount() const override;
+  size_t expiredTaskCount() override;
 
   void add(
       std::shared_ptr<Runnable> task,
@@ -458,6 +461,13 @@ class ThreadManagerExecutorAdapter : public ThreadManager {
 
   std::vector<std::shared_ptr<void>> owning_;
   std::array<folly::Executor*, N_PRIORITIES * N_SOURCES> executors_;
+  void joinKeepAliveOnce() {
+    if (!std::exchange(keepAliveJoined_, true)) {
+      joinKeepAlive();
+    }
+  }
+
+  bool keepAliveJoined_{false};
 };
 
 class SimpleThreadManager : public ThreadManager,

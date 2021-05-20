@@ -77,6 +77,7 @@ SmallStruct::SmallStruct(apache::thrift::FragileConstructor, bool small_A__arg, 
   __isset.small_B = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void SmallStruct::__clear() {
   // clear all fields
   this->small_A = 0;
@@ -227,11 +228,14 @@ THRIFT_IGNORE_ISSET_USE_WARNING_END
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.fieldQ = srcObj.__isset.fieldQ;
 THRIFT_IGNORE_ISSET_USE_WARNING_END
-  if (srcObj.fieldR) fieldR.reset(new ::std::map<::std::string, bool>(*srcObj.fieldR));
-  if (srcObj.fieldS) fieldS.reset(new ::cpp2::SmallStruct(*srcObj.fieldS));
+  fieldR = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>>(srcObj.fieldR);
+  fieldS = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.fieldS);
   fieldT = srcObj.fieldT;
   fieldU = srcObj.fieldU;
-  if (srcObj.fieldX) fieldX.reset(new ::cpp2::SmallStruct(*srcObj.fieldX));
+  fieldX = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.fieldX);
 }
 
 containerStruct& containerStruct::operator=(const containerStruct& src) {
@@ -262,7 +266,8 @@ containerStruct::containerStruct() :
       fieldS(std::make_unique<::cpp2::SmallStruct>()),
       fieldT(std::make_shared<::cpp2::SmallStruct>()),
       fieldU(std::make_shared<::cpp2::SmallStruct>()),
-      fieldX(std::make_unique<::cpp2::SmallStruct>()) {}
+      fieldX(std::make_unique<::cpp2::SmallStruct>()) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -293,7 +298,6 @@ containerStruct::containerStruct(containerStruct&& other) noexcept  :
     fieldU(std::move(other.fieldU)),
     fieldX(std::move(other.fieldX)),
     __isset(other.__isset) {}
-
 containerStruct& containerStruct::operator=(FOLLY_MAYBE_UNUSED containerStruct&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->fieldB = std::move(other.fieldB);
@@ -366,6 +370,7 @@ containerStruct::containerStruct(apache::thrift::FragileConstructor, bool fieldA
   __isset.fieldQ = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void containerStruct::__clear() {
   // clear all fields
   this->fieldA = 0;

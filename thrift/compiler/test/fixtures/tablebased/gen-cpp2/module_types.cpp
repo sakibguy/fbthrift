@@ -122,7 +122,8 @@ THRIFT_IGNORE_ISSET_USE_WARNING_END
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.fieldC = srcObj.__isset.fieldC;
 THRIFT_IGNORE_ISSET_USE_WARNING_END
-  if (srcObj.fieldD) fieldD = srcObj.fieldD->clone();
+  fieldD = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::binary>(srcObj.fieldD);
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.fieldD = srcObj.__isset.fieldD;
 THRIFT_IGNORE_ISSET_USE_WARNING_END
@@ -141,7 +142,8 @@ TrivialTypesStruct& TrivialTypesStruct::operator=(const TrivialTypesStruct& src)
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TrivialTypesStruct::TrivialTypesStruct() :
       fieldA(0),
-      fieldE( ::test::fixtures::tablebased::ExampleEnum::ZERO) {}
+      fieldE( ::test::fixtures::tablebased::ExampleEnum::ZERO) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -155,7 +157,6 @@ TrivialTypesStruct::TrivialTypesStruct(TrivialTypesStruct&& other) noexcept  :
     fieldD(std::move(other.fieldD)),
     fieldE(std::move(other.fieldE)),
     __isset(other.__isset) {}
-
 TrivialTypesStruct& TrivialTypesStruct::operator=(FOLLY_MAYBE_UNUSED TrivialTypesStruct&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->fieldB = std::move(other.fieldB);
@@ -182,6 +183,7 @@ TrivialTypesStruct::TrivialTypesStruct(apache::thrift::FragileConstructor, ::std
   __isset.fieldE = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void TrivialTypesStruct::__clear() {
   // clear all fields
   this->fieldA = 0;
@@ -337,7 +339,12 @@ constexpr ::apache::thrift::detail::StructInfoN<5> __fbthrift_struct_info_Trivia
 namespace test { namespace fixtures { namespace tablebased {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-ContainerStruct::ContainerStruct() {}
+ContainerStruct::ContainerStruct(const ContainerStruct&) = default;
+ContainerStruct& ContainerStruct::operator=(const ContainerStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+ContainerStruct::ContainerStruct() {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -354,7 +361,6 @@ ContainerStruct::ContainerStruct(ContainerStruct&& other) noexcept  :
     fieldG(std::move(other.fieldG)),
     fieldH(std::move(other.fieldH)),
     __isset(other.__isset) {}
-
 ContainerStruct& ContainerStruct::operator=(FOLLY_MAYBE_UNUSED ContainerStruct&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->fieldB = std::move(other.fieldB);
@@ -390,6 +396,7 @@ ContainerStruct::ContainerStruct(apache::thrift::FragileConstructor, ::std::vect
   __isset.fieldH = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void ContainerStruct::__clear() {
   // clear all fields
   this->fieldA.clear();

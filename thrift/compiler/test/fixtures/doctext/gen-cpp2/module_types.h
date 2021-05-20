@@ -132,7 +132,8 @@ class A final  {
  public:
 
   A() :
-      useless_field(0) {}
+      useless_field(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   A(apache::thrift::FragileConstructor, ::std::int32_t useless_field__arg);
@@ -182,6 +183,7 @@ class A final  {
     return useless_field;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_useless_field(::std::int32_t useless_field_) {
     useless_field = useless_field_;
     __isset.useless_field = true;
@@ -386,12 +388,16 @@ class U final  {
   }
 
   ::std::int32_t const& get_i() const {
-    assert(type_ == Type::i);
+    if (type_ != Type::i) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.i;
   }
 
   ::std::string const& get_s() const {
-    assert(type_ == Type::s);
+    if (type_ != Type::s) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.s;
   }
 
@@ -519,20 +525,23 @@ class Bang final : public apache::thrift::TException {
 
  public:
 
-  Bang() {}
+  Bang();
+
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Bang(apache::thrift::FragileConstructor, ::std::string message__arg);
 
   Bang(Bang&&) noexcept;
 
-  Bang(const Bang&) = default;
+  Bang(const Bang& src);
 
 
   Bang& operator=(Bang&&) noexcept;
-
-  Bang& operator=(const Bang&) = default;
+  Bang& operator=(const Bang& src);
   void __clear();
+
+  ~Bang() override;
+
  private:
   ::std::string message;
 
@@ -574,6 +583,7 @@ class Bang final : public apache::thrift::TException {
   }
 
   template <typename T_Bang_message_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_message(T_Bang_message_struct_setter&& message_) {
     message = std::forward<T_Bang_message_struct_setter>(message_);
     __isset.message = true;

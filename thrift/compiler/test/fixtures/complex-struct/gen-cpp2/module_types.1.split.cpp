@@ -36,11 +36,14 @@ void TccStructTraits<::cpp2::MyStructMapFloatThrowExp>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStructMapFloatThrowExp::MyStructMapFloatThrowExp(const MyStructMapFloatThrowExp&) = default;
+MyStructMapFloatThrowExp& MyStructMapFloatThrowExp::operator=(const MyStructMapFloatThrowExp&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStructMapFloatThrowExp::MyStructMapFloatThrowExp(MyStructMapFloatThrowExp&& other) noexcept  :
     myLongField(std::move(other.myLongField)),
     mapListOfFloats(std::move(other.mapListOfFloats)),
     __isset(other.__isset) {}
-
 MyStructMapFloatThrowExp& MyStructMapFloatThrowExp::operator=(FOLLY_MAYBE_UNUSED MyStructMapFloatThrowExp&& other) noexcept {
     this->myLongField = std::move(other.myLongField);
     this->mapListOfFloats = std::move(other.mapListOfFloats);
@@ -58,6 +61,7 @@ MyStructMapFloatThrowExp::MyStructMapFloatThrowExp(apache::thrift::FragileConstr
   __isset.mapListOfFloats = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStructMapFloatThrowExp::__clear() {
   // clear all fields
   this->myLongField = 0;
@@ -148,6 +152,10 @@ void TccStructTraits<::cpp2::defaultStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+defaultStruct::defaultStruct(const defaultStruct&) = default;
+defaultStruct& defaultStruct::operator=(const defaultStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 defaultStruct::defaultStruct() :
       myLongDFset(10LL),
       myLongDF(0),
@@ -187,7 +195,8 @@ defaultStruct::defaultStruct() :
   {144,  ::cpp2::MyEnum::MyValue2}}},
   {apache::thrift::StringTraits<std::string>::fromStringLiteral("HASWELL"), std::initializer_list<std::pair<const ::std::int32_t, ::cpp2::MyEnum>>{{32,  ::cpp2::MyEnum::MyValue3},
   {128,  ::cpp2::MyEnum::MyValue3},
-  {256,  ::cpp2::MyEnum::MyValue3}}}}) {}
+  {256,  ::cpp2::MyEnum::MyValue3}}}}) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -218,7 +227,6 @@ defaultStruct::defaultStruct(defaultStruct&& other) noexcept  :
     emptyMap(std::move(other.emptyMap)),
     enumMapDFset(std::move(other.enumMapDFset)),
     __isset(other.__isset) {}
-
 defaultStruct& defaultStruct::operator=(FOLLY_MAYBE_UNUSED defaultStruct&& other) noexcept {
     this->myLongDFset = std::move(other.myLongDFset);
     this->myLongDF = std::move(other.myLongDF);
@@ -296,6 +304,7 @@ defaultStruct::defaultStruct(apache::thrift::FragileConstructor, ::std::int64_t 
   __isset.enumMapDFset = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void defaultStruct::__clear() {
   // clear all fields
   this->myLongDFset = 10LL;
@@ -848,13 +857,16 @@ void TccStructTraits<::cpp2::TypeRemapped>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+TypeRemapped::TypeRemapped(const TypeRemapped&) = default;
+TypeRemapped& TypeRemapped::operator=(const TypeRemapped&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TypeRemapped::TypeRemapped(TypeRemapped&& other) noexcept  :
     lsMap(std::move(other.lsMap)),
     ioMap(std::move(other.ioMap)),
     BigInteger(std::move(other.BigInteger)),
     binaryTestBuffer(std::move(other.binaryTestBuffer)),
     __isset(other.__isset) {}
-
 TypeRemapped& TypeRemapped::operator=(FOLLY_MAYBE_UNUSED TypeRemapped&& other) noexcept {
     this->lsMap = std::move(other.lsMap);
     this->ioMap = std::move(other.ioMap);
@@ -878,6 +890,7 @@ TypeRemapped::TypeRemapped(apache::thrift::FragileConstructor, ::std::map<::std:
   __isset.binaryTestBuffer = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void TypeRemapped::__clear() {
   // clear all fields
   this->lsMap.clear();
@@ -992,11 +1005,23 @@ void TccStructTraits<::cpp2::optXcep>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+optXcep::optXcep(const optXcep&) = default;
+optXcep& optXcep::operator=(const optXcep&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+optXcep::optXcep() :
+      errorCode(0) {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+optXcep::~optXcep() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 optXcep::optXcep(optXcep&& other) noexcept  :
     message(std::move(other.message)),
     errorCode(std::move(other.errorCode)),
     __isset(other.__isset) {}
-
 optXcep& optXcep::operator=(FOLLY_MAYBE_UNUSED optXcep&& other) noexcept {
     this->message = std::move(other.message);
     this->errorCode = std::move(other.errorCode);
@@ -1014,6 +1039,7 @@ optXcep::optXcep(apache::thrift::FragileConstructor, ::std::string message__arg,
   __isset.errorCode = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void optXcep::__clear() {
   // clear all fields
   this->message = apache::thrift::StringTraits<std::string>::fromStringLiteral("");

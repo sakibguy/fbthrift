@@ -173,15 +173,14 @@ LoadTestClientPtr AsyncClientWorker2::createConnection() {
         folly::AsyncSocket::newSocket(&eb_, *config->getAddress(), kTimeout);
   }
 
-  std::unique_ptr<
-      apache::thrift::HeaderClientChannel,
-      folly::DelayedDestruction::Destructor>
-      channel(HeaderClientChannel::newChannel(std::move(socket)));
+  HeaderClientChannel::Options options;
+  if (!config->useHeaderProtocol()) {
+    options.setClientType(THRIFT_FRAMED_DEPRECATED);
+  }
+  auto channel =
+      HeaderClientChannel::newChannel(std::move(socket), std::move(options));
   channel->setTimeout(kTimeout);
   // For testing equality, make sure to use binary
-  if (!config->useHeaderProtocol()) {
-    channel->setClientType(THRIFT_FRAMED_DEPRECATED);
-  }
   if (config->zlib()) {
     apache::thrift::CompressionConfig compressionConfig;
     compressionConfig.codecConfig_ref().ensure().set_zlibConfig();

@@ -14,41 +14,17 @@
  * limitations under the License.
  */
 
-#include <thrift/compiler/validator/diagnostic.h>
+#pragma once
 
-#include <sstream>
-#include <string>
+#include <thrift/compiler/ast/ast_visitor.h>
+#include <thrift/compiler/sema/diagnostic.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
 
-std::string diagnostic::str() {
-  std::ostringstream ss;
-  ss << "[" << getStringFromType(type_) << ":" << file_;
-  if (line_) {
-    ss << ":" << line_.value();
-  }
-  ss << "] " << message_;
-  return ss.str();
-}
-
-std::ostream& operator<<(std::ostream& os, diagnostic e) {
-  return os << e.str();
-}
-
-std::string diagnostic::getStringFromType(diagnostic::type type) {
-  switch (type) {
-    case diagnostic::type::failure:
-      return "FAILURE";
-    case diagnostic::type::warning:
-      return "WARNING";
-    case diagnostic::type::info:
-      return "INFO";
-    default:
-      return "Undefined diagnostic type";
-  }
-}
+// An AST validator is a const ast_visitor that collects diagnostics.
+using ast_validator = basic_ast_visitor<true, diagnostic_results&>;
 
 } // namespace compiler
 } // namespace thrift

@@ -36,6 +36,18 @@ void TccStructTraits<::cpp2::FooEx>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+FooEx::FooEx(const FooEx&) = default;
+FooEx& FooEx::operator=(const FooEx&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+FooEx::FooEx() {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+FooEx::~FooEx() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 FooEx::FooEx(FooEx&& other) noexcept { (void)other; }
 FooEx& FooEx::operator=(FOLLY_MAYBE_UNUSED FooEx&& other) noexcept {
     return *this;
@@ -46,6 +58,7 @@ THRIFT_IGNORE_ISSET_USE_WARNING_END
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 FooEx::FooEx(apache::thrift::FragileConstructor) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void FooEx::__clear() {
   // clear all fields
 }

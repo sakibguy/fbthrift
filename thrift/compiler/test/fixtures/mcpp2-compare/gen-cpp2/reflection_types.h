@@ -64,7 +64,8 @@ class ReflectionStruct final  {
  public:
 
   ReflectionStruct() :
-      fieldA(5) {}
+      fieldA(5) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   ReflectionStruct(apache::thrift::FragileConstructor, ::std::int32_t fieldA__arg);
@@ -114,6 +115,7 @@ class ReflectionStruct final  {
     return fieldA;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_fieldA(::std::int32_t fieldA_) {
     fieldA = fieldA_;
     __isset.fieldA = true;

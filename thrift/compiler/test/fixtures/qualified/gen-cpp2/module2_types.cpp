@@ -36,11 +36,14 @@ void TccStructTraits<::module2::Struct>::translateFieldName(
 namespace module2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+Struct::Struct(const Struct&) = default;
+Struct& Struct::operator=(const Struct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Struct::Struct(Struct&& other) noexcept  :
     first(std::move(other.first)),
     second(std::move(other.second)),
     __isset(other.__isset) {}
-
 Struct& Struct::operator=(FOLLY_MAYBE_UNUSED Struct&& other) noexcept {
     this->first = std::move(other.first);
     this->second = std::move(other.second);
@@ -58,6 +61,7 @@ Struct::Struct(apache::thrift::FragileConstructor, ::module0::Struct first__arg,
   __isset.second = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Struct::__clear() {
   // clear all fields
   this->first.__clear();
@@ -180,11 +184,14 @@ void TccStructTraits<::module2::BigStruct>::translateFieldName(
 namespace module2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+BigStruct::BigStruct(const BigStruct&) = default;
+BigStruct& BigStruct::operator=(const BigStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 BigStruct::BigStruct(BigStruct&& other) noexcept  :
     s(std::move(other.s)),
     id(std::move(other.id)),
     __isset(other.__isset) {}
-
 BigStruct& BigStruct::operator=(FOLLY_MAYBE_UNUSED BigStruct&& other) noexcept {
     this->s = std::move(other.s);
     this->id = std::move(other.id);
@@ -202,6 +209,7 @@ BigStruct::BigStruct(apache::thrift::FragileConstructor, ::module2::Struct s__ar
   __isset.id = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void BigStruct::__clear() {
   // clear all fields
   this->s.__clear();

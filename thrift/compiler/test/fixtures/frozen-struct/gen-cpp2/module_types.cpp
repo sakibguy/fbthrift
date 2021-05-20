@@ -69,8 +69,13 @@ void TccStructTraits<::some::ns::ModuleA>::translateFieldName(
 namespace some { namespace ns {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+ModuleA::ModuleA(const ModuleA&) = default;
+ModuleA& ModuleA::operator=(const ModuleA&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ModuleA::ModuleA() :
-      i32Field(0) {}
+      i32Field(0) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -85,7 +90,6 @@ ModuleA::ModuleA(ModuleA&& other) noexcept  :
     inclAField(std::move(other.inclAField)),
     inclBField(std::move(other.inclBField)),
     __isset(other.__isset) {}
-
 ModuleA& ModuleA::operator=(FOLLY_MAYBE_UNUSED ModuleA&& other) noexcept {
     this->i32Field = std::move(other.i32Field);
     this->strField = std::move(other.strField);
@@ -115,6 +119,7 @@ ModuleA::ModuleA(apache::thrift::FragileConstructor, ::std::int32_t i32Field__ar
   __isset.inclBField = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void ModuleA::__clear() {
   // clear all fields
   this->i32Field = 0;
@@ -293,6 +298,7 @@ ModuleB::ModuleB(apache::thrift::FragileConstructor, ::std::int32_t i32Field__ar
   __isset.inclEnumB = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void ModuleB::__clear() {
   // clear all fields
   this->i32Field = 0;

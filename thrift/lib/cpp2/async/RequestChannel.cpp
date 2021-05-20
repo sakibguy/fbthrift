@@ -22,112 +22,125 @@
 namespace apache {
 namespace thrift {
 
-template <typename F>
-static void maybeRunInEb(folly::EventBase* eb, F func) {
+template <typename CallbackPtr>
+using SendFunc = void (RequestChannel::*)(
+    const RpcOptions&,
+    apache::thrift::MethodMetadata&& methodMetadata,
+    SerializedRequest&&,
+    std::shared_ptr<transport::THeader>,
+    CallbackPtr);
+
+template <typename CallbackPtr>
+void maybeRunInEb(
+    folly::EventBase* eb,
+    RequestChannel* channel,
+    SendFunc<CallbackPtr> send,
+    const RpcOptions& rpcOptions,
+    apache::thrift::MethodMetadata&& methodMetadata,
+    SerializedRequest&& request,
+    std::shared_ptr<apache::thrift::transport::THeader>&& header,
+    CallbackPtr callback) {
   if (!eb || eb->isInEventBaseThread()) {
-    func();
+    (channel->*send)(
+        rpcOptions,
+        std::move(methodMetadata),
+        std::move(request),
+        std::move(header),
+        std::move(callback));
   } else {
-    eb->runInEventBaseThread(std::forward<F>(func));
+    eb->runInEventBaseThread([channel,
+                              send,
+                              rpcOptions = rpcOptions,
+                              methodMetadata = std::move(methodMetadata),
+                              request = std::move(request),
+                              header = std::move(header),
+                              callback = std::move(callback)]() mutable {
+      (channel->*send)(
+          rpcOptions,
+          std::move(methodMetadata),
+          std::move(request),
+          std::move(header),
+          std::move(callback));
+    });
   }
 }
 
 template <>
 void RequestChannel::sendRequestAsync<RpcKind::SINGLE_REQUEST_NO_RESPONSE>(
     apache::thrift::RpcOptions&& rpcOptions,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&& request,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     RequestClientCallback::Ptr callback) {
   maybeRunInEb(
       getEventBase(),
-      [this,
-       rpcOptions = std::move(rpcOptions),
-       methodName = std::move(methodName),
-       request = std::move(request),
-       header = std::move(header),
-       callback = std::move(callback)]() mutable {
-        sendRequestNoResponse(
-            rpcOptions,
-            std::move(methodName),
-            std::move(request),
-            std::move(header),
-            std::move(callback));
-      });
+      this,
+      &RequestChannel::sendRequestNoResponse,
+      rpcOptions,
+      std::move(methodMetadata),
+      std::move(request),
+      std::move(header),
+      std::move(callback));
 }
+
 template <>
 void RequestChannel::sendRequestAsync<RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE>(
     apache::thrift::RpcOptions&& rpcOptions,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&& request,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     RequestClientCallback::Ptr callback) {
   maybeRunInEb(
       getEventBase(),
-      [this,
-       rpcOptions = std::move(rpcOptions),
-       methodName = std::move(methodName),
-       request = std::move(request),
-       header = std::move(header),
-       callback = std::move(callback)]() mutable {
-        sendRequestResponse(
-            rpcOptions,
-            std::move(methodName),
-            std::move(request),
-            std::move(header),
-            std::move(callback));
-      });
+      this,
+      &RequestChannel::sendRequestResponse,
+      rpcOptions,
+      std::move(methodMetadata),
+      std::move(request),
+      std::move(header),
+      std::move(callback));
 }
+
 template <>
 void RequestChannel::sendRequestAsync<
     RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE>(
     apache::thrift::RpcOptions&& rpcOptions,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&& request,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     StreamClientCallback* callback) {
   maybeRunInEb(
       getEventBase(),
-      [this,
-       rpcOptions = std::move(rpcOptions),
-       methodName = std::move(methodName),
-       request = std::move(request),
-       header = std::move(header),
-       callback = std::move(callback)]() mutable {
-        sendRequestStream(
-            rpcOptions,
-            std::move(methodName),
-            std::move(request),
-            std::move(header),
-            callback);
-      });
+      this,
+      &RequestChannel::sendRequestStream,
+      rpcOptions,
+      std::move(methodMetadata),
+      std::move(request),
+      std::move(header),
+      callback);
 }
+
 template <>
 void RequestChannel::sendRequestAsync<RpcKind::SINK>(
     apache::thrift::RpcOptions&& rpcOptions,
-    apache::thrift::ManagedStringView&& methodName,
+    apache::thrift::MethodMetadata&& methodMetadata,
     SerializedRequest&& request,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     SinkClientCallback* callback) {
   maybeRunInEb(
       getEventBase(),
-      [this,
-       rpcOptions = std::move(rpcOptions),
-       methodName = std::move(methodName),
-       request = std::move(request),
-       header = std::move(header),
-       callback = std::move(callback)]() mutable {
-        sendRequestSink(
-            rpcOptions,
-            std::move(methodName),
-            std::move(request),
-            std::move(header),
-            callback);
-      });
+      this,
+      &RequestChannel::sendRequestSink,
+      rpcOptions,
+      std::move(methodMetadata),
+      std::move(request),
+      std::move(header),
+      callback);
 }
 
 void RequestChannel::sendRequestStream(
     const RpcOptions&,
-    ManagedStringView&&,
+    MethodMetadata&&,
     SerializedRequest&&,
     std::shared_ptr<transport::THeader>,
     StreamClientCallback* clientCallback) {
@@ -138,7 +151,7 @@ void RequestChannel::sendRequestStream(
 
 void RequestChannel::sendRequestSink(
     const RpcOptions&,
-    ManagedStringView&&,
+    MethodMetadata&&,
     SerializedRequest&&,
     std::shared_ptr<transport::THeader>,
     SinkClientCallback* clientCallback) {

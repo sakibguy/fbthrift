@@ -27,6 +27,10 @@ void DbMixedStackArgumentsAsyncProcessor::setUpAndProcess_getDataByKey0(apache::
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void DbMixedStackArgumentsAsyncProcessor::process_getDataByKey0(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -43,21 +47,17 @@ void DbMixedStackArgumentsAsyncProcessor::process_getDataByKey0(apache::thrift::
         ew, std::move(req), ctx, eb, "getDataByKey0");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::std::string>>>(std::move(req), std::move(ctxStack), return_getDataByKey0<ProtocolIn_,ProtocolOut_>, throw_wrapped_getDataByKey0<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_getDataByKey0(std::move(callback), std::move(uarg_key));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue DbMixedStackArgumentsAsyncProcessor::return_getDataByKey0(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
+apache::thrift::LegacySerializedResponse DbMixedStackArgumentsAsyncProcessor::return_getDataByKey0(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
   ProtocolOut_ prot;
   DbMixedStackArguments_getDataByKey0_presult result;
   result.get<0>().value = const_cast<::std::string*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("getDataByKey0", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("getDataByKey0", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -85,6 +85,10 @@ void DbMixedStackArgumentsAsyncProcessor::setUpAndProcess_getDataByKey1(apache::
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void DbMixedStackArgumentsAsyncProcessor::process_getDataByKey1(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -101,21 +105,17 @@ void DbMixedStackArgumentsAsyncProcessor::process_getDataByKey1(apache::thrift::
         ew, std::move(req), ctx, eb, "getDataByKey1");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::std::string>>(std::move(req), std::move(ctxStack), return_getDataByKey1<ProtocolIn_,ProtocolOut_>, throw_wrapped_getDataByKey1<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_getDataByKey1(std::move(callback), args.get<0>().ref());
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue DbMixedStackArgumentsAsyncProcessor::return_getDataByKey1(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
+apache::thrift::LegacySerializedResponse DbMixedStackArgumentsAsyncProcessor::return_getDataByKey1(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::string const& _return) {
   ProtocolOut_ prot;
   DbMixedStackArguments_getDataByKey1_presult result;
   result.get<0>().value = const_cast<::std::string*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("getDataByKey1", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("getDataByKey1", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

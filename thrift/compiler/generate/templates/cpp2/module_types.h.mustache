@@ -183,19 +183,14 @@ class <%struct:name%> <%!
 
 <%#struct:is_large?%>
   <%struct:name%>();
+  <%#struct:message%>
+  explicit <%struct:name%>(std::string __message);
+  <%/struct:message%>
 <%/struct:is_large?%>
 <%^struct:is_large?%>
   <% > module_types_h/base_ctor%>
 <%/struct:is_large?%>
 
-<%#struct:exception?%><%#struct:message%>
-
-  explicit <%struct:name%>(const std::string& __message) :
-      <%struct:message%>(__message) {}
-
-  explicit <%struct:name%>(std::string&& __message) :
-      <%struct:message%>(std::move(__message)) {}
-<%/struct:message%><%/struct:exception?%>
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   <%struct:name%>(apache::thrift::FragileConstructor<% > module_types_h/fragile_ctor_param_list%>);
@@ -208,8 +203,14 @@ class <%struct:name%> <%!
 <%/struct:is_eligible_for_constexpr?%>
 <%^struct:cpp_noncopyable%>
 <%^struct:nondefault_copy_ctor_and_assignment?%>
+<%#struct:is_eligible_for_constexpr?%>
 
   <%struct:name%>(const <%struct:name%>&) = default;
+<%/struct:is_eligible_for_constexpr?%>
+<%^struct:is_eligible_for_constexpr?%>
+
+  <%struct:name%>(const <%struct:name%>& src);
+<%/struct:is_eligible_for_constexpr?%>
 <%/struct:nondefault_copy_ctor_and_assignment?%>
 <%#struct:nondefault_copy_ctor_and_assignment?%>
   <%struct:name%>(const <%struct:name%>& src);
@@ -228,8 +229,13 @@ class <%struct:name%> <%!
 <%/struct:is_eligible_for_constexpr?%>
 <%^struct:cpp_noncopyable%>
 <%^struct:nondefault_copy_ctor_and_assignment?%>
+<%#struct:is_eligible_for_constexpr?%>
 
   <%struct:name%>& operator=(const <%struct:name%>&) = default;
+<%/struct:is_eligible_for_constexpr?%>
+<%^struct:is_eligible_for_constexpr?%>
+  <%struct:name%>& operator=(const <%struct:name%>& src);
+<%/struct:is_eligible_for_constexpr?%>
 <%/struct:nondefault_copy_ctor_and_assignment?%>
 <%#struct:nondefault_copy_ctor_and_assignment?%>
   <%struct:name%>& operator=(const <%struct:name%>& src);
@@ -239,7 +245,7 @@ class <%struct:name%> <%!
 <%^struct:virtual%>
 <%#struct:is_large?%>
 
-  ~<%struct:name%>();
+  ~<%struct:name%>()<%#struct:exception?%> override<%/struct:exception?%>;
 
 <%/struct:is_large?%>
 <%/struct:virtual%>

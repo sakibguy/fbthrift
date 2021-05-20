@@ -31,10 +31,9 @@ namespace apache { namespace thrift { namespace test {
 
 template <class Protocol_>
 void Foo::readNoXfer(Protocol_* iprot) {
-  apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
+  apache::thrift::detail::ProtocolReaderStructReadStateWithIndex<Protocol_> _readState;
 
-  Protocol_ indexReader;
-  _readState.readStructBegin(iprot, &indexReader);
+  _readState.readStructBegin(iprot);
 
   using apache::thrift::TProtocolException;
 
@@ -76,10 +75,10 @@ _readField_field2:
   {
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string>::readWithContext(*iprot, this->field2, _readState);
     
-    THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-    this->__isset.field2 = true;
-    THRIFT_IGNORE_ISSET_USE_WARNING_END
   }
+  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->__isset.field2 = true;
+  THRIFT_IGNORE_ISSET_USE_WARNING_END
 
   if (UNLIKELY(!_readState.advanceToNextField(
           iprot,
@@ -106,10 +105,10 @@ _readField_field3:
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::readWithContext(*iprot, this->field3, _readState);
     _readState.afterSubobject(iprot);
     
-    THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-    this->__isset.field3 = true;
-    THRIFT_IGNORE_ISSET_USE_WARNING_END
   }
+  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->__isset.field3 = true;
+  THRIFT_IGNORE_ISSET_USE_WARNING_END
 
   if (UNLIKELY(!_readState.advanceToNextField(
           iprot,
@@ -125,10 +124,10 @@ _readField_field4:
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::readWithContext(*iprot, this->field4, _readState);
     _readState.afterSubobject(iprot);
     
-    THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-    this->__isset.field4 = true;
-    THRIFT_IGNORE_ISSET_USE_WARNING_END
   }
+  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->__isset.field4 = true;
+  THRIFT_IGNORE_ISSET_USE_WARNING_END
 
   if (UNLIKELY(!_readState.advanceToNextField(
           iprot,
@@ -194,56 +193,6 @@ _skip:
       goto _loop;
     }
   }
-}
-const ::std::unique_ptr<::std::string>& Foo::__fbthrift_read_field_field1() const {
-
-  if (__fbthrift_isDeserialized_.field1) {
-    return field1;
-  }
-
-  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
-  if (!__fbthrift_isDeserialized_.field1) {
-    auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<::std::unique_ptr<::std::string>>();
-
-    ::apache::thrift::CompactProtocolReader reader;
-    reader.setInput(&__fbthrift_serializedData_.field1);
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string>::read(reader, *ptr);
-
-    this->field1 = std::move(ptr);
-
-    __fbthrift_isDeserialized_.field1 = true;
-  }
-  return field1;
-}
-
-::std::unique_ptr<::std::string>& Foo::__fbthrift_read_field_field1() {
-  std::as_const(*this).__fbthrift_read_field_field1();
-  return field1;
-}
-const ::std::vector<::std::int32_t>& Foo::__fbthrift_read_field_field3() const {
-
-  if (__fbthrift_isDeserialized_.field3) {
-    return field3;
-  }
-
-  std::lock_guard<std::mutex> lock(__fbthrift_deserializationMutex_);
-  if (!__fbthrift_isDeserialized_.field3) {
-    auto* ptr = &this->field3;
-    this->field3 = ::std::vector<::std::int32_t>();
-
-    ::apache::thrift::CompactProtocolReader reader;
-    reader.setInput(&__fbthrift_serializedData_.field3);
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>>::read(reader, *ptr);
-
-
-    __fbthrift_isDeserialized_.field3 = true;
-  }
-  return field3;
-}
-
-::std::vector<::std::int32_t>& Foo::__fbthrift_read_field_field3() {
-  std::as_const(*this).__fbthrift_read_field_field3();
-  return field3;
 }
 
 template <class Protocol_>

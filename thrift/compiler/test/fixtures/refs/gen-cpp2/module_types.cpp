@@ -212,12 +212,18 @@ void TccStructTraits<::cpp2::MyField>::translateFieldName(
 namespace cpp2 {
 
 MyField::MyField(const MyField& srcObj) {
-  if (srcObj.opt_value) opt_value.reset(new ::std::int64_t(*srcObj.opt_value));
-  if (srcObj.value) value.reset(new ::std::int64_t(*srcObj.value));
-  if (srcObj.req_value) req_value.reset(new ::std::int64_t(*srcObj.req_value));
-  if (srcObj.opt_enum_value) opt_enum_value.reset(new ::cpp2::MyEnum(*srcObj.opt_enum_value));
-  if (srcObj.enum_value) enum_value.reset(new ::cpp2::MyEnum(*srcObj.enum_value));
-  if (srcObj.req_enum_value) req_enum_value.reset(new ::cpp2::MyEnum(*srcObj.req_enum_value));
+  opt_value = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::integral>(srcObj.opt_value);
+  value = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::integral>(srcObj.value);
+  req_value = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::integral>(srcObj.req_value);
+  opt_enum_value = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::enumeration>(srcObj.opt_enum_value);
+  enum_value = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::enumeration>(srcObj.enum_value);
+  req_enum_value = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::enumeration>(srcObj.req_enum_value);
 }
 
 MyField& MyField::operator=(const MyField& src) {
@@ -233,7 +239,8 @@ MyField::MyField() :
       req_value(std::make_unique<::std::int64_t>()),
       opt_enum_value(std::make_unique<::cpp2::MyEnum>()),
       enum_value(std::make_unique<::cpp2::MyEnum>()),
-      req_enum_value(std::make_unique<::cpp2::MyEnum>()) {}
+      req_enum_value(std::make_unique<::cpp2::MyEnum>()) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -247,7 +254,6 @@ MyField::MyField(MyField&& other) noexcept  :
     opt_enum_value(std::move(other.opt_enum_value)),
     enum_value(std::move(other.enum_value)),
     req_enum_value(std::move(other.req_enum_value)) {}
-
 
 MyField& MyField::operator=(FOLLY_MAYBE_UNUSED MyField&& other) noexcept {
     this->opt_value = std::move(other.opt_value);
@@ -270,6 +276,7 @@ MyField::MyField(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::in
     enum_value(std::move(enum_value__arg)),
     req_enum_value(std::move(req_enum_value__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyField::__clear() {
   // clear all fields
   this->opt_value = 0;
@@ -438,9 +445,12 @@ void TccStructTraits<::cpp2::MyStruct>::translateFieldName(
 namespace cpp2 {
 
 MyStruct::MyStruct(const MyStruct& srcObj) {
-  if (srcObj.opt_ref) opt_ref.reset(new ::cpp2::MyField(*srcObj.opt_ref));
-  if (srcObj.ref) ref.reset(new ::cpp2::MyField(*srcObj.ref));
-  if (srcObj.req_ref) req_ref.reset(new ::cpp2::MyField(*srcObj.req_ref));
+  opt_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.opt_ref);
+  ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.ref);
+  req_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.req_ref);
 }
 
 MyStruct& MyStruct::operator=(const MyStruct& src) {
@@ -454,7 +464,6 @@ MyStruct::MyStruct(MyStruct&& other) noexcept  :
     opt_ref(std::move(other.opt_ref)),
     ref(std::move(other.ref)),
     req_ref(std::move(other.req_ref)) {}
-
 
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->opt_ref = std::move(other.opt_ref);
@@ -471,6 +480,7 @@ MyStruct::MyStruct(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2:
     ref(std::move(ref__arg)),
     req_ref(std::move(req_ref__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStruct::__clear() {
   // clear all fields
   this->opt_ref.reset();
@@ -621,8 +631,10 @@ void TccStructTraits<::cpp2::StructWithUnion>::translateFieldName(
 namespace cpp2 {
 
 StructWithUnion::StructWithUnion(const StructWithUnion& srcObj) {
-  if (srcObj.u) u.reset(new ::cpp2::MyUnion(*srcObj.u));
-  if (srcObj.aDouble) aDouble.reset(new double(*srcObj.aDouble));
+  u = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::variant>(srcObj.u);
+  aDouble = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::floating_point>(srcObj.aDouble);
   f = srcObj.f;
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.f = srcObj.__isset.f;
@@ -641,7 +653,6 @@ StructWithUnion::StructWithUnion(StructWithUnion&& other) noexcept  :
     aDouble(std::move(other.aDouble)),
     f(std::move(other.f)),
     __isset(other.__isset) {}
-
 StructWithUnion& StructWithUnion::operator=(FOLLY_MAYBE_UNUSED StructWithUnion&& other) noexcept {
     this->u = std::move(other.u);
     this->aDouble = std::move(other.aDouble);
@@ -660,6 +671,7 @@ StructWithUnion::StructWithUnion(apache::thrift::FragileConstructor, ::std::uniq
   __isset.f = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithUnion::__clear() {
   // clear all fields
   if (this->u) this->u->__clear();
@@ -802,10 +814,13 @@ void TccStructTraits<::cpp2::RecursiveStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+RecursiveStruct::RecursiveStruct(const RecursiveStruct&) = default;
+RecursiveStruct& RecursiveStruct::operator=(const RecursiveStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 RecursiveStruct::RecursiveStruct(RecursiveStruct&& other) noexcept  :
     mes(std::move(other.mes)),
     __isset(other.__isset) {}
-
 RecursiveStruct& RecursiveStruct::operator=(FOLLY_MAYBE_UNUSED RecursiveStruct&& other) noexcept {
     this->mes = std::move(other.mes);
     __isset = other.__isset;
@@ -820,6 +835,7 @@ RecursiveStruct::RecursiveStruct(apache::thrift::FragileConstructor, ::std::vect
   __isset.mes = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void RecursiveStruct::__clear() {
   // clear all fields
   this->mes.clear();
@@ -902,10 +918,14 @@ void TccStructTraits<::cpp2::StructWithContainers>::translateFieldName(
 namespace cpp2 {
 
 StructWithContainers::StructWithContainers(const StructWithContainers& srcObj) {
-  if (srcObj.list_ref) list_ref.reset(new ::std::vector<::std::int32_t>(*srcObj.list_ref));
-  if (srcObj.set_ref) set_ref.reset(new ::std::set<::std::int32_t>(*srcObj.set_ref));
-  if (srcObj.map_ref) map_ref.reset(new ::std::map<::std::int32_t, ::std::int32_t>(*srcObj.map_ref));
-  if (srcObj.list_ref_unique) list_ref_unique.reset(new ::std::vector<::std::int32_t>(*srcObj.list_ref_unique));
+  list_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::list<::apache::thrift::type_class::integral>>(srcObj.list_ref);
+  set_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::set<::apache::thrift::type_class::integral>>(srcObj.set_ref);
+  map_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>>(srcObj.map_ref);
+  list_ref_unique = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::list<::apache::thrift::type_class::integral>>(srcObj.list_ref_unique);
   set_ref_shared = srcObj.set_ref_shared;
   list_ref_shared_const = srcObj.list_ref_shared_const;
 }
@@ -923,7 +943,8 @@ StructWithContainers::StructWithContainers() :
       map_ref(std::make_unique<::std::map<::std::int32_t, ::std::int32_t>>()),
       list_ref_unique(std::make_unique<::std::vector<::std::int32_t>>()),
       set_ref_shared(std::make_shared<::std::set<::std::int32_t>>()),
-      list_ref_shared_const(std::make_shared<::std::vector<::std::int32_t>>()) {}
+      list_ref_shared_const(std::make_shared<::std::vector<::std::int32_t>>()) {
+}
 
 THRIFT_IGNORE_ISSET_USE_WARNING_END
 
@@ -937,7 +958,6 @@ StructWithContainers::StructWithContainers(StructWithContainers&& other) noexcep
     list_ref_unique(std::move(other.list_ref_unique)),
     set_ref_shared(std::move(other.set_ref_shared)),
     list_ref_shared_const(std::move(other.list_ref_shared_const)) {}
-
 
 StructWithContainers& StructWithContainers::operator=(FOLLY_MAYBE_UNUSED StructWithContainers&& other) noexcept {
     this->list_ref = std::move(other.list_ref);
@@ -960,6 +980,7 @@ StructWithContainers::StructWithContainers(apache::thrift::FragileConstructor, :
     set_ref_shared(std::move(set_ref_shared__arg)),
     list_ref_shared_const(std::move(list_ref_shared_const__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithContainers::__clear() {
   // clear all fields
   this->list_ref = ::apache::thrift::detail::make_mutable_smart_ptr<::std::unique_ptr<::std::vector<::std::int32_t>>>();
@@ -1128,11 +1149,14 @@ void TccStructTraits<::cpp2::StructWithSharedConst>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+StructWithSharedConst::StructWithSharedConst(const StructWithSharedConst&) = default;
+StructWithSharedConst& StructWithSharedConst::operator=(const StructWithSharedConst&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithSharedConst::StructWithSharedConst(StructWithSharedConst&& other) noexcept  :
     opt_shared_const(std::move(other.opt_shared_const)),
     shared_const(std::move(other.shared_const)),
     req_shared_const(std::move(other.req_shared_const)) {}
-
 
 StructWithSharedConst& StructWithSharedConst::operator=(FOLLY_MAYBE_UNUSED StructWithSharedConst&& other) noexcept {
     this->opt_shared_const = std::move(other.opt_shared_const);
@@ -1149,6 +1173,7 @@ StructWithSharedConst::StructWithSharedConst(apache::thrift::FragileConstructor,
     shared_const(std::move(shared_const__arg)),
     req_shared_const(std::move(req_shared_const__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithSharedConst::__clear() {
   // clear all fields
   this->opt_shared_const.reset();
@@ -1302,6 +1327,7 @@ namespace cpp2 {
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Empty::Empty(apache::thrift::FragileConstructor) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void Empty::__clear() {
   // clear all fields
 }
@@ -1364,9 +1390,12 @@ void TccStructTraits<::cpp2::StructWithRef>::translateFieldName(
 namespace cpp2 {
 
 StructWithRef::StructWithRef(const StructWithRef& srcObj) {
-  if (srcObj.def_field) def_field.reset(new ::cpp2::Empty(*srcObj.def_field));
-  if (srcObj.opt_field) opt_field.reset(new ::cpp2::Empty(*srcObj.opt_field));
-  if (srcObj.req_field) req_field.reset(new ::cpp2::Empty(*srcObj.req_field));
+  def_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.def_field);
+  opt_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.opt_field);
+  req_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.req_field);
 }
 
 StructWithRef& StructWithRef::operator=(const StructWithRef& src) {
@@ -1380,7 +1409,6 @@ StructWithRef::StructWithRef(StructWithRef&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
     req_field(std::move(other.req_field)) {}
-
 
 StructWithRef& StructWithRef::operator=(FOLLY_MAYBE_UNUSED StructWithRef&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1397,6 +1425,7 @@ StructWithRef::StructWithRef(apache::thrift::FragileConstructor, ::std::unique_p
     opt_field(std::move(opt_field__arg)),
     req_field(std::move(req_field__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithRef::__clear() {
   // clear all fields
 }
@@ -1544,9 +1573,12 @@ void TccStructTraits<::cpp2::StructWithRefTypeUnique>::translateFieldName(
 namespace cpp2 {
 
 StructWithRefTypeUnique::StructWithRefTypeUnique(const StructWithRefTypeUnique& srcObj) {
-  if (srcObj.def_field) def_field.reset(new ::cpp2::Empty(*srcObj.def_field));
-  if (srcObj.opt_field) opt_field.reset(new ::cpp2::Empty(*srcObj.opt_field));
-  if (srcObj.req_field) req_field.reset(new ::cpp2::Empty(*srcObj.req_field));
+  def_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.def_field);
+  opt_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.opt_field);
+  req_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.req_field);
 }
 
 StructWithRefTypeUnique& StructWithRefTypeUnique::operator=(const StructWithRefTypeUnique& src) {
@@ -1560,7 +1592,6 @@ StructWithRefTypeUnique::StructWithRefTypeUnique(StructWithRefTypeUnique&& other
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
     req_field(std::move(other.req_field)) {}
-
 
 StructWithRefTypeUnique& StructWithRefTypeUnique::operator=(FOLLY_MAYBE_UNUSED StructWithRefTypeUnique&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1577,6 +1608,7 @@ StructWithRefTypeUnique::StructWithRefTypeUnique(apache::thrift::FragileConstruc
     opt_field(std::move(opt_field__arg)),
     req_field(std::move(req_field__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithRefTypeUnique::__clear() {
   // clear all fields
 }
@@ -1724,11 +1756,14 @@ void TccStructTraits<::cpp2::StructWithRefTypeShared>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+StructWithRefTypeShared::StructWithRefTypeShared(const StructWithRefTypeShared&) = default;
+StructWithRefTypeShared& StructWithRefTypeShared::operator=(const StructWithRefTypeShared&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeShared::StructWithRefTypeShared(StructWithRefTypeShared&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
     req_field(std::move(other.req_field)) {}
-
 
 StructWithRefTypeShared& StructWithRefTypeShared::operator=(FOLLY_MAYBE_UNUSED StructWithRefTypeShared&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1745,6 +1780,7 @@ StructWithRefTypeShared::StructWithRefTypeShared(apache::thrift::FragileConstruc
     opt_field(std::move(opt_field__arg)),
     req_field(std::move(req_field__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithRefTypeShared::__clear() {
   // clear all fields
 }
@@ -1892,11 +1928,14 @@ void TccStructTraits<::cpp2::StructWithRefTypeSharedConst>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+StructWithRefTypeSharedConst::StructWithRefTypeSharedConst(const StructWithRefTypeSharedConst&) = default;
+StructWithRefTypeSharedConst& StructWithRefTypeSharedConst::operator=(const StructWithRefTypeSharedConst&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeSharedConst::StructWithRefTypeSharedConst(StructWithRefTypeSharedConst&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
     req_field(std::move(other.req_field)) {}
-
 
 StructWithRefTypeSharedConst& StructWithRefTypeSharedConst::operator=(FOLLY_MAYBE_UNUSED StructWithRefTypeSharedConst&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1913,6 +1952,7 @@ StructWithRefTypeSharedConst::StructWithRefTypeSharedConst(apache::thrift::Fragi
     opt_field(std::move(opt_field__arg)),
     req_field(std::move(req_field__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithRefTypeSharedConst::__clear() {
   // clear all fields
 }
@@ -2060,7 +2100,8 @@ void TccStructTraits<::cpp2::StructWithRefAndAnnotCppNoexceptMoveCtor>::translat
 namespace cpp2 {
 
 StructWithRefAndAnnotCppNoexceptMoveCtor::StructWithRefAndAnnotCppNoexceptMoveCtor(const StructWithRefAndAnnotCppNoexceptMoveCtor& srcObj) {
-  if (srcObj.def_field) def_field.reset(new ::cpp2::Empty(*srcObj.def_field));
+  def_field = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::structure>(srcObj.def_field);
 }
 
 StructWithRefAndAnnotCppNoexceptMoveCtor& StructWithRefAndAnnotCppNoexceptMoveCtor::operator=(const StructWithRefAndAnnotCppNoexceptMoveCtor& src) {
@@ -2073,7 +2114,6 @@ THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefAndAnnotCppNoexceptMoveCtor::StructWithRefAndAnnotCppNoexceptMoveCtor(StructWithRefAndAnnotCppNoexceptMoveCtor&& other) noexcept  :
     def_field(std::move(other.def_field)) {}
 
-
 StructWithRefAndAnnotCppNoexceptMoveCtor& StructWithRefAndAnnotCppNoexceptMoveCtor::operator=(FOLLY_MAYBE_UNUSED StructWithRefAndAnnotCppNoexceptMoveCtor&& other) noexcept {
     this->def_field = std::move(other.def_field);
     return *this;
@@ -2085,6 +2125,7 @@ THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefAndAnnotCppNoexceptMoveCtor::StructWithRefAndAnnotCppNoexceptMoveCtor(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg) :
     def_field(std::move(def_field__arg)) {}
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void StructWithRefAndAnnotCppNoexceptMoveCtor::__clear() {
   // clear all fields
 }

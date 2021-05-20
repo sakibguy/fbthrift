@@ -41,8 +41,6 @@ class ManagedStringView {
     return ManagedStringView{view, FromStaticTag{}};
   }
 
-  /* implicit */ operator std::string_view() const { return view(); }
-
   std::string str() const& { return is_owned() ? string_ : std::string{view_}; }
   std::string str() && {
     return is_owned() ? std::move(string_) : std::string{view_};
@@ -105,6 +103,10 @@ class ManagedStringViewWithConversions : public ManagedStringView {
   using value_type = char;
 
   using ManagedStringView::ManagedStringView;
+  /* implicit */ ManagedStringViewWithConversions(const ManagedStringView& view)
+      : ManagedStringView(view) {}
+  /* implicit */ ManagedStringViewWithConversions(ManagedStringView&& view)
+      : ManagedStringView(std::move(view)) {}
 
   /* implicit */ operator folly::StringPiece() const { return view(); }
   void clear() { *this = ManagedStringViewWithConversions(); }

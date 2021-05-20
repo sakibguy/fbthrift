@@ -25,6 +25,10 @@ void ServiceAsyncProcessor::setUpAndProcess_func(apache::thrift::ResponseChannel
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void ServiceAsyncProcessor::process_func(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -43,21 +47,17 @@ void ServiceAsyncProcessor::process_func(apache::thrift::ResponseChannelRequest:
         ew, std::move(req), ctx, eb, "func");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<::apache::thrift::adapt_detail::adapted_t<my::Adapter1, ::std::int32_t>>>(std::move(req), std::move(ctxStack), return_func<ProtocolIn_,ProtocolOut_>, throw_wrapped_func<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_func(std::move(callback), std::move(uarg_arg1), std::move(uarg_arg2));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue ServiceAsyncProcessor::return_func(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::apache::thrift::adapt_detail::adapted_t<my::Adapter1, ::std::int32_t> const& _return) {
+apache::thrift::LegacySerializedResponse ServiceAsyncProcessor::return_func(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::apache::thrift::adapt_detail::adapted_t<my::Adapter1, ::std::int32_t> const& _return) {
   ProtocolOut_ prot;
   Service_func_presult result;
   result.get<0>().value = const_cast<::apache::thrift::adapt_detail::adapted_t<my::Adapter1, ::std::int32_t>*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("func", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("func", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

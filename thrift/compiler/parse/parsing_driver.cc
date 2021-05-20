@@ -62,7 +62,7 @@ parsing_driver::parsing_driver(std::string path, parsing_params parse_params)
 parsing_driver::~parsing_driver() = default;
 
 std::unique_ptr<t_program_bundle> parsing_driver::parse(
-    std::vector<diagnostic_message>& messages) {
+    diagnostic_results& results) {
   std::unique_ptr<t_program_bundle> result{};
 
   try {
@@ -81,9 +81,10 @@ std::unique_ptr<t_program_bundle> parsing_driver::parse(
     // end the parsing process by unwinding to here.
   }
 
-  std::swap(messages, diagnostic_messages_);
+  for (auto& diag : diagnostic_messages_) {
+    results.add(std::move(diag));
+  }
   diagnostic_messages_.clear();
-
   return result;
 }
 
@@ -612,7 +613,7 @@ void parsing_driver::finish_node(
 }
 
 void parsing_driver::finish_node(
-    t_struct* node,
+    t_structured* node,
     LineType lineType,
     std::unique_ptr<t_def_attrs> attrs,
     std::unique_ptr<t_field_list> fields,
@@ -622,7 +623,7 @@ void parsing_driver::finish_node(
 }
 
 void parsing_driver::finish_node(
-    t_service* node,
+    t_interface* node,
     LineType lineType,
     std::unique_ptr<t_def_attrs> attrs,
     std::unique_ptr<t_function_list> functions,
@@ -654,7 +655,8 @@ std::unique_ptr<t_throws> parsing_driver::new_throws(
   return result;
 }
 
-void parsing_driver::append_fields(t_struct& tstruct, t_field_list&& fields) {
+void parsing_driver::append_fields(
+    t_structured& tstruct, t_field_list&& fields) {
   for (auto& field : fields) {
     if (!tstruct.try_append_field(std::move(field))) {
       failure(
@@ -854,7 +856,7 @@ t_ref<t_enum> parsing_driver::add_def(std::unique_ptr<t_enum> node) {
   if (should_add_type(node)) {
     // Register enum value names in scope.
     std::string type_prefix = ".";
-    for (const auto* value : node->enum_values()) {
+    for (const auto* value : node->enum_consts()) {
       // TODO(afuller): Remove ability to access unscoped enum values.
       scope_cache->add_constant(scoped_name(*value), value);
       scope_cache->add_constant(scoped_name(*node, *value), value);

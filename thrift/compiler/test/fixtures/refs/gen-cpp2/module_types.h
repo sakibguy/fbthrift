@@ -484,12 +484,16 @@ class MyUnion final  {
   }
 
   ::std::unique_ptr<::std::int32_t> const& get_anInteger() const {
-    assert(type_ == Type::anInteger);
+    if (type_ != Type::anInteger) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.anInteger;
   }
 
   ::std::unique_ptr<::std::string> const& get_aString() const {
-    assert(type_ == Type::aString);
+    if (type_ != Type::aString) {
+      ::apache::thrift::detail::throw_on_bad_field_access();
+    }
     return value_.aString;
   }
 
@@ -763,7 +767,8 @@ class MyStruct final  {
 
   MyStruct() :
       ref(std::make_unique<::cpp2::MyField>()),
-      req_ref(std::make_unique<::cpp2::MyField>()) {}
+      req_ref(std::make_unique<::cpp2::MyField>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyStruct(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::MyField> opt_ref__arg, ::std::unique_ptr<::cpp2::MyField> ref__arg, ::std::unique_ptr<::cpp2::MyField> req_ref__arg);
@@ -872,7 +877,8 @@ class StructWithUnion final  {
 
   StructWithUnion() :
       u(std::make_unique<::cpp2::MyUnion>()),
-      aDouble(std::make_unique<double>()) {}
+      aDouble(std::make_unique<double>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithUnion(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::MyUnion> u__arg, ::std::unique_ptr<double> aDouble__arg, ::cpp2::MyField f__arg);
@@ -945,6 +951,7 @@ class StructWithUnion final  {
   ::cpp2::MyField get_f() &&;
 
   template <typename T_StructWithUnion_f_struct_setter = ::cpp2::MyField>
+  [[deprecated]]
   ::cpp2::MyField& set_f(T_StructWithUnion_f_struct_setter&& f_) {
     f = std::forward<T_StructWithUnion_f_struct_setter>(f_);
     __isset.f = true;
@@ -1001,19 +1008,19 @@ class RecursiveStruct final  {
 
  public:
 
-  RecursiveStruct() {}
+  RecursiveStruct() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   RecursiveStruct(apache::thrift::FragileConstructor, ::std::vector<::cpp2::RecursiveStruct> mes__arg);
 
   RecursiveStruct(RecursiveStruct&&) noexcept;
 
-  RecursiveStruct(const RecursiveStruct&) = default;
+  RecursiveStruct(const RecursiveStruct& src);
 
 
   RecursiveStruct& operator=(RecursiveStruct&&) noexcept;
-
-  RecursiveStruct& operator=(const RecursiveStruct&) = default;
+  RecursiveStruct& operator=(const RecursiveStruct& src);
   void __clear();
  private:
   ::std::vector<::cpp2::RecursiveStruct> mes;
@@ -1051,6 +1058,7 @@ class RecursiveStruct final  {
   ::std::vector<::cpp2::RecursiveStruct>* get_mes() && = delete;
 
   template <typename T_RecursiveStruct_mes_struct_setter = ::std::vector<::cpp2::RecursiveStruct>>
+  [[deprecated]]
   ::std::vector<::cpp2::RecursiveStruct>& set_mes(T_RecursiveStruct_mes_struct_setter&& mes_) {
     mes = std::forward<T_RecursiveStruct_mes_struct_setter>(mes_);
     __isset.mes = true;
@@ -1259,19 +1267,19 @@ class StructWithSharedConst final  {
 
   StructWithSharedConst() :
       shared_const(std::make_shared<::cpp2::MyField>()),
-      req_shared_const(std::make_shared<::cpp2::MyField>()) {}
+      req_shared_const(std::make_shared<::cpp2::MyField>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithSharedConst(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::cpp2::MyField> opt_shared_const__arg, ::std::shared_ptr<const ::cpp2::MyField> shared_const__arg, ::std::shared_ptr<const ::cpp2::MyField> req_shared_const__arg);
 
   StructWithSharedConst(StructWithSharedConst&&) noexcept;
 
-  StructWithSharedConst(const StructWithSharedConst&) = default;
+  StructWithSharedConst(const StructWithSharedConst& src);
 
 
   StructWithSharedConst& operator=(StructWithSharedConst&&) noexcept;
-
-  StructWithSharedConst& operator=(const StructWithSharedConst&) = default;
+  StructWithSharedConst& operator=(const StructWithSharedConst& src);
   void __clear();
  public:
   ::std::shared_ptr<const ::cpp2::MyField> opt_shared_const;
@@ -1368,7 +1376,8 @@ class Empty final  {
 
  public:
 
-  Empty() {}
+  Empty() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Empty(apache::thrift::FragileConstructor);
@@ -1438,7 +1447,8 @@ class StructWithRef final  {
 
   StructWithRef() :
       def_field(std::make_unique<::cpp2::Empty>()),
-      req_field(std::make_unique<::cpp2::Empty>()) {}
+      req_field(std::make_unique<::cpp2::Empty>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithRef(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg, ::std::unique_ptr<::cpp2::Empty> opt_field__arg, ::std::unique_ptr<::cpp2::Empty> req_field__arg);
@@ -1547,7 +1557,8 @@ class StructWithRefTypeUnique final  {
 
   StructWithRefTypeUnique() :
       def_field(std::make_unique<::cpp2::Empty>()),
-      req_field(std::make_unique<::cpp2::Empty>()) {}
+      req_field(std::make_unique<::cpp2::Empty>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithRefTypeUnique(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg, ::std::unique_ptr<::cpp2::Empty> opt_field__arg, ::std::unique_ptr<::cpp2::Empty> req_field__arg);
@@ -1656,19 +1667,19 @@ class StructWithRefTypeShared final  {
 
   StructWithRefTypeShared() :
       def_field(std::make_shared<::cpp2::Empty>()),
-      req_field(std::make_shared<::cpp2::Empty>()) {}
+      req_field(std::make_shared<::cpp2::Empty>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithRefTypeShared(apache::thrift::FragileConstructor, ::std::shared_ptr<::cpp2::Empty> def_field__arg, ::std::shared_ptr<::cpp2::Empty> opt_field__arg, ::std::shared_ptr<::cpp2::Empty> req_field__arg);
 
   StructWithRefTypeShared(StructWithRefTypeShared&&) noexcept;
 
-  StructWithRefTypeShared(const StructWithRefTypeShared&) = default;
+  StructWithRefTypeShared(const StructWithRefTypeShared& src);
 
 
   StructWithRefTypeShared& operator=(StructWithRefTypeShared&&) noexcept;
-
-  StructWithRefTypeShared& operator=(const StructWithRefTypeShared&) = default;
+  StructWithRefTypeShared& operator=(const StructWithRefTypeShared& src);
   void __clear();
  public:
   ::std::shared_ptr<::cpp2::Empty> def_field;
@@ -1767,19 +1778,19 @@ class StructWithRefTypeSharedConst final  {
 
   StructWithRefTypeSharedConst() :
       def_field(std::make_shared<::cpp2::Empty>()),
-      req_field(std::make_shared<::cpp2::Empty>()) {}
+      req_field(std::make_shared<::cpp2::Empty>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithRefTypeSharedConst(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::cpp2::Empty> def_field__arg, ::std::shared_ptr<const ::cpp2::Empty> opt_field__arg, ::std::shared_ptr<const ::cpp2::Empty> req_field__arg);
 
   StructWithRefTypeSharedConst(StructWithRefTypeSharedConst&&) noexcept;
 
-  StructWithRefTypeSharedConst(const StructWithRefTypeSharedConst&) = default;
+  StructWithRefTypeSharedConst(const StructWithRefTypeSharedConst& src);
 
 
   StructWithRefTypeSharedConst& operator=(StructWithRefTypeSharedConst&&) noexcept;
-
-  StructWithRefTypeSharedConst& operator=(const StructWithRefTypeSharedConst&) = default;
+  StructWithRefTypeSharedConst& operator=(const StructWithRefTypeSharedConst& src);
   void __clear();
  public:
   ::std::shared_ptr<const ::cpp2::Empty> def_field;
@@ -1877,7 +1888,8 @@ class StructWithRefAndAnnotCppNoexceptMoveCtor final  {
  public:
 
   StructWithRefAndAnnotCppNoexceptMoveCtor() :
-      def_field(std::make_unique<::cpp2::Empty>()) {}
+      def_field(std::make_unique<::cpp2::Empty>()) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   StructWithRefAndAnnotCppNoexceptMoveCtor(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg);

@@ -76,19 +76,19 @@ class MyStruct final  {
 
   MyStruct() :
       MyIncludedField(::apache::thrift::detail::make_constant< ::cpp2::Included>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::MyIntField>(2LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::MyTransitiveField>(::apache::thrift::detail::make_constant< ::cpp2::Foo>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::a>(2LL))))),
-      MyIncludedInt(42LL) {}
+      MyIncludedInt(42LL) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyStruct(apache::thrift::FragileConstructor, ::cpp2::Included MyIncludedField__arg, ::cpp2::Included MyOtherIncludedField__arg, ::cpp2::IncludedInt64 MyIncludedInt__arg);
 
   MyStruct(MyStruct&&) noexcept;
 
-  MyStruct(const MyStruct&) = default;
+  MyStruct(const MyStruct& src);
 
 
   MyStruct& operator=(MyStruct&&) noexcept;
-
-  MyStruct& operator=(const MyStruct&) = default;
+  MyStruct& operator=(const MyStruct& src);
   void __clear();
  private:
   ::cpp2::Included MyIncludedField;
@@ -171,6 +171,7 @@ class MyStruct final  {
   ::cpp2::Included get_MyIncludedField() &&;
 
   template <typename T_MyStruct_MyIncludedField_struct_setter = ::cpp2::Included>
+  [[deprecated]]
   ::cpp2::Included& set_MyIncludedField(T_MyStruct_MyIncludedField_struct_setter&& MyIncludedField_) {
     MyIncludedField = std::forward<T_MyStruct_MyIncludedField_struct_setter>(MyIncludedField_);
     __isset.MyIncludedField = true;
@@ -180,6 +181,7 @@ class MyStruct final  {
   ::cpp2::Included get_MyOtherIncludedField() &&;
 
   template <typename T_MyStruct_MyOtherIncludedField_struct_setter = ::cpp2::Included>
+  [[deprecated]]
   ::cpp2::Included& set_MyOtherIncludedField(T_MyStruct_MyOtherIncludedField_struct_setter&& MyOtherIncludedField_) {
     MyOtherIncludedField = std::forward<T_MyStruct_MyOtherIncludedField_struct_setter>(MyOtherIncludedField_);
     __isset.MyOtherIncludedField = true;
@@ -190,6 +192,7 @@ class MyStruct final  {
     return MyIncludedInt;
   }
 
+  [[deprecated]]
   ::cpp2::IncludedInt64& set_MyIncludedInt(::cpp2::IncludedInt64 MyIncludedInt_) {
     MyIncludedInt = MyIncludedInt_;
     __isset.MyIncludedInt = true;

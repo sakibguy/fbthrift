@@ -63,17 +63,18 @@ std::shared_ptr<ClientWorker2::Client> ClientWorker2::createConnection() {
     socket = folly::AsyncSocket::newSocket(
         ebm_.getEventBase(), *config->getAddress());
   }
-  std::unique_ptr<HeaderClientChannel, folly::DelayedDestruction::Destructor>
-      headerChannel(HeaderClientChannel::newChannel(std::move(socket)));
+  HeaderClientChannel::Options options;
+  if (!config->useHeaderProtocol()) {
+    options.setClientType(THRIFT_FRAMED_DEPRECATED);
+  }
   // Always use binary in loadtesting to get apples to apples comparison
-  headerChannel->setProtocolId(apache::thrift::protocol::T_BINARY_PROTOCOL);
+  options.setProtocolId(apache::thrift::protocol::T_BINARY_PROTOCOL);
+  auto headerChannel =
+      HeaderClientChannel::newChannel(std::move(socket), std::move(options));
   if (config->zlib()) {
     apache::thrift::CompressionConfig compressionConfig;
     compressionConfig.codecConfig_ref().ensure().set_zlibConfig();
     headerChannel->setDesiredCompressionConfig(compressionConfig);
-  }
-  if (!config->useHeaderProtocol()) {
-    headerChannel->setClientType(THRIFT_FRAMED_DEPRECATED);
   }
   headerChannel->setTimeout(kTimeout);
   channel = std::move(headerChannel);

@@ -356,45 +356,45 @@ cdef class containerStruct(thrift.py3.types.Struct):
     def fieldR(self):
 
         if self.__fbthrift_cached_fieldR is None:
-            if not deref(self._cpp_obj).fieldR:
+            if not deref(self._cpp_obj).fieldR_ref():
                 return None
-            self.__fbthrift_cached_fieldR = Map__string_bool.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldR), self._cpp_obj))
+            self.__fbthrift_cached_fieldR = Map__string_bool.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldR_ref()), self._cpp_obj))
         return self.__fbthrift_cached_fieldR
 
     @property
     def fieldS(self):
 
         if self.__fbthrift_cached_fieldS is None:
-            if not deref(self._cpp_obj).fieldS:
+            if not deref(self._cpp_obj).fieldS_ref():
                 return None
-            self.__fbthrift_cached_fieldS = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldS), self._cpp_obj))
+            self.__fbthrift_cached_fieldS = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldS_ref()), self._cpp_obj))
         return self.__fbthrift_cached_fieldS
 
     @property
     def fieldT(self):
 
         if self.__fbthrift_cached_fieldT is None:
-            if not deref(self._cpp_obj).fieldT:
+            if not deref(self._cpp_obj).fieldT_ref():
                 return None
-            self.__fbthrift_cached_fieldT = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldT), self._cpp_obj))
+            self.__fbthrift_cached_fieldT = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldT_ref()), self._cpp_obj))
         return self.__fbthrift_cached_fieldT
 
     @property
     def fieldU(self):
 
         if self.__fbthrift_cached_fieldU is None:
-            if not deref(self._cpp_obj).fieldU:
+            if not deref(self._cpp_obj).fieldU_ref():
                 return None
-            self.__fbthrift_cached_fieldU = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldU), self._cpp_obj))
+            self.__fbthrift_cached_fieldU = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldU_ref()), self._cpp_obj))
         return self.__fbthrift_cached_fieldU
 
     @property
     def fieldX(self):
 
         if self.__fbthrift_cached_fieldX is None:
-            if not deref(self._cpp_obj).fieldX:
+            if not deref(self._cpp_obj).fieldX_ref():
                 return None
-            self.__fbthrift_cached_fieldX = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldX), self._cpp_obj))
+            self.__fbthrift_cached_fieldX = SmallStruct.create(__reference_shared_ptr(deref(deref(self._cpp_obj).fieldX_ref()), self._cpp_obj))
         return self.__fbthrift_cached_fieldX
 
 
@@ -499,7 +499,7 @@ cdef class Map__string_bool(thrift.py3.types.Map):
         cdef string ckey = key.encode('UTF-8')
         if not __map_contains(self._cpp_obj, ckey):
             raise err
-        cdef cbool citem
+        cdef cbool citem = False
         __map_getitem(self._cpp_obj, ckey, citem)
         return citem
 
@@ -523,7 +523,7 @@ cdef class Map__string_bool(thrift.py3.types.Map):
         if not self:
             return
         cdef __map_iter[cmap[string,cbool]] itr = __map_iter[cmap[string,cbool]](self._cpp_obj)
-        cdef cbool citem
+        cdef cbool citem = False
         for i in range(deref(self._cpp_obj).size()):
             itr.genNextValue(self._cpp_obj, citem)
             yield citem
@@ -533,7 +533,7 @@ cdef class Map__string_bool(thrift.py3.types.Map):
             return
         cdef __map_iter[cmap[string,cbool]] itr = __map_iter[cmap[string,cbool]](self._cpp_obj)
         cdef string ckey
-        cdef cbool citem
+        cdef cbool citem = False
         for i in range(deref(self._cpp_obj).size()):
             itr.genNextItem(self._cpp_obj, ckey, citem)
             yield (ckey.data().decode('UTF-8'), citem)
@@ -1467,7 +1467,7 @@ cdef class Set__bool(thrift.py3.types.Set):
         if not self:
             return
         cdef __set_iter[cset[cbool]] itr = __set_iter[cset[cbool]](self._cpp_obj)
-        cdef cbool citem
+        cdef cbool citem = False
         for i in range(deref(self._cpp_obj).size()):
             itr.genNext(self._cpp_obj, citem)
             yield citem

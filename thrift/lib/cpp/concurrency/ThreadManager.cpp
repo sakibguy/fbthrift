@@ -1495,13 +1495,21 @@ ThreadManagerExecutorAdapter::ThreadManagerExecutorAdapter(
   }
 }
 
-void ThreadManagerExecutorAdapter::join() {}
+ThreadManagerExecutorAdapter::~ThreadManagerExecutorAdapter() {
+  joinKeepAliveOnce();
+}
+
+void ThreadManagerExecutorAdapter::join() {
+  joinKeepAliveOnce();
+}
 
 void ThreadManagerExecutorAdapter::start() {
   forEachThreadManager(executors_, [](auto tm, auto) { tm->start(); });
 }
 
-void ThreadManagerExecutorAdapter::stop() {}
+void ThreadManagerExecutorAdapter::stop() {
+  joinKeepAliveOnce();
+}
 
 void ThreadManagerExecutorAdapter::addWorker(size_t value) {
   forEachThreadManager(
@@ -1549,6 +1557,47 @@ void ThreadManagerExecutorAdapter::add(folly::Func f) {
 folly::Executor::KeepAlive<> ThreadManagerExecutorAdapter::getKeepAlive(
     ExecutionScope es, Source source) const {
   return getKeepAliveToken(executors_[idxFromPriSrc(es.getPriority(), source)]);
+}
+
+namespace {
+template <typename Func>
+size_t aggregateForEachThreadManager(
+    const std::array<folly::Executor*, N_PRIORITIES * N_SOURCES>& executors,
+    Func func) {
+  size_t value{0};
+  forEachThreadManager(
+      executors, [&](auto tm, auto&&) { value += (tm->*func)(); });
+  return value;
+}
+} // namespace
+
+// folly::Executor does not expose these values so currently there is no way to
+// implement this API correctly. However, in many cases, the underlying
+// executors are all be ThreadManager's themselves so aggregating the values
+// should yield the correct result.
+
+size_t ThreadManagerExecutorAdapter::idleWorkerCount() const {
+  return aggregateForEachThreadManager(
+      executors_, &ThreadManager::idleWorkerCount);
+}
+size_t ThreadManagerExecutorAdapter::workerCount() const {
+  return aggregateForEachThreadManager(executors_, &ThreadManager::workerCount);
+}
+size_t ThreadManagerExecutorAdapter::pendingUpstreamTaskCount() const {
+  return aggregateForEachThreadManager(
+      executors_, &ThreadManager::pendingUpstreamTaskCount);
+}
+size_t ThreadManagerExecutorAdapter::pendingTaskCount() const {
+  return aggregateForEachThreadManager(
+      executors_, &ThreadManager::pendingTaskCount);
+}
+size_t ThreadManagerExecutorAdapter::totalTaskCount() const {
+  return aggregateForEachThreadManager(
+      executors_, &ThreadManager::totalTaskCount);
+}
+size_t ThreadManagerExecutorAdapter::expiredTaskCount() {
+  return aggregateForEachThreadManager(
+      executors_, &ThreadManager::expiredTaskCount);
 }
 
 void ThreadManager::setObserver(

@@ -27,6 +27,10 @@ void SomeServiceAsyncProcessor::setUpAndProcess_bounce_map(apache::thrift::Respo
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void SomeServiceAsyncProcessor::process_bounce_map(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -43,21 +47,17 @@ void SomeServiceAsyncProcessor::process_bounce_map(apache::thrift::ResponseChann
         ew, std::move(req), ctx, eb, "bounce_map");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::apache::thrift::fixtures::types::SomeMap>>>(std::move(req), std::move(ctxStack), return_bounce_map<ProtocolIn_,ProtocolOut_>, throw_wrapped_bounce_map<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_bounce_map(std::move(callback), std::move(uarg_m));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue SomeServiceAsyncProcessor::return_bounce_map(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::apache::thrift::fixtures::types::SomeMap const& _return) {
+apache::thrift::LegacySerializedResponse SomeServiceAsyncProcessor::return_bounce_map(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::apache::thrift::fixtures::types::SomeMap const& _return) {
   ProtocolOut_ prot;
   SomeService_bounce_map_presult result;
   result.get<0>().value = const_cast<::apache::thrift::fixtures::types::SomeMap*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("bounce_map", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("bounce_map", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
@@ -85,6 +85,10 @@ void SomeServiceAsyncProcessor::setUpAndProcess_binary_keyed_map(apache::thrift:
 
 template <typename ProtocolIn_, typename ProtocolOut_>
 void SomeServiceAsyncProcessor::process_binary_keyed_map(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) {
+  if (!req->getShouldStartProcessing()) {
+    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
+    return;
+  }
   // make sure getRequestContext is null
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
@@ -101,21 +105,17 @@ void SomeServiceAsyncProcessor::process_binary_keyed_map(apache::thrift::Respons
         ew, std::move(req), ctx, eb, "binary_keyed_map");
     return;
   }
-  if (!req->getShouldStartProcessing()) {
-    apache::thrift::HandlerCallbackBase::releaseRequest(std::move(req), eb);
-    return;
-  }
   auto callback = std::make_unique<apache::thrift::HandlerCallback<std::unique_ptr<::std::map<::apache::thrift::fixtures::types::TBinary, ::std::int64_t>>>>(std::move(req), std::move(ctxStack), return_binary_keyed_map<ProtocolIn_,ProtocolOut_>, throw_wrapped_binary_keyed_map<ProtocolIn_, ProtocolOut_>, ctx->getProtoSeqId(), eb, tm, ctx);
   iface_->async_tm_binary_keyed_map(std::move(callback), std::move(uarg_r));
 }
 
 template <class ProtocolIn_, class ProtocolOut_>
-folly::IOBufQueue SomeServiceAsyncProcessor::return_binary_keyed_map(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::map<::apache::thrift::fixtures::types::TBinary, ::std::int64_t> const& _return) {
+apache::thrift::LegacySerializedResponse SomeServiceAsyncProcessor::return_binary_keyed_map(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::map<::apache::thrift::fixtures::types::TBinary, ::std::int64_t> const& _return) {
   ProtocolOut_ prot;
   SomeService_binary_keyed_map_presult result;
   result.get<0>().value = const_cast<::std::map<::apache::thrift::fixtures::types::TBinary, ::std::int64_t>*>(&_return);
   result.setIsSet(0, true);
-  return serializeResponse("binary_keyed_map", &prot, protoSeqId, ctx, result);
+  return serializeLegacyResponse("binary_keyed_map", &prot, protoSeqId, ctx, result);
 }
 
 template <class ProtocolIn_, class ProtocolOut_>

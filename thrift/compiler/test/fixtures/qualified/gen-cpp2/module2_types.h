@@ -81,19 +81,19 @@ class Struct final  {
 
  public:
 
-  Struct() {}
+  Struct() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   Struct(apache::thrift::FragileConstructor, ::module0::Struct first__arg, ::module1::Struct second__arg);
 
   Struct(Struct&&) noexcept;
 
-  Struct(const Struct&) = default;
+  Struct(const Struct& src);
 
 
   Struct& operator=(Struct&&) noexcept;
-
-  Struct& operator=(const Struct&) = default;
+  Struct& operator=(const Struct& src);
   void __clear();
  private:
   ::module0::Struct first;
@@ -153,6 +153,7 @@ class Struct final  {
   ::module0::Struct get_first() &&;
 
   template <typename T_Struct_first_struct_setter = ::module0::Struct>
+  [[deprecated]]
   ::module0::Struct& set_first(T_Struct_first_struct_setter&& first_) {
     first = std::forward<T_Struct_first_struct_setter>(first_);
     __isset.first = true;
@@ -162,6 +163,7 @@ class Struct final  {
   ::module1::Struct get_second() &&;
 
   template <typename T_Struct_second_struct_setter = ::module1::Struct>
+  [[deprecated]]
   ::module1::Struct& set_second(T_Struct_second_struct_setter&& second_) {
     second = std::forward<T_Struct_second_struct_setter>(second_);
     __isset.second = true;
@@ -219,19 +221,19 @@ class BigStruct final  {
  public:
 
   BigStruct() :
-      id(0) {}
+      id(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   BigStruct(apache::thrift::FragileConstructor, ::module2::Struct s__arg, ::std::int32_t id__arg);
 
   BigStruct(BigStruct&&) noexcept;
 
-  BigStruct(const BigStruct&) = default;
+  BigStruct(const BigStruct& src);
 
 
   BigStruct& operator=(BigStruct&&) noexcept;
-
-  BigStruct& operator=(const BigStruct&) = default;
+  BigStruct& operator=(const BigStruct& src);
   void __clear();
  private:
   ::module2::Struct s;
@@ -291,6 +293,7 @@ class BigStruct final  {
   ::module2::Struct get_s() &&;
 
   template <typename T_BigStruct_s_struct_setter = ::module2::Struct>
+  [[deprecated]]
   ::module2::Struct& set_s(T_BigStruct_s_struct_setter&& s_) {
     s = std::forward<T_BigStruct_s_struct_setter>(s_);
     __isset.s = true;
@@ -301,6 +304,7 @@ class BigStruct final  {
     return id;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_id(::std::int32_t id_) {
     id = id_;
     __isset.id = true;

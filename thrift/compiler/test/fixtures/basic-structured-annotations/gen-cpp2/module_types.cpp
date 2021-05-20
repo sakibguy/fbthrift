@@ -69,11 +69,14 @@ void TccStructTraits<::cpp2::structured_annotation_inline>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+structured_annotation_inline::structured_annotation_inline(const structured_annotation_inline&) = default;
+structured_annotation_inline& structured_annotation_inline::operator=(const structured_annotation_inline&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 structured_annotation_inline::structured_annotation_inline(structured_annotation_inline&& other) noexcept  :
     count(std::move(other.count)),
     name(std::move(other.name)),
     __isset(other.__isset) {}
-
 structured_annotation_inline& structured_annotation_inline::operator=(FOLLY_MAYBE_UNUSED structured_annotation_inline&& other) noexcept {
     this->count = std::move(other.count);
     this->name = std::move(other.name);
@@ -91,6 +94,7 @@ structured_annotation_inline::structured_annotation_inline(apache::thrift::Fragi
   __isset.name = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void structured_annotation_inline::__clear() {
   // clear all fields
   this->count = 0;
@@ -173,10 +177,13 @@ void TccStructTraits<::cpp2::structured_annotation_with_default>::translateField
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+structured_annotation_with_default::structured_annotation_with_default(const structured_annotation_with_default&) = default;
+structured_annotation_with_default& structured_annotation_with_default::operator=(const structured_annotation_with_default&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 structured_annotation_with_default::structured_annotation_with_default(structured_annotation_with_default&& other) noexcept  :
     name(std::move(other.name)),
     __isset(other.__isset) {}
-
 structured_annotation_with_default& structured_annotation_with_default::operator=(FOLLY_MAYBE_UNUSED structured_annotation_with_default&& other) noexcept {
     this->name = std::move(other.name);
     __isset = other.__isset;
@@ -191,6 +198,7 @@ structured_annotation_with_default::structured_annotation_with_default(apache::t
   __isset.name = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void structured_annotation_with_default::__clear() {
   // clear all fields
   this->name = apache::thrift::StringTraits<std::string>::fromStringLiteral("abacabadabacaba");
@@ -271,6 +279,7 @@ structured_annotation_forward::structured_annotation_forward(apache::thrift::Fra
   __isset.count = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void structured_annotation_forward::__clear() {
   // clear all fields
   this->count = 0;
@@ -345,12 +354,15 @@ void TccStructTraits<::cpp2::structured_annotation_recursive>::translateFieldNam
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+structured_annotation_recursive::structured_annotation_recursive(const structured_annotation_recursive&) = default;
+structured_annotation_recursive& structured_annotation_recursive::operator=(const structured_annotation_recursive&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 structured_annotation_recursive::structured_annotation_recursive(structured_annotation_recursive&& other) noexcept  :
     name(std::move(other.name)),
     recurse(std::move(other.recurse)),
     forward(std::move(other.forward)),
     __isset(other.__isset) {}
-
 structured_annotation_recursive& structured_annotation_recursive::operator=(FOLLY_MAYBE_UNUSED structured_annotation_recursive&& other) noexcept {
     this->name = std::move(other.name);
     this->recurse = std::move(other.recurse);
@@ -371,6 +383,7 @@ structured_annotation_recursive::structured_annotation_recursive(apache::thrift:
   __isset.forward = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void structured_annotation_recursive::__clear() {
   // clear all fields
   this->name = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -501,11 +514,14 @@ void TccStructTraits<::cpp2::structured_annotation_nested>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+structured_annotation_nested::structured_annotation_nested(const structured_annotation_nested&) = default;
+structured_annotation_nested& structured_annotation_nested::operator=(const structured_annotation_nested&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 structured_annotation_nested::structured_annotation_nested(structured_annotation_nested&& other) noexcept  :
     name(std::move(other.name)),
     nest(std::move(other.nest)),
     __isset(other.__isset) {}
-
 structured_annotation_nested& structured_annotation_nested::operator=(FOLLY_MAYBE_UNUSED structured_annotation_nested&& other) noexcept {
     this->name = std::move(other.name);
     this->nest = std::move(other.nest);
@@ -523,6 +539,7 @@ structured_annotation_nested::structured_annotation_nested(apache::thrift::Fragi
   __isset.nest = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void structured_annotation_nested::__clear() {
   // clear all fields
   this->name = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -625,13 +642,16 @@ void TccStructTraits<::cpp2::MyStruct>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyStruct::MyStruct(const MyStruct&) = default;
+MyStruct& MyStruct::operator=(const MyStruct&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct(MyStruct&& other) noexcept  :
     annotated_field(std::move(other.annotated_field)),
     annotated_type(std::move(other.annotated_type)),
     annotated_recursive(std::move(other.annotated_recursive)),
     annotated_nested(std::move(other.annotated_nested)),
     __isset(other.__isset) {}
-
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->annotated_field = std::move(other.annotated_field);
     this->annotated_type = std::move(other.annotated_type);
@@ -655,6 +675,7 @@ MyStruct::MyStruct(apache::thrift::FragileConstructor, ::std::int64_t annotated_
   __isset.annotated_nested = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyStruct::__clear() {
   // clear all fields
   this->annotated_field = 0;
@@ -753,10 +774,21 @@ void TccStructTraits<::cpp2::MyException>::translateFieldName(
 namespace cpp2 {
 
 THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyException::MyException(const MyException&) = default;
+MyException& MyException::operator=(const MyException&) = default;
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+MyException::MyException() {
+}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_END
+
+MyException::~MyException() {}
+
+THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyException::MyException(MyException&& other) noexcept  :
     context(std::move(other.context)),
     __isset(other.__isset) {}
-
 MyException& MyException::operator=(FOLLY_MAYBE_UNUSED MyException&& other) noexcept {
     this->context = std::move(other.context);
     __isset = other.__isset;
@@ -771,6 +803,7 @@ MyException::MyException(apache::thrift::FragileConstructor, ::std::string conte
   __isset.context = true;
 }
 THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 void MyException::__clear() {
   // clear all fields
   this->context = apache::thrift::StringTraits<std::string>::fromStringLiteral("");

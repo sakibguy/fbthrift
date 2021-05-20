@@ -75,9 +75,10 @@ unique_ptr<IOBuf> HeaderServerChannel::ServerFramingHandler::addFrame(
   // Note: This THeader function may throw.  However, we don't want to catch
   // it here, because this would send an empty message out on the wire.
   // Instead we have to catch it at sendMessage
+  THeader::StringToStringMap persistentWriteHeaders;
   return header->addHeader(
       std::move(buf),
-      channel_.getPersistentWriteHeaders(),
+      persistentWriteHeaders,
       false /* Data already transformed in AsyncProcessor.h */);
 }
 
@@ -94,8 +95,7 @@ HeaderServerChannel::ServerFramingHandler::removeFrame(IOBufQueue* q) {
   std::unique_ptr<folly::IOBuf> buf;
   size_t remaining = 0;
   try {
-    buf =
-        header->removeHeader(q, remaining, channel_.getPersistentReadHeaders());
+    buf = header->removeHeader(q, remaining, channel_.persistentReadHeaders_);
   } catch (const std::exception& e) {
     LOG(ERROR) << "Received invalid request from client: "
                << folly::exceptionStr(e) << " "

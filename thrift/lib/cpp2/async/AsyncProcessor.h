@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <folly/Portability.h>
+
 #include <folly/ExceptionWrapper.h>
 #include <folly/Portability.h>
 #include <folly/String.h>
@@ -204,7 +206,7 @@ class GeneratedAsyncProcessor : public AsyncProcessor {
       ContextStack* c);
 
   template <typename ProtocolOut, typename Result>
-  static folly::IOBufQueue serializeResponse(
+  static LegacySerializedResponse serializeLegacyResponse(
       const char* method,
       ProtocolOut* prot,
       int32_t protoSeqId,
@@ -402,6 +404,9 @@ class ServerInterface : public virtual AsyncProcessorFactory,
 
   std::vector<ServiceHandler*> getServiceHandlers() override { return {this}; }
 
+ protected:
+  folly::Executor::KeepAlive<> getInternalKeepAlive();
+
  private:
   class BlockingThreadManager : public folly::Executor {
    public:
@@ -534,6 +539,8 @@ class HandlerCallbackBase {
   template <class F>
   void runFuncInQueue(F&& func, bool oneway = false);
 
+  folly::Executor::KeepAlive<> getInternalKeepAlive();
+
  protected:
   // HACK(tudorb): Call this to set up forwarding to the event base and
   // thread manager of the other callback.  Use when you want to create
@@ -541,9 +548,10 @@ class HandlerCallbackBase {
   // pre- / post-processing).
   void forward(const HandlerCallbackBase& other);
 
-  folly::Optional<uint32_t> checksumIfNeeded(folly::IOBufQueue& queue);
+  folly::Optional<uint32_t> checksumIfNeeded(
+      LegacySerializedResponse& response);
 
-  virtual void transform(folly::IOBufQueue& queue);
+  virtual void transform(LegacySerializedResponse& reponse);
 
   // Can be called from IO or TM thread
   virtual void doException(std::exception_ptr ex) {
@@ -559,7 +567,7 @@ class HandlerCallbackBase {
   template <typename Reply, typename... A>
   void putMessageInReplyQueue(std::in_place_type_t<Reply> tag, A&&... a);
 
-  void sendReply(folly::IOBufQueue queue);
+  void sendReply(LegacySerializedResponse response);
   void sendReply(ResponseAndServerStreamFactory&& responseAndStream);
 
   // Must be called from IO thread
@@ -572,7 +580,7 @@ class HandlerCallbackBase {
   void
   sendReply(
       FOLLY_MAYBE_UNUSED std::pair<
-          folly::IOBufQueue,
+          apache::thrift::LegacySerializedResponse,
           apache::thrift::detail::SinkConsumerImpl>&& responseAndSinkConsumer);
 
   // Required for this call
@@ -629,7 +637,8 @@ class HandlerCallback : public HandlerCallbackBase {
 
 template <>
 class HandlerCallback<void> : public HandlerCallbackBase {
-  using cob_ptr = folly::IOBufQueue (*)(int32_t protoSeqId, ContextStack*);
+  using cob_ptr =
+      LegacySerializedResponse (*)(int32_t protoSeqId, ContextStack*);
 
  public:
   using ResultType = void;
@@ -669,12 +678,16 @@ void GeneratedAsyncProcessor::deserializeRequest(
     ContextStack* c) {
   ProtocolIn iprot;
   iprot.setInput(serializedRequest.buffer.get());
-  c->preRead();
+  if (c) {
+    c->preRead();
+  }
   SerializedMessage smsg;
   smsg.protocolType = iprot.protocolType();
   smsg.buffer = serializedRequest.buffer.get();
   smsg.methodName = methodName;
-  c->onReadData(smsg);
+  if (c) {
+    c->onReadData(smsg);
+  }
   uint32_t bytes = 0;
   try {
     bytes = apache::thrift::detail::deserializeRequestBody(&iprot, &args);
@@ -685,11 +698,13 @@ void GeneratedAsyncProcessor::deserializeRequest(
     throw RequestParsingError(
         folly::exceptionStr(std::current_exception()).toStdString());
   }
-  c->postRead(nullptr, bytes);
+  if (c) {
+    c->postRead(nullptr, bytes);
+  }
 }
 
 template <typename ProtocolOut, typename Result>
-folly::IOBufQueue GeneratedAsyncProcessor::serializeResponse(
+LegacySerializedResponse GeneratedAsyncProcessor::serializeLegacyResponse(
     const char* method,
     ProtocolOut* prot,
     int32_t protoSeqId,
@@ -707,19 +722,25 @@ folly::IOBufQueue GeneratedAsyncProcessor::serializeResponse(
   queue.append(std::move(buf));
 
   prot->setOutput(&queue, bufSize);
-  ctx->preWrite();
+  if (ctx) {
+    ctx->preWrite();
+  }
   prot->writeMessageBegin(method, T_REPLY, protoSeqId);
   apache::thrift::detail::serializeResponseBody(prot, &result);
   prot->writeMessageEnd();
   SerializedMessage smsg;
   smsg.protocolType = prot->protocolType();
   smsg.buffer = queue.front();
-  ctx->onWriteData(smsg);
+  if (ctx) {
+    ctx->onWriteData(smsg);
+  }
   DCHECK_LE(
       queue.chainLength(),
       static_cast<size_t>(std::numeric_limits<int>::max()));
-  ctx->postWrite(folly::to_narrow(queue.chainLength()));
-  return queue;
+  if (ctx) {
+    ctx->postWrite(folly::to_narrow(queue.chainLength()));
+  }
+  return LegacySerializedResponse{queue.move()};
 }
 
 template <typename ChildType>
@@ -936,9 +957,9 @@ struct inner_type<std::unique_ptr<S>> {
 template <typename T>
 struct HandlerCallbackHelper {
   using InputType = const typename apache::thrift::detail::inner_type<T>::type&;
-  using CobPtr =
-      folly::IOBufQueue (*)(int32_t protoSeqId, ContextStack*, InputType);
-  static folly::IOBufQueue call(
+  using CobPtr = apache::thrift::LegacySerializedResponse (*)(
+      int32_t protoSeqId, ContextStack*, InputType);
+  static apache::thrift::LegacySerializedResponse call(
       CobPtr cob,
       int32_t protoSeqId,
       ContextStack* ctx,
@@ -978,9 +999,11 @@ struct HandlerCallbackHelper<ServerStream<StreamItem>>
 template <typename SinkInputType>
 struct HandlerCallbackHelperSink {
   using InputType = SinkInputType&&;
-  using CobPtr = std::pair<folly::IOBufQueue, SinkConsumerImpl> (*)(
-      ContextStack*, InputType, folly::Executor::KeepAlive<>);
-  static std::pair<folly::IOBufQueue, SinkConsumerImpl> call(
+  using CobPtr =
+      std::pair<apache::thrift::LegacySerializedResponse, SinkConsumerImpl> (*)(
+          ContextStack*, InputType, folly::Executor::KeepAlive<>);
+  static std::pair<apache::thrift::LegacySerializedResponse, SinkConsumerImpl>
+  call(
       CobPtr cob,
       int32_t,
       ContextStack* ctx,

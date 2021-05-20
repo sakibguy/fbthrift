@@ -240,7 +240,8 @@ class SomeStruct final  {
  public:
 
   SomeStruct() :
-      fieldA(0) {}
+      fieldA(0) {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   SomeStruct(apache::thrift::FragileConstructor, ::std::int32_t fieldA__arg);
@@ -290,6 +291,7 @@ class SomeStruct final  {
     return fieldA;
   }
 
+  [[deprecated]]
   ::std::int32_t& set_fieldA(::std::int32_t fieldA_) {
     fieldA = fieldA_;
     __isset.fieldA = true;

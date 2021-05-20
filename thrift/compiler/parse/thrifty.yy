@@ -245,7 +245,7 @@ class t_container_type;
 
 %type<t_field*>              Field
 %type<t_field_id>            FieldIdentifier
-%type<t_field::e_req>        FieldRequiredness
+%type<t_field_qualifier>     FieldQualifier
 %type<t_type_ref*>           FieldType
 %type<t_stream_response*>    ResponseAndStreamReturnType
 %type<t_sink*>               ResponseAndSinkReturnType
@@ -256,8 +256,8 @@ class t_container_type;
 %type<t_field_list*>         FieldList
 
 %type<t_enum*>               Enum
-%type<t_enum*>               EnumDefList
-%type<t_enum_value*>         EnumDef
+%type<t_enum_value_list*>    EnumValueList
+%type<t_enum_value*>         EnumValueDef
 %type<t_enum_value*>         EnumValue
 
 %type<t_const*>              Const
@@ -549,35 +549,35 @@ Enum:
     {
       driver.start_node(LineType::Enum);
     }
-  "{" EnumDefList "}" TypeAnnotations
+  "{" EnumValueList "}" TypeAnnotations
     {
-      driver.debug("Enum => DefinitionAttrs tok_enum Identifier { EnumDefList } TypeAnnotations");
-      $6->set_name(std::move($3));
-      driver.finish_node($6, LineType::Enum, own($1), own($8));
-      $$ = $6;
+      driver.debug("Enum => DefinitionAttrs tok_enum Identifier { EnumValueList } TypeAnnotations");
+      $$ = new t_enum(driver.program, std::move($3));
+      $$->set_values(consume($6));
+      driver.finish_node($$, LineType::Enum, own($1), own($8));
     }
 
-EnumDefList:
-  EnumDefList EnumDef
+EnumValueList:
+  EnumValueList EnumValueDef
     {
-      driver.debug("EnumDefList -> EnumDefList EnumDef");
+      driver.debug("EnumValueList -> EnumValueList EnumValueDef");
       $$ = $1;
-      $$->append(own($2));
+      $$->emplace_back(own($2));
     }
 |
     {
-      driver.debug("EnumDefList -> ");
-      $$ = new t_enum(driver.program);
+      driver.debug("EnumValueList -> ");
+      $$ = new t_enum_value_list;
     }
 
-EnumDef:
+EnumValueDef:
   DefinitionAttrs EnumValue
     {
       driver.start_node(LineType::EnumValue);
     }
   TypeAnnotations CommaOrSemicolonOptional
     {
-      driver.debug("EnumDef => DefinitionAttrs EnumValue "
+      driver.debug("EnumValueDef => DefinitionAttrs EnumValue "
         "TypeAnnotations CommaOrSemicolonOptional");
       driver.finish_node($2, LineType::EnumValue, own($1), own($4));
       $$ = $2;
@@ -598,8 +598,7 @@ EnumValue:
         // truncated i32 value that thrift has always been using anyway.
         driver.failure("64-bit value supplied for enum %s will be truncated.", $1.c_str());
       }
-      $$ = new t_enum_value;
-      $$->set_name($1);
+      $$ = new t_enum_value(std::move($1));
       $$->set_value($3);
       $$->set_lineno(driver.scanner->get_lineno());
     }
@@ -607,8 +606,7 @@ EnumValue:
   Identifier
     {
       driver.debug("EnumValue -> Identifier");
-      $$ = new t_enum_value;
-      $$->set_name($1);
+      $$ = new t_enum_value(std::move($1));
       $$->set_lineno(driver.scanner->get_lineno());
     }
 
@@ -1097,7 +1095,7 @@ FunctionQualifier:
     }
 |
     {
-      $$ = t_function_qualifier::none;
+      $$ = {};
     }
 
 Throws:
@@ -1129,13 +1127,13 @@ FieldList:
     }
 
 Field:
-  DefinitionAttrs FieldIdentifier FieldRequiredness FieldType Identifier
+  DefinitionAttrs FieldIdentifier FieldQualifier FieldType Identifier
     {
       driver.start_node(LineType::Field);
     }
    FieldValue TypeAnnotations CommaOrSemicolonOptional
     {
-      driver.debug("Field => DefinitionAttrs FieldIdentifier FieldRequiredness "
+      driver.debug("Field => DefinitionAttrs FieldIdentifier FieldQualifier "
         "FieldType Identifier FieldValue TypeAnnotations CommaOrSemicolonOptional");
       if ($2.auto_assigned) {
         driver.warning(1, "No field key specified for %s, resulting protocol may have conflicts "
@@ -1146,14 +1144,14 @@ Field:
       }
 
       $$ = new t_field(consume($4), std::move($5), $2.value);
-      $$->set_req($3);
+      $$->set_qualifier($3);
       if ($7 != nullptr) {
         driver.validate_field_value($$, $7);
-        $$->set_value(own($7));
+        $$->set_default_value(own($7));
       }
       driver.finish_node($$, LineType::Field, own($1), own($8));
 
-      if ($3 != t_field::e_req::optional && $$->has_annotation({"cpp.ref", "cpp2.ref"})) {
+      if ($3 != t_field_qualifier::optional && $$->has_annotation({"cpp.ref", "cpp2.ref"})) {
         driver.warning(1, "`cpp.ref` field must be optional if it is recursive.");
       }
     }
@@ -1200,16 +1198,16 @@ FieldIdentifier:
       $$.auto_assigned = true;
     }
 
-FieldRequiredness:
+FieldQualifier:
   tok_required
     {
       if (g_arglist) {
         if (driver.mode == parsing_mode::PROGRAM) {
           driver.warning(1, "required keyword is ignored in argument lists.");
         }
-        $$ = t_field::e_req::opt_in_req_out;
+        $$ = {};
       } else {
-        $$ = t_field::e_req::required;
+        $$ = t_field_qualifier::required;
       }
     }
 | tok_optional
@@ -1218,14 +1216,14 @@ FieldRequiredness:
         if (driver.mode == parsing_mode::PROGRAM) {
           driver.warning(1, "optional keyword is ignored in argument lists.");
         }
-        $$ = t_field::e_req::opt_in_req_out;
+        $$ = {};
       } else {
-        $$ = t_field::e_req::optional;
+        $$ = t_field_qualifier::optional;
       }
     }
 |
     {
-      $$ = t_field::e_req::opt_in_req_out;
+      $$ = {};
     }
 
 FieldValue:

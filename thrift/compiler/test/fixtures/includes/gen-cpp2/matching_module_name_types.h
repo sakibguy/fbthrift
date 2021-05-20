@@ -64,7 +64,8 @@ class MyStruct final  {
 
  public:
 
-  MyStruct() {}
+  MyStruct() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   MyStruct(apache::thrift::FragileConstructor, ::matching_module_name::OtherStruct OtherStructField__arg);
@@ -113,6 +114,7 @@ class MyStruct final  {
   ::matching_module_name::OtherStruct get_OtherStructField() &&;
 
   template <typename T_MyStruct_OtherStructField_struct_setter = ::matching_module_name::OtherStruct>
+  [[deprecated]]
   ::matching_module_name::OtherStruct& set_OtherStructField(T_MyStruct_OtherStructField_struct_setter&& OtherStructField_) {
     OtherStructField = std::forward<T_MyStruct_OtherStructField_struct_setter>(OtherStructField_);
     __isset.OtherStructField = true;

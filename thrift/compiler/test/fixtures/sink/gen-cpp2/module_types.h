@@ -99,19 +99,19 @@ class InitialResponse final  {
 
  public:
 
-  InitialResponse() {}
+  InitialResponse() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   InitialResponse(apache::thrift::FragileConstructor, ::std::string content__arg);
 
   InitialResponse(InitialResponse&&) noexcept;
 
-  InitialResponse(const InitialResponse&) = default;
+  InitialResponse(const InitialResponse& src);
 
 
   InitialResponse& operator=(InitialResponse&&) noexcept;
-
-  InitialResponse& operator=(const InitialResponse&) = default;
+  InitialResponse& operator=(const InitialResponse& src);
   void __clear();
  private:
   ::std::string content;
@@ -154,6 +154,7 @@ class InitialResponse final  {
   }
 
   template <typename T_InitialResponse_content_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_content(T_InitialResponse_content_struct_setter&& content_) {
     content = std::forward<T_InitialResponse_content_struct_setter>(content_);
     __isset.content = true;
@@ -210,19 +211,19 @@ class FinalResponse final  {
 
  public:
 
-  FinalResponse() {}
+  FinalResponse() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   FinalResponse(apache::thrift::FragileConstructor, ::std::string content__arg);
 
   FinalResponse(FinalResponse&&) noexcept;
 
-  FinalResponse(const FinalResponse&) = default;
+  FinalResponse(const FinalResponse& src);
 
 
   FinalResponse& operator=(FinalResponse&&) noexcept;
-
-  FinalResponse& operator=(const FinalResponse&) = default;
+  FinalResponse& operator=(const FinalResponse& src);
   void __clear();
  private:
   ::std::string content;
@@ -265,6 +266,7 @@ class FinalResponse final  {
   }
 
   template <typename T_FinalResponse_content_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_content(T_FinalResponse_content_struct_setter&& content_) {
     content = std::forward<T_FinalResponse_content_struct_setter>(content_);
     __isset.content = true;
@@ -321,19 +323,19 @@ class SinkPayload final  {
 
  public:
 
-  SinkPayload() {}
+  SinkPayload() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   SinkPayload(apache::thrift::FragileConstructor, ::std::string content__arg);
 
   SinkPayload(SinkPayload&&) noexcept;
 
-  SinkPayload(const SinkPayload&) = default;
+  SinkPayload(const SinkPayload& src);
 
 
   SinkPayload& operator=(SinkPayload&&) noexcept;
-
-  SinkPayload& operator=(const SinkPayload&) = default;
+  SinkPayload& operator=(const SinkPayload& src);
   void __clear();
  private:
   ::std::string content;
@@ -376,6 +378,7 @@ class SinkPayload final  {
   }
 
   template <typename T_SinkPayload_content_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_content(T_SinkPayload_content_struct_setter&& content_) {
     content = std::forward<T_SinkPayload_content_struct_setter>(content_);
     __isset.content = true;
@@ -432,19 +435,19 @@ class CompatibleWithKeywordSink final  {
 
  public:
 
-  CompatibleWithKeywordSink() {}
+  CompatibleWithKeywordSink() {
+  }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   CompatibleWithKeywordSink(apache::thrift::FragileConstructor, ::std::string sink__arg);
 
   CompatibleWithKeywordSink(CompatibleWithKeywordSink&&) noexcept;
 
-  CompatibleWithKeywordSink(const CompatibleWithKeywordSink&) = default;
+  CompatibleWithKeywordSink(const CompatibleWithKeywordSink& src);
 
 
   CompatibleWithKeywordSink& operator=(CompatibleWithKeywordSink&&) noexcept;
-
-  CompatibleWithKeywordSink& operator=(const CompatibleWithKeywordSink&) = default;
+  CompatibleWithKeywordSink& operator=(const CompatibleWithKeywordSink& src);
   void __clear();
  private:
   ::std::string sink;
@@ -487,6 +490,7 @@ class CompatibleWithKeywordSink final  {
   }
 
   template <typename T_CompatibleWithKeywordSink_sink_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_sink(T_CompatibleWithKeywordSink_sink_struct_setter&& sink_) {
     sink = std::forward<T_CompatibleWithKeywordSink_sink_struct_setter>(sink_);
     __isset.sink = true;
@@ -549,20 +553,23 @@ class InitialException final : public apache::thrift::TException {
 
  public:
 
-  InitialException() {}
+  InitialException();
+
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   InitialException(apache::thrift::FragileConstructor, ::std::string reason__arg);
 
   InitialException(InitialException&&) noexcept;
 
-  InitialException(const InitialException&) = default;
+  InitialException(const InitialException& src);
 
 
   InitialException& operator=(InitialException&&) noexcept;
-
-  InitialException& operator=(const InitialException&) = default;
+  InitialException& operator=(const InitialException& src);
   void __clear();
+
+  ~InitialException() override;
+
  private:
   ::std::string reason;
 
@@ -604,6 +611,7 @@ class InitialException final : public apache::thrift::TException {
   }
 
   template <typename T_InitialException_reason_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_reason(T_InitialException_reason_struct_setter&& reason_) {
     reason = std::forward<T_InitialException_reason_struct_setter>(reason_);
     __isset.reason = true;
@@ -670,20 +678,23 @@ class SinkException1 final : public apache::thrift::TException {
 
  public:
 
-  SinkException1() {}
+  SinkException1();
+
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   SinkException1(apache::thrift::FragileConstructor, ::std::string reason__arg);
 
   SinkException1(SinkException1&&) noexcept;
 
-  SinkException1(const SinkException1&) = default;
+  SinkException1(const SinkException1& src);
 
 
   SinkException1& operator=(SinkException1&&) noexcept;
-
-  SinkException1& operator=(const SinkException1&) = default;
+  SinkException1& operator=(const SinkException1& src);
   void __clear();
+
+  ~SinkException1() override;
+
  private:
   ::std::string reason;
 
@@ -725,6 +736,7 @@ class SinkException1 final : public apache::thrift::TException {
   }
 
   template <typename T_SinkException1_reason_struct_setter = ::std::string>
+  [[deprecated]]
   ::std::string& set_reason(T_SinkException1_reason_struct_setter&& reason_) {
     reason = std::forward<T_SinkException1_reason_struct_setter>(reason_);
     __isset.reason = true;
@@ -791,21 +803,23 @@ class SinkException2 final : public apache::thrift::TException {
 
  public:
 
-  SinkException2() :
-      reason(0) {}
+  SinkException2();
+
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   SinkException2(apache::thrift::FragileConstructor, ::std::int64_t reason__arg);
 
   SinkException2(SinkException2&&) noexcept;
 
-  SinkException2(const SinkException2&) = default;
+  SinkException2(const SinkException2& src);
 
 
   SinkException2& operator=(SinkException2&&) noexcept;
-
-  SinkException2& operator=(const SinkException2&) = default;
+  SinkException2& operator=(const SinkException2& src);
   void __clear();
+
+  ~SinkException2() override;
+
  private:
   ::std::int64_t reason;
 
@@ -842,6 +856,7 @@ class SinkException2 final : public apache::thrift::TException {
     return reason;
   }
 
+  [[deprecated]]
   ::std::int64_t& set_reason(::std::int64_t reason_) {
     reason = reason_;
     __isset.reason = true;

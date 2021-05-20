@@ -17,6 +17,7 @@
 #include <thrift/compiler/lib/cpp2/util.h>
 
 #include <algorithm>
+#include <queue>
 #include <stdexcept>
 
 #include <openssl/sha.h>
@@ -132,6 +133,51 @@ bool is_implicit_ref(const t_type* type) {
       get_type(resolved_typedef).find("folly::IOBuf") != std::string::npos;
 }
 
+bool field_transitively_refers_to_unique(const t_field* field) {
+  switch (gen::cpp::find_ref_type(field)) {
+    case gen::cpp::reference_type::none:
+    case gen::cpp::reference_type::unrecognized: {
+      break;
+    }
+    case gen::cpp::reference_type::unique: {
+      return true;
+    }
+    case gen::cpp::reference_type::boxed:
+    case gen::cpp::reference_type::shared_const:
+    case gen::cpp::reference_type::shared_mutable: {
+      return false;
+    }
+  }
+  std::queue<const t_type*> queue;
+  queue.push(field->get_type());
+  while (!queue.empty()) {
+    auto type = queue.front()->get_true_type();
+    queue.pop();
+    if (cpp2::is_implicit_ref(type)) {
+      return true;
+    }
+    switch (type->get_type_value()) {
+      case t_type::type::t_list: {
+        queue.push(static_cast<const t_list*>(type)->get_elem_type());
+        break;
+      }
+      case t_type::type::t_set: {
+        queue.push(static_cast<const t_set*>(type)->get_elem_type());
+        break;
+      }
+      case t_type::type::t_map: {
+        queue.push(static_cast<const t_map*>(type)->get_key_type());
+        queue.push(static_cast<const t_map*>(type)->get_val_type());
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+  return false;
+}
+
 bool is_eligible_for_constexpr::operator()(const t_type* type) {
   enum class eligible { unknown, yes, no };
   auto check = [this](const t_type* t) {
@@ -169,7 +215,7 @@ bool is_eligible_for_constexpr::operator()(const t_type* type) {
       result = check(field->get_type());
       if (result == eligible::no) {
         return false;
-      } else if (is_explicit_ref(field)) {
+      } else if (is_explicit_ref(field) || is_lazy(field)) {
         result = eligible::no;
         return false;
       } else if (result == eligible::unknown) {
@@ -290,10 +336,10 @@ std::string get_gen_type_class_(
     return tc + "map<" + key_tc + ", " + val_tc + ">";
   } else if (type.is_union()) {
     return tc + "variant";
-  } else if (type.is_struct() || type.is_xception()) {
+  } else if (type.is_struct() || type.is_exception()) {
     return tc + "structure";
   } else {
-    return tc + "unknown";
+    throw std::runtime_error("unknown type class for: " + type.get_full_name());
   }
 }
 

@@ -15,7 +15,7 @@
  */
 
 namespace cpp2 apache.thrift.test
-namespace py3 apache.thrift.test
+namespace py3 thrift.test.lazy_deserialization
 
 struct Foo {
   1: list<double> field1; // fast to skip in CompactProtocol
@@ -30,6 +30,20 @@ struct LazyFoo {
   2: list<i32> field2;
   3: list<double> field3 (cpp.experimental.lazy);
   4: list<i32> field4 (cpp.experimental.lazy);
+}
+
+struct OptionalFoo {
+  1: optional list<double> field1;
+  2: optional list<i32> field2;
+  3: optional list<double> field3;
+  4: optional list<i32> field4;
+}
+
+struct OptionalLazyFoo {
+  1: optional list<double> field1;
+  2: optional list<i32> field2;
+  3: optional list<double> field3 (cpp.experimental.lazy);
+  4: optional list<i32> field4 (cpp.experimental.lazy);
 }
 
 struct LazyCppRef {
