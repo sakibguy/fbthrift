@@ -340,7 +340,7 @@ void ThriftServer::setup() {
       }
       if (socket_) {
         ServerBootstrap::bind(std::move(socket_));
-      } else if (port_ != -1) {
+      } else if (!getAddress().isInitialized()) {
         ServerBootstrap::bind(port_);
       } else {
         for (auto& address : addresses_) {
@@ -383,6 +383,8 @@ void ThriftServer::setup() {
 
     // Called after setup
     callOnStartServing();
+
+    started_.store(true, std::memory_order_release);
 
     // Notify handler of the preServe event
     for (const auto& eventHandler : getEventHandlersUnsafe()) {
@@ -609,6 +611,8 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
       }
     }
   });
+
+  started_.store(false, std::memory_order_relaxed);
 }
 
 void ThriftServer::callOnStartServing() {

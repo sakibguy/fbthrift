@@ -133,7 +133,7 @@ impl From<bool> for CType {
 /// ```ignore
 /// let protocol = CompactProtocol;
 /// let transport = HttpClient::new(ENDPOINT)?;
-/// let client = BuckGraphService::new(protocol, transport);
+/// let client = <dyn BuckGraphService>::new(protocol, transport);
 /// ```
 ///
 /// The type parameter is the Framing expected by the transport on which this
@@ -510,8 +510,8 @@ impl<B: BufExt> CompactProtocolDeserializer<B> {
     }
 
     fn peek_bytes(&self, len: usize) -> Option<&[u8]> {
-        if self.buffer.bytes().len() >= len {
-            Some(&self.buffer.bytes()[..len])
+        if self.buffer.chunk().len() >= len {
+            Some(&self.buffer.chunk()[..len])
         } else {
             None
         }

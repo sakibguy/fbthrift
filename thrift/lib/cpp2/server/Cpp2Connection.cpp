@@ -475,6 +475,19 @@ void Cpp2Connection::requestReceived(
     return;
   }
 
+  if (!worker_->getServer()->getEnabled() ||
+      (worker_->getServer()->getRejectRequestsUntilStarted() &&
+       !worker_->getServer()->getStarted())) {
+    if (!worker_->getServer()->getInternalMethods().count(methodName)) {
+      killRequest(
+          std::move(hreq),
+          TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
+          kQueueOverloadedErrorCode,
+          "server not ready");
+      return;
+    }
+  }
+
   // After this, the request buffer is no longer owned by the request
   // and will be released after deserializeRequest.
   auto serializedRequest = [&] {
@@ -628,7 +641,8 @@ MessageChannel::SendCallback* Cpp2Connection::Cpp2Request::prepareSendCallback(
   // are responsible for cleaning up their own callbacks.
   MessageChannel::SendCallback* cb = sendCallback;
   auto& timestamps = getTimestamps();
-  if (timestamps.getSamplingStatus().isEnabledByServer()) {
+  if (stateMachine_.getStartedProcessing() &&
+      timestamps.getSamplingStatus().isEnabledByServer()) {
     // Cpp2Sample will delete itself when it's callback is called.
     cb = new Cpp2Sample(timestamps, observer, sendCallback);
   }
