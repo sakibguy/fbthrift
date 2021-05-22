@@ -20,40 +20,82 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <thrift/compiler/ast/t_enum.h>
+#include <thrift/compiler/ast/t_enum_value.h>
+#include <thrift/compiler/ast/t_field.h>
+#include <thrift/compiler/ast/t_interface.h>
+#include <thrift/compiler/ast/t_union.h>
+#include <thrift/compiler/sema/scope_validator.h>
+
 namespace apache {
 namespace thrift {
 namespace compiler {
 
 namespace {
 
-void enum_value_name_are_unique(
-    diagnostic_results& results, const t_enum* node) {
-  std::unordered_set<std::string> names;
-  for (const auto* value : node->enum_values()) {
-    if (!names.insert(value->name()).second) {
-      results.add(
-          {diagnostic_level::failure,
-           "Redefinition of value `" + value->name() + "` in enum `" +
-               node->name() + "`.",
-           value,
-           node->program()});
+void interface_function_name_uniqueness(
+    diagnostic_context& ctx, const t_interface* node) {
+  // Check for a redefinition of a function in the same interface.
+  std::unordered_set<std::string> seen;
+  for (const auto* function : node->functions()) {
+    if (!seen.emplace(function->name()).second) {
+      ctx.failure(
+          function,
+          "Function `%s` is already defined in `%s`.",
+          function->name().c_str(),
+          node->name().c_str());
     }
   }
 }
 
-void enum_values_are_unique(diagnostic_results& results, const t_enum* node) {
+void union_field_qualification(diagnostic_context& ctx, const t_union* node) {
+  for (const auto* field : node->fields()) {
+    if (field->qualifier() != t_field_qualifier::unspecified) {
+      ctx.failure(
+          field,
+          "Unions cannot contain qualified fields. Remove `%s` qualifier from field `%s`.",
+          field->qualifier() == t_field_qualifier::required ? "required"
+                                                            : "optional",
+          field->name().c_str());
+    }
+  }
+}
+
+void enum_value_name_uniqueness(diagnostic_context& ctx, const t_enum* node) {
+  std::unordered_set<std::string> names;
+  for (const auto* value : node->enum_values()) {
+    if (!names.insert(value->name()).second) {
+      ctx.failure(
+          value,
+          "Redefinition of value `%s` in enum `%s`.",
+          value->name().c_str(),
+          node->name().c_str());
+    }
+  }
+}
+
+void enum_value_uniqueness(diagnostic_context& ctx, const t_enum* node) {
   std::unordered_map<int32_t, const t_enum_value*> values;
   for (const auto* value : node->enum_values()) {
     auto prev = values.emplace(value->get_value(), value);
     if (!prev.second) {
-      results.add(
-          {diagnostic_level::failure,
-           "Duplicate value `" + value->name() + "=" +
-               std::to_string(value->get_value()) + "` with value `" +
-               prev.first->second->name() + "` in enum `" + node->name() + "`.",
-           value,
-           node->program()});
+      ctx.failure(
+          value,
+          "Duplicate value `%s=%d` with value `%s` in enum `%s`.",
+          value->name().c_str(),
+          value->get_value(),
+          prev.first->second->name().c_str(),
+          node->name().c_str());
     }
+  }
+}
+
+void enum_value_explicit(diagnostic_context& ctx, const t_enum_value* node) {
+  if (!node->has_value()) {
+    ctx.failure(
+        node,
+        "The enum value, `%s`, must have an explicitly assigned value.",
+        node->name().c_str());
   }
 }
 
@@ -61,8 +103,12 @@ void enum_values_are_unique(diagnostic_results& results, const t_enum* node) {
 
 ast_validator standard_validator() {
   ast_validator validator;
-  validator.add_enum_visitor(&enum_values_are_unique);
-  validator.add_enum_visitor(&enum_value_name_are_unique);
+  validator.add_interface_visitor(&interface_function_name_uniqueness);
+  validator.add_union_visitor(&union_field_qualification);
+  validator.add_enum_visitor(&enum_value_name_uniqueness);
+  validator.add_enum_visitor(&enum_value_uniqueness);
+  validator.add_enum_value_visitor(&enum_value_explicit);
+  validator.add_definition_visitor(&validate_annotation_scopes);
   return validator;
 }
 

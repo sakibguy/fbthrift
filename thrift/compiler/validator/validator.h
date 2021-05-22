@@ -94,8 +94,8 @@ class service_method_name_uniqueness_validator : virtual public validator {
   using validator::visit;
 
   /**
-   * Enforces that there are no duplicate method names either within this
-   * service or between this service and any of its ancestors.
+   * Enforces that there are no duplicate method names between this service and
+   * any of its ancestors.
    */
   bool visit(t_service* service) override;
 
@@ -112,22 +112,6 @@ class service_method_name_uniqueness_validator : virtual public validator {
   void validate_service_method_names_unique(t_service const* service);
 };
 
-class enum_values_set_validator : virtual public validator {
- public:
-  using validator::visit;
-
-  // Enforces that every enum value has an explicit value
-  bool visit(t_enum* tenum) override;
-
- private:
-  void validate(t_enum const* tenum);
-
-  void add_validation_error(
-      int const lineno,
-      std::string const& enum_value,
-      std::string const& enum_name);
-};
-
 class exception_list_is_all_exceptions_validator : virtual public validator {
  public:
   using validator::visit;
@@ -139,16 +123,6 @@ class exception_list_is_all_exceptions_validator : virtual public validator {
    * Check members of a throws block
    */
   static bool validate_throws(const t_throws* throws);
-};
-
-class union_no_qualified_fields_validator : virtual public validator {
- public:
-  using validator::visit;
-
-  /**
-   * Enforces that there are no qualified fields in a union.
-   */
-  bool visit(t_struct* s) override;
 };
 
 class mixin_type_correctness_validator : virtual public validator {

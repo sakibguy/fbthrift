@@ -105,19 +105,6 @@ void service_method_name_uniqueness_validator::
           fnc->get_name());
     }
   }
-
-  // Check for a redefinition of a function in the same service.
-  std::unordered_set<std::string> function_names;
-  for (auto const fnc : service->get_functions()) {
-    if (function_names.count(fnc->get_name())) {
-      add_error_service_method_names(
-          fnc->get_lineno(),
-          service->get_name(),
-          service->get_name(),
-          fnc->get_name());
-    }
-    function_names.insert(fnc->get_name());
-  }
 }
 
 /**
@@ -128,9 +115,7 @@ void service_method_name_uniqueness_validator::
 
 static void fill_validators(validator_list& vs) {
   vs.add<service_method_name_uniqueness_validator>();
-  vs.add<enum_values_set_validator>();
   vs.add<exception_list_is_all_exceptions_validator>();
-  vs.add<union_no_qualified_fields_validator>();
   vs.add<mixin_type_correctness_validator>();
   vs.add<field_names_uniqueness_validator>();
   vs.add<struct_names_uniqueness_validator>();
@@ -141,29 +126,6 @@ static void fill_validators(validator_list& vs) {
   vs.add<recursive_optional_validator>();
 
   // add more validators here ...
-}
-
-void enum_values_set_validator::add_validation_error(
-    int const lineno,
-    std::string const& enum_value_name,
-    std::string const& enum_name) {
-  add_error(
-      lineno,
-      "Unset enum value `" + enum_value_name + "` in enum `" + enum_name +
-          "`. Add an explicit value to suppress this error.");
-}
-
-bool enum_values_set_validator::visit(t_enum* const tenum) {
-  validate(tenum);
-  return true;
-}
-
-void enum_values_set_validator::validate(t_enum const* const tenum) {
-  for (auto v : tenum->get_enum_values()) {
-    if (!v->has_value()) {
-      add_validation_error(v->get_lineno(), v->get_name(), tenum->get_name());
-    }
-  }
 }
 
 bool exception_list_is_all_exceptions_validator::visit(t_service* service) {
@@ -201,24 +163,6 @@ bool exception_list_is_all_exceptions_validator::validate_throws(
   for (const auto* ex : throws->fields()) {
     if (!ex->get_type()->get_true_type()->is_exception()) {
       return false;
-    }
-  }
-  return true;
-}
-
-bool union_no_qualified_fields_validator::visit(t_struct* s) {
-  if (!s->is_union()) {
-    return true;
-  }
-
-  for (const auto* field : s->fields()) {
-    if (field->get_req() != t_field::e_req::opt_in_req_out) {
-      add_error(
-          field->get_lineno(),
-          std::string("Unions cannot contain qualified fields. Remove ") +
-              (field->get_req() == t_field::e_req::required ? "required"
-                                                            : "optional") +
-              " qualifier from field `" + field->get_name() + "`.");
     }
   }
   return true;

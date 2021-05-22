@@ -34,10 +34,6 @@ namespace {
 
 class ValidatorTest : public testing::Test {};
 
-std::unique_ptr<t_enum_value> new_enum_value(std::string name) {
-  return std::make_unique<t_enum_value>(std::move(name));
-}
-
 } // namespace
 
 TEST_F(ValidatorTest, run_validator) {
@@ -72,28 +68,6 @@ TEST_F(ValidatorTest, ServiceNamesUniqueNoError) {
   auto errors =
       run_validator<service_method_name_uniqueness_validator>(&program);
   EXPECT_TRUE(errors.empty());
-}
-
-TEST_F(ValidatorTest, ReapeatedNamesInService) {
-  // Create a service with two overlapping functions
-  auto service = create_fake_service("bar");
-  auto fn1 = create_fake_function<void(int, int)>("foo");
-  auto fn2 = create_fake_function<int(double)>("foo");
-  fn2->set_lineno(1);
-  service->add_function(std::move(fn1));
-  service->add_function(std::move(fn2));
-
-  t_program program("/path/to/file.thrift");
-  program.add_service(std::move(service));
-
-  // An error will be found
-  const std::string expected =
-      "[FAILURE:/path/to/file.thrift:1] "
-      "Function `bar.foo` redefines `bar.foo`.";
-  auto errors =
-      run_validator<service_method_name_uniqueness_validator>(&program);
-  EXPECT_EQ(1, errors.size());
-  EXPECT_EQ(expected, errors.front().str());
 }
 
 TEST_F(ValidatorTest, RepeatedNameInExtendedService) {
@@ -132,67 +106,6 @@ TEST_F(ValidatorTest, RepeatedNameInExtendedService) {
   errors = run_validator<service_method_name_uniqueness_validator>(&program);
   EXPECT_EQ(1, errors.size());
   EXPECT_EQ(expected, errors.front().str());
-}
-
-TEST_F(ValidatorTest, UnsetEnumValues) {
-  auto tenum = create_fake_enum("Foo");
-  auto tenum_ptr = tenum.get();
-
-  t_program program("/path/to/file.thrift");
-  program.add_enum(std::move(tenum));
-
-  auto enum_value_1 = new_enum_value("Bar");
-  auto enum_value_2 = new_enum_value("Baz");
-  enum_value_1->set_lineno(2);
-  enum_value_2->set_lineno(3);
-  tenum_ptr->append(std::move(enum_value_1), nullptr);
-  tenum_ptr->append(std::move(enum_value_2), nullptr);
-
-  // An error will be found
-  auto errors = run_validator<enum_values_set_validator>(&program);
-  EXPECT_EQ(2, errors.size());
-  EXPECT_EQ(
-      "[FAILURE:/path/to/file.thrift:2] Unset enum value `Bar` in enum `Foo`. "
-      "Add an explicit value to suppress this error.",
-      errors.at(0).str());
-  EXPECT_EQ(
-      "[FAILURE:/path/to/file.thrift:3] Unset enum value `Baz` in enum `Foo`. "
-      "Add an explicit value to suppress this error.",
-      errors.at(1).str());
-}
-
-TEST_F(ValidatorTest, QualifiedInUnion) {
-  t_program program("/path/to/file.thrift");
-
-  auto field = std::make_unique<t_field>(&t_base_type::t_i64(), "foo", 1);
-  field->set_lineno(5);
-  field->set_req(t_field::e_req::required);
-
-  auto struct_union = std::make_unique<t_union>(&program, "Bar");
-
-  struct_union->append(std::move(field));
-
-  field = std::make_unique<t_field>(&t_base_type::t_i64(), "baz", 2);
-  field->set_lineno(6);
-  field->set_req(t_field::e_req::optional);
-  struct_union->append(std::move(field));
-
-  field = std::make_unique<t_field>(&t_base_type::t_i64(), "qux", 3);
-  field->set_lineno(7);
-  struct_union->append(std::move(field));
-
-  program.add_struct(std::move(struct_union));
-
-  auto errors = run_validator<union_no_qualified_fields_validator>(&program);
-  EXPECT_EQ(2, errors.size());
-  EXPECT_EQ(
-      "[FAILURE:/path/to/file.thrift:5] Unions cannot contain qualified fields. "
-      "Remove required qualifier from field `foo`.",
-      errors.front().str());
-  EXPECT_EQ(
-      "[FAILURE:/path/to/file.thrift:6] Unions cannot contain qualified fields. "
-      "Remove optional qualifier from field `baz`.",
-      errors.at(1).str());
 }
 
 TEST_F(ValidatorTest, DuplicatedStructNames) {

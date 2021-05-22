@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-namespace cpp2 interactions.test.thrift
+#pragma once
 
-struct Point {
-  1: i32 x;
-  2: i32 y;
-}
+#include <memory>
+#include <string>
+#include <vector>
 
-interaction Addition {
-  void accumulatePrimitive(1: i32 a);
-  void accumulatePoint(1: Point a);
-  i32 getPrimitive();
-  Point getPoint();
-  oneway void noop();
-  list<string> func();
-}
+#include <thrift/compiler/ast/t_named.h>
+#include <thrift/compiler/sema/diagnostic_context.h>
 
-service Calculator {
-  performs Addition;
-  i32 addPrimitive(1: i32 a, 2: i32 b);
-}
+namespace apache {
+namespace thrift {
+namespace compiler {
+
+void validate_annotation_scopes(
+    diagnostic_context& results, const t_named* node);
+
+} // namespace compiler
+} // namespace thrift
+} // namespace apache
