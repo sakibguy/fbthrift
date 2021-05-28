@@ -37,7 +37,6 @@
 
 #include <boost/optional.hpp>
 
-#include <thrift/compiler/ast/base_types.h>
 #include <thrift/compiler/ast/t_scope.h>
 #include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/parse/parsing_driver.h>
@@ -1037,8 +1036,8 @@ Function:
     {
       driver.debug("Function => tok_performs FieldType");
       auto ret = own($2);
-      std::string name = ret->type()
-          ? "create" + ret->type()->get_name()
+      std::string name = ret->get_type()
+          ? "create" + ret->get_type()->get_name()
           : "<interaction placeholder>";
       $$ = new t_function(
         std::move(*ret),

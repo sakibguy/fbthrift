@@ -114,7 +114,7 @@ void validate_mixin_field_attributes(
     return;
   }
 
-  auto* ttype = field->type()->type()->get_true_type();
+  auto* ttype = field->type()->deref()->get_true_type();
   if (typeid(*ttype) != typeid(t_struct) && typeid(*ttype) != typeid(t_union)) {
     ctx.failure(
         field,
@@ -136,7 +136,7 @@ void validate_mixin_field_attributes(
 void validate_enum_value_name_uniqueness(
     diagnostic_context& ctx, const t_enum* node) {
   std::unordered_set<std::string> names;
-  for (const auto* value : node->enum_values()) {
+  for (const auto* value : node->values()) {
     if (!names.insert(value->name()).second) {
       ctx.failure(
           value,
@@ -150,7 +150,7 @@ void validate_enum_value_name_uniqueness(
 void validate_enum_value_uniqueness(
     diagnostic_context& ctx, const t_enum* node) {
   std::unordered_map<int32_t, const t_enum_value*> values;
-  for (const auto* value : node->enum_values()) {
+  for (const auto* value : node->values()) {
     auto prev = values.emplace(value->get_value(), value);
     if (!prev.second) {
       ctx.failure(
@@ -178,11 +178,11 @@ void validate_structured_annotation_type_uniqueness(
     diagnostic_context& ctx, const t_named* node) {
   std::unordered_set<const t_type*> seen;
   for (const auto& annot : node->structured_annotations()) {
-    if (!seen.emplace(annot->type()->type()).second) {
+    if (!seen.emplace(annot->type()->deref()).second) {
       ctx.failure(
           annot,
           "Duplicate structured annotation `%s` on `%s`.",
-          annot->type()->type()->name().c_str(),
+          annot->type()->deref()->name().c_str(),
           node->name().c_str());
     }
   }
