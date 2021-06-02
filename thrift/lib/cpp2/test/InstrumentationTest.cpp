@@ -312,24 +312,25 @@ class RequestInstrumentationTest : public testing::Test {
         });
   }
 
-  auto makeSingleSocketRocketClient(folly::EventBase* eventBase) {
+  template <typename ClientChannelT>
+  auto makeSingleSocketClient(folly::EventBase* eventBase) {
     struct ViaEventBaseDeleter {
-      folly::EventBase* eventBase_;
+      folly::Executor::KeepAlive<folly::EventBase> ka_;
 
       void operator()(InstrumentationTestServiceAsyncClient* client) const {
-        eventBase_->runInEventBaseThread([client] { delete client; });
+        ka_->add([client] { delete client; });
       }
     };
-    RocketClientChannel::Ptr channel;
+    ClientChannel::Ptr channel;
     eventBase->runInEventBaseThreadAndWait([&] {
       auto socket =
           folly::AsyncSocket::newSocket(eventBase, server().getAddress());
-      channel = RocketClientChannel::newChannel(std::move(socket));
+      channel = ClientChannelT::newChannel(std::move(socket));
     });
     return std::
         unique_ptr<InstrumentationTestServiceAsyncClient, ViaEventBaseDeleter>{
             new InstrumentationTestServiceAsyncClient(std::move(channel)),
-            {eventBase}};
+            {folly::Executor::getKeepAliveToken(eventBase)}};
   }
 
   auto rpcOptionsFromHeaders(
@@ -510,42 +511,57 @@ TEST_F(RequestInstrumentationTest, ConnectionSnapshotsTest) {
     return transport->getLocalAddress();
   };
 
-  folly::ScopedEventBaseThread eventBaseThread;
-  auto evb = eventBaseThread.getEventBase();
-  auto client1 = makeSingleSocketRocketClient(evb);
-  auto client2 = makeSingleSocketRocketClient(evb);
-  auto client3 = makeSingleSocketRocketClient(evb);
-  auto headerClient = makeHeaderClient();
+  {
+    folly::ScopedEventBaseThread eventBaseThread;
+    auto evb = eventBaseThread.getEventBase();
+    auto client1 = makeSingleSocketClient<RocketClientChannel>(evb);
+    auto client2 = makeSingleSocketClient<RocketClientChannel>(evb);
+    auto client3 = makeSingleSocketClient<RocketClientChannel>(evb);
+    auto headerClient = makeSingleSocketClient<HeaderClientChannel>(evb);
 
-  for (size_t i = 0; i < 10; ++i) {
-    client1->semifuture_sendRequest();
+    for (size_t i = 0; i < 10; ++i) {
+      client1->semifuture_sendRequest();
+    }
+    for (size_t i = 0; i < 20; ++i) {
+      client2->semifuture_sendRequest();
+    }
+    client3->semifuture_sendStreamingRequest();
+    // Header connections are not counted towards connection snapshots
+    headerClient->semifuture_sendRequest();
+
+    auto serverSnapshot = waitForRequestsThenSnapshot(32);
+    EXPECT_EQ(serverSnapshot.requests.size(), 32);
+    auto& connections = serverSnapshot.connections;
+    EXPECT_EQ(connections.size(), 3);
+
+    auto client1Snapshot = connections.find(getLocalAddressOf(*client1));
+    ASSERT_NE(client1Snapshot, connections.end());
+    EXPECT_EQ(client1Snapshot->second.numActiveRequests, 10);
+
+    auto client2Snapshot = connections.find(getLocalAddressOf(*client2));
+    ASSERT_NE(client2Snapshot, connections.end());
+    EXPECT_EQ(client2Snapshot->second.numActiveRequests, 20);
+
+    auto client3Snapshot = connections.find(getLocalAddressOf(*client3));
+    ASSERT_NE(client3Snapshot, connections.end());
+    EXPECT_EQ(client3Snapshot->second.numActiveRequests, 1);
+
+    handler()->stopRequests();
+    // Wait for requests to be marked as completed
+    while (thriftServer()->getActiveRequests() > 0) {
+      std::this_thread::yield();
+    }
   }
-  for (size_t i = 0; i < 20; ++i) {
-    client2->semifuture_sendRequest();
+
+  // Client-side connections are closed. The server-side sockets may not be
+  // closed yet! Let's give it some leeway.
+  auto deadline = std::chrono::steady_clock::now() + 1s;
+  while (deadline > std::chrono::steady_clock::now()) {
+    if (getServerSnapshot().connections.empty()) {
+      break;
+    }
+    std::this_thread::yield();
   }
-  client3->semifuture_sendStreamingRequest();
-  // Header connections are not counted towards connection snapshots
-  headerClient->semifuture_sendRequest();
-
-  auto serverSnapshot = waitForRequestsThenSnapshot(32);
-  EXPECT_EQ(serverSnapshot.requests.size(), 32);
-  auto& connections = serverSnapshot.connections;
-  EXPECT_EQ(connections.size(), 3);
-
-  auto client1Snapshot = connections.find(getLocalAddressOf(*client1));
-  ASSERT_NE(client1Snapshot, connections.end());
-  EXPECT_EQ(client1Snapshot->second.getNumActiveRequests(), 10);
-
-  auto client2Snapshot = connections.find(getLocalAddressOf(*client2));
-  ASSERT_NE(client2Snapshot, connections.end());
-  EXPECT_EQ(client2Snapshot->second.getNumActiveRequests(), 20);
-
-  auto client3Snapshot = connections.find(getLocalAddressOf(*client3));
-  ASSERT_NE(client3Snapshot, connections.end());
-  EXPECT_EQ(client3Snapshot->second.getNumActiveRequests(), 1);
-
-  handler()->stopRequests();
-
   EXPECT_TRUE(getServerSnapshot().connections.empty());
 }
 
