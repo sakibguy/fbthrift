@@ -22,9 +22,8 @@ public class ServiceRpcServerHandler
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
   public ServiceRpcServerHandler(Service _delegate,
-                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers,
-                                    reactor.core.scheduler.Scheduler _scheduler) {
-    this(new ServiceBlockingReactiveWrapper(_delegate, _scheduler), _eventHandlers);
+                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers) {
+    this(new ServiceBlockingReactiveWrapper(_delegate), _eventHandlers);
   }
 
   public ServiceRpcServerHandler(Service.Async _delegate,
@@ -116,7 +115,8 @@ oprot.writeI32(_iter0);
 
           _chain.postRead(_data);
 
-          return _delegate
+          reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
+            _delegate
             .func(arg1, arg2)
             .map(_response -> {
               _chain.preWrite(_response);
@@ -138,6 +138,11 @@ oprot.writeI32(_iter0);
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
             });
+          if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+            _internalResponse = _internalResponse.publishOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+          }
+
+          return _internalResponse;
   }
 
   @Override

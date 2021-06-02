@@ -36,9 +36,8 @@ public class {{service:javaCapitalName}}RpcServerHandler {{#service:extends}} ex
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
   public {{service:javaCapitalName}}RpcServerHandler({{service:javaCapitalName}} _delegate,
-                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers,
-                                    reactor.core.scheduler.Scheduler _scheduler) {
-    this(new {{service:javaCapitalName}}BlockingReactiveWrapper(_delegate, _scheduler), _eventHandlers);
+                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers) {
+    this(new {{service:javaCapitalName}}BlockingReactiveWrapper(_delegate), _eventHandlers);
   }
 
   public {{service:javaCapitalName}}RpcServerHandler({{service:javaCapitalName}}.Async _delegate,
@@ -135,7 +134,8 @@ public class {{service:javaCapitalName}}RpcServerHandler {{#service:extends}} ex
 
           _chain.postRead(_data);
 
-          return _delegate
+          reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
+            _delegate
             .{{function:javaName}}({{#function:args}}{{field:javaName}}{{^last?}}, {{/last?}}{{/function:args}})
             .map(_response -> {
               _chain.preWrite(_response);
@@ -157,6 +157,11 @@ public class {{service:javaCapitalName}}RpcServerHandler {{#service:extends}} ex
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
             });
+          if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+            _internalResponse = _internalResponse.publishOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+          }
+
+          return _internalResponse;
   }
   {{/service:supportedFunctions}}
 

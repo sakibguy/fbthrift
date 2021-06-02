@@ -23,9 +23,8 @@ public class DbMixedStackArgumentsRpcServerHandler
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
   public DbMixedStackArgumentsRpcServerHandler(DbMixedStackArguments _delegate,
-                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers,
-                                    reactor.core.scheduler.Scheduler _scheduler) {
-    this(new DbMixedStackArgumentsBlockingReactiveWrapper(_delegate, _scheduler), _eventHandlers);
+                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers) {
+    this(new DbMixedStackArgumentsBlockingReactiveWrapper(_delegate), _eventHandlers);
   }
 
   public DbMixedStackArgumentsRpcServerHandler(DbMixedStackArguments.Async _delegate,
@@ -109,7 +108,8 @@ oprot.writeBinary(java.nio.ByteBuffer.wrap(_iter0));
 
           _chain.postRead(_data);
 
-          return _delegate
+          reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
+            _delegate
             .getDataByKey0(key)
             .map(_response -> {
               _chain.preWrite(_response);
@@ -131,6 +131,11 @@ oprot.writeBinary(java.nio.ByteBuffer.wrap(_iter0));
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
             });
+          if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+            _internalResponse = _internalResponse.publishOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+          }
+
+          return _internalResponse;
   }
   private static java.util.List<com.facebook.thrift.payload.Reader> _creategetDataByKey1Readers() {
     java.util.List<com.facebook.thrift.payload.Reader> _readerList = new java.util.ArrayList<>();
@@ -193,7 +198,8 @@ oprot.writeBinary(java.nio.ByteBuffer.wrap(_iter0));
 
           _chain.postRead(_data);
 
-          return _delegate
+          reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
+            _delegate
             .getDataByKey1(key)
             .map(_response -> {
               _chain.preWrite(_response);
@@ -215,6 +221,11 @@ oprot.writeBinary(java.nio.ByteBuffer.wrap(_iter0));
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
             });
+          if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+            _internalResponse = _internalResponse.publishOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+          }
+
+          return _internalResponse;
   }
 
   @Override

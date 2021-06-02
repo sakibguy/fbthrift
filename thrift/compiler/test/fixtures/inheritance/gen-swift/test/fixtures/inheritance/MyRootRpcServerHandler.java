@@ -22,9 +22,8 @@ public class MyRootRpcServerHandler
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
   public MyRootRpcServerHandler(MyRoot _delegate,
-                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers,
-                                    reactor.core.scheduler.Scheduler _scheduler) {
-    this(new MyRootBlockingReactiveWrapper(_delegate, _scheduler), _eventHandlers);
+                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers) {
+    this(new MyRootBlockingReactiveWrapper(_delegate), _eventHandlers);
   }
 
   public MyRootRpcServerHandler(MyRoot.Async _delegate,
@@ -92,7 +91,8 @@ public class MyRootRpcServerHandler
 
           _chain.postRead(_data);
 
-          return _delegate
+          reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
+            _delegate
             .doRoot()
             .map(_response -> {
               _chain.preWrite(_response);
@@ -114,6 +114,11 @@ public class MyRootRpcServerHandler
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
             });
+          if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+            _internalResponse = _internalResponse.publishOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+          }
+
+          return _internalResponse;
   }
 
   @Override

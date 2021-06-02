@@ -22,9 +22,8 @@ public class LegacyServiceRpcServerHandler
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
   public LegacyServiceRpcServerHandler(LegacyService _delegate,
-                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers,
-                                    reactor.core.scheduler.Scheduler _scheduler) {
-    this(new LegacyServiceBlockingReactiveWrapper(_delegate, _scheduler), _eventHandlers);
+                                    java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers) {
+    this(new LegacyServiceBlockingReactiveWrapper(_delegate), _eventHandlers);
   }
 
   public LegacyServiceRpcServerHandler(LegacyService.Async _delegate,
@@ -137,7 +136,8 @@ oprot.writeListBegin(new TList(TType.I32, _iter1.getValue().size()));
 
           _chain.postRead(_data);
 
-          return _delegate
+          reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
+            _delegate
             .getPoints(key, legacyStuff)
             .map(_response -> {
               _chain.preWrite(_response);
@@ -159,6 +159,11 @@ oprot.writeListBegin(new TList(TType.I32, _iter1.getValue().size()));
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
             });
+          if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+            _internalResponse = _internalResponse.publishOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+          }
+
+          return _internalResponse;
   }
 
   @Override
