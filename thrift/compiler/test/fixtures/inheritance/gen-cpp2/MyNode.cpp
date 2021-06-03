@@ -92,24 +92,12 @@ void MyNodeAsyncProcessor::processSerializedCompressedRequest(apache::thrift::Re
   apache::thrift::detail::ap::process(this, std::move(req), std::move(serializedRequest), protType, context, eb, tm);
 }
 
-std::shared_ptr<folly::RequestContext> MyNodeAsyncProcessor::getBaseContextForRequest() {
-  return iface_->getBaseContextForRequest();
+const MyNodeAsyncProcessor::ProcessMap& MyNodeAsyncProcessor::getOwnProcessMap() {
+  return kOwnProcessMap_;
 }
 
-const MyNodeAsyncProcessor::ProcessMap& MyNodeAsyncProcessor::getBinaryProtocolProcessMap() {
-  return binaryProcessMap_;
-}
-
-const MyNodeAsyncProcessor::ProcessMap MyNodeAsyncProcessor::binaryProcessMap_ {
-  {"do_mid", &MyNodeAsyncProcessor::setUpAndProcess_do_mid<apache::thrift::BinaryProtocolReader, apache::thrift::BinaryProtocolWriter>},
-};
-
-const MyNodeAsyncProcessor::ProcessMap& MyNodeAsyncProcessor::getCompactProtocolProcessMap() {
-  return compactProcessMap_;
-}
-
-const MyNodeAsyncProcessor::ProcessMap MyNodeAsyncProcessor::compactProcessMap_ {
-  {"do_mid", &MyNodeAsyncProcessor::setUpAndProcess_do_mid<apache::thrift::CompactProtocolReader, apache::thrift::CompactProtocolWriter>},
+const MyNodeAsyncProcessor::ProcessMap MyNodeAsyncProcessor::kOwnProcessMap_ {
+  {"do_mid", {&MyNodeAsyncProcessor::setUpAndProcess_do_mid<apache::thrift::CompactProtocolReader, apache::thrift::CompactProtocolWriter>, &MyNodeAsyncProcessor::setUpAndProcess_do_mid<apache::thrift::BinaryProtocolReader, apache::thrift::BinaryProtocolWriter>}},
 };
 
 } // cpp2

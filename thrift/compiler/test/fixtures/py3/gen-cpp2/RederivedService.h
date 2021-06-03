@@ -63,16 +63,12 @@ class RederivedServiceAsyncProcessor : public ::py3::simple::DerivedServiceAsync
   RederivedServiceSvIf* iface_;
  public:
   void processSerializedCompressedRequest(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::protocol::PROTOCOL_TYPES protType, apache::thrift::Cpp2RequestContext* context, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) override;
- protected:
-  std::shared_ptr<folly::RequestContext> getBaseContextForRequest() override;
  public:
-  using ProcessFunc = GeneratedAsyncProcessor::ProcessFunc<RederivedServiceAsyncProcessor>;
-  using ProcessMap = GeneratedAsyncProcessor::ProcessMap<ProcessFunc>;
-  static const RederivedServiceAsyncProcessor::ProcessMap& getBinaryProtocolProcessMap();
-  static const RederivedServiceAsyncProcessor::ProcessMap& getCompactProtocolProcessMap();
+  using ProcessFuncs = GeneratedAsyncProcessor::ProcessFuncs<RederivedServiceAsyncProcessor>;
+  using ProcessMap = GeneratedAsyncProcessor::ProcessMap<ProcessFuncs>;
+  static const RederivedServiceAsyncProcessor::ProcessMap& getOwnProcessMap();
  private:
-  static const RederivedServiceAsyncProcessor::ProcessMap binaryProcessMap_;
-  static const RederivedServiceAsyncProcessor::ProcessMap compactProcessMap_;
+  static const RederivedServiceAsyncProcessor::ProcessMap kOwnProcessMap_;
  private:
   template <typename ProtocolIn_, typename ProtocolOut_>
   void setUpAndProcess_get_seven(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);

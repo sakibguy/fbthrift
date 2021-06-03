@@ -90,24 +90,12 @@ void RederivedServiceAsyncProcessor::processSerializedCompressedRequest(apache::
   apache::thrift::detail::ap::process(this, std::move(req), std::move(serializedRequest), protType, context, eb, tm);
 }
 
-std::shared_ptr<folly::RequestContext> RederivedServiceAsyncProcessor::getBaseContextForRequest() {
-  return iface_->getBaseContextForRequest();
+const RederivedServiceAsyncProcessor::ProcessMap& RederivedServiceAsyncProcessor::getOwnProcessMap() {
+  return kOwnProcessMap_;
 }
 
-const RederivedServiceAsyncProcessor::ProcessMap& RederivedServiceAsyncProcessor::getBinaryProtocolProcessMap() {
-  return binaryProcessMap_;
-}
-
-const RederivedServiceAsyncProcessor::ProcessMap RederivedServiceAsyncProcessor::binaryProcessMap_ {
-  {"get_seven", &RederivedServiceAsyncProcessor::setUpAndProcess_get_seven<apache::thrift::BinaryProtocolReader, apache::thrift::BinaryProtocolWriter>},
-};
-
-const RederivedServiceAsyncProcessor::ProcessMap& RederivedServiceAsyncProcessor::getCompactProtocolProcessMap() {
-  return compactProcessMap_;
-}
-
-const RederivedServiceAsyncProcessor::ProcessMap RederivedServiceAsyncProcessor::compactProcessMap_ {
-  {"get_seven", &RederivedServiceAsyncProcessor::setUpAndProcess_get_seven<apache::thrift::CompactProtocolReader, apache::thrift::CompactProtocolWriter>},
+const RederivedServiceAsyncProcessor::ProcessMap RederivedServiceAsyncProcessor::kOwnProcessMap_ {
+  {"get_seven", {&RederivedServiceAsyncProcessor::setUpAndProcess_get_seven<apache::thrift::CompactProtocolReader, apache::thrift::CompactProtocolWriter>, &RederivedServiceAsyncProcessor::setUpAndProcess_get_seven<apache::thrift::BinaryProtocolReader, apache::thrift::BinaryProtocolWriter>}},
 };
 
 }} // py3::simple

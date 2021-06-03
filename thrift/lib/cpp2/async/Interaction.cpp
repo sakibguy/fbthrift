@@ -19,12 +19,13 @@
 namespace apache {
 namespace thrift {
 
-bool Tile::__fbthrift_maybeEnqueue(std::unique_ptr<concurrency::Runnable>&&) {
+bool Tile::__fbthrift_maybeEnqueue(
+    std::unique_ptr<concurrency::Runnable>&&,
+    const concurrency::ThreadManager::ExecutionScope&) {
   return false;
 }
 
-void Tile::__fbthrift_releaseRef(
-    folly::EventBase& eb, InteractionReleaseEvent event) {
+void Tile::decRef(folly::EventBase& eb, InteractionReleaseEvent event) {
   eb.dcheckIsInEventBaseThread();
   DCHECK_GT(refCount_, 0u);
 
@@ -35,11 +36,10 @@ void Tile::__fbthrift_releaseRef(
         DCHECK_GT(
             refCount_ + (event == InteractionReleaseEvent::STREAM_TRANSFER),
             queue.size());
-        dynamic_cast<concurrency::ThreadManager&>(*destructionExecutor_)
-            .getKeepAlive(
-                concurrency::PRIORITY::NORMAL,
-                concurrency::ThreadManager::Source::INTERNAL)
-            ->add([task = std::move(queue.front())]() { task->run(); });
+        auto& [task, scope] = queue.front();
+        tm_->getKeepAlive(
+               std::move(scope), concurrency::ThreadManager::Source::INTERNAL)
+            ->add([task = std::move(task)]() { task->run(); });
         queue.pop();
       } else {
         serial->hasActiveRequest_ = false;
@@ -48,25 +48,79 @@ void Tile::__fbthrift_releaseRef(
   }
 
   if (event != InteractionReleaseEvent::STREAM_TRANSFER && --refCount_ == 0) {
-    std::move(destructionExecutor_).add([this](auto) { delete this; });
+    if (tm_) {
+      std::move(tm_).add([this](auto&&) { delete this; });
+    } else {
+      delete this;
+    }
   }
 }
 
 bool TilePromise::__fbthrift_maybeEnqueue(
-    std::unique_ptr<concurrency::Runnable>&& task) {
-  continuations_.push_back(std::move(task));
+    std::unique_ptr<concurrency::Runnable>&& task,
+    const concurrency::ThreadManager::ExecutionScope& scope) {
+  continuations_.emplace(std::move(task), scope);
   return true;
 }
 
+void TilePromise::fulfill(
+    Tile& tile, concurrency::ThreadManager& tm, folly::EventBase& eb) {
+  DCHECK(!continuations_.empty());
+  tile.tm_ = &tm;
+
+  // Inline destruction of this is possible at the setTile()
+  auto continuations = std::move(continuations_);
+  while (!continuations.empty()) {
+    auto& [task, scope] = continuations.front();
+    dynamic_cast<InteractionTask&>(*task).setTile({&tile, &eb});
+    if (!tile.__fbthrift_maybeEnqueue(std::move(task), scope)) {
+      tm.getKeepAlive(
+            std::move(scope),
+            concurrency::ThreadManager::Source::EXISTING_INTERACTION)
+          ->add([task = std::move(task)]() mutable { task->run(); });
+    }
+    continuations.pop();
+  }
+}
+
+void TilePromise::failWith(
+    folly::exception_wrapper ew, const std::string& exCode) {
+  auto continuations = std::move(continuations_);
+  while (!continuations.empty()) {
+    auto& [task, scope] = continuations.front();
+    dynamic_cast<InteractionTask&>(*task).failWith(ew, exCode);
+    continuations.pop();
+  }
+}
+
 bool SerialInteractionTile::__fbthrift_maybeEnqueue(
-    std::unique_ptr<concurrency::Runnable>&& task) {
+    std::unique_ptr<concurrency::Runnable>&& task,
+    const concurrency::ThreadManager::ExecutionScope& scope) {
   if (hasActiveRequest_) {
-    taskQueue_.push(std::move(task));
+    taskQueue_.emplace(std::move(task), scope);
     return true;
   }
 
   hasActiveRequest_ = true;
   return false;
+}
+
+void TilePtr::release(InteractionReleaseEvent event) {
+  if (tile_) {
+    if (eb_->inRunningEventBaseThread()) {
+      tile_->decRef(*eb_, event);
+      tile_ = nullptr;
+    } else {
+      std::move(eb_).add([tile = std::exchange(tile_, nullptr),
+                          event](auto&& eb) { tile->decRef(*eb, event); });
+    }
+  }
+}
+
+TileStreamGuard::TileStreamGuard(TilePtr&& ptr) : tile_(std::move(ptr)) {
+  if (auto tile = tile_.get()) {
+    tile_->decRef(*tile_.eb_, InteractionReleaseEvent::STREAM_TRANSFER);
+  }
 }
 
 } // namespace thrift

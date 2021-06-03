@@ -98,16 +98,12 @@ class NestedContainersAsyncProcessor : public ::apache::thrift::GeneratedAsyncPr
   NestedContainersSvIf* iface_;
  public:
   void processSerializedCompressedRequest(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::protocol::PROTOCOL_TYPES protType, apache::thrift::Cpp2RequestContext* context, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) override;
- protected:
-  std::shared_ptr<folly::RequestContext> getBaseContextForRequest() override;
  public:
-  using ProcessFunc = GeneratedAsyncProcessor::ProcessFunc<NestedContainersAsyncProcessor>;
-  using ProcessMap = GeneratedAsyncProcessor::ProcessMap<ProcessFunc>;
-  static const NestedContainersAsyncProcessor::ProcessMap& getBinaryProtocolProcessMap();
-  static const NestedContainersAsyncProcessor::ProcessMap& getCompactProtocolProcessMap();
+  using ProcessFuncs = GeneratedAsyncProcessor::ProcessFuncs<NestedContainersAsyncProcessor>;
+  using ProcessMap = GeneratedAsyncProcessor::ProcessMap<ProcessFuncs>;
+  static const NestedContainersAsyncProcessor::ProcessMap& getOwnProcessMap();
  private:
-  static const NestedContainersAsyncProcessor::ProcessMap binaryProcessMap_;
-  static const NestedContainersAsyncProcessor::ProcessMap compactProcessMap_;
+  static const NestedContainersAsyncProcessor::ProcessMap kOwnProcessMap_;
  private:
   template <typename ProtocolIn_, typename ProtocolOut_>
   void setUpAndProcess_mapList(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);

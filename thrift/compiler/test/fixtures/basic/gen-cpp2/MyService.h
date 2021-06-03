@@ -125,16 +125,12 @@ class MyServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcessor
   MyServiceSvIf* iface_;
  public:
   void processSerializedCompressedRequest(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::protocol::PROTOCOL_TYPES protType, apache::thrift::Cpp2RequestContext* context, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm) override;
- protected:
-  std::shared_ptr<folly::RequestContext> getBaseContextForRequest() override;
  public:
-  using ProcessFunc = GeneratedAsyncProcessor::ProcessFunc<MyServiceAsyncProcessor>;
-  using ProcessMap = GeneratedAsyncProcessor::ProcessMap<ProcessFunc>;
-  static const MyServiceAsyncProcessor::ProcessMap& getBinaryProtocolProcessMap();
-  static const MyServiceAsyncProcessor::ProcessMap& getCompactProtocolProcessMap();
+  using ProcessFuncs = GeneratedAsyncProcessor::ProcessFuncs<MyServiceAsyncProcessor>;
+  using ProcessMap = GeneratedAsyncProcessor::ProcessMap<ProcessFuncs>;
+  static const MyServiceAsyncProcessor::ProcessMap& getOwnProcessMap();
  private:
-  static const MyServiceAsyncProcessor::ProcessMap binaryProcessMap_;
-  static const MyServiceAsyncProcessor::ProcessMap compactProcessMap_;
+  static const MyServiceAsyncProcessor::ProcessMap kOwnProcessMap_;
  private:
   template <typename ProtocolIn_, typename ProtocolOut_>
   void setUpAndProcess_ping(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx, folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
