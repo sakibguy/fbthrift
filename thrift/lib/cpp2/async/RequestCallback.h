@@ -541,15 +541,15 @@ class RpcOptions {
     writeHeaders_[key] = value;
   }
 
-  void setReadHeaders(std::map<std::string, std::string>&& readHeaders) {
+  void setReadHeaders(transport::THeader::StringToStringMap&& readHeaders) {
     readHeaders_ = std::move(readHeaders);
   }
 
-  const std::map<std::string, std::string>& getReadHeaders() const {
+  const transport::THeader::StringToStringMap& getReadHeaders() const {
     return readHeaders_;
   }
 
-  const std::map<std::string, std::string>& getWriteHeaders() const {
+  const transport::THeader::StringToStringMap& getWriteHeaders() const {
     return writeHeaders_;
   }
 
@@ -560,8 +560,8 @@ class RpcOptions {
 
   bool getEnablePageAlignment() const { return enablePageAlignment_; }
 
-  std::map<std::string, std::string> releaseWriteHeaders() {
-    std::map<std::string, std::string> headers;
+  transport::THeader::StringToStringMap releaseWriteHeaders() {
+    transport::THeader::StringToStringMap headers;
     writeHeaders_.swap(headers);
     return headers;
   }
@@ -582,13 +582,6 @@ class RpcOptions {
 
   const std::string& getLoggingContext() const { return loggingContext_; }
 
-  RpcOptions& setRoutingData(std::shared_ptr<void> data) {
-    routingData_ = std::move(data);
-    return *this;
-  }
-
-  const std::shared_ptr<void>& getRoutingData() const { return routingData_; }
-
  private:
   std::chrono::milliseconds timeout_{0};
   std::chrono::milliseconds chunkTimeout_{0};
@@ -606,18 +599,15 @@ class RpcOptions {
   std::string shardId_;
 
   // For sending and receiving headers.
-  std::map<std::string, std::string> writeHeaders_;
-  std::map<std::string, std::string> readHeaders_;
+  transport::THeader::StringToStringMap writeHeaders_;
+  transport::THeader::StringToStringMap readHeaders_;
 
   // Custom data about the request for logging and analysis.
   std::string loggingContext_;
-
-  // Custom data passed back from the routing layer.
-  std::shared_ptr<void> routingData_;
 }; // namespace thrift
 
 struct RpcResponseContext {
-  std::map<std::string, std::string> headers;
+  transport::THeader::StringToStringMap headers;
   RpcSizeStats rpcSizeStats;
   std::optional<int64_t> serverLoad;
 };
