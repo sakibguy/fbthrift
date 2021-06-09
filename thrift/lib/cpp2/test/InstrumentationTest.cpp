@@ -868,7 +868,7 @@ class RegistryTests : public testing::TestWithParam<std::tuple<size_t, bool>> {
     MockRequest(
         RequestsRegistry::DebugStub& stub,
         std::shared_ptr<RequestsRegistry> registry)
-        : registry_(registry), stateMachine_(true) {
+        : registry_(registry), stateMachine_(true, controller_) {
       new (&stub) RequestsRegistry::DebugStub(
           *registry,
           *this,
@@ -881,20 +881,27 @@ class RegistryTests : public testing::TestWithParam<std::tuple<size_t, bool>> {
 
     auto registry() { return registry_; }
 
-    MOCK_CONST_METHOD0(isActive, bool());
-    MOCK_METHOD0(cancel, void());
-    MOCK_CONST_METHOD0(isOneway, bool());
-    MOCK_CONST_METHOD0(includeEnvelope, bool());
-    MOCK_METHOD0(tryStartProcessing, bool());
-    MOCK_METHOD3(
+    MOCK_METHOD(bool, isActive, (), (const, override));
+    MOCK_METHOD(bool, isOneway, (), (const, override));
+    MOCK_METHOD(bool, includeEnvelope, (), (const, override));
+    MOCK_METHOD(bool, tryStartProcessing, (), (override));
+    MOCK_METHOD(
+        void,
         sendReply,
-        void(
-            ResponsePayload&&,
-            MessageChannel::SendCallback*,
-            folly::Optional<uint32_t>));
-    MOCK_METHOD2(sendErrorWrapped, void(folly::exception_wrapper, std::string));
+        (ResponsePayload&&,
+         MessageChannel::SendCallback*,
+         folly::Optional<uint32_t>),
+        (override));
+    MOCK_METHOD(
+        void,
+        sendErrorWrapped,
+        (folly::exception_wrapper, std::string),
+        (override));
 
    private:
+    folly::observer::SimpleObservable<AdaptiveConcurrencyController::Config>
+        oConfig{AdaptiveConcurrencyController::Config{}};
+    AdaptiveConcurrencyController controller_{oConfig.getObserver()};
     RequestStateMachine stateMachine_;
   };
 };

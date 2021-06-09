@@ -43,9 +43,13 @@ using folly::AsyncSocket;
 
 class TestServiceServerMock : public TestServiceSvIf {
  public:
-  MOCK_METHOD1(echoInt, int32_t(int32_t));
-  MOCK_METHOD1(noResponse, void(int64_t));
-  MOCK_METHOD2(range, apache::thrift::ServerStream<int32_t>(int32_t, int32_t));
+  MOCK_METHOD(int32_t, echoInt, (int32_t), (override));
+  MOCK_METHOD(void, noResponse, (int64_t), (override));
+  MOCK_METHOD(
+      apache::thrift::ServerStream<int32_t>,
+      range,
+      (int32_t, int32_t),
+      (override));
 #if FOLLY_HAS_COROUTINES
   folly::coro::Task<SinkConsumer<int32_t, int32_t>> co_sumSink() override {
     SinkConsumer<int32_t, int32_t> sink;
@@ -165,11 +169,7 @@ void ReconnectingRequestChannelTest::runReconnect(
       std::make_unique<apache::thrift::ScopedServerInterfaceThread>(handler);
   up_addr = runner->getAddress();
 
-  if (!testStreaming) {
-    // Rocket sends a shutdown signal that the channel can use to trigger
-    // reconnection, while Header doesn't
-    EXPECT_THROW(client.sync_echoInt(2), TTransportException);
-  }
+  EXPECT_THROW(client.sync_echoInt(2), TTransportException);
   EXPECT_EQ(client.sync_echoInt(3), 3);
   EXPECT_EQ(connection_count_, 2);
   EXPECT_EQ(client.sync_echoInt(4), 4);
