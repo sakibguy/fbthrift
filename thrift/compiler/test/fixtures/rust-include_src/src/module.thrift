@@ -14,26 +14,11 @@
  * limitations under the License.
  */
 
-namespace cpp2 apache.thrift.test
+namespace android test.fixtures.basic
+namespace java test.fixtures.basic
+namespace java.swift test.fixtures.basic
 
-union Basic {
-  2: string str;
-  1: i64 int64;
-  4: list<i32> list_i32;
-}
-
-union DuplicateType {
-  1: string str1;
-  2: list<i32> list_i32;
-  3: string str2;
-}
-
-union TreeNode {
-  1: list<TreeNode> nodes;
-  2: i32 data;
-}
-
-union CppRef {
-  1: string str;
-  2: CppRef cppref (cpp.ref);
+struct MyStruct {
+  1: i32 foo;
+  2: string bar;
 }

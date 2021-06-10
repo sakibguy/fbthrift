@@ -16,24 +16,17 @@
 
 namespace cpp2 apache.thrift.test
 
-union Basic {
-  2: string str;
-  1: i64 int64;
-  4: list<i32> list_i32;
-}
+cpp_include "<memory_resource>"
+cpp_include "folly/io/IOBuf.h"
+cpp_include "thrift/test/container_size.h"
 
-union DuplicateType {
-  1: string str1;
-  2: list<i32> list_i32;
-  3: string str2;
-}
-
-union TreeNode {
-  1: list<TreeNode> nodes;
-  2: i32 data;
-}
-
-union CppRef {
-  1: string str;
-  2: CppRef cppref (cpp.ref);
+struct Struct {
+  1: string (cpp.type = "TestFileBackedString") str;
+  2: binary (cpp.type = "folly::IOBuf") iobuf;
+  3: optional binary (cpp.type = "std::unique_ptr<folly::IOBuf>") unique_iobuf;
+  4: list<i64> (cpp.type = "MockSize<std::vector<std::int64_t>>") l;
+  5: set<i64> (cpp.type = "MockSize<std::set<std::int64_t>>") s;
+  6: map<i64, i64> (
+    cpp.type = "MockSize<std::map<std::int64_t, std::int64_t>>",
+  ) m;
 }
