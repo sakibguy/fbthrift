@@ -401,6 +401,15 @@ class MyServicePrioChild_pang_args implements \IThriftStruct, \IThriftShapishStr
     return 'MyServicePrioChild_pang_args';
   }
 
+  public static function getStructMetadata()[]: \tmeta_ThriftStruct {
+    return tmeta_ThriftStruct::fromShape(
+      shape(
+        "name" => "module.pang_args",
+        "is_union" => false,
+      )
+    );
+  }
+
   public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
     return shape(
       'struct' => dict[],
@@ -458,6 +467,15 @@ class MyServicePrioChild_pang_result implements \IThriftStruct {
     return 'MyServicePrioChild_pang_result';
   }
 
+  public static function getStructMetadata()[]: \tmeta_ThriftStruct {
+    return tmeta_ThriftStruct::fromShape(
+      shape(
+        "name" => "module.MyServicePrioChild_pang_result",
+        "is_union" => false,
+      )
+    );
+  }
+
   public static function getAllStructuredAnnotations()[]: \TStructAnnotations {
     return shape(
       'struct' => dict[],
@@ -495,6 +513,36 @@ class MyServicePrioChildStaticMetadata implements \IThriftServiceStaticMetadata 
           ),
         ],
         "parent" => "module.MyServicePrioParent",
+      )
+    );
+  }
+
+  public static function getServiceMetadataResponse()[]: \tmeta_ThriftServiceMetadataResponse {
+    return \tmeta_ThriftServiceMetadataResponse::fromShape(
+      shape(
+        'context' => \tmeta_ThriftServiceContext::fromShape(
+          shape(
+            'service_info' => self::getServiceMetadata(),
+            'module' => \tmeta_ThriftModuleContext::fromShape(
+              shape(
+                'name' => 'module',
+              )
+            ),
+          )
+        ),
+        'metadata' => \tmeta_ThriftMetadata::fromShape(
+          shape(
+            'enums' => dict[
+            ],
+            'structs' => dict[
+            ],
+            'exceptions' => dict[
+            ],
+            'services' => dict[
+              'module.MyServicePrioParent' => MyServicePrioParentStaticMetadata::getServiceMetadata(),
+            ],
+          )
+        ),
       )
     );
   }
