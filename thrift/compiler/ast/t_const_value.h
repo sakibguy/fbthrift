@@ -94,7 +94,7 @@ class t_const_value {
     }
 
     clone->set_owner(get_owner());
-    clone->set_ttype(get_ttype());
+    clone->set_ttype(ttype());
     clone->set_is_enum(is_enum());
     clone->set_enum(get_enum());
     clone->set_enum_value(get_enum_value());
@@ -232,7 +232,6 @@ class t_const_value {
  public:
   // TODO(afuller): Delete everything below here. It is only provided for
   // backwards compatibility.
-  void set_ttype(const t_type* type) { ttype_ = t_type_ref::from_ptr(type); }
   const t_type* get_ttype() const {
     return ttype() == boost::none ? nullptr : ttype()->get_type();
   }
