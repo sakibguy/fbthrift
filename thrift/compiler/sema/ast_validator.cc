@@ -18,12 +18,14 @@
 
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 
+#include <thrift/compiler/ast/name_index.h>
 #include <thrift/compiler/ast/t_enum.h>
 #include <thrift/compiler/ast/t_enum_value.h>
 #include <thrift/compiler/ast/t_field.h>
 #include <thrift/compiler/ast/t_interface.h>
+#include <thrift/compiler/ast/t_named.h>
+#include <thrift/compiler/ast/t_node.h>
 #include <thrift/compiler/ast/t_service.h>
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_union.h>
@@ -36,8 +38,56 @@ namespace compiler {
 
 namespace {
 
+// Reports an existing name was redefined within the given parent node.
+void report_redef_failure(
+    diagnostic_context& ctx,
+    const char* kind,
+    const std::string& name,
+    const t_named& parent,
+    const t_node& child,
+    const t_node& /*existing*/) {
+  // TODO(afuller): Use `existing` to provide more detail in the
+  // diagnostic.
+  ctx.failure(
+      child,
+      "%s `%s` is already defined for `%s`.",
+      kind,
+      name.c_str(),
+      parent.name().c_str());
+}
+
+// Helper for checking for the redefinition of a child node in a parent node.
+class redef_checker {
+ public:
+  redef_checker(
+      diagnostic_context& ctx, const char* kind, const t_named& parent)
+      : ctx_(ctx), kind_(kind), parent_(parent) {}
+
+  void check(const t_named& child) {
+    if (const t_named* existing = seen_.put(child)) {
+      report_redef_failure(
+          ctx_, kind_, child.name(), parent_, child, *existing);
+    }
+  }
+  void check(t_named&& child) = delete;
+
+  template <typename Cs>
+  void check_all(const Cs& children) {
+    for (const t_named& child : children) {
+      check(child);
+    }
+  }
+
+ private:
+  diagnostic_context& ctx_;
+  const char* kind_;
+  const t_named& parent_;
+
+  name_index<t_named> seen_;
+};
+
 struct service_metadata {
-  std::unordered_map<std::string, const t_service*> function_name_to_service;
+  name_index<t_service> function_name_to_service;
 
   service_metadata(node_metadata_cache& cache, const t_service& node) {
     if (node.extends() != nullptr) {
@@ -45,7 +95,7 @@ struct service_metadata {
           cache.get<service_metadata>(*node.extends()).function_name_to_service;
     }
     for (const auto& function : node.functions()) {
-      function_name_to_service[function.name()] = &node;
+      function_name_to_service.put(function.name(), node);
     }
   }
 };
@@ -53,16 +103,7 @@ struct service_metadata {
 void validate_interface_function_name_uniqueness(
     diagnostic_context& ctx, const t_interface& node) {
   // Check for a redefinition of a function in the same interface.
-  std::unordered_set<std::string> seen;
-  for (const auto& function : node.functions()) {
-    if (!seen.emplace(function.name()).second) {
-      ctx.failure(
-          function,
-          "Function `%s` is already defined in `%s`.",
-          function.name().c_str(),
-          node.name().c_str());
-    }
-  }
+  redef_checker(ctx, "Function", node).check_all(node.functions());
 }
 
 void validate_extends_service_function_name_uniqueness(
@@ -74,15 +115,15 @@ void validate_extends_service_function_name_uniqueness(
   const auto& extends_metadata =
       ctx.cache().get<service_metadata>(*node.extends());
   for (const auto& function : node.functions()) {
-    auto itr = extends_metadata.function_name_to_service.find(function.name());
-    if (itr != extends_metadata.function_name_to_service.end()) {
+    if (const auto* existing_service =
+            extends_metadata.function_name_to_service.find(function.name())) {
       ctx.failure(
           function,
           "Function `%s.%s` redefines `%s.%s`.",
           node.name().c_str(),
           function.name().c_str(),
-          itr->second->get_full_name().c_str(),
-          itr->first.c_str());
+          existing_service->get_full_name().c_str(),
+          function.name().c_str());
     }
   }
 }
@@ -135,16 +176,7 @@ void validate_mixin_field_attributes(
 
 void validate_enum_value_name_uniqueness(
     diagnostic_context& ctx, const t_enum& node) {
-  std::unordered_set<std::string> names;
-  for (const auto& value : node.values()) {
-    if (!names.insert(value.name()).second) {
-      ctx.failure(
-          value,
-          "Redefinition of value `%s` in enum `%s`.",
-          value.name().c_str(),
-          node.name().c_str());
-    }
-  }
+  redef_checker(ctx, "Enum value", node).check_all(node.values());
 }
 
 void validate_enum_value_uniqueness(
@@ -176,14 +208,17 @@ void validate_enum_value_explicit(
 
 void validate_structured_annotation_type_uniqueness(
     diagnostic_context& ctx, const t_named& node) {
-  std::unordered_set<const t_type*> seen;
+  std::unordered_map<const t_type*, const t_const*> seen;
   for (const auto* annot : node.structured_annotations()) {
-    if (!seen.emplace(&annot->type().deref()).second) {
-      ctx.failure(
+    auto result = seen.emplace(&annot->type().deref(), annot);
+    if (!result.second) {
+      report_redef_failure(
+          ctx,
+          "Structured annotation",
+          result.first->first->name(),
+          node,
           *annot,
-          "Duplicate structured annotation `%s` on `%s`.",
-          annot->type()->name().c_str(),
-          node.name().c_str());
+          *result.first->second);
     }
   }
 }
