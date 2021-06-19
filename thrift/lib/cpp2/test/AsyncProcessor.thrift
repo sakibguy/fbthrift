@@ -14,12 +14,19 @@
  * limitations under the License.
  */
 
-#include <thrift/lib/cpp2/server/admission_strategy/AdmissionStrategy.h>
+namespace cpp2 apache.thrift.test
 
-namespace apache {
-namespace thrift {
+service Parent {
+  i32 parentMethod1();
+  stream<i32> parentMethod2();
+}
 
-constexpr const char* AdmissionStrategy::kWildcard;
+interaction Interaction {
+  void interactionMethod();
+}
 
-} // namespace thrift
-} // namespace apache
+service Child extends Parent {
+  performs Interaction;
+  oneway void childMethod1();
+  string childMethod2();
+}
