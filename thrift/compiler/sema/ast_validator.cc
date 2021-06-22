@@ -28,6 +28,8 @@
 #include <thrift/compiler/ast/t_node.h>
 #include <thrift/compiler/ast/t_service.h>
 #include <thrift/compiler/ast/t_struct.h>
+#include <thrift/compiler/ast/t_throws.h>
+#include <thrift/compiler/ast/t_type.h>
 #include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/lib/cpp2/util.h>
 #include <thrift/compiler/sema/scope_validator.h>
@@ -124,22 +126,32 @@ void validate_extends_service_function_name_uniqueness(
   }
 }
 
-void validate_union_field_attributes(
-    diagnostic_context& ctx, const t_union& node) {
-  for (const auto* field : node.fields()) {
-    if (field->qualifier() != t_field_qualifier::unspecified) {
-      auto qual = field->qualifier() == t_field_qualifier::required
-          ? "required"
-          : "optional";
-      ctx.failure(*field, [&](auto& o) {
-        o << "Unions cannot contain qualified fields. Remove `" << qual
-          << "` qualifier from field `" << field->name() << "`.";
+void validate_throws_exceptions(diagnostic_context& ctx, const t_throws& node) {
+  for (const auto& except : node.fields()) {
+    auto except_type = except.type()->get_true_type();
+    if (dynamic_cast<const t_exception*>(except_type) == nullptr) {
+      ctx.failure(except, [&](auto& o) {
+        o << "Non-exception type, `" << except_type->name() << "`, in throws.";
       });
     }
-    if (cpp2::is_mixin(*field)) {
-      ctx.failure(*field, [&](auto& o) {
+  }
+}
+
+void validate_union_field_attributes(
+    diagnostic_context& ctx, const t_union& node) {
+  for (const auto& field : node.fields()) {
+    if (field.qualifier() != t_field_qualifier::unspecified) {
+      auto qual = field.qualifier() == t_field_qualifier::required ? "required"
+                                                                   : "optional";
+      ctx.failure(field, [&](auto& o) {
+        o << "Unions cannot contain qualified fields. Remove `" << qual
+          << "` qualifier from field `" << field.name() << "`.";
+      });
+    }
+    if (cpp2::is_mixin(field)) {
+      ctx.failure(field, [&](auto& o) {
         o << "Union `" << node.name() << "` cannot contain mixin field `"
-          << field->name() << "`.";
+          << field.name() << "`.";
       });
     }
   }
@@ -177,11 +189,11 @@ void validate_mixin_field_attributes(
  */
 void validate_struct_optional_refs(
     diagnostic_context& ctx, const t_struct& node) {
-  for (const auto* field : node.fields()) {
-    if (cpp2::has_ref_annotation(*field) &&
-        field->qualifier() != t_field_qualifier::optional) {
-      ctx.warning(*field, [&](auto& o) {
-        o << "`cpp.ref` field `" << field->name()
+  for (const auto& field : node.fields()) {
+    if (cpp2::has_ref_annotation(field) &&
+        field.qualifier() != t_field_qualifier::optional) {
+      ctx.warning(field, [&](auto& o) {
+        o << "`cpp.ref` field `" << field.name()
           << "` must be optional if it is recursive.";
       });
     }
@@ -242,6 +254,7 @@ ast_validator standard_validator() {
   validator.add_interface_visitor(&validate_interface_function_name_uniqueness);
   validator.add_service_visitor(
       &validate_extends_service_function_name_uniqueness);
+  validator.add_throws_visitor(&validate_throws_exceptions);
 
   validator.add_union_visitor(&validate_union_field_attributes);
   validator.add_field_visitor(&validate_mixin_field_attributes);

@@ -70,7 +70,6 @@ namespace {
   std::exit(code);
 #endif
 }
-
 } // namespace
 
 namespace apache {
@@ -91,6 +90,14 @@ using folly::NamedThreadFactory;
 using RequestSnapshot = ThriftServer::RequestSnapshot;
 using std::shared_ptr;
 using wangle::TLSCredProcessor;
+
+TLSCredentialWatcher::TLSCredentialWatcher(ThriftServer* server)
+    : credProcessor_() {
+  credProcessor_.addCertCallback([server] { server->updateTLSCert(); });
+  credProcessor_.addTicketCallback([server](wangle::TLSTicketKeySeeds seeds) {
+    server->updateTicketSeeds(std::move(seeds));
+  });
+}
 
 ThriftServer::ThriftServer()
     : BaseThriftServer(),
@@ -486,11 +493,9 @@ void ThriftServer::serve() {
 void ThriftServer::cleanUp() {
   DCHECK(!serverChannel_);
 
-  // tlsCredProcessor_ uses a background thread that needs to be joined prior
+  // tlsCredWatcher_ uses a background thread that needs to be joined prior
   // to any further writes to ThriftServer members.
-  if (tlsCredProcessor_) {
-    tlsCredProcessor_.reset();
-  }
+  tlsCredWatcher_.withWLock([](auto& credWatcher) { credWatcher.reset(); });
 
   // It is users duty to make sure that setup() call
   // should have returned before doing this cleanup
@@ -574,6 +579,9 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
       worker->requestStop();
     }
   });
+  // tlsCredWatcher_ uses a background thread that needs to be joined prior
+  // to any further writes to ThriftServer members.
+  tlsCredWatcher_.withWLock([](auto& credWatcher) { credWatcher.reset(); });
   sharedSSLContextManager_ = nullptr;
 
   {
@@ -594,7 +602,7 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
     }
   }
 
-  auto deadline = std::chrono::system_clock::now() + workersJoinTimeout_;
+  auto deadline = std::chrono::system_clock::now() + getWorkersJoinTimeout();
   forEachWorker([&](wangle::Acceptor* acceptor) {
     if (auto worker = dynamic_cast<Cpp2Worker*>(acceptor)) {
       if (!worker->waitForStop(deadline)) {
@@ -607,14 +615,14 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
         if (quickExitOnShutdownTimeout_) {
           LOG(ERROR) << fmt::format(
               msgTemplate,
-              workersJoinTimeout_.count(),
+              getWorkersJoinTimeout().count(),
               "quick_exiting (no coredump)");
           // similar to abort but without generating a coredump
           try_quick_exit(124);
         }
         if (FLAGS_thrift_abort_if_exceeds_shutdown_deadline) {
           LOG(FATAL) << fmt::format(
-              msgTemplate, workersJoinTimeout_.count(), "Aborting");
+              msgTemplate, getWorkersJoinTimeout().count(), "Aborting");
         }
       }
     }
@@ -720,8 +728,12 @@ void ThriftServer::updateCertsToWatch() {
     }
     certPaths.insert(sslContext.clientCAFile);
   }
-  auto& processor = getCredProcessor();
-  processor.setCertPathsToWatch(std::move(certPaths));
+  tlsCredWatcher_.withWLock([this, &certPaths](auto& credWatcher) {
+    if (!credWatcher) {
+      credWatcher.emplace(this);
+    }
+    credWatcher->setCertPathsToWatch(std::move(certPaths));
+  });
 }
 
 void ThriftServer::watchTicketPathForChanges(
@@ -732,22 +744,12 @@ void ThriftServer::watchTicketPathForChanges(
       setTicketSeeds(std::move(*seeds));
     }
   }
-  auto& processor = getCredProcessor();
-  processor.setTicketPathToWatch(ticketPath);
-}
-
-TLSCredProcessor& ThriftServer::getCredProcessor() {
-  if (!tlsCredProcessor_) {
-    tlsCredProcessor_ = std::make_unique<TLSCredProcessor>();
-    // setup callbacks once.  These will not be fired unless files are being
-    // watched and modified.
-    tlsCredProcessor_->addTicketCallback(
-        [this](wangle::TLSTicketKeySeeds seeds) {
-          updateTicketSeeds(std::move(seeds));
-        });
-    tlsCredProcessor_->addCertCallback([this] { updateTLSCert(); });
-  }
-  return *tlsCredProcessor_;
+  tlsCredWatcher_.withWLock([this, &ticketPath](auto& credWatcher) {
+    if (!credWatcher) {
+      credWatcher.emplace(this);
+    }
+    credWatcher->setTicketPathToWatch(ticketPath);
+  });
 }
 
 PreprocessResult ThriftServer::preprocess(
