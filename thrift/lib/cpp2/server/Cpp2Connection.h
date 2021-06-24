@@ -114,6 +114,7 @@ class Cpp2Connection : public HeaderServerChannel::Callback,
 
  protected:
   apache::thrift::AsyncProcessorFactory& processorFactory_;
+  Cpp2Worker::PerServiceMetadata& serviceMetadata_;
   std::unique_ptr<apache::thrift::AsyncProcessor> processor_;
   std::unique_ptr<DuplexChannel> duplexChannel_;
   std::shared_ptr<apache::thrift::HeaderServerChannel> channel_;
@@ -153,7 +154,7 @@ class Cpp2Connection : public HeaderServerChannel::Callback,
         std::shared_ptr<folly::RequestContext> rctx,
         std::shared_ptr<Cpp2Connection> con,
         rocket::Payload&& debugPayload,
-        const std::string&& methodName);
+        std::string&& methodName);
 
     bool isActive() const final { return stateMachine_.isActive(); }
 

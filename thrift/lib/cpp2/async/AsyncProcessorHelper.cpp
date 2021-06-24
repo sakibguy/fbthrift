@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-namespace cpp2 apache.thrift.test
+#include <thrift/lib/cpp2/async/AsyncProcessorHelper.h>
 
-service Parent {
-  i32 parentMethod1();
-  stream<i32> parentMethod2();
-  i32 parentMethod3();
+#include <fmt/core.h>
+
+#include <thrift/lib/cpp/TApplicationException.h>
+
+namespace apache::thrift {
+
+/* static */ void AsyncProcessorHelper::sendUnknownMethodError(
+    ResponseChannelRequest::UniquePtr request, std::string_view methodName) {
+  auto message = fmt::format("Method name {} not found", methodName);
+  request->sendErrorWrapped(
+      folly::make_exception_wrapper<TApplicationException>(
+          TApplicationException::UNKNOWN_METHOD, std::move(message)),
+      kMethodUnknownErrorCode);
 }
 
-interaction Interaction {
-  i32 interactionMethod();
-}
-
-service Child extends Parent {
-  performs Interaction;
-  oneway void childMethod1();
-  string childMethod2();
-}
+} // namespace apache::thrift

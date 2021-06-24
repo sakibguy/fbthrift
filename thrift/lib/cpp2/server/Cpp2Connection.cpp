@@ -16,9 +16,12 @@
 
 #include <thrift/lib/cpp2/server/Cpp2Connection.h>
 
+#include <folly/Overload.h>
+
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/GeneratedCodeHelper.h>
+#include <thrift/lib/cpp2/async/AsyncProcessorHelper.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
@@ -118,6 +121,7 @@ Cpp2Connection::Cpp2Connection(
     std::shared_ptr<Cpp2Worker> worker,
     const std::shared_ptr<HeaderServerChannel>& serverChannel)
     : processorFactory_(*worker->getServer()->getProcessorFactory()),
+      serviceMetadata_(worker->getMetadataForService(processorFactory_)),
       processor_(processorFactory_.getProcessor()),
       duplexChannel_(
           worker->getServer()->isDuplex()
@@ -573,6 +577,10 @@ void Cpp2Connection::requestReceived(
     }
   }
 
+  using PerServiceMetadata = Cpp2Worker::PerServiceMetadata;
+  const PerServiceMetadata::FindMethodResult methodMetadataResult =
+      serviceMetadata_.findMethod(reqContext->getMethodName());
+
   try {
     ResponseChannelRequest::UniquePtr req = std::move(t2r);
     if (!apache::thrift::detail::ap::setupRequestContextWithMessageBegin(
@@ -580,13 +588,33 @@ void Cpp2Connection::requestReceived(
       return;
     }
 
-    processor_->processSerializedCompressedRequest(
-        std::move(req),
-        SerializedCompressedRequest(std::move(serializedRequest)),
-        protoId,
-        reqContext,
-        worker_->getEventBase(),
-        threadManager_.get());
+    folly::variant_match(
+        methodMetadataResult,
+        [&](PerServiceMetadata::MetadataNotImplemented) {
+          // The AsyncProcessorFactory does not implement createMethodMetadata
+          // so we need to fallback to processSerializedCompressedRequest.
+          processor_->processSerializedCompressedRequest(
+              std::move(req),
+              SerializedCompressedRequest(std::move(serializedRequest)),
+              protoId,
+              reqContext,
+              worker_->getEventBase(),
+              threadManager_.get());
+        },
+        [&](PerServiceMetadata::MetadataNotFound) {
+          AsyncProcessorHelper::sendUnknownMethodError(
+              std::move(req), reqContext->getMethodName());
+        },
+        [&](const PerServiceMetadata::MetadataFound& found) {
+          processor_->processSerializedCompressedRequestWithMetadata(
+              std::move(req),
+              SerializedCompressedRequest(std::move(serializedRequest)),
+              found.metadata,
+              protoId,
+              reqContext,
+              worker_->getEventBase(),
+              threadManager_.get());
+        });
   } catch (...) {
     LOG(DFATAL) << "AsyncProcessor::process exception: "
                 << folly::exceptionStr(std::current_exception());
@@ -614,7 +642,7 @@ Cpp2Connection::Cpp2Request::Cpp2Request(
     std::shared_ptr<folly::RequestContext> rctx,
     std::shared_ptr<Cpp2Connection> con,
     rocket::Payload&& debugPayload,
-    const std::string&& methodName)
+    std::string&& methodName)
     : req_(std::move(req)),
       connection_(std::move(con)),
       // Note: tricky ordering here; see the note on connection_ in the class
@@ -622,7 +650,7 @@ Cpp2Connection::Cpp2Request::Cpp2Request(
       reqContext_(
           &connection_->context_, req_->getHeader(), std::move(methodName)),
       stateMachine_(
-          util::includeInRecentRequestsCount(methodName),
+          util::includeInRecentRequestsCount(reqContext_.getMethodName()),
           connection_->getWorker()
               ->getServer()
               ->getAdaptiveConcurrencyController()),
