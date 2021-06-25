@@ -379,7 +379,7 @@ class CompilerFailureTest(unittest.TestCase):
 
         self.assertEqual(ret, 1)
         self.assertEqual(
-            err, "[FAILURE:foo.thrift:4] Field `a` is not unique in struct `Foo`.\n"
+            err, "[FAILURE:foo.thrift:4] Field `a` is already defined for `Foo`.\n"
         )
 
     def test_mixin_field_names_uniqueness(self):
@@ -402,7 +402,7 @@ class CompilerFailureTest(unittest.TestCase):
         self.assertEqual(ret, 1)
         self.assertEqual(
             err,
-            "[FAILURE:foo.thrift:5] Field `a.i` and `b.i` can not have same name in struct `C`.\n",
+            "[FAILURE:foo.thrift:5] Field `B.i` and `A.i` can not have same name in `C`.\n",
         )
 
         write_file(
@@ -410,7 +410,8 @@ class CompilerFailureTest(unittest.TestCase):
             textwrap.dedent(
                 """\
                 struct A { 1: i32 i }
-                struct B {
+
+                struct C {
                 1: A a (cpp.mixin);
                 2: i64 i;
                 }
@@ -423,7 +424,7 @@ class CompilerFailureTest(unittest.TestCase):
         self.assertEqual(ret, 1)
         self.assertEqual(
             err,
-            "[FAILURE:bar.thrift:3] Field `B.i` and `a.i` can not have same name in struct `B`.\n",
+            "[FAILURE:bar.thrift:5] Field `C.i` and `A.i` can not have same name in `C`.\n",
         )
 
     def test_struct_optional_refs(self):
@@ -794,7 +795,7 @@ class CompilerFailureTest(unittest.TestCase):
             ),
         )
 
-    def test_recursive_union(self):
+    def test_boxed_union(self):
         write_file(
             "foo.thrift",
             textwrap.dedent(
@@ -817,7 +818,7 @@ class CompilerFailureTest(unittest.TestCase):
             ),
         )
 
-    def test_recursive_ref(self):
+    def test_boxed_ref(self):
         write_file(
             "foo.thrift",
             textwrap.dedent(
@@ -836,12 +837,12 @@ class CompilerFailureTest(unittest.TestCase):
             err,
             textwrap.dedent(
                 "[FAILURE:foo.thrift:2] The `cpp.box` annotation cannot be combined "
-                "with the `ref` or `ref_type` annotations. Remove one of the "
+                "with the `cpp.ref` or `cpp.ref_type` annotations. Remove one of the "
                 "annotations from `field`.\n"
             ),
         )
 
-    def test_recursive_optional(self):
+    def test_boxed_optional(self):
         write_file(
             "foo.thrift",
             textwrap.dedent(
@@ -860,7 +861,7 @@ class CompilerFailureTest(unittest.TestCase):
             err,
             textwrap.dedent(
                 "[FAILURE:foo.thrift:2] The `cpp.box` annotation can only be used with "
-                "optional fields. Make sure field is optional.\n"
+                "optional fields. Make sure `field` is optional.\n"
             ),
         )
 

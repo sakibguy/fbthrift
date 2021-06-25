@@ -23,14 +23,17 @@
 #include <thrift/compiler/ast/t_enum.h>
 #include <thrift/compiler/ast/t_enum_value.h>
 #include <thrift/compiler/ast/t_field.h>
+#include <thrift/compiler/ast/t_function.h>
 #include <thrift/compiler/ast/t_interface.h>
 #include <thrift/compiler/ast/t_named.h>
 #include <thrift/compiler/ast/t_node.h>
 #include <thrift/compiler/ast/t_service.h>
 #include <thrift/compiler/ast/t_struct.h>
+#include <thrift/compiler/ast/t_structured.h>
 #include <thrift/compiler/ast/t_throws.h>
 #include <thrift/compiler/ast/t_type.h>
 #include <thrift/compiler/ast/t_union.h>
+#include <thrift/compiler/gen/cpp/reference_type.h>
 #include <thrift/compiler/lib/cpp2/util.h>
 #include <thrift/compiler/sema/scope_validator.h>
 
@@ -39,6 +42,13 @@ namespace thrift {
 namespace compiler {
 
 namespace {
+
+const t_structured* get_mixin_type(const t_field& field) {
+  if (cpp2::is_mixin(field)) {
+    return dynamic_cast<const t_structured*>(field.type()->get_true_type());
+  }
+  return nullptr;
+}
 
 // Reports an existing name was redefined within the given parent node.
 void report_redef_failure(
@@ -56,15 +66,44 @@ void report_redef_failure(
   });
 }
 
-// Helper for checking for the redefinition of a child node in a parent node.
+// Helper for checking for the redefinition of a name in the context of a node.
 class redef_checker {
  public:
   redef_checker(
       diagnostic_context& ctx, const char* kind, const t_named& parent)
       : ctx_(ctx), kind_(kind), parent_(parent) {}
 
+  // Checks if the given `name`, derived from `node` via `child`, has already
+  // been defined.
+  //
+  // For example, a mixin field causes all fields of the mixin type to be
+  // inherited. In this case 'node' wold be the mixin type, from which `name`
+  // was derived, while `child` is the mixin field that caused the name to be
+  // inherited.
+  void check(
+      const std::string& name, const t_named& node, const t_node& child) {
+    if (const auto* existing = seen_.put(name, node)) {
+      if (&node == &parent_ && existing == &parent_) {
+        // The degenerate case where parent_ is conflicting with itself.
+        report_redef_failure(ctx_, kind_, name, parent_, child, *existing);
+      } else {
+        ctx_.failure(child, [&](auto& o) {
+          o << kind_ << " `" << node.name() << "." << name << "` and `"
+            << existing->name() << "." << name
+            << "` can not have same name in `" << parent_.name() << "`.";
+        });
+      }
+    }
+  }
+  void check(std::string&&, const t_named&, const t_node&) = delete;
+  void check(const std::string&, t_named&&, const t_node&) = delete;
+
+  // Helpers for the common case where the names are from child t_nameds of
+  // the parent.
+  //
+  // For example, all functions in an interface.
   void check(const t_named& child) {
-    if (const t_named* existing = seen_.put(child)) {
+    if (const auto* existing = seen_.put(child)) {
       report_redef_failure(
           ctx_, kind_, child.name(), parent_, child, *existing);
     }
@@ -91,11 +130,29 @@ struct service_metadata {
 
   service_metadata(node_metadata_cache& cache, const t_service& node) {
     if (node.extends() != nullptr) {
+      // Add all the inherited functions.
       function_name_to_service =
           cache.get<service_metadata>(*node.extends()).function_name_to_service;
     }
+    // Add all the directly defined functions.
     for (const auto& function : node.functions()) {
       function_name_to_service.put(function.name(), node);
+    }
+  }
+};
+
+struct structured_metadata {
+  name_index<t_structured> field_name_to_parent;
+
+  structured_metadata(node_metadata_cache& cache, const t_structured& node) {
+    for (const auto& field : node.fields()) {
+      if (const auto* mixin = get_mixin_type(field)) {
+        // Add all the inherited mixin fields from field.
+        auto mixin_metadata = cache.get<structured_metadata>(*mixin);
+        field_name_to_parent.put_all(mixin_metadata.field_name_to_parent);
+      }
+      // Add the directly defined field.
+      field_name_to_parent.put(field.name(), node);
     }
   }
 };
@@ -106,6 +163,7 @@ void validate_interface_function_name_uniqueness(
   redef_checker(ctx, "Function", node).check_all(node.functions());
 }
 
+// Checks for a redefinition of an inherited function.
 void validate_extends_service_function_name_uniqueness(
     diagnostic_context& ctx, const t_service& node) {
   if (node.extends() == nullptr) {
@@ -137,6 +195,40 @@ void validate_throws_exceptions(diagnostic_context& ctx, const t_throws& node) {
   }
 }
 
+// Checks for a redefinition of a field in the same t_structured, including
+// those inherited via mixin fields.
+void validate_field_names_uniqueness(
+    diagnostic_context& ctx, const t_structured& node) {
+  redef_checker checker(ctx, "Field", node);
+  for (const auto& field : node.fields()) {
+    // Check the directly defined field.
+    checker.check(field.name(), node, field);
+
+    // Check any transtively defined fields via a mixin annotation.
+    if (const auto* mixin = get_mixin_type(field)) {
+      const auto& mixin_metadata = ctx.cache().get<structured_metadata>(*mixin);
+      mixin_metadata.field_name_to_parent.for_each(
+          [&](const std::string& name, const t_structured& parent) {
+            checker.check(name, parent, field);
+          });
+    }
+  }
+}
+
+void validate_struct_except_field_attributes(
+    diagnostic_context& ctx, const t_structured& node) {
+  for (const auto& field : node.fields()) {
+    if (gen::cpp::find_ref_type(field) == gen::cpp::reference_type::boxed &&
+        field.qualifier() != t_field_qualifier::optional) {
+      ctx.failure(field, [&](auto& o) {
+        o << "The `cpp.box` annotation can only be used with optional fields. Make sure `"
+          << field.name() << "` is optional.";
+      });
+    }
+  }
+}
+
+// Checks the attributes of fields in a union.
 void validate_union_field_attributes(
     diagnostic_context& ctx, const t_union& node) {
   for (const auto& field : node.fields()) {
@@ -154,9 +246,36 @@ void validate_union_field_attributes(
           << field.name() << "`.";
       });
     }
+    if (gen::cpp::find_ref_type(field) == gen::cpp::reference_type::boxed) {
+      // TODO(afuller): Support cpp.box on union fields.
+      ctx.failure(field, [&](auto& o) {
+        o << "Unions cannot contain fields with the `cpp.box` annotation. Remove the annotation from `"
+          << field.name() << "`.";
+      });
+    }
   }
 }
 
+void validate_boxed_field_attributes(
+    diagnostic_context& ctx, const t_field& field) {
+  if (gen::cpp::find_ref_type(field) != gen::cpp::reference_type::boxed) {
+    return;
+  }
+
+  if (field.has_annotation({
+          "cpp.ref",
+          "cpp2.ref",
+          "cpp.ref_type",
+          "cpp2.ref_type",
+      })) {
+    ctx.failure(field, [&](auto& o) {
+      o << "The `cpp.box` annotation cannot be combined with the `cpp.ref` or `cpp.ref_type` annotations. Remove one of the annotations from `"
+        << field.name() << "`.";
+    });
+  }
+}
+
+// Checks the attributes of a mixin field.
 void validate_mixin_field_attributes(
     diagnostic_context& ctx, const t_field& node) {
   if (!cpp2::is_mixin(node)) {
@@ -256,8 +375,12 @@ ast_validator standard_validator() {
       &validate_extends_service_function_name_uniqueness);
   validator.add_throws_visitor(&validate_throws_exceptions);
 
+  validator.add_structured_definition_visitor(&validate_field_names_uniqueness);
   validator.add_union_visitor(&validate_union_field_attributes);
+  validator.add_struct_visitor(&validate_struct_except_field_attributes);
+  validator.add_exception_visitor(&validate_struct_except_field_attributes);
   validator.add_field_visitor(&validate_mixin_field_attributes);
+  validator.add_field_visitor(&validate_boxed_field_attributes);
 
   validator.add_struct_visitor(&validate_struct_optional_refs);
 

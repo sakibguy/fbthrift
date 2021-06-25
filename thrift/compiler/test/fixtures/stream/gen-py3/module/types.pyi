@@ -20,7 +20,7 @@ import thrift.py3.stream
 __property__ = property
 
 
-class FooEx(thrift.py3.exceptions.GeneratedError, _typing.Hashable, _typing.Iterable[_typing.Tuple[str, _typing.Any]]):
+class FooEx(thrift.py3.exceptions.GeneratedError, _typing.Hashable):
     class __fbthrift_IsSet:
         pass
 
@@ -28,7 +28,6 @@ class FooEx(thrift.py3.exceptions.GeneratedError, _typing.Hashable, _typing.Iter
         self, 
     ) -> None: ...
 
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[str, _typing.Any]]: ...
     def __hash__(self) -> int: ...
     def __lt__(self, other: 'FooEx') -> bool: ...
     def __gt__(self, other: 'FooEx') -> bool: ...
@@ -43,6 +42,10 @@ class ClientBufferedStream__i32(thrift.py3.stream.ClientBufferedStream[int]):
 
 class ServerStream__i32(thrift.py3.stream.ServerStream[int]):
     pass
+
+class ServerPublisher_cint32_t(thrift.py3.stream.ServerPublisher):
+    def complete(self) -> None: ...
+    def send(self, item: cint32_t) -> None: ...
 
 class ResponseAndClientBufferedStream__i32_i32(thrift.py3.stream.ResponseAndClientBufferedStream[int, int]):
     def __iter__(self) -> _typing.Tuple[

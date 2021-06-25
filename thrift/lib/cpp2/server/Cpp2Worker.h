@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -203,7 +204,7 @@ class Cpp2Worker : public IOWorkerContext,
    * same service.
    */
   PerServiceMetadata& getMetadataForService(
-      AsyncProcessorFactory& processorFactory) {
+      AsyncProcessorFactory& processorFactory) const {
     getEventBase()->dcheckIsInEventBaseThread();
     if (auto metadata =
             folly::get_ptr(perServiceMetadata_, &processorFactory)) {
@@ -226,7 +227,12 @@ class Cpp2Worker : public IOWorkerContext,
         server_(server),
         activeRequests_(0) {
     if (server) {
-      setGracefulShutdownTimeout(server->getWorkersJoinTimeout());
+      // Leave enough headroom to close connections ungracefully before the
+      // worker join timeout expires.
+      constexpr auto kGracefulTimeoutHeadroom = std::chrono::milliseconds{500};
+      setGracefulShutdownTimeout(std::max(
+          server->getWorkersJoinTimeout() - kGracefulTimeoutHeadroom,
+          std::chrono::milliseconds::zero()));
     }
   }
 
@@ -304,7 +310,7 @@ class Cpp2Worker : public IOWorkerContext,
 
   // We expect to have one processor factory per InterfaceKind. Using F14NodeMap
   // guarantees reference stability.
-  folly::F14NodeMap<AsyncProcessorFactory*, PerServiceMetadata>
+  mutable folly::F14NodeMap<AsyncProcessorFactory*, PerServiceMetadata>
       perServiceMetadata_;
 
   folly::AsyncSSLSocket::UniquePtr makeNewAsyncSSLSocket(
