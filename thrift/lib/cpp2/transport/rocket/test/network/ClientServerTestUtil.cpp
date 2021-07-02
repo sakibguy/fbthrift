@@ -321,7 +321,15 @@ class RocketTestServerAcceptor final : public wangle::Acceptor {
     auto* connection = new RocketServerConnection(
         std::move(socket),
         frameHandlerFactory_(),
-        std::chrono::milliseconds::zero());
+        std::chrono::seconds(60), // (streamStarvationTimeout)
+        std::chrono::milliseconds::zero(), // (writeBatchingInterval)
+        0, // (writeBatchingSize)
+        memoryTracker_, // (ingress)
+        memoryTracker_, // (egress)
+        0, // (egressBufferBackpressureThreshold)
+        0 // (egressBufferBackpressureRecoveryFactor)
+    );
+
     getConnectionManager()->addConnection(connection);
   }
 
@@ -350,6 +358,7 @@ class RocketTestServerAcceptor final : public wangle::Acceptor {
   std::promise<void> shutdownPromise_;
   size_t connections_{0};
   folly::Optional<size_t> expectedRemainingStreams_ = folly::none;
+  MemoryTracker memoryTracker_;
 };
 } // namespace
 
