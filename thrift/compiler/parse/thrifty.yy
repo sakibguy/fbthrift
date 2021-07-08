@@ -59,24 +59,6 @@ namespace thrift {
 namespace compiler {
 namespace {
 
-/**
- * This global variable is used for automatic numbering of field indices etc.
- * when parsing the members of a struct. Field values are automatically
- * assigned starting from -1 and working their way down.
- */
- // TODO(afuller): Move auto field ids to a post parse phase.
-int y_field_val = -1;
-int allocate_field_id(parsing_driver& driver, const std::string& name) {
-  driver.warning([&](auto& o) {
-    o << "No field id specified for " << name << ", resulting protocol may"
-      << " have conflicts or not be backwards compatible!";
-  });
-  if (driver.params.strict >= 192) {
-    driver.failure("Implicit field keys are deprecated and not allowed with -strict");
-  }
-  return y_field_val--;
-}
-
 int g_arglist = 0;
 
 // Assume ownership of a pointer.
@@ -225,81 +207,81 @@ class t_container_type;
  * - t_refs are already owned.
  */
 
-%type<t_ref<t_base_type>>       BaseType
-%type<t_container*>             ContainerType
-%type<t_container*>             MapType
-%type<t_container*>             SetType
-%type<t_container*>             ListType
+%type<t_ref<t_base_type>>          BaseType
+%type<t_container*>                ContainerType
+%type<t_container*>                MapType
+%type<t_container*>                SetType
+%type<t_container*>                ListType
 
-%type<std::string>              Identifier
-%type<t_def_attrs*>             DefinitionAttrs
-%type<t_ref<t_node>>            Definition
+%type<std::string>                 Identifier
+%type<t_def_attrs*>                DefinitionAttrs
+%type<t_ref<t_node>>               Definition
 
-%type<t_typedef*>               Typedef
+%type<t_typedef*>                  Typedef
 
-%type<t_annotation*>            TypeAnnotation
-%type<t_annotations*>           TypeAnnotations
-%type<t_annotations*>           TypeAnnotationList
-%type<t_annotations*>           FunctionAnnotations
+%type<t_annotation*>               TypeAnnotation
+%type<t_annotations*>              TypeAnnotations
+%type<t_annotations*>              TypeAnnotationList
+%type<t_annotations*>              FunctionAnnotations
 
-%type<t_const*>                 StructuredAnnotation
-%type<t_struct_annotations*>    StructuredAnnotations
-%type<t_struct_annotations*>    NonEmptyStructuredAnnotationList
+%type<t_const*>                    StructuredAnnotation
+%type<t_struct_annotations*>       StructuredAnnotations
+%type<t_struct_annotations*>       NonEmptyStructuredAnnotationList
 
-%type<t_field*>                 Field
-%type<boost::optional<int64_t>> FieldIdentifier
-%type<t_field_qualifier>        FieldQualifier
-%type<t_type_ref>               FieldType
-%type<t_stream_response*>       ResponseAndStreamReturnType
-%type<t_sink*>                  ResponseAndSinkReturnType
-%type<t_stream_response*>       StreamReturnType
-%type<t_sink*>                  SinkReturnType
-%type<t_typethrowspair>         SinkFieldType
-%type<t_const_value*>           FieldValue
-%type<t_field_list*>            FieldList
+%type<t_field*>                    Field
+%type<boost::optional<t_field_id>> FieldIdentifier
+%type<t_field_qualifier>           FieldQualifier
+%type<t_type_ref>                  FieldType
+%type<t_stream_response*>          ResponseAndStreamReturnType
+%type<t_sink*>                     ResponseAndSinkReturnType
+%type<t_stream_response*>          StreamReturnType
+%type<t_sink*>                     SinkReturnType
+%type<t_typethrowspair>            SinkFieldType
+%type<t_const_value*>              FieldValue
+%type<t_field_list*>               FieldList
 
-%type<t_enum*>                  Enum
-%type<t_enum_value_list*>       EnumValueList
-%type<t_enum_value*>            EnumValueDef
-%type<t_enum_value*>            EnumValue
+%type<t_enum*>                     Enum
+%type<t_enum_value_list*>          EnumValueList
+%type<t_enum_value*>               EnumValueDef
+%type<t_enum_value*>               EnumValue
 
-%type<t_const*>                 Const
-%type<t_const_value*>           ConstValue
-%type<t_const_value*>           ConstList
-%type<t_const_value*>           ConstListContents
-%type<t_const_value*>           ConstMap
-%type<t_const_value*>           ConstMapContents
-%type<t_const_value*>           ConstStruct
-%type<t_type_ref>               ConstStructType
-%type<t_const_value*>           ConstStructContents
+%type<t_const*>                    Const
+%type<t_const_value*>              ConstValue
+%type<t_const_value*>              ConstList
+%type<t_const_value*>              ConstListContents
+%type<t_const_value*>              ConstMap
+%type<t_const_value*>              ConstMapContents
+%type<t_const_value*>              ConstStruct
+%type<t_type_ref>                  ConstStructType
+%type<t_const_value*>              ConstStructContents
 
-%type<t_struct*>                Struct
-%type<t_union*>                 Union
+%type<t_struct*>                   Struct
+%type<t_union*>                    Union
 
-%type<t_error_kind>             ErrorKind
-%type<t_error_blame>            ErrorBlame
-%type<t_error_safety>           ErrorSafety
-%type<t_exception*>             Exception
+%type<t_error_kind>                ErrorKind
+%type<t_error_blame>               ErrorBlame
+%type<t_error_safety>              ErrorSafety
+%type<t_exception*>                Exception
 
-%type<t_service*>               Service
-%type<t_interaction*>           Interaction
+%type<t_service*>                  Service
+%type<t_interaction*>              Interaction
 
-%type<t_function*>              Function
-%type<t_type_ref>               FunctionType
-%type<t_function_list*>         FunctionList
+%type<t_function*>                 Function
+%type<t_type_ref>                  FunctionType
+%type<t_function_list*>            FunctionList
 
-%type<t_paramlist*>             ParamList
-%type<t_paramlist*>             EmptyParamList
-%type<t_field*>                 Param
+%type<t_paramlist*>                ParamList
+%type<t_paramlist*>                EmptyParamList
+%type<t_field*>                    Param
 
-%type<t_throws*>                MaybeThrows
-%type<t_ref<t_service>>         Extends
-%type<t_function_qualifier>     FunctionQualifier
+%type<t_throws*>                   MaybeThrows
+%type<t_ref<t_service>>            Extends
+%type<t_function_qualifier>        FunctionQualifier
 
-%type<t_doc>                    CaptureDocText
-%type<std::string>              IntOrLiteral
+%type<t_doc>                       CaptureDocText
+%type<std::string>                 IntOrLiteral
 
-%type<bool>                     CommaOrSemicolonOptional
+%type<bool>                        CommaOrSemicolonOptional
 
 %%
 
@@ -819,7 +801,6 @@ Struct:
         "{ FieldList } TypeAnnotations");
       $$ = new t_struct(driver.program, std::move($3));
       driver.finish_node($$, LineType::Struct, own($1), own($6), own($8));
-      y_field_val = -1;
     }
 
 Union:
@@ -833,7 +814,6 @@ Union:
         "{ FieldList } TypeAnnotations");
       $$ = new t_union(driver.program, std::move($3));
       driver.finish_node($$, LineType::Union, own($1), own($6), own($8));
-      y_field_val = -1;
     }
 
 Exception:
@@ -885,8 +865,6 @@ Exception:
           });
         }
       }
-
-      y_field_val = -1;
     }
 
 ErrorSafety:
@@ -1046,7 +1024,6 @@ Function:
 
       driver.finish_node(func.get(), LineType::Function, own($1), own($10));
       $$ = func.release();
-      y_field_val = -1;
     }
   | tok_performs FieldType ";"
     {
@@ -1148,48 +1125,48 @@ Field:
     {
       driver.debug("Field => DefinitionAttrs FieldIdentifier FieldQualifier "
         "FieldType Identifier FieldValue TypeAnnotations CommaOrSemicolonOptional");
+      int id;
       if ($2 == boost::none) {
         // Auto assign an id.
-        $2 = allocate_field_id(driver, $5);
-      } else if (*$2 <= 0) {
-        // TODO(afuller): Move this validation to ast_validator.
-        if (driver.params.allow_neg_field_keys) {
-          /*
-            * allow_neg_field_keys exists to allow users to add explicitly
-            * specified id values to old .thrift files without breaking
-            * protocol compatibility.
-            */
-          if (*$2 != y_field_val) {
+        id = driver.allocate_field_id($5);
+      } else {
+        id = *$2;
+        if (id <= 0) {
+          // TODO(afuller): Move this validation to ast_validator.
+          if (driver.params.allow_neg_field_keys) {
             /*
-              * warn if the user-specified negative value isn't what
-              * thrift would have auto-assigned.
+              * allow_neg_field_keys exists to allow users to add explicitly
+              * specified id values to old .thrift files without breaking
+              * protocol compatibility.
               */
+            if (id != driver.next_field_id()) {
+              /*
+                * warn if the user-specified negative value isn't what
+                * thrift would have auto-assigned.
+                */
+              driver.warning([&](auto& o) {
+                o << "Nonpositive field id (" << id << ") differs from what would "
+                  << "be auto-assigned by thrift (" << driver.next_field_id() << ").";
+              });
+            }
+          } else if (id == driver.next_field_id()) {
             driver.warning([&](auto& o) {
-              o << "Nonpositive field id (" << *$2 << ") differs from what would "
-                << "be auto-assigned by thrift (" << y_field_val << ").";
+              o << "Nonpositive value (" << id << ") not allowed as a field id.";
             });
+          } else {
+            // TODO(afuller): Make ignoring the user provided value a failure.
+            driver.warning([&](auto& o) {
+              o << "Nonpositive field id (" << id<< ") differs from what is auto-"
+                  "assigned by thrift. The id must positive or " << driver.next_field_id() << ".";
+            });
+            // Ignore user provided value and auto assign an id.
+            id = driver.allocate_field_id($5);
+            $2 = boost::none;
           }
-        } else if (*$2 == y_field_val) {
-          driver.warning([&](auto& o) {
-            o << "Nonpositive value (" << *$2 << ") not allowed as a field id.";
-          });
-        } else {
-          // TODO(afuller): Make ignoring the user provided value a failure.
-          driver.warning([&](auto& o) {
-            o << "Nonpositive field id (" << *$2 << ") differs from what is auto-"
-             "assigned by thrift. The id must positive or " << y_field_val << ".";
-          });
-          // Ignore user provided value and auto assign an id.
-          $2 = allocate_field_id(driver, $5);
+          driver.reserve_field_id(id);
         }
-        /*
-         * Update y_field_val to be one less than the value.
-         * The FieldList parsing will catch any duplicate id values.
-         */
-        y_field_val = *$2 - 1;
       }
-
-      $$ = new t_field(std::move($4), std::move($5), *$2);
+      $$ = new t_field(std::move($4), std::move($5), id, $2 != boost::none);
       $$->set_qualifier($3);
       if ($7 != nullptr) {
         driver.validate_field_value($$, $7);
@@ -1201,7 +1178,7 @@ Field:
 FieldIdentifier:
   tok_int_constant ":"
     {
-      $$ = $1;
+      $$ = driver.as_field_id($1);
     }
 |
     {

@@ -7,9 +7,18 @@
 
 package test.fixtures.inheritance;
 
+import static com.facebook.swift.service.SwiftConstants.STICKY_HASH_KEY;
+
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.thrift.protocol.*;
+import org.apache.thrift.ClientPushMetadata;
+import org.apache.thrift.InteractionCreate;
+import org.apache.thrift.InteractionTerminate;
 import com.facebook.thrift.client.ResponseWrapper;
+import com.facebook.thrift.client.RpcOptions;
+
 
 public class MyLeafReactiveClient  extends test.fixtures.inheritance.MyNodeReactiveClient
   implements MyLeaf.Reactive {
@@ -17,6 +26,8 @@ public class MyLeafReactiveClient  extends test.fixtures.inheritance.MyNodeReact
   private final reactor.core.publisher.Mono<? extends com.facebook.thrift.client.RpcClient> _rpcClient;
   private final Map<String, String> _headers;
   private final Map<String, String> _persistentHeaders;
+  private final AtomicLong _interactionCounter;
+  private final Set<Long> _activeInteractions;
 
   private static final java.util.Map<Short, com.facebook.thrift.payload.Reader> _doLeaf_EXCEPTION_READERS = java.util.Collections.emptyMap();
 
@@ -29,14 +40,22 @@ public class MyLeafReactiveClient  extends test.fixtures.inheritance.MyNodeReact
     this._rpcClient = _rpcClient;
     this._headers = java.util.Collections.emptyMap();
     this._persistentHeaders = java.util.Collections.emptyMap();
+    this._interactionCounter = new AtomicLong(0);
+    this._activeInteractions = ConcurrentHashMap.newKeySet();
   }
 
   public MyLeafReactiveClient(org.apache.thrift.ProtocolId _protocolId, reactor.core.publisher.Mono<? extends com.facebook.thrift.client.RpcClient> _rpcClient, Map<String, String> _headers, Map<String, String> _persistentHeaders) {
+    this(_protocolId, _rpcClient, _headers, _persistentHeaders, new AtomicLong(), ConcurrentHashMap.newKeySet());
+  }
+
+  public MyLeafReactiveClient(org.apache.thrift.ProtocolId _protocolId, reactor.core.publisher.Mono<? extends com.facebook.thrift.client.RpcClient> _rpcClient, Map<String, String> _headers, Map<String, String> _persistentHeaders, AtomicLong interactionCounter, Set<Long> activeInteractions) {
     super(_protocolId, _rpcClient);
     this._protocolId = _protocolId;
     this._rpcClient = _rpcClient;
     this._headers = _headers;
     this._persistentHeaders = _persistentHeaders;
+    this._interactionCounter = interactionCounter;
+    this._activeInteractions = activeInteractions;
   }
 
   @java.lang.Override
@@ -97,6 +116,7 @@ public class MyLeafReactiveClient  extends test.fixtures.inheritance.MyNodeReact
   public reactor.core.publisher.Mono<Void> doLeaf() {
     return doLeaf( com.facebook.thrift.client.RpcOptions.EMPTY);
   }
+
 
 
   private Map<String, String> getHeaders(com.facebook.thrift.client.RpcOptions rpcOptions) {

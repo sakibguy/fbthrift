@@ -37,6 +37,8 @@ enum class t_field_qualifier {
   optional,
 };
 
+using t_field_id = int16_t;
+
 /**
  * class t_field
  *
@@ -46,6 +48,12 @@ enum class t_field_qualifier {
  */
 class t_field final : public t_named {
  public:
+  // Field ids whose binary digital leads with `10` are reserved
+  // TODO(afuller): It looks like this is actually allowing
+  // 0b1100'0000'0000'0000 as an id, while the comment implies that it
+  // shouldn't be allowed.
+  static constexpr auto min_id = -static_cast<t_field_id>(1 << 14);
+
   /**
    * Constructor for t_field
    *
@@ -53,14 +61,22 @@ class t_field final : public t_named {
    * @param name - The symbolic name of the field
    * @param id  - The numeric identifier of the field
    */
-  t_field(t_type_ref type, std::string name, int32_t id = 0)
-      : t_named(std::move(name)), type_(std::move(type)), id_(id) {}
+  t_field(
+      t_type_ref type,
+      std::string name,
+      t_field_id id,
+      bool has_explicit_id = true)
+      : t_named(std::move(name)),
+        type_(std::move(type)),
+        id_(id),
+        has_explicit_id_(has_explicit_id) {}
 
   t_field(t_field&&) = delete;
   t_field& operator=(t_field&&) = delete;
 
   const t_type_ref& type() const { return type_; }
   int32_t id() const { return id_; }
+  bool has_explicit_id() const { return has_explicit_id_; }
 
   const t_const_value* default_value() const { return value_.get(); }
   void set_default_value(std::unique_ptr<t_const_value> value) {
@@ -97,7 +113,8 @@ class t_field final : public t_named {
 
  private:
   t_type_ref type_;
-  const int32_t id_;
+  const t_field_id id_;
+  bool has_explicit_id_;
 
   t_field_qualifier qual_ = {};
   std::unique_ptr<t_const_value> value_;
@@ -114,7 +131,9 @@ class t_field final : public t_named {
     opt_in_req_out = 2,
   };
 
-  t_field(const t_type* type, std::string name, int32_t key = 0)
+  t_field(t_type_ref type, std::string name)
+      : t_field(type, std::move(name), 0, false) {}
+  t_field(const t_type* type, std::string name, t_field_id key = 0)
       : t_field(t_type_ref::from_req_ptr(type), std::move(name), key) {}
 
   void set_value(std::unique_ptr<t_const_value> value) {

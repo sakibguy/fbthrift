@@ -140,8 +140,11 @@ bool interactions_validator::visit(t_service* s) {
 
 bool reserved_field_id_validator::visit(t_struct* s) {
   for (const auto& field : s->fields()) {
-    if (field.id() < kMinimalValidFieldId) {
-      add_error(field.lineno(), "Too many fields in `" + s->name() + "`");
+    if (field.id() < t_field::min_id) {
+      add_error(
+          field.lineno(),
+          "Reserved field id (" + std::to_string(field.id()) +
+              ") cannot be used for `" + field.name() + "`");
     }
   }
   return true;
