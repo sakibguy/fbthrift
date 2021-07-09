@@ -133,7 +133,6 @@ void parsing_driver::parse_file() {
 
     // This must be after the previous circular include check, since the emitted
     // error message above is supposed to reference the parent file name.
-    params.allow_neg_enum_vals = true;
     params.allow_neg_field_keys = true;
     ctx_.start_program(program = included_program);
     parse_file();
@@ -903,10 +902,6 @@ t_field_id parsing_driver::as_field_id(int64_t int_const) {
 }
 
 t_field_id parsing_driver::allocate_field_id(const std::string& name) {
-  warning([&](auto& o) {
-    o << "No field id specified for " << name << ", resulting protocol may"
-      << " have conflicts or not be backwards compatible!";
-  });
   if (params.strict >= 192) {
     failure("Implicit field keys are deprecated and not allowed with -strict");
   }
