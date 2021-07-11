@@ -209,24 +209,8 @@ class THeader {
     return folly::to_narrow(transforms.size());
   }
 
-  void setTransform(uint16_t transId) {
-    for (auto& trans : writeTrans_) {
-      if (trans == transId) {
-        return;
-      }
-    }
-    writeTrans_.push_back(transId);
-  }
-
-  void setReadTransform(uint16_t transId) {
-    for (auto& trans : readTrans_) {
-      if (trans == transId) {
-        return;
-      }
-    }
-    readTrans_.push_back(transId);
-  }
-
+  void setTransform(uint16_t transId);
+  void setReadTransform(uint16_t transId);
   void setTransforms(const std::vector<uint16_t>& trans) {
     writeTrans_ = trans;
   }
@@ -241,36 +225,20 @@ class THeader {
   void setHeader(const std::string& key, std::string&& value);
   void setHeader(
       const char* key, size_t keyLength, const char* value, size_t valueLength);
+  void eraseHeader(const std::string& key);
   void setHeaders(StringToStringMap&&);
   void clearHeaders();
-  bool isWriteHeadersEmpty() { return writeHeaders_.empty(); }
-
-  StringToStringMap& mutableWriteHeaders() { return writeHeaders_; }
-  StringToStringMap releaseWriteHeaders() { return std::move(writeHeaders_); }
-
-  StringToStringMap extractAllWriteHeaders() {
-    auto headers = std::move(writeHeaders_);
-    if (extraWriteHeaders_ != nullptr) {
-      headers.insert(extraWriteHeaders_->begin(), extraWriteHeaders_->end());
-    }
-    return headers;
-  }
-
-  const StringToStringMap& getWriteHeaders() const { return writeHeaders_; }
+  bool isWriteHeadersEmpty();
+  StringToStringMap releaseWriteHeaders();
+  StringToStringMap extractAllWriteHeaders();
+  const StringToStringMap& getWriteHeaders() const;
 
   // these work with read headers
   void setReadHeaders(StringToStringMap&&);
-  void setReadHeader(const std::string& key, std::string&& value) {
-    readHeaders_[key] = std::move(value);
-  }
+  void setReadHeader(const std::string& key, std::string&& value);
   void eraseReadHeader(const std::string& key);
-  const StringToStringMap& getHeaders() const { return readHeaders_; }
-
-  StringToStringMap releaseHeaders() {
-    StringToStringMap headers;
-    readHeaders_.swap(headers);
-    return headers;
-  }
+  const StringToStringMap& getHeaders() const;
+  StringToStringMap releaseHeaders();
 
   void setExtraWriteHeaders(StringToStringMap* extraWriteHeaders) {
     extraWriteHeaders_ = extraWriteHeaders;
@@ -442,8 +410,8 @@ class THeader {
   std::vector<uint16_t> writeTrans_;
 
   // Map to use for headers
-  StringToStringMap readHeaders_;
-  StringToStringMap writeHeaders_;
+  std::optional<StringToStringMap> readHeaders_;
+  std::optional<StringToStringMap> writeHeaders_;
 
   // Won't be cleared when flushing
   StringToStringMap* extraWriteHeaders_{nullptr};
@@ -493,6 +461,8 @@ class THeader {
 
  private:
   std::optional<std::string> extractHeader(std::string_view key);
+  StringToStringMap& ensureReadHeaders();
+  StringToStringMap& ensureWriteHeaders();
 };
 
 } // namespace transport

@@ -26,6 +26,7 @@
 
 #include <boost/optional.hpp>
 
+#include <thrift/compiler/ast/diagnostic_context.h>
 #include <thrift/compiler/ast/node_list.h>
 #include <thrift/compiler/ast/t_const_value.h>
 #include <thrift/compiler/ast/t_exception.h>
@@ -38,16 +39,44 @@
 #include <thrift/compiler/ast/t_scope.h>
 #include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/parse/yy_scanner.h>
-#include <thrift/compiler/sema/diagnostic_context.h>
+
+/**
+ * Note macro expansion because this is different between OSS and internal
+ * build, sigh.
+ */
+#ifndef LOCATION_HH
+#define LOCATION_HH "thrift/compiler/parse/location.hh"
+#endif
+
+#include LOCATION_HH
+
+namespace {
+
+/** ~U.
+ * YYLTYPE evaluates to a class named 'location', which has:
+ *   position begin;
+ *   position end;
+ * The class 'position', in turn, has:
+ *   std::string* filename;
+ *   unsigned line;
+ *   unsigned column;
+ */
+using YYLTYPE = apache::thrift::compiler::yy::location;
+using YYSTYPE = int;
 
 /**
  * Provide the custom fbthrift_compiler_parse_lex signature to flex.
+ * TODO: Move this definition to the .yy file.
  */
 #define YY_DECL                                         \
   apache::thrift::compiler::yy::parser::symbol_type     \
   fbthrift_compiler_parse_lex(                          \
       apache::thrift::compiler::parsing_driver& driver, \
-      apache::thrift::compiler::yyscan_t yyscanner)
+      apache::thrift::compiler::yyscan_t yyscanner,     \
+      YYSTYPE* yylval_param,                            \
+      YYLTYPE* yylloc_param)
+
+} // namespace
 
 namespace apache {
 namespace thrift {
