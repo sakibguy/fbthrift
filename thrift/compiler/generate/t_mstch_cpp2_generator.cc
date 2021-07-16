@@ -105,7 +105,7 @@ bool same_types(const t_type* a, const t_type* b) {
 }
 
 std::vector<t_annotation> get_fatal_annotations(
-    std::map<std::string, std::string> annotations) {
+    std::map<std::string, annotation_value> annotations) {
   std::vector<t_annotation> fatal_annotations;
   for (const auto& iter : annotations) {
     if (is_annotation_blacklisted_in_fatal(iter.first)) {
@@ -400,6 +400,7 @@ class mstch_cpp2_type : public mstch_type {
             {"type:cpp_type", &mstch_cpp2_type::cpp_type},
             {"type:cpp_standard_type", &mstch_cpp2_type::cpp_standard_type},
             {"type:cpp_adapter", &mstch_cpp2_type::cpp_adapter},
+            {"type:raw_binary?", &mstch_cpp2_type::raw_binary},
             {"type:resolved_cpp_type", &mstch_cpp2_type::resolved_cpp_type},
             {"type:string_or_binary?", &mstch_cpp2_type::is_string_or_binary},
             {"type:cpp_template", &mstch_cpp2_type::cpp_template},
@@ -490,10 +491,15 @@ class mstch_cpp2_type : public mstch_type {
     return context_->resolver().get_standard_type_name(type_);
   }
   mstch::node cpp_adapter() {
-    if (const auto& adapter = gen::cpp::type_resolver::find_adapter(type_)) {
+    if (const auto* adapter =
+            gen::cpp::type_resolver::find_first_adapter(type_)) {
       return *adapter;
     }
     return {};
+  }
+  mstch::node raw_binary() {
+    return resolved_type_->is_binary() &&
+        gen::cpp::type_resolver::find_first_adapter(type_) == nullptr;
   }
   mstch::node resolved_cpp_type() { return cpp2::get_type(resolved_type_); }
   mstch::node is_string_or_binary() {
@@ -1203,7 +1209,7 @@ class mstch_cpp2_annotation : public mstch_annotation {
  public:
   mstch_cpp2_annotation(
       const std::string& key,
-      const std::string& val,
+      annotation_value val,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION pos,
@@ -1217,7 +1223,7 @@ class mstch_cpp2_annotation : public mstch_annotation {
         });
   }
   mstch::node safe_key() { return get_fatal_string_short_id(key_); }
-  mstch::node fatal_string() { return render_fatal_string(val_); }
+  mstch::node fatal_string() { return render_fatal_string(val_.value); }
 };
 
 class mstch_cpp2_const : public mstch_const {

@@ -66,7 +66,6 @@ using YYSTYPE = int;
 
 /**
  * Provide the custom fbthrift_compiler_parse_lex signature to flex.
- * TODO: Move this definition to the .yy file.
  */
 #define YY_DECL                                         \
   apache::thrift::compiler::yy::parser::symbol_type     \
@@ -105,7 +104,7 @@ enum class LineType {
 // Parsing only representations.
 using t_struct_annotations = node_list<t_const>;
 struct t_annotations {
-  std::map<std::string, std::string> strings;
+  std::map<std::string, annotation_value> strings;
   std::map<std::string, std::shared_ptr<const t_const>> objects;
   int last_lineno;
 };
@@ -366,25 +365,27 @@ class parsing_driver {
   // Record the line number for the start of the node.
   void start_node(LineType lineType);
 
+  // Returns the source range object containing the location information.
+  source_range get_source_range(const YYLTYPE& loc);
+
   // Configures the node and set the starting line number.
-  void finish_node(
-      t_node* node,
-      LineType lineType,
-      std::unique_ptr<t_annotations> annotations);
   void finish_node(
       t_named* node,
       LineType lineType,
+      const YYLTYPE& loc,
       std::unique_ptr<t_def_attrs> attrs,
       std::unique_ptr<t_annotations> annotations);
   void finish_node(
       t_structured* node,
       LineType lineType,
+      const YYLTYPE& loc,
       std::unique_ptr<t_def_attrs> attrs,
       std::unique_ptr<t_field_list> fields,
       std::unique_ptr<t_annotations> annotations);
   void finish_node(
       t_interface* node,
       LineType lineType,
+      const YYLTYPE& loc,
       std::unique_ptr<t_def_attrs> attrs,
       std::unique_ptr<t_function_list> functions,
       std::unique_ptr<t_annotations> annotations);
@@ -425,6 +426,28 @@ class parsing_driver {
       } else {
         yylloc.end.column++;
       }
+    }
+  }
+
+  /*
+   * To fix Bison's default location
+   * (result's begin set to end of prev token)
+   */
+  void avoid_last_token_loc(
+      bool null_first_elem, YYLTYPE& result_loc, YYLTYPE& next_non_null_loc) {
+    if (null_first_elem) {
+      result_loc.begin = next_non_null_loc.begin;
+    }
+  }
+
+  /*
+   * To fix Bison's default location
+   * (result's end set to begin of next token)
+   */
+  void avoid_next_token_loc(
+      bool null_last_elem, YYLTYPE& result_loc, YYLTYPE& next_non_null_loc) {
+    if (null_last_elem) {
+      result_loc.end = next_non_null_loc.end;
     }
   }
 

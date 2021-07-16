@@ -26,10 +26,16 @@
 #include <vector>
 
 #include <thrift/compiler/ast/alias_span.h>
+#include <thrift/compiler/ast/source_range.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
+
+struct annotation_value {
+  source_range src_range;
+  std::string value;
+};
 
 /**
  * class t_node
@@ -40,6 +46,11 @@ namespace compiler {
 class t_node {
  public:
   virtual ~t_node() = default;
+
+  const source_range& src_range() const { return source_range_; }
+  void set_src_range(const source_range& source_range) {
+    source_range_ = source_range;
+  }
 
   const std::string& doc() const { return doc_; }
   bool has_doc() const { return has_doc_; }
@@ -52,9 +63,7 @@ class t_node {
   void set_lineno(int lineno) { lineno_ = lineno; }
 
   // The annotations declared directly on this node.
-  const std::map<std::string, std::string>& annotations() const {
-    return annotations_;
-  }
+  const auto& annotations() const { return annotations_; }
 
   // Returns true if there exists an annotation with the given name.
   bool has_annotation(alias_span name) const {
@@ -87,13 +96,16 @@ class t_node {
   }
 
   void reset_annotations(
-      std::map<std::string, std::string> annotations, int last_lineno) {
+      std::map<std::string, annotation_value> annotations, int last_lineno) {
     annotations_ = std::move(annotations);
     last_annotation_lineno_ = last_lineno;
   }
 
-  void set_annotation(const std::string& key, std::string value = {}) {
-    annotations_[key] = std::move(value);
+  void set_annotation(
+      const std::string& key,
+      const std::string& value = {},
+      const source_range& range = {}) {
+    annotations_[key] = {range, value};
   }
 
   int last_annotation_lineno() const { return last_annotation_lineno_; }
@@ -125,9 +137,15 @@ class t_node {
  private:
   std::string doc_;
   bool has_doc_{false};
-  int lineno_{-1};
 
-  std::map<std::string, std::string> annotations_;
+  /*
+   * TODO(urielrivas): Remove this lineno_, it will no longer be needed after
+   * source_range.
+   */
+  int lineno_{-1};
+  source_range source_range_;
+
+  std::map<std::string, annotation_value> annotations_;
   // TODO(afuller): Looks like only this is only used by t_json_generator.
   // Consider removing.
   int last_annotation_lineno_{-1};
@@ -139,7 +157,7 @@ class t_node {
   int get_lineno() const { return lineno_; }
 };
 
-using t_annotation = std::map<std::string, std::string>::value_type;
+using t_annotation = std::map<std::string, annotation_value>::value_type;
 
 } // namespace compiler
 } // namespace thrift
