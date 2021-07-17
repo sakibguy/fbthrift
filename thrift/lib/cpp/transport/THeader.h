@@ -137,17 +137,15 @@ using apache::thrift::protocol::T_COMPACT_PROTOCOL;
  * your server transport is compatible (some server types require 4-byte size
  * at the start).
  */
-class THeader {
+class THeader final {
  public:
-  virtual ~THeader();
-
   enum {
     ALLOW_BIG_FRAMES = 1 << 0,
   };
 
   explicit THeader(int options = 0);
 
-  virtual void setClientType(CLIENT_TYPE ct) { this->clientType_ = ct; }
+  void setClientType(CLIENT_TYPE ct) { this->clientType_ = ct; }
   // Force using specified client type when using legacy client types
   // i.e. sniffing out client type is disabled.
   void forceClientType(bool enable) { forceClientType_ = enable; }
@@ -159,7 +157,7 @@ class THeader {
   int8_t getProtocolVersion() const;
   void setProtocolVersion(uint8_t ver) { this->protoVersion_ = ver; }
 
-  virtual void resetProtocol();
+  void resetProtocol();
 
   uint16_t getFlags() const { return flags_; }
   void setFlags(uint16_t flags) { flags_ = flags; }
@@ -227,7 +225,7 @@ class THeader {
       const char* key, size_t keyLength, const char* value, size_t valueLength);
   void setHeaders(StringToStringMap&&);
   void clearHeaders();
-  bool isWriteHeadersEmpty();
+  bool isWriteHeadersEmpty() const;
   StringToStringMap& mutableWriteHeaders();
   StringToStringMap releaseWriteHeaders();
   StringToStringMap extractAllWriteHeaders();
@@ -245,7 +243,7 @@ class THeader {
   }
   StringToStringMap* getExtraWriteHeaders() const { return extraWriteHeaders_; }
 
-  std::string getPeerIdentity();
+  std::string getPeerIdentity() const;
   void setIdentity(const std::string& identity);
 
   // accessors for seqId
@@ -305,7 +303,7 @@ class THeader {
     compressionConfig_ = compressionConfig;
   }
 
-  folly::Optional<CompressionConfig> getDesiredCompressionConfig() {
+  folly::Optional<CompressionConfig> getDesiredCompressionConfig() const {
     return compressionConfig_;
   }
 
@@ -317,7 +315,7 @@ class THeader {
 
   folly::Optional<int64_t> getServerLoad() const { return serverLoad_; }
 
-  apache::thrift::concurrency::PRIORITY getCallPriority();
+  apache::thrift::concurrency::PRIORITY getCallPriority() const;
 
   std::chrono::milliseconds getTimeoutFromHeader(
       const std::string& header) const;
@@ -368,8 +366,8 @@ class THeader {
   static const std::string kServiceTraceMeta;
   static constexpr std::string_view CLIENT_METADATA_HEADER = "client_metadata";
 
- protected:
-  bool isFramed(CLIENT_TYPE clientType);
+ private:
+  static bool isFramed(CLIENT_TYPE clientType);
 
   // Use first 64 bits to determine client protocol
   static folly::Optional<CLIENT_TYPE> analyzeFirst32bit(uint32_t w);
@@ -394,6 +392,22 @@ class THeader {
       folly::IOBufQueue* queue, size_t& needed);
   std::unique_ptr<folly::IOBuf> removeFramed(
       uint32_t sz, folly::IOBufQueue* queue);
+
+  /**
+   * Returns the maximum number of bytes that write k/v headers can take
+   */
+  size_t getMaxWriteHeadersSize(
+      const StringToStringMap& persistentWriteHeaders) const;
+
+  /**
+   * Returns whether the 1st byte of the protocol payload should be hadled
+   * as compact framed.
+   */
+  static bool compactFramed(uint32_t magic);
+
+  std::optional<std::string> extractHeader(std::string_view key);
+  StringToStringMap& ensureReadHeaders();
+  StringToStringMap& ensureWriteHeaders();
 
   // Http client parser
   std::shared_ptr<apache::thrift::util::THttpClientParser> httpClientParser_;
@@ -433,18 +447,6 @@ class THeader {
 
   std::shared_ptr<void> routingData_;
 
-  /**
-   * Returns the maximum number of bytes that write k/v headers can take
-   */
-  size_t getMaxWriteHeadersSize(
-      const StringToStringMap& persistentWriteHeaders) const;
-
-  /**
-   * Returns whether the 1st byte of the protocol payload should be hadled
-   * as compact framed.
-   */
-  static bool compactFramed(uint32_t magic);
-
   struct infoIdType {
     enum idType {
       // start at 1 to avoid confusing header padding for an infoId
@@ -458,11 +460,6 @@ class THeader {
   // CRC32C of message payload for checksum.
   folly::Optional<uint32_t> crc32c_;
   folly::Optional<int64_t> serverLoad_;
-
- private:
-  std::optional<std::string> extractHeader(std::string_view key);
-  StringToStringMap& ensureReadHeaders();
-  StringToStringMap& ensureWriteHeaders();
 };
 
 } // namespace transport

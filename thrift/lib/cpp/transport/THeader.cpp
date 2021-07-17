@@ -19,6 +19,7 @@
 #include <fmt/core.h>
 #include <folly/Conv.h>
 #include <folly/ExceptionString.h>
+#include <folly/MapUtil.h>
 #include <folly/String.h>
 #include <folly/compression/Compression.h>
 #include <folly/io/Cursor.h>
@@ -90,8 +91,6 @@ THeader::THeader(int options)
       seqId_(0),
       flags_(0),
       allowBigFrames_(options & ALLOW_BIG_FRAMES) {}
-
-THeader::~THeader() {}
 
 int8_t THeader::getProtocolVersion() const {
   return protoVersion_;
@@ -765,7 +764,7 @@ THeader::StringToStringMap& THeader::ensureWriteHeaders() {
   return *writeHeaders_;
 }
 
-bool THeader::isWriteHeadersEmpty() {
+bool THeader::isWriteHeadersEmpty() const {
   return !writeHeaders_ || writeHeaders_->empty();
 }
 
@@ -803,13 +802,14 @@ THeader::StringToStringMap THeader::releaseHeaders() {
                       : kEmptyMap();
 }
 
-string THeader::getPeerIdentity() {
+string THeader::getPeerIdentity() const {
   if (!readHeaders_) {
     return "";
   }
-  if (readHeaders_->find(IDENTITY_HEADER) != readHeaders_->end()) {
-    if ((*readHeaders_)[ID_VERSION_HEADER] == ID_VERSION) {
-      return (*readHeaders_)[IDENTITY_HEADER];
+  if (auto* id = folly::get_ptr(*readHeaders_, IDENTITY_HEADER)) {
+    if (auto* version = folly::get_ptr(*readHeaders_, ID_VERSION_HEADER);
+        version && *version == ID_VERSION) {
+      return *id;
     }
   }
   return "";
@@ -984,7 +984,7 @@ unique_ptr<IOBuf> THeader::addHeader(
   return buf;
 }
 
-apache::thrift::concurrency::PRIORITY THeader::getCallPriority() {
+apache::thrift::concurrency::PRIORITY THeader::getCallPriority() const {
   if (priority_) {
     return *priority_;
   }
