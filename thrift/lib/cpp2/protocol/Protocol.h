@@ -86,6 +86,33 @@ struct SkipNoopString {
   void clear() {}
   void reserve(size_t) {}
 };
+
+// Checks if bool hold a valid value (true or false) and throws exception
+// otherwise. Without the check we may produce undeserializable data.
+inline bool validate_bool(uint8_t value) {
+#if defined(__x86_64__) && defined(__GNUC__)
+  // An optimized version that avoid extra load/store.
+  asm volatile goto(
+      "cmpb $1, %0\n"
+      "ja %l1"
+      : // no outputs.
+      : "r"(value)
+      : "cc"
+      : invalid);
+  return value;
+invalid:
+  folly::throw_exception<std::invalid_argument>("invalid bool value");
+#else
+  // Store in a volatile variable to prevent the compiler from optimizing the
+  // check away.
+  volatile uint8_t volatileByte = value;
+  uint8_t byte = volatileByte;
+  if (byte != 0 && byte != 1) {
+    folly::throw_exception<std::invalid_argument>("invalid bool value");
+  }
+  return byte != 0;
+#endif
+}
 } // namespace detail
 
 /* forward declaration */
