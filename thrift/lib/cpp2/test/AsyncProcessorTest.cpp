@@ -24,11 +24,13 @@
 
 #include <thrift/lib/cpp2/GeneratedCodeHelper.h>
 #include <thrift/lib/cpp2/PluggableFunction.h>
+#include <thrift/lib/cpp2/async/AsyncProcessorHelper.h>
 #include <thrift/lib/cpp2/async/HTTPClientChannel.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/server/BaseThriftServer.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
+#include <thrift/lib/cpp2/server/Cpp2Worker.h>
 #include <thrift/lib/cpp2/server/MonitoringServerInterface.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/transport/http2/common/HTTP2RoutingHandler.h>
@@ -37,6 +39,8 @@
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 #include <thrift/lib/cpp2/test/gen-cpp2/Child.h>
+#include <thrift/lib/cpp2/test/gen-cpp2/DummyMonitor.h>
+#include <thrift/lib/cpp2/test/gen-cpp2/DummyStatus.h>
 #include <thrift/lib/cpp2/test/gen-cpp2/Parent.h>
 
 namespace apache::thrift::test {
@@ -312,6 +316,150 @@ TEST_P(AsyncProcessorMethodResolutionTestP, Interaction) {
   EXPECT_EQ(interaction2.semifuture_interactionMethod().get(), 2);
 }
 
+TEST_P(
+    AsyncProcessorMethodResolutionTestP,
+    MonitoringAndStatusMethodMultiplexing) {
+  class Monitor : public DummyMonitorSvIf, public MonitoringServerInterface {
+    std::int64_t getCounter() override { return 420; }
+  };
+  class Status : public DummyStatusSvIf, public StatusServerInterface {
+    void async_eb_getStatus(
+        std::unique_ptr<HandlerCallback<std::int64_t>> callback) override {
+      callback->result(360);
+    }
+  };
+  auto service = std::make_shared<ChildWithMetadata>([](auto defaultResult) {
+    MethodMetadataMap result;
+    auto& defaultMap = expectMethodMetadataMap(defaultResult);
+    result.emplace("parentMethod1", std::move(defaultMap["parentMethod1"]));
+    return result;
+  });
+  auto runner = makeServer(service, [&](ThriftServer& server) {
+    server.setStatusInterface(std::make_shared<Status>());
+    server.setMonitoringInterface(std::make_shared<Monitor>());
+  });
+
+  auto client = makeClientFor<ChildAsyncClient>(*runner);
+  auto monitoringClient = makeClientFor<DummyMonitorAsyncClient>(*runner);
+  auto statusClient = makeClientFor<DummyStatusAsyncClient>(*runner);
+
+  EXPECT_EQ(client->semifuture_parentMethod1().get(), 42);
+  // The monitoring interface should be invoked if the user interface doesn't
+  // have the method.
+  EXPECT_EQ(monitoringClient->semifuture_getCounter().get(), 420);
+  // The status interface should be invoked if the user interface doesn't
+  // have the method.
+  EXPECT_EQ(statusClient->semifuture_getStatus().get(), 360);
+  // If the method is in neither user, status, or monitoring interfaces, we
+  // expect an error.
+  EXPECT_THROW(client->semifuture_parentMethod3().get(), TApplicationException);
+}
+
+TEST_P(
+    AsyncProcessorMethodResolutionTestP,
+    MonitoringMethodMultiplexingCollision) {
+  class ChildMonitor : public Child, public MonitoringServerInterface {
+    void childMethod2(std::string& result) override {
+      result = "hello from Monitor";
+    }
+  };
+  auto runner =
+      makeServer(std::make_shared<Child>(), [&](ThriftServer& server) {
+        server.setMonitoringInterface(std::make_shared<ChildMonitor>());
+      });
+
+  auto client = makeClientFor<ChildAsyncClient>(*runner);
+
+  // The user method should take precedence
+  EXPECT_EQ(client->semifuture_childMethod2().get(), "hello");
+}
+
+TEST_P(
+    AsyncProcessorMethodResolutionTestP,
+    WildcardMethodMetadataWithMonitoringAndStatus) {
+  class Monitor : public DummyMonitorSvIf, public MonitoringServerInterface {
+    std::int64_t getCounter() override { return 420; }
+  };
+  class Status : public DummyStatusSvIf, public StatusServerInterface {
+    void async_eb_getStatus(
+        std::unique_ptr<HandlerCallback<std::int64_t>> callback) override {
+      callback->result(360);
+    }
+  };
+  class ChildWithWildcard : public ChildWithMetadata {
+   public:
+    ChildWithWildcard()
+        : ChildWithMetadata([](auto defaultResult) {
+            auto& defaultMap = expectMethodMetadataMap(defaultResult);
+            return WildcardMethodMetadataMap{std::move(defaultMap)};
+          }) {}
+    std::unique_ptr<AsyncProcessor> getProcessor() override {
+      // Instead of crashing on WildcardMethodMetadata, we send back an unknown
+      // method error.
+      class Processor : public AsyncProcessor {
+       public:
+        void processSerializedRequest(
+            ResponseChannelRequest::UniquePtr,
+            SerializedRequest&&,
+            protocol::PROTOCOL_TYPES,
+            Cpp2RequestContext*,
+            folly::EventBase*,
+            concurrency::ThreadManager*) override {
+          ADD_FAILURE() << "This overload should never be called";
+        }
+        void processSerializedCompressedRequestWithMetadata(
+            ResponseChannelRequest::UniquePtr req,
+            SerializedCompressedRequest&& serializedRequest,
+            const MethodMetadata& untypedMethodMetadata,
+            protocol::PROTOCOL_TYPES protocol,
+            Cpp2RequestContext* context,
+            folly::EventBase* eb,
+            concurrency::ThreadManager* tm) override {
+          if (AsyncProcessorHelper::isWildcardMethodMetadata(
+                  untypedMethodMetadata)) {
+            AsyncProcessorHelper::sendUnknownMethodError(
+                std::move(req), "someUnknownMethod");
+            return;
+          }
+          processor_->processSerializedCompressedRequestWithMetadata(
+              std::move(req),
+              std::move(serializedRequest),
+              untypedMethodMetadata,
+              protocol,
+              context,
+              eb,
+              tm);
+        }
+
+        explicit Processor(std::unique_ptr<AsyncProcessor> processor)
+            : processor_(std::move(processor)) {}
+
+       private:
+        std::unique_ptr<AsyncProcessor> processor_;
+      };
+
+      return std::make_unique<Processor>(ChildWithMetadata::getProcessor());
+    }
+  };
+  auto service = std::make_shared<ChildWithWildcard>();
+  auto runner = makeServer(service, [&](ThriftServer& server) {
+    server.setStatusInterface(std::make_shared<Status>());
+    server.setMonitoringInterface(std::make_shared<Monitor>());
+  });
+
+  auto client = makeClientFor<ChildAsyncClient>(*runner);
+  auto monitoringClient = makeClientFor<DummyMonitorAsyncClient>(*runner);
+  auto statusClient = makeClientFor<DummyStatusAsyncClient>(*runner);
+
+  EXPECT_EQ(client->semifuture_parentMethod1().get(), 42);
+  // The monitoring interface should not be available
+  EXPECT_THROW(
+      monitoringClient->semifuture_getCounter().get(), TApplicationException);
+  // The status interface should not be available
+  EXPECT_THROW(
+      statusClient->semifuture_getStatus().get(), TApplicationException);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     AsyncProcessorMethodResolutionTestP,
     AsyncProcessorMethodResolutionTestP,
@@ -332,7 +480,7 @@ THRIFT_PLUGGABLE_FUNC_SET(
     std::optional<rocket::ProcessorInfo> tryHandle(
         const RequestSetupMetadata& meta) override {
       if (meta.interfaceKind_ref() == InterfaceKind::MONITORING) {
-        auto processorFactory = server_.getMonitoringProcessorFactory();
+        auto processorFactory = server_.getMonitoringInterface();
         DCHECK(processorFactory);
         return rocket::ProcessorInfo{
             *processorFactory,

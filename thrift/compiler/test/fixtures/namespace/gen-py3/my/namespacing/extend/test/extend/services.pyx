@@ -37,10 +37,8 @@ from folly cimport (
   c_unit,
 )
 from thrift.py3.common cimport (
-    cThriftServiceContext as __fbthrift_cThriftServiceContext,
-    cThriftMetadata as __fbthrift_cThriftMetadata,
+    cThriftServiceMetadataResponse as __fbthrift_cThriftServiceMetadataResponse,
     ServiceMetadata,
-    extractMetadataFromServiceContext,
     MetadataBox as __MetadataBox,
 )
 
@@ -75,12 +73,18 @@ from my.namespacing.extend.test.extend.services_wrapper cimport cExtendTestServi
 
 @cython.auto_pickle(False)
 cdef class Promise_cbool:
-    cdef cFollyPromise[cbool] cPromise
+    cdef cFollyPromise[cbool]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cbool](cFollyPromise[cbool].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cbool] cPromise):
         cdef Promise_cbool inst = Promise_cbool.__new__(Promise_cbool)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 cdef object _ExtendTestService_annotations = _py_types.MappingProxyType({
@@ -114,11 +118,9 @@ cdef class ExtendTestServiceInterface(
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cExtendTestServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cExtendTestServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -174,6 +176,12 @@ async def ExtendTestService_check_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler check:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cbool> result)

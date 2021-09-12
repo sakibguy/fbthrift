@@ -18,7 +18,6 @@
 
 #include <type_traits>
 #include <utility>
-#include "thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h"
 
 #include <folly/Portability.h>
 
@@ -43,6 +42,7 @@
 #include <thrift/lib/cpp2/protocol/Traits.h>
 #include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
 #include <thrift/lib/cpp2/util/Frozen2ViewHelpers.h>
+#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 #if FOLLY_HAS_COROUTINES
 #include <folly/experimental/coro/FutureUtil.h>
@@ -410,7 +410,7 @@ template <
     typename PResult,
     typename T,
     typename ErrorMapFunc>
-folly::Try<StreamPayload> encode_stream_element(folly::Try<T>&& val);
+class StreamElementEncoderImpl;
 
 template <typename Protocol, typename PResult, typename T>
 folly::Try<T> decode_stream_element(
@@ -618,13 +618,15 @@ template <
     typename ErrorMapFunc>
 ClientSink<SinkType, FinalResponseType> createSink(
     apache::thrift::detail::ClientSinkBridge::Ptr impl) {
+  static apache::thrift::detail::ap::StreamElementEncoderImpl<
+      ProtocolWriter,
+      SinkPResult,
+      SinkType,
+      std::decay_t<ErrorMapFunc>>
+      encode;
   return ClientSink<SinkType, FinalResponseType>(
       std::move(impl),
-      apache::thrift::detail::ap::encode_stream_element<
-          ProtocolWriter,
-          SinkPResult,
-          SinkType,
-          std::decay_t<ErrorMapFunc>>,
+      &encode,
       apache::thrift::detail::ap::decode_stream_element<
           ProtocolReader,
           FinalResponsePResult,
@@ -907,12 +909,11 @@ void nonRecursiveProcess(
     concurrency::ThreadManager* tm) {
   using Metadata = ServerInterface::GeneratedMethodMetadata<Processor>;
   static_assert(std::is_final_v<Metadata>);
-  auto methodMetadata =
-      AsyncProcessorHelper::metadataOfType<Metadata>(untypedMethodMetadata);
-  DCHECK(methodMetadata != nullptr)
-      << "Received MethodMetadata of an unknown type";
+  const auto& methodMetadata =
+      AsyncProcessorHelper::expectMetadataOfType<Metadata>(
+          untypedMethodMetadata);
   auto pfn = getProcessFuncFromProtocol(
-      folly::tag<ProtocolReader>, methodMetadata->processFuncs);
+      folly::tag<ProtocolReader>, methodMetadata.processFuncs);
   (processor->*pfn)(std::move(req), std::move(serializedRequest), ctx, eb, tm);
 }
 
@@ -1101,23 +1102,27 @@ template <
     typename PResult,
     typename T,
     typename ErrorMapFunc>
-folly::Try<StreamPayload> encode_stream_element(folly::Try<T>&& val) {
-  if (val.hasValue()) {
+class StreamElementEncoderImpl final
+    : public apache::thrift::detail::StreamElementEncoder<T> {
+  folly::Try<StreamPayload> operator()(T&& val) override {
     StreamPayloadMetadata streamPayloadMetadata;
     PayloadMetadata payloadMetadata;
     payloadMetadata.responseMetadata_ref().ensure();
     streamPayloadMetadata.payloadMetadata_ref() = std::move(payloadMetadata);
     return folly::Try<StreamPayload>(
-        {encode_stream_payload<Protocol, PResult>(std::move(*val)),
+        {encode_stream_payload<Protocol, PResult>(std::move(val)),
          std::move(streamPayloadMetadata)});
-  } else if (val.hasException()) {
+  }
+
+  folly::Try<StreamPayload> operator()(folly::exception_wrapper&& e) override {
     return folly::Try<StreamPayload>(folly::exception_wrapper(
-        encode_stream_exception<Protocol, PResult, ErrorMapFunc>(
-            val.exception())));
-  } else {
+        encode_stream_exception<Protocol, PResult, ErrorMapFunc>(e)));
+  }
+
+  folly::Try<StreamPayload> operator()() override {
     return folly::Try<StreamPayload>();
   }
-}
+};
 
 template <typename Protocol, typename PResult, typename T>
 T decode_stream_payload_impl(folly::IOBuf& payload, folly::tag_t<T>) {
@@ -1242,9 +1247,8 @@ template <
 ServerStreamFactory encode_server_stream(
     apache::thrift::ServerStream<T>&& stream,
     folly::Executor::KeepAlive<> serverExecutor) {
-  return stream(
-      std::move(serverExecutor),
-      encode_stream_element<Protocol, PResult, T, ErrorMapFunc>);
+  static StreamElementEncoderImpl<Protocol, PResult, T, ErrorMapFunc> encode;
+  return stream(std::move(serverExecutor), &encode);
 }
 
 template <typename Protocol, typename PResult, typename T>
@@ -1349,11 +1353,18 @@ using Callback = HandlerCallback<T>;
 template <typename T>
 using CallbackPtr = std::unique_ptr<Callback<T>>;
 
-inline void async_tm_prep(ServerInterface* si, CallbackBase* callback) {
-  si->setEventBase(callback->getEventBase());
-  si->setThreadManager(callback->getThreadManager());
-  si->setRequestContext(callback->getRequestContext());
-}
+class AsyncTmPrep {
+  ServerInterface* si_;
+
+ public:
+  AsyncTmPrep(ServerInterface* si, CallbackBase* callback) : si_{si} {
+    si->setEventBase(callback->getEventBase());
+    si->setThreadManager(callback->getThreadManager());
+    si->setRequestContext(callback->getRequestContext());
+  }
+
+  ~AsyncTmPrep() { si_->clearRequestParams(); }
+};
 
 inline void async_tm_future_oneway(
     CallbackBasePtr callback, folly::Future<folly::Unit>&& fut) {
@@ -1476,7 +1487,7 @@ constexpr ErrorSafety fromExceptionSafety(ExceptionSafety safety) {
 }
 
 template <typename T>
-std::string serializeExceptionMeta() {
+std::string serializeExceptionMeta(const folly::exception_wrapper& ew) {
   ErrorClassification errorClassification;
 
   constexpr auto errorKind = apache::thrift::detail::st::struct_private_access::
@@ -1489,6 +1500,19 @@ std::string serializeExceptionMeta() {
       struct_private_access::__fbthrift_cpp2_gen_exception_safety<T>();
   errorClassification.safety_ref() = fromExceptionSafety(errorSafety);
 
+  ew.with_exception([&errorClassification](
+                        const ExceptionMetadataOverrideBase& ex) {
+    if (ex.errorKind() != ExceptionKind::UNSPECIFIED) {
+      errorClassification.kind_ref() = fromExceptionKind(ex.errorKind());
+    }
+    if (ex.errorBlame() != ExceptionBlame::UNSPECIFIED) {
+      errorClassification.blame_ref() = fromExceptionBlame(ex.errorBlame());
+    }
+    if (ex.errorSafety() != ExceptionSafety::UNSPECIFIED) {
+      errorClassification.safety_ref() = fromExceptionSafety(ex.errorSafety());
+    }
+  });
+
   return apache::thrift::detail::serializeErrorClassification(
       errorClassification);
 }
@@ -1499,12 +1523,13 @@ void appendExceptionToHeader(
     const folly::exception_wrapper& ew, Cpp2RequestContext& ctx);
 
 template <typename T>
-void appendErrorClassificationToHeader(Cpp2RequestContext& ctx) {
+void appendErrorClassificationToHeader(
+    const folly::exception_wrapper& ew, Cpp2RequestContext& ctx) {
   auto header = ctx.getHeader();
   if (!header) {
     return;
   }
-  auto exMeta = detail::serializeExceptionMeta<T>();
+  auto exMeta = detail::serializeExceptionMeta<T>(ew);
   header->setHeader(
       std::string(apache::thrift::detail::kHeaderExMeta), std::move(exMeta));
 }

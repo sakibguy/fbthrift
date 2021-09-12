@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-%><%#struct:fields%><%#field:type%><%^field:cpp_ref?%><%^field:lazy?%>
+%><%#struct:fields%><%#field:type%><%#field:has_deprecated_accessors?%>
 <%#type:resolves_to_base_or_enum?%>
 
 <%^type:string_or_binary?%>
@@ -39,7 +39,7 @@
   <%type:cpp_type%>& set_<%field:cpp_name%>(<%type:cpp_type%> <%field:cpp_name%>_) {
     <%field:cpp_name%> = <%field:cpp_name%>_;
 <%^field:required?%>
-    __isset.<%field:cpp_name%> = true;
+  __isset.__fbthrift_set(folly::index_constant<<%field:isset_index%>>(), true);
 <%/field:required?%>
     return <%field:cpp_name%>;
   }
@@ -70,7 +70,7 @@
   <%type:cpp_type%>& set_<%field:cpp_name%>(T_<%struct:name%>_<%field:cpp_name%>_struct_setter&& <%field:cpp_name%>_) {
     <%field:cpp_name%> = std::forward<T_<%struct:name%>_<%field:cpp_name%>_struct_setter>(<%field:cpp_name%>_);
 <%^field:required?%>
-    __isset.<%field:cpp_name%> = true;
+    __isset.__fbthrift_set(folly::index_constant<<%field:isset_index%>>(), true);
 <%/field:required?%>
     return <%field:cpp_name%>;
   }
@@ -92,9 +92,9 @@
   <%type:cpp_type%>& set_<%field:cpp_name%>(T_<%struct:name%>_<%field:cpp_name%>_struct_setter&& <%field:cpp_name%>_) {
     <%field:cpp_name%> = std::forward<T_<%struct:name%>_<%field:cpp_name%>_struct_setter>(<%field:cpp_name%>_);
 <%^field:required?%>
-    __isset.<%field:cpp_name%> = true;
+    __isset.__fbthrift_set(folly::index_constant<<%field:isset_index%>>(), true);
 <%/field:required?%>
     return <%field:cpp_name%>;
   }
 <%/type:resolves_to_container_or_struct?%>
-<%/field:lazy?%><%/field:cpp_ref?%><%/field:type%><%/struct:fields%>
+<%/field:has_deprecated_accessors?%><%/field:type%><%/struct:fields%>

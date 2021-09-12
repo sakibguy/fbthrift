@@ -374,30 +374,30 @@ Cpp2Worker::ActiveRequestsGuard Cpp2Worker::getActiveRequestsGuard() {
 
 Cpp2Worker::PerServiceMetadata::FindMethodResult
 Cpp2Worker::PerServiceMetadata::findMethod(std::string_view methodName) const {
-  static const auto& wildcardMethodMetadata =
-      *new AsyncProcessorFactory::WildcardMethodMetadata{};
+  if (const auto* map =
+          std::get_if<AsyncProcessorFactory::MethodMetadataMap>(&methods_)) {
+    if (auto* m = folly::get_ptr(*map, methodName)) {
+      DCHECK(m->get());
+      return MetadataFound{**m};
+    }
+    return MetadataNotFound{};
+  }
+  if (const auto* wildcard =
+          std::get_if<AsyncProcessorFactory::WildcardMethodMetadataMap>(
+              &methods_)) {
+    if (auto* m = folly::get_ptr(wildcard->knownMethods, methodName)) {
+      DCHECK(m->get());
+      return MetadataFound{**m};
+    }
+    return MetadataFound{AsyncProcessorFactory::kWildcardMethodMetadata};
+  }
+  if (std::holds_alternative<AsyncProcessorFactory::MetadataNotImplemented>(
+          methods_)) {
+    return MetadataNotImplemented{};
+  }
 
-  return folly::variant_match(
-      methods_,
-      [](AsyncProcessorFactory::MetadataNotImplemented) -> FindMethodResult {
-        return MetadataNotImplemented{};
-      },
-      [&](const AsyncProcessorFactory::MethodMetadataMap& map)
-          -> FindMethodResult {
-        if (auto* m = folly::get_ptr(map, methodName)) {
-          DCHECK(m->get());
-          return MetadataFound{**m};
-        }
-        return MetadataNotFound{};
-      },
-      [&](const AsyncProcessorFactory::WildcardMethodMetadataMap& wildcard)
-          -> FindMethodResult {
-        if (auto* m = folly::get_ptr(wildcard.knownMethods, methodName)) {
-          DCHECK(m->get());
-          return MetadataFound{**m};
-        }
-        return MetadataFound{wildcardMethodMetadata};
-      });
+  LOG(FATAL) << "Invalid CreateMethodMetadataResult from service";
+  folly::assume_unreachable();
 }
 
 std::shared_ptr<folly::RequestContext>
@@ -405,12 +405,11 @@ Cpp2Worker::PerServiceMetadata::getBaseContextForRequest(
     const Cpp2Worker::PerServiceMetadata::FindMethodResult& findMethodResult)
     const {
   using Result = std::shared_ptr<folly::RequestContext>;
-  return folly::variant_match(
-      findMethodResult,
-      [&](const PerServiceMetadata::MetadataFound& found) -> Result {
-        return processorFactory_.getBaseContextForRequest(found.metadata);
-      },
-      [](auto&&) -> Result { return nullptr; });
+  if (const auto* found =
+          std::get_if<PerServiceMetadata::MetadataFound>(&findMethodResult)) {
+    return processorFactory_.getBaseContextForRequest(found->metadata);
+  }
+  return nullptr;
 }
 
 } // namespace thrift

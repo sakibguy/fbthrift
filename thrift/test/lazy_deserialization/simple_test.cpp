@@ -191,8 +191,24 @@ TYPED_TEST(LazyDeserialization, Comparison) {
     auto foo2 = this->template deserialize<LazyStruct>(s);
 
     foo1.field4_ref()->clear();
-
     EXPECT_LT(foo1, foo2);
+  }
+
+  {
+    auto foo1 = this->genLazyStruct();
+    foo1.field1_ref()->clear();
+    foo1.field2_ref()->clear();
+    // Only lazy fields left set.
+
+    auto s = this->serialize(foo1);
+    auto foo2 = this->template deserialize<LazyStruct>(s);
+
+    foo2.field4_ref()->clear();
+    EXPECT_LT(foo2, foo1);
+
+    foo2 = this->template deserialize<LazyStruct>(s);
+    foo2.__clear();
+    EXPECT_LT(foo2, foo1);
   }
 }
 
@@ -384,10 +400,11 @@ TYPED_TEST(LazyDeserialization, SerializationWithSameProtocol) {
   auto foo1 = Serializer::template deserialize<LazyStruct>(
       Serializer::template serialize<std::string>(foo));
 
+  // Serialize with same protocol, lazy fields won't be deserialized
   EXPECT_FALSE(get_field1(foo).empty());
   EXPECT_FALSE(get_field2(foo).empty());
-  EXPECT_FALSE(get_field3(foo).empty());
-  EXPECT_FALSE(get_field4(foo).empty());
+  EXPECT_TRUE(get_field3(foo).empty());
+  EXPECT_TRUE(get_field4(foo).empty());
 
   EXPECT_EQ(foo1, gen<LazyStruct>());
 }

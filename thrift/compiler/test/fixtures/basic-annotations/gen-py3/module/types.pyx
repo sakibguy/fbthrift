@@ -138,7 +138,14 @@ cdef class MyStructNestedAnnotation(thrift.py3.types.Struct):
 
 
     def __hash__(MyStructNestedAnnotation self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(MyStructNestedAnnotation self):
+        return super().__repr__()
+
+    def __str__(MyStructNestedAnnotation self):
+        return super().__str__()
+
 
     def __copy__(MyStructNestedAnnotation self):
         cdef shared_ptr[cMyStructNestedAnnotation] cpp_obj = make_shared[cMyStructNestedAnnotation](
@@ -174,13 +181,13 @@ cdef class MyStructNestedAnnotation(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(MyStructNestedAnnotation self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(MyStructNestedAnnotation self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cMyStructNestedAnnotation](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(MyStructNestedAnnotation self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(MyStructNestedAnnotation self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cMyStructNestedAnnotation]()
         with nogil:
@@ -256,7 +263,14 @@ cdef class MyStruct(thrift.py3.types.Struct):
 
 
     def __hash__(MyStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(MyStruct self):
+        return super().__repr__()
+
+    def __str__(MyStruct self):
+        return super().__str__()
+
 
     def __copy__(MyStruct self):
         cdef shared_ptr[cMyStruct] cpp_obj = make_shared[cMyStruct](
@@ -292,13 +306,13 @@ cdef class MyStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 6
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(MyStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(MyStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cMyStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(MyStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(MyStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cMyStruct]()
         with nogil:
@@ -350,7 +364,14 @@ cdef class SecretStruct(thrift.py3.types.Struct):
 
 
     def __hash__(SecretStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(SecretStruct self):
+        return super().__repr__()
+
+    def __str__(SecretStruct self):
+        return super().__str__()
+
 
     def __copy__(SecretStruct self):
         cdef shared_ptr[cSecretStruct] cpp_obj = make_shared[cSecretStruct](
@@ -386,13 +407,13 @@ cdef class SecretStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 2
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(SecretStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(SecretStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cSecretStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(SecretStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(SecretStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cSecretStruct]()
         with nogil:

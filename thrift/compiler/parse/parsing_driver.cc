@@ -72,11 +72,8 @@ std::unique_ptr<t_program_bundle> parsing_driver::parse() {
     return result;
   }
 
-  YYSTYPE yylval{};
-  YYLTYPE yylloc{};
-
   parser_ = std::make_unique<yy::parser>(
-      *this, scanner->get_scanner(), &yylval, &yylloc);
+      *this, scanner->get_scanner(), &yylval_, &yylloc_);
 
   try {
     parse_file();
@@ -102,6 +99,7 @@ void parsing_driver::parse_file() {
   try {
     scanner->start(path);
     scanner->set_lineno(1);
+    reset_locations();
   } catch (std::runtime_error const& ex) {
     failure(ex.what());
   }
@@ -153,6 +151,7 @@ void parsing_driver::parse_file() {
   try {
     scanner->start(path);
     scanner->set_lineno(1);
+    reset_locations();
   } catch (std::runtime_error const& ex) {
     failure(ex.what());
   }
@@ -403,7 +402,7 @@ bool parsing_driver::require_experimental_feature(const char* feature) {
 void parsing_driver::set_annotations(
     t_node* node, std::unique_ptr<t_annotations> annotations) {
   if (annotations != nullptr) {
-    node->reset_annotations(annotations->strings, annotations->last_lineno);
+    node->reset_annotations(annotations->strings);
   }
 }
 
@@ -451,7 +450,7 @@ int parsing_driver::pop_node(LineType lineType) {
 
 source_range parsing_driver::get_source_range(const YYLTYPE& loc) {
   return source_range(
-      loc.begin.line, loc.begin.column, loc.end.line, loc.end.column, *program);
+      *program, loc.begin.line, loc.begin.column, loc.end.line, loc.end.column);
 }
 
 void parsing_driver::finish_node(
@@ -522,11 +521,15 @@ void parsing_driver::append_fields(
     t_structured& tstruct, t_field_list&& fields) {
   for (auto& field : fields) {
     if (!tstruct.try_append_field(std::move(field))) {
-      failure([&](auto& o) {
-        o << "Field identifier " << field->get_key() << " for \""
-          << field->get_name() << "\" has already been used";
-      });
-      break;
+      // Since we process root_program twice, we need to check parsing mode to
+      // avoid double reporting
+      if (mode == parsing_mode::PROGRAM ||
+          program != program_bundle->root_program()) {
+        ctx_.failure(*field, [&](auto& o) {
+          o << "Field identifier " << field->get_key() << " for \""
+            << field->get_name() << "\" has already been used.";
+        });
+      }
     }
   }
 }
@@ -588,10 +591,10 @@ t_type_ref parsing_driver::new_type_ref(
     return {};
   }
 
-  // Try to resolve the type
-  const t_type* type = scope_cache->get_type(name);
+  // Try to resolve the type.
+  const t_type* type = scope_cache->find_type(name);
   if (type == nullptr) {
-    type = scope_cache->get_type(program->name() + "." + name);
+    type = scope_cache->find_type(program->name() + "." + name);
   }
   if (type == nullptr) {
     // TODO(afuller): Remove this special case for const, which requires a
@@ -604,9 +607,9 @@ t_type_ref parsing_driver::new_type_ref(
     }
     // TODO(afuller): Why are interactions special? They should just be another
     // declared type.
-    type = scope_cache->get_interaction(name);
+    type = scope_cache->find_interaction(name);
     if (type == nullptr) {
-      type = scope_cache->get_interaction(program->name() + "." + name);
+      type = scope_cache->find_interaction(program->name() + "." + name);
     }
   }
 

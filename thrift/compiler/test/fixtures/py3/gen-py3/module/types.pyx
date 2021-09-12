@@ -208,7 +208,14 @@ cdef class SimpleException(thrift.py3.exceptions.GeneratedError):
 
 
     def __hash__(SimpleException self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(SimpleException self):
+        return super().__repr__()
+
+    def __str__(SimpleException self):
+        return super().__str__()
+
 
     def __copy__(SimpleException self):
         cdef shared_ptr[cSimpleException] cpp_obj = make_shared[cSimpleException](
@@ -290,7 +297,14 @@ cdef class OptionalRefStruct(thrift.py3.types.Struct):
 
 
     def __hash__(OptionalRefStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(OptionalRefStruct self):
+        return super().__repr__()
+
+    def __str__(OptionalRefStruct self):
+        return super().__str__()
+
 
     def __copy__(OptionalRefStruct self):
         cdef shared_ptr[cOptionalRefStruct] cpp_obj = make_shared[cOptionalRefStruct](
@@ -326,13 +340,13 @@ cdef class OptionalRefStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(OptionalRefStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(OptionalRefStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cOptionalRefStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(OptionalRefStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(OptionalRefStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cOptionalRefStruct]()
         with nogil:
@@ -414,7 +428,14 @@ cdef class SimpleStruct(thrift.py3.types.Struct):
 
 
     def __hash__(SimpleStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(SimpleStruct self):
+        return super().__repr__()
+
+    def __str__(SimpleStruct self):
+        return super().__str__()
+
 
     def __copy__(SimpleStruct self):
         cdef shared_ptr[cSimpleStruct] cpp_obj = make_shared[cSimpleStruct](
@@ -450,13 +471,13 @@ cdef class SimpleStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 7
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(SimpleStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(SimpleStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cSimpleStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(SimpleStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(SimpleStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cSimpleStruct]()
         with nogil:
@@ -556,7 +577,14 @@ cdef class ComplexStruct(thrift.py3.types.Struct):
 
 
     def __hash__(ComplexStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(ComplexStruct self):
+        return super().__repr__()
+
+    def __str__(ComplexStruct self):
+        return super().__str__()
+
 
     def __copy__(ComplexStruct self):
         cdef shared_ptr[cComplexStruct] cpp_obj = make_shared[cComplexStruct](
@@ -592,13 +620,13 @@ cdef class ComplexStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 9
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(ComplexStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(ComplexStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cComplexStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(ComplexStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(ComplexStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cComplexStruct]()
         with nogil:
@@ -640,7 +668,7 @@ cdef class BinaryUnion(thrift.py3.types.Union):
         if iobuf_val is not None:
             if any_set:
                 raise TypeError("At most one field may be set when initializing a union")
-            deref(c_inst).set_iobuf_val(deref((<_fbthrift_iobuf.IOBuf?>iobuf_val).c_clone().release())) 
+            deref(c_inst).set_iobuf_val(deref((<_fbthrift_iobuf.IOBuf?>iobuf_val)._this)) 
             any_set = True
         # in C++ you don't have to call move(), but this doesn't translate
         # into a C++ return statement, so you do here
@@ -700,13 +728,13 @@ cdef class BinaryUnion(thrift.py3.types.Union):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(BinaryUnion self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(BinaryUnion self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cBinaryUnion](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(BinaryUnion self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(BinaryUnion self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cBinaryUnion]()
         with nogil:
@@ -756,7 +784,14 @@ cdef class BinaryUnionStruct(thrift.py3.types.Struct):
 
 
     def __hash__(BinaryUnionStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(BinaryUnionStruct self):
+        return super().__repr__()
+
+    def __str__(BinaryUnionStruct self):
+        return super().__str__()
+
 
     def __copy__(BinaryUnionStruct self):
         cdef shared_ptr[cBinaryUnionStruct] cpp_obj = make_shared[cBinaryUnionStruct](
@@ -787,13 +822,13 @@ cdef class BinaryUnionStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(BinaryUnionStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(BinaryUnionStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cBinaryUnionStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(BinaryUnionStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(BinaryUnionStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cBinaryUnionStruct]()
         with nogil:

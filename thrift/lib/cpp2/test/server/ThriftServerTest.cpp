@@ -16,6 +16,7 @@
 
 #include <chrono>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -35,6 +36,7 @@
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/executors/GlobalExecutor.h>
 #include <folly/executors/MeteredExecutor.h>
+#include <folly/experimental/coro/Baton.h>
 #include <folly/experimental/coro/Sleep.h>
 #include <folly/experimental/observer/SimpleObservable.h>
 #include <folly/io/GlobalShutdownSocketSet.h>
@@ -62,7 +64,9 @@
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersClientExtension.h>
 #include <thrift/lib/cpp2/server/Cpp2Connection.h>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
+#include <thrift/lib/cpp2/server/StatusServerInterface.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
+#include <thrift/lib/cpp2/test/gen-cpp2/DummyStatus.h>
 #include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
 #include <thrift/lib/cpp2/test/util/TestHeaderClientChannelFactory.h>
 #include <thrift/lib/cpp2/test/util/TestInterface.h>
@@ -867,10 +871,19 @@ THRIFT_PLUGGABLE_FUNC_SET(
 TEST(ThriftServerDeathTest, LongShutdown_DumpSnapshot) {
   EXPECT_EXIT(
       ({
+        THRIFT_FLAG_SET_MOCK(dump_snapshot_on_long_shutdown, true);
         folly::Baton<> ready;
         ScopedServerInterfaceThread runner(
             std::make_shared<long_shutdown::BlockingTestInterface>(ready),
-            [](ThriftServer& server) { server.setWorkersJoinTimeout(1s); });
+            [](ThriftServer& server) {
+              server.setWorkersJoinTimeout(1s);
+              // We need at least 2 cpu threads for the test
+              auto tm = ThreadManager::newSimpleThreadManager(2);
+              tm->threadFactory(std::make_shared<PosixThreadFactory>(
+                  PosixThreadFactory::ATTACHED));
+              tm->start();
+              server.setThreadManager(tm);
+            });
 
         long_shutdown::requestedDumpSnapshotDelay = 1s;
         long_shutdown::actualDumpSnapshotDelay = 0ms;
@@ -886,10 +899,19 @@ TEST(ThriftServerDeathTest, LongShutdown_DumpSnapshot) {
 TEST(ThriftServerDeathTest, LongShutdown_DumpSnapshotTimeout) {
   EXPECT_DEATH(
       ({
+        THRIFT_FLAG_SET_MOCK(dump_snapshot_on_long_shutdown, true);
         folly::Baton<> ready;
         ScopedServerInterfaceThread runner(
             std::make_shared<long_shutdown::BlockingTestInterface>(ready),
-            [](ThriftServer& server) { server.setWorkersJoinTimeout(1s); });
+            [](ThriftServer& server) {
+              server.setWorkersJoinTimeout(1s);
+              // We need at least 2 cpu threads for the test
+              auto tm = ThreadManager::newSimpleThreadManager(2);
+              tm->threadFactory(std::make_shared<PosixThreadFactory>(
+                  PosixThreadFactory::ATTACHED));
+              tm->start();
+              server.setThreadManager(tm);
+            });
 
         long_shutdown::requestedDumpSnapshotDelay = 500ms;
         long_shutdown::actualDumpSnapshotDelay = 60s;
@@ -899,6 +921,22 @@ TEST(ThriftServerDeathTest, LongShutdown_DumpSnapshotTimeout) {
         ready.wait();
       }),
       "Could not drain active requests within allotted deadline");
+}
+
+TEST(ThriftServerDeathTest, OnStopServingException) {
+  class ThrowExceptionInterface : public TestServiceSvIf {
+   public:
+    folly::coro::Task<void> co_onStopServing() override {
+      throw std::runtime_error("onStopServing");
+    }
+  };
+
+  EXPECT_DEATH(
+      ({
+        ScopedServerInterfaceThread runner(
+            std::make_shared<ThrowExceptionInterface>());
+      }),
+      "onStopServing");
 }
 
 namespace {
@@ -1005,6 +1043,43 @@ TEST_P(HeaderOrRocket, OnewayClientConnectionCloseTest) {
   }
   bool posted = baton.try_wait_for(1s);
   EXPECT_TRUE(posted);
+}
+
+TEST_P(HeaderOrRocket, RequestParamsNullCheck) {
+  class TestInterfaceSF : public TestServiceSvIf {
+    folly::SemiFuture<folly::Unit> semifuture_voidResponse() override {
+      EXPECT_NE(getRequestContext(), nullptr);
+      EXPECT_NE(getThreadManager(), nullptr);
+      EXPECT_NE(getEventBase(), nullptr);
+      return folly::makeSemiFuture().deferValue([this](folly::Unit) {
+        EXPECT_EQ(getRequestContext(), nullptr);
+        EXPECT_EQ(getThreadManager(), nullptr);
+        EXPECT_EQ(getEventBase(), nullptr);
+      });
+    }
+  };
+
+  class TestInterfaceCoro : public TestServiceSvIf {
+    folly::coro::Task<void> co_voidResponse() override {
+      EXPECT_NE(getRequestContext(), nullptr);
+      EXPECT_NE(getThreadManager(), nullptr);
+      EXPECT_NE(getEventBase(), nullptr);
+      co_await folly::coro::co_reschedule_on_current_executor;
+      EXPECT_EQ(getRequestContext(), nullptr);
+      EXPECT_EQ(getThreadManager(), nullptr);
+      EXPECT_EQ(getEventBase(), nullptr);
+    }
+  };
+  {
+    ScopedServerInterfaceThread runner(std::make_shared<TestInterfaceSF>());
+    auto client = makeClient(runner, nullptr);
+    client->semifuture_voidResponse().get();
+  }
+  {
+    ScopedServerInterfaceThread runner(std::make_shared<TestInterfaceCoro>());
+    auto client = makeClient(runner, nullptr);
+    client->semifuture_voidResponse().get();
+  }
 }
 
 TEST_P(HeaderOrRocket, OnewayQueueTimeTest) {
@@ -1443,29 +1518,59 @@ TEST_P(HeaderOrRocket, CancellationTest) {
 TEST_P(HeaderOrRocket, QueueTimeoutOnServerShutdown) {
   class BlockInterface : public TestServiceSvIf {
    public:
-    folly::Baton<> started, resume;
-    bool once{true};
+    folly::Baton<> stopEnter, stopExit;
+
+    int count = 0;
     void voidResponse() override {
-      if (once) {
-        once = false;
-        started.post();
-        EXPECT_TRUE(resume.try_wait_for(2s));
+      if (count == 1) {
         // Wait for the server to start shutdown
         auto worker = getRequestContext()->getConnectionContext()->getWorker();
-        while (!worker->isStopping()) {
+        auto deadline = std::chrono::steady_clock::now() + 2s;
+        while (!worker->isStopping() &&
+               std::chrono::steady_clock::now() < deadline) {
           std::this_thread::yield();
         }
+        EXPECT_TRUE(worker->isStopping());
       }
+      count++;
+    }
+
+    folly::coro::Task<void> co_onStopServing() override {
+      stopEnter.post();
+      stopExit.wait();
+      co_return;
     }
   };
 
   auto blockIf = std::make_shared<BlockInterface>();
   auto runner = std::make_unique<ScopedServerInterfaceThread>(blockIf);
-  auto client = makeClient(*runner.get(), folly::getEventBase());
 
+  auto client = runner->newStickyClient<TestServiceAsyncClient>(
+      folly::getGlobalIOExecutor()->getEventBase(),
+      [&](auto socket) mutable { return makeChannel(std::move(socket)); });
+
+  // Send a request to establish a connection before stopping server
+  client->semifuture_voidResponse().get();
+
+  auto& server = runner->getThriftServer();
+
+  server.stop();
+
+  // We need to send requests after onStopServing() has started executing as our
+  // request will block the threadmanager
+  EXPECT_TRUE(blockIf->stopEnter.try_wait_for(2s));
+
+  // In this test, we send 2 requests, so that one request starts executing when
+  // onStopServing completes and the other request gets cancelled.
   auto first = client->semifuture_voidResponse();
-  // Wait for the first request to start processing
-  blockIf->started.wait();
+
+  // Wait for the first request to reach the server
+  auto deadline = std::chrono::steady_clock::now() + 2s;
+  while (server.getActiveRequests() < 1 &&
+         std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::yield();
+  }
+  EXPECT_EQ(server.getActiveRequests(), 1);
 
   // Send second request
   folly::fibers::Baton baton;
@@ -1473,16 +1578,22 @@ TEST_P(HeaderOrRocket, QueueTimeoutOnServerShutdown) {
   folly::exception_wrapper ew;
   client->voidResponse(ServerErrorCallback::create(baton, th, ew));
 
-  // Wait for the second connection to reach the server
-  while (runner->getThriftServer().getActiveRequests() < 2) {
+  // Wait for the second request to reach the server
+  deadline = std::chrono::steady_clock::now() + 2s;
+  while (server.getActiveRequests() < 2 &&
+         std::chrono::steady_clock::now() < deadline) {
     std::this_thread::yield();
   }
-  blockIf->resume.post();
-  // Initiate server shutdown
-  runner.reset();
+  EXPECT_EQ(server.getActiveRequests(), 2);
+
+  // Resume onStopServing()
+  blockIf->stopExit.post();
+
+  // First request should complete normally
   std::move(first).get();
 
-  baton.wait();
+  // Second request should have been cancelled.
+  EXPECT_TRUE(baton.try_wait_for(2s));
   ASSERT_TRUE(ew.with_exception([](const TApplicationException& tae) {
     EXPECT_EQ(TApplicationException::TIMEOUT, tae.getType());
   }));
@@ -2851,8 +2962,10 @@ TEST_P(HeaderOrRocket, AdaptiveConcurrencyConfig) {
 TEST_P(HeaderOrRocket, OnStartStopServingTest) {
   class TestInterface : public TestServiceSvIf {
    public:
-    folly::Baton<> startEnter, startExit;
-    folly::Baton<> stopEnter, stopExit;
+    folly::Baton<> startEnter;
+    folly::Baton<> stopEnter;
+    folly::Baton<> backgroundEnter;
+    folly::coro::Baton startExit, stopExit, backgroundExit;
 
     void voidResponse() override {}
 
@@ -2860,18 +2973,31 @@ TEST_P(HeaderOrRocket, OnStartStopServingTest) {
       result = std::move(*req);
     }
 
-    folly::SemiFuture<folly::Unit> semifuture_onStartServing() override {
-      return folly::makeSemiFuture().deferValue([this](folly::Unit) {
-        startEnter.post();
-        startExit.wait();
-      });
+    folly::coro::Task<void> co_onStartServing() override {
+      startEnter.post();
+      co_await getAsyncScope()->co_schedule(co_backgroundTask());
+      co_await startExit;
+      co_return;
     }
 
-    folly::SemiFuture<folly::Unit> semifuture_onStopServing() override {
-      return folly::makeSemiFuture().deferValue([this](folly::Unit) {
-        stopEnter.post();
-        stopExit.wait();
-      });
+    folly::coro::Task<void> co_backgroundTask() {
+      backgroundEnter.post();
+      co_await backgroundExit;
+      // Wait for cancellation
+      const folly::CancellationToken& ct =
+          co_await folly::coro::co_current_cancellation_token;
+      for (size_t retry = 0; retry < 20 && !ct.isCancellationRequested();
+           retry++) {
+        co_await folly::coro::sleepReturnEarlyOnCancel(100ms);
+      }
+      EXPECT_TRUE(ct.isCancellationRequested());
+      co_return;
+    }
+
+    folly::coro::Task<void> co_onStopServing() override {
+      stopEnter.post();
+      co_await stopExit;
+      co_return;
     }
   };
 
@@ -2913,13 +3039,16 @@ TEST_P(HeaderOrRocket, OnStartStopServingTest) {
 
   // Wait for preStart callback
   EXPECT_TRUE(preStartHandler->preStartEnter.try_wait_for(2s));
+  // Provide a single IO thread for the client so that only one connection is
+  // created. While the server is stopping, we may not be able to create a new
+  // connection (which PooledRequestChannel will do given many IO threads)
+  auto clientEvbThread = std::make_shared<folly::ScopedEventBaseThread>();
   TestServiceAsyncClient client(
       apache::thrift::PooledRequestChannel::newSyncChannel(
-          folly::getUnsafeMutableGlobalIOExecutor(),
+          clientEvbThread,
           [address = preStartHandler->address,
            this](folly::EventBase& eb) mutable {
-            return makeChannel(folly::AsyncSocket::UniquePtr(
-                new folly::AsyncSocket(&eb, address)));
+            return makeChannel(folly::AsyncSocket::newSocket(&eb, address));
           }));
 
   client.semifuture_voidResponse().get();
@@ -2959,29 +3088,10 @@ TEST_P(HeaderOrRocket, OnStartStopServingTest) {
   client.semifuture_voidResponse().get();
   EXPECT_EQ("echo", client.semifuture_echoRequest("echo").get());
 
-  folly::Baton<> backgroundEnter, backgroundExit;
-
-  auto backgroundTask = [&]() -> folly::coro::Task<void> {
-    backgroundEnter.post();
-    EXPECT_TRUE(backgroundExit.try_wait_for(2s));
-    // Wait for cancellation
-    const folly::CancellationToken& ct =
-        co_await folly::coro::co_current_cancellation_token;
-    for (size_t retry = 0; retry < 20 && !ct.isCancellationRequested();
-         retry++) {
-      co_await folly::coro::sleepReturnEarlyOnCancel(100ms);
-    }
-    EXPECT_TRUE(ct.isCancellationRequested());
-    co_return;
-  };
-
-  auto& server = dynamic_cast<ThriftServer&>(runner->getThriftServer());
-  server.getAsyncScope().add(
-      backgroundTask().scheduleOn(server.getThreadManager().get()));
   // Wait for backgroundTask to start
-  EXPECT_TRUE(backgroundEnter.try_wait_for(2s));
+  EXPECT_TRUE(testIf->backgroundEnter.try_wait_for(2s));
   client.semifuture_voidResponse().get();
-  backgroundExit.post();
+  testIf->backgroundExit.post();
 
   // Stop the server on a different thread
   folly::getGlobalIOExecutor()->getEventBase()->runInEventBaseThread(
@@ -2991,6 +3101,93 @@ TEST_P(HeaderOrRocket, OnStartStopServingTest) {
   EXPECT_TRUE(testIf->stopEnter.try_wait_for(2s));
   client.semifuture_voidResponse().get();
   testIf->stopExit.post();
+}
+
+TEST_P(HeaderOrRocket, StatusOnStartingAndStopping) {
+  // Grab the address after the server starts listening but has not "started"
+  // processing user requests.
+  class TestEventHandler : public server::TServerEventHandler {
+   public:
+    void preStart(const folly::SocketAddress* address) override {
+      this->address = *address;
+      preStartDone.post();
+    }
+    folly::Baton<> preStartDone;
+    folly::SocketAddress address;
+  };
+  auto preStartHandler = std::make_shared<TestEventHandler>();
+
+  // Block on onStartServing and onStopServing to allow testing
+  class Handler : public TestServiceSvIf {
+   public:
+    folly::SemiFuture<folly::Unit> semifuture_onStartServing() override {
+      return folly::makeSemiFuture().deferValue([&](auto&&) {
+        EXPECT_TRUE(starting.try_wait_for(2s));
+        return folly::unit;
+      });
+    }
+
+    folly::SemiFuture<folly::Unit> semifuture_onStopServing() override {
+      onStopServingCalled.post();
+      return folly::makeSemiFuture().deferValue([&](auto&&) {
+        EXPECT_TRUE(stopping.try_wait_for(2s));
+        return folly::unit;
+      });
+    }
+
+    folly::Baton<> starting;
+    folly::Baton<> stopping;
+    folly::Baton<> onStopServingCalled;
+  };
+  auto handler = std::make_shared<Handler>();
+
+  class DummyStatus : public DummyStatusSvIf, public StatusServerInterface {
+    void async_eb_getStatus(
+        std::unique_ptr<HandlerCallback<std::int64_t>> callback) override {
+      ThriftServer* server = callback->getRequestContext()
+                                 ->getConnectionContext()
+                                 ->getWorker()
+                                 ->getServer();
+      callback->result(static_cast<std::int64_t>(server->getServerStatus()));
+    }
+  };
+
+  std::unique_ptr<ScopedServerInterfaceThread> runner;
+  // Start server in another thread because ScopedServerInterfaceThread blocks
+  // until the server has started.
+  std::thread startRunnerThread([&] {
+    runner = std::make_unique<ScopedServerInterfaceThread>(
+        handler, [&](ThriftServer& server) {
+          server.setStatusInterface(std::make_shared<DummyStatus>());
+          server.addServerEventHandler(preStartHandler);
+        });
+  });
+  // Wait for address to be available
+  preStartHandler->preStartDone.wait();
+
+  auto clientEvbThread = std::make_shared<folly::ScopedEventBaseThread>();
+  DummyStatusAsyncClient client(PooledRequestChannel::newSyncChannel(
+      clientEvbThread,
+      [address = preStartHandler->address, this](folly::EventBase& eb) mutable {
+        return makeChannel(folly::AsyncSocket::newSocket(&eb, address));
+      }));
+
+  EXPECT_EQ(
+      client.semifuture_getStatus().get(),
+      static_cast<std::int64_t>(ThriftServer::ServerStatus::STARTING));
+
+  handler->starting.post();
+  startRunnerThread.join();
+  EXPECT_EQ(
+      client.semifuture_getStatus().get(),
+      static_cast<std::int64_t>(ThriftServer::ServerStatus::RUNNING));
+
+  runner->getThriftServer().stop();
+  EXPECT_TRUE(handler->onStopServingCalled.try_wait_for(2s));
+  EXPECT_EQ(
+      client.semifuture_getStatus().get(),
+      static_cast<std::int64_t>(ThriftServer::ServerStatus::STOPPING));
+  handler->stopping.post();
 }
 
 namespace {

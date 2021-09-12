@@ -37,10 +37,8 @@ from folly cimport (
   c_unit,
 )
 from thrift.py3.common cimport (
-    cThriftServiceContext as __fbthrift_cThriftServiceContext,
-    cThriftMetadata as __fbthrift_cThriftMetadata,
+    cThriftServiceMetadataResponse as __fbthrift_cThriftServiceMetadataResponse,
     ServiceMetadata,
-    extractMetadataFromServiceContext,
     MetadataBox as __MetadataBox,
 )
 
@@ -71,12 +69,18 @@ from module.services_wrapper cimport cServiceInterface
 
 @cython.auto_pickle(False)
 cdef class Promise_cint32_t:
-    cdef cFollyPromise[cint32_t] cPromise
+    cdef cFollyPromise[cint32_t]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cint32_t](cFollyPromise[cint32_t].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cint32_t] cPromise):
         cdef Promise_cint32_t inst = Promise_cint32_t.__new__(Promise_cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 cdef object _Service_annotations = _py_types.MappingProxyType({
@@ -111,11 +115,9 @@ cdef class ServiceInterface(
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -177,6 +179,12 @@ async def Service_func_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler func:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)

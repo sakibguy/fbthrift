@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-namespace cpp2 apache.thrift.test
+namespace cpp2 apache.thrift.test.basic
 
+include "thrift/annotation/cpp.thrift"
 cpp_include "thrift/test/AdapterTest.h"
 
 typedef i64 DurationMs (
@@ -30,6 +31,10 @@ typedef binary (
 struct AdaptTestStruct {
   1: DurationMs delay;
   2: CustomProtocolType custom;
+
+
+  @cpp.ExperimentalAdapter{name = "::apache::thrift::test::AdaptTestMsAdapter"}
+  3: i64 timeout;
 }
 
 union AdaptTestUnion {

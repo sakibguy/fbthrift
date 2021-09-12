@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <array>
+#include <vector>
 
 #include <folly/Indestructible.h>
 #include <thrift/lib/thrift/gen-cpp2/metadata_types.h>
@@ -28,7 +28,11 @@ namespace md {
 
 using ThriftMetadata = ::apache::thrift::metadata::ThriftMetadata;
 using ThriftServiceContext = ::apache::thrift::metadata::ThriftServiceContext;
+using ThriftServiceContextRef =
+    ::apache::thrift::metadata::ThriftServiceContextRef;
 using ThriftService = ::apache::thrift::metadata::ThriftService;
+using ThriftServiceMetadataResponse =
+    ::apache::thrift::metadata::ThriftServiceMetadataResponse;
 
 class EmptyMetadata {
  protected:
@@ -37,7 +41,11 @@ class EmptyMetadata {
 
 class EmptyServiceMetadata {
  protected:
-  FOLLY_ERASE static void gen(ThriftMetadata&, ThriftServiceContext&) {}
+  FOLLY_ERASE static void gen(ThriftServiceMetadataResponse&) {}
+  FOLLY_ERASE static const ThriftServiceContextRef* genRecurse(
+      ThriftMetadata&, std::vector<ThriftServiceContextRef>&) {
+    return nullptr;
+  }
 };
 
 template <typename T>
@@ -60,6 +68,9 @@ class ServiceMetadata {
   static_assert(!sizeof(T), "invalid use of base template");
 };
 
+} // namespace md
+} // namespace detail
+
 /**
  * Get ThriftMetadata of given thrift structure. If no_metadata option is
  * enabled, return empty data.
@@ -69,15 +80,13 @@ class ServiceMetadata {
  * @return ThriftStruct (https://git.io/JJQpW)
  */
 template <class T>
-const auto& get_struct_metadata() {
-  static const folly::Indestructible<metadata::ThriftStruct> data =
-      StructMetadata<T>::gen(std::array<ThriftMetadata, 1>()[0]);
+const metadata::ThriftStruct& get_struct_metadata() {
+  static const folly::Indestructible<metadata::ThriftStruct> data = [] {
+    detail::md::ThriftMetadata meta;
+    return detail::md::StructMetadata<T>::gen(meta);
+  }();
   return *data;
 }
 
-} // namespace md
-} // namespace detail
-
-using detail::md::get_struct_metadata;
 } // namespace thrift
 } // namespace apache

@@ -37,10 +37,8 @@ from folly cimport (
   c_unit,
 )
 from thrift.py3.common cimport (
-    cThriftServiceContext as __fbthrift_cThriftServiceContext,
-    cThriftMetadata as __fbthrift_cThriftMetadata,
+    cThriftServiceMetadataResponse as __fbthrift_cThriftServiceMetadataResponse,
     ServiceMetadata,
-    extractMetadataFromServiceContext,
     MetadataBox as __MetadataBox,
 )
 
@@ -73,212 +71,338 @@ from module.services_wrapper cimport cRederivedServiceInterface
 
 @cython.auto_pickle(False)
 cdef class Promise__module_types_cAnEnum:
-    cdef cFollyPromise[_module_types.cAnEnum] cPromise
+    cdef cFollyPromise[_module_types.cAnEnum]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[_module_types.cAnEnum](cFollyPromise[_module_types.cAnEnum].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[_module_types.cAnEnum] cPromise):
         cdef Promise__module_types_cAnEnum inst = Promise__module_types_cAnEnum.__new__(Promise__module_types_cAnEnum)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise__module_types_cBinaryUnionStruct:
-    cdef cFollyPromise[unique_ptr[_module_types.cBinaryUnionStruct]] cPromise
+    cdef cFollyPromise[unique_ptr[_module_types.cBinaryUnionStruct]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[_module_types.cBinaryUnionStruct]](cFollyPromise[unique_ptr[_module_types.cBinaryUnionStruct]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[_module_types.cBinaryUnionStruct]] cPromise):
         cdef Promise__module_types_cBinaryUnionStruct inst = Promise__module_types_cBinaryUnionStruct.__new__(Promise__module_types_cBinaryUnionStruct)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_vector___module_types_cAnEnum:
-    cdef cFollyPromise[unique_ptr[vector[_module_types.cAnEnum]]] cPromise
+    cdef cFollyPromise[unique_ptr[vector[_module_types.cAnEnum]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[vector[_module_types.cAnEnum]]](cFollyPromise[unique_ptr[vector[_module_types.cAnEnum]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[vector[_module_types.cAnEnum]]] cPromise):
         cdef Promise_vector___module_types_cAnEnum inst = Promise_vector___module_types_cAnEnum.__new__(Promise_vector___module_types_cAnEnum)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_vector__vector__cint32_t:
-    cdef cFollyPromise[unique_ptr[vector[vector[cint32_t]]]] cPromise
+    cdef cFollyPromise[unique_ptr[vector[vector[cint32_t]]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[vector[vector[cint32_t]]]](cFollyPromise[unique_ptr[vector[vector[cint32_t]]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[vector[vector[cint32_t]]]] cPromise):
         cdef Promise_vector__vector__cint32_t inst = Promise_vector__vector__cint32_t.__new__(Promise_vector__vector__cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_vector__cset__string:
-    cdef cFollyPromise[unique_ptr[vector[cset[string]]]] cPromise
+    cdef cFollyPromise[unique_ptr[vector[cset[string]]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[vector[cset[string]]]](cFollyPromise[unique_ptr[vector[cset[string]]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[vector[cset[string]]]] cPromise):
         cdef Promise_vector__cset__string inst = Promise_vector__cset__string.__new__(Promise_vector__cset__string)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_vector__cint32_t:
-    cdef cFollyPromise[unique_ptr[vector[cint32_t]]] cPromise
+    cdef cFollyPromise[unique_ptr[vector[cint32_t]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[vector[cint32_t]]](cFollyPromise[unique_ptr[vector[cint32_t]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[vector[cint32_t]]] cPromise):
         cdef Promise_vector__cint32_t inst = Promise_vector__cint32_t.__new__(Promise_vector__cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cmap__string_cmap__string_cint32_t:
-    cdef cFollyPromise[unique_ptr[cmap[string,cmap[string,cint32_t]]]] cPromise
+    cdef cFollyPromise[unique_ptr[cmap[string,cmap[string,cint32_t]]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[cmap[string,cmap[string,cint32_t]]]](cFollyPromise[unique_ptr[cmap[string,cmap[string,cint32_t]]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[cmap[string,cmap[string,cint32_t]]]] cPromise):
         cdef Promise_cmap__string_cmap__string_cint32_t inst = Promise_cmap__string_cmap__string_cint32_t.__new__(Promise_cmap__string_cmap__string_cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cmap__string_cint16_t:
-    cdef cFollyPromise[unique_ptr[cmap[string,cint16_t]]] cPromise
+    cdef cFollyPromise[unique_ptr[cmap[string,cint16_t]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[cmap[string,cint16_t]]](cFollyPromise[unique_ptr[cmap[string,cint16_t]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[cmap[string,cint16_t]]] cPromise):
         cdef Promise_cmap__string_cint16_t inst = Promise_cmap__string_cint16_t.__new__(Promise_cmap__string_cint16_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cset__binary:
-    cdef cFollyPromise[unique_ptr[cset[string]]] cPromise
+    cdef cFollyPromise[unique_ptr[cset[string]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[cset[string]]](cFollyPromise[unique_ptr[cset[string]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[cset[string]]] cPromise):
         cdef Promise_cset__binary inst = Promise_cset__binary.__new__(Promise_cset__binary)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cset__cint32_t:
-    cdef cFollyPromise[unique_ptr[cset[cint32_t]]] cPromise
+    cdef cFollyPromise[unique_ptr[cset[cint32_t]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[cset[cint32_t]]](cFollyPromise[unique_ptr[cset[cint32_t]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[cset[cint32_t]]] cPromise):
         cdef Promise_cset__cint32_t inst = Promise_cset__cint32_t.__new__(Promise_cset__cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cset__string:
-    cdef cFollyPromise[unique_ptr[cset[string]]] cPromise
+    cdef cFollyPromise[unique_ptr[cset[string]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[cset[string]]](cFollyPromise[unique_ptr[cset[string]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[cset[string]]] cPromise):
         cdef Promise_cset__string inst = Promise_cset__string.__new__(Promise_cset__string)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise__module_types_cSimpleStruct:
-    cdef cFollyPromise[unique_ptr[_module_types.cSimpleStruct]] cPromise
+    cdef cFollyPromise[unique_ptr[_module_types.cSimpleStruct]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[_module_types.cSimpleStruct]](cFollyPromise[unique_ptr[_module_types.cSimpleStruct]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[_module_types.cSimpleStruct]] cPromise):
         cdef Promise__module_types_cSimpleStruct inst = Promise__module_types_cSimpleStruct.__new__(Promise__module_types_cSimpleStruct)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_binary:
-    cdef cFollyPromise[unique_ptr[string]] cPromise
+    cdef cFollyPromise[unique_ptr[string]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[string]](cFollyPromise[unique_ptr[string]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[string]] cPromise):
         cdef Promise_binary inst = Promise_binary.__new__(Promise_binary)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cbool:
-    cdef cFollyPromise[cbool] cPromise
+    cdef cFollyPromise[cbool]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cbool](cFollyPromise[cbool].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cbool] cPromise):
         cdef Promise_cbool inst = Promise_cbool.__new__(Promise_cbool)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cint8_t:
-    cdef cFollyPromise[cint8_t] cPromise
+    cdef cFollyPromise[cint8_t]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cint8_t](cFollyPromise[cint8_t].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cint8_t] cPromise):
         cdef Promise_cint8_t inst = Promise_cint8_t.__new__(Promise_cint8_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_double:
-    cdef cFollyPromise[double] cPromise
+    cdef cFollyPromise[double]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[double](cFollyPromise[double].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[double] cPromise):
         cdef Promise_double inst = Promise_double.__new__(Promise_double)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cint16_t:
-    cdef cFollyPromise[cint16_t] cPromise
+    cdef cFollyPromise[cint16_t]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cint16_t](cFollyPromise[cint16_t].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cint16_t] cPromise):
         cdef Promise_cint16_t inst = Promise_cint16_t.__new__(Promise_cint16_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cint32_t:
-    cdef cFollyPromise[cint32_t] cPromise
+    cdef cFollyPromise[cint32_t]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cint32_t](cFollyPromise[cint32_t].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cint32_t] cPromise):
         cdef Promise_cint32_t inst = Promise_cint32_t.__new__(Promise_cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cint64_t:
-    cdef cFollyPromise[cint64_t] cPromise
+    cdef cFollyPromise[cint64_t]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cint64_t](cFollyPromise[cint64_t].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cint64_t] cPromise):
         cdef Promise_cint64_t inst = Promise_cint64_t.__new__(Promise_cint64_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_string:
-    cdef cFollyPromise[unique_ptr[string]] cPromise
+    cdef cFollyPromise[unique_ptr[string]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[string]](cFollyPromise[unique_ptr[string]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[string]] cPromise):
         cdef Promise_string inst = Promise_string.__new__(Promise_string)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cFollyUnit:
-    cdef cFollyPromise[cFollyUnit] cPromise
+    cdef cFollyPromise[cFollyUnit]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cFollyUnit](cFollyPromise[cFollyUnit].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cFollyUnit] cPromise):
         cdef Promise_cFollyUnit inst = Promise_cFollyUnit.__new__(Promise_cFollyUnit)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 cdef object _SimpleService_annotations = _py_types.MappingProxyType({
@@ -671,11 +795,9 @@ cdef class SimpleServiceInterface(
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cSimpleServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cSimpleServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -712,11 +834,9 @@ SimpleServiceInterface
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cDerivedServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cDerivedServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -752,11 +872,9 @@ DerivedServiceInterface
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cRederivedServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cRederivedServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -806,6 +924,12 @@ async def SimpleService_get_five_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_five:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
@@ -859,6 +983,12 @@ async def SimpleService_add_five_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler add_five:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
 
@@ -904,6 +1034,12 @@ async def SimpleService_do_nothing_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler do_nothing:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(c_unit)
@@ -963,6 +1099,12 @@ async def SimpleService_concat_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler concat:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[string](<string?> result.encode('UTF-8')))
 
@@ -1014,6 +1156,12 @@ async def SimpleService_get_value_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_value:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
@@ -1067,6 +1215,12 @@ async def SimpleService_negate_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler negate:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cbool> result)
 
@@ -1118,6 +1272,12 @@ async def SimpleService_tiny_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler tiny:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint8_t> result)
@@ -1171,6 +1331,12 @@ async def SimpleService_small_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler small:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint16_t> result)
 
@@ -1222,6 +1388,12 @@ async def SimpleService_big_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler big:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint64_t> result)
@@ -1275,6 +1447,12 @@ async def SimpleService_two_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler two:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<double> result)
 
@@ -1323,6 +1501,12 @@ async def SimpleService_expected_exception_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler expected_exception:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(c_unit)
 
@@ -1368,6 +1552,12 @@ async def SimpleService_unexpected_exception_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler unexpected_exception:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
@@ -1421,6 +1611,12 @@ async def SimpleService_sum_i16_list_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler sum_i16_list:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
 
@@ -1472,6 +1668,12 @@ async def SimpleService_sum_i32_list_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler sum_i32_list:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
@@ -1525,6 +1727,12 @@ async def SimpleService_sum_i64_list_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler sum_i64_list:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
 
@@ -1576,6 +1784,12 @@ async def SimpleService_concat_many_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler concat_many:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[string](<string?> result.encode('UTF-8')))
@@ -1629,6 +1843,12 @@ async def SimpleService_count_structs_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler count_structs:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
 
@@ -1680,6 +1900,12 @@ async def SimpleService_sum_set_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler sum_set:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
@@ -1739,6 +1965,12 @@ async def SimpleService_contains_word_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler contains_word:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cbool> result)
 
@@ -1797,6 +2029,12 @@ async def SimpleService_get_map_value_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_map_value:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[string](<string?> result.encode('UTF-8')))
 
@@ -1848,6 +2086,12 @@ async def SimpleService_map_length_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler map_length:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint16_t> result)
@@ -1901,6 +2145,12 @@ async def SimpleService_sum_map_values_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler sum_map_values:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint16_t> result)
 
@@ -1952,6 +2202,12 @@ async def SimpleService_complex_sum_i32_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler complex_sum_i32:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
@@ -2005,6 +2261,12 @@ async def SimpleService_repeat_name_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler repeat_name:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[string](<string?> result.encode('UTF-8')))
 
@@ -2050,6 +2312,12 @@ async def SimpleService_get_struct_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_struct:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[_module_types.cSimpleStruct](deref((<_module_types.SimpleStruct?> result)._cpp_obj)))
@@ -2104,6 +2372,12 @@ async def SimpleService_fib_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler fib:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[vector[cint32_t]](deref((<_module_types.List__i32?> result)._cpp_obj)))
 
@@ -2156,6 +2430,12 @@ async def SimpleService_unique_words_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler unique_words:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[cset[string]](deref((<_module_types.Set__string?> result)._cpp_obj)))
@@ -2210,6 +2490,12 @@ async def SimpleService_words_count_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler words_count:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[cmap[string,cint16_t]](deref((<_module_types.Map__string_i16?> result)._cpp_obj)))
 
@@ -2261,6 +2547,12 @@ async def SimpleService_set_enum_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler set_enum:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<_module_types.cAnEnum><int>result)
@@ -2321,6 +2613,12 @@ async def SimpleService_list_of_lists_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler list_of_lists:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[vector[vector[cint32_t]]](deref((<_module_types.List__List__i32?> result)._cpp_obj)))
 
@@ -2373,6 +2671,12 @@ async def SimpleService_word_character_frequency_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler word_character_frequency:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[cmap[string,cmap[string,cint32_t]]](deref((<_module_types.Map__string_Map__string_i32?> result)._cpp_obj)))
@@ -2427,6 +2731,12 @@ async def SimpleService_list_of_sets_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler list_of_sets:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[vector[cset[string]]](deref((<_module_types.List__Set__string?> result)._cpp_obj)))
 
@@ -2479,6 +2789,12 @@ async def SimpleService_nested_map_argument_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler nested_map_argument:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
 
@@ -2530,6 +2846,12 @@ async def SimpleService_make_sentence_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler make_sentence:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[string](<string?> result.encode('UTF-8')))
@@ -2584,6 +2906,12 @@ async def SimpleService_get_union_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_union:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[cset[cint32_t]](deref((<_module_types.Set__i32?> result)._cpp_obj)))
 
@@ -2637,6 +2965,12 @@ async def SimpleService_get_keys_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_keys:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[cset[string]](deref((<_module_types.Set__string?> result)._cpp_obj)))
 
@@ -2689,6 +3023,12 @@ async def SimpleService_lookup_double_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler lookup_double:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<double> result)
 
@@ -2740,6 +3080,12 @@ async def SimpleService_retrieve_binary_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler retrieve_binary:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[string](<string?> result))
@@ -2794,6 +3140,12 @@ async def SimpleService_contain_binary_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler contain_binary:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[cset[string]](deref((<_module_types.Set__binary?> result)._cpp_obj)))
 
@@ -2847,6 +3199,12 @@ async def SimpleService_contain_enum_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler contain_enum:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[vector[_module_types.cAnEnum]](deref((<_module_types.List__AnEnum?> result)._cpp_obj)))
 
@@ -2899,6 +3257,12 @@ async def SimpleService_get_binary_union_struct_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_binary_union_struct:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[_module_types.cBinaryUnionStruct](deref((<_module_types.BinaryUnionStruct?> result)._cpp_obj)))
 
@@ -2945,6 +3309,12 @@ async def DerivedService_get_six_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_six:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(<cint32_t> result)
 
@@ -2990,6 +3360,12 @@ async def RederivedService_get_seven_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler get_seven:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(<cint32_t> result)

@@ -49,8 +49,16 @@
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 #include <thrift/lib/thrift/gen-cpp2/metadata_types.h>
 
+namespace folly {
+namespace coro {
+class CancellableAsyncScope;
+}
+} // namespace folly
+
 namespace apache {
 namespace thrift {
+
+class ThriftServer;
 
 namespace detail {
 template <typename T>
@@ -136,9 +144,23 @@ class AsyncProcessorFactory {
   /**
    * The concrete metadata type that will be passed if createMethodMetadata
    * returns WildcardMethodMetadataMap and the current method is not in its
-   * knownMethods.
+   * knownMethods. There should only be a single instance of this type that all
+   * services refer to.
    */
-  struct WildcardMethodMetadata final : public MethodMetadata {};
+  struct WildcardMethodMetadata final : public MethodMetadata {
+   private:
+    WildcardMethodMetadata() = default;
+    friend class AsyncProcessorFactory;
+
+   public:
+    WildcardMethodMetadata(const WildcardMethodMetadata&) = delete;
+    WildcardMethodMetadata& operator=(const WildcardMethodMetadata&) = delete;
+  };
+  /**
+   * Single instance of WildcardMethodMetadata so that AsyncProcessor can just
+   * rely on comparing the address instead of using dynamic_cast.
+   */
+  static const WildcardMethodMetadata kWildcardMethodMetadata;
 
   /**
    * The API is not implemented (legacy).
@@ -173,8 +195,9 @@ class AsyncProcessorFactory {
    *
    * If returning (3), Thrift server will lookup the method metadata in the map.
    * If the method name is not found, Thrift will pass a WildcardMethodMetadata
-   * object instead. Any metadata passed to the processor will always be a
-   * reference from the map (or be WildcardMethodMetadata).
+   * object instead (kWildcardMethodMetadata). Any metadata passed to the
+   * processor will always be a reference from the map (or be
+   * kWildcardMethodMetadata).
    */
   virtual CreateMethodMetadataResult createMethodMetadata() { return {}; }
 
@@ -479,11 +502,56 @@ class RequestParams {
  * callbacks).
  */
 class ServiceHandler {
+ private:
+#if FOLLY_HAS_COROUTINES
+  class MethodNotImplemented : public std::logic_error {
+   public:
+    MethodNotImplemented() : std::logic_error("Method not implemented") {}
+  };
+#endif
+
  public:
-  virtual folly::SemiFuture<folly::Unit> semifuture_onStartServing() = 0;
-  virtual folly::SemiFuture<folly::Unit> semifuture_onStopServing() = 0;
+#if FOLLY_HAS_COROUTINES
+  virtual folly::coro::Task<void> co_onStartServing() { co_return; }
+  virtual folly::coro::Task<void> co_onStopServing() {
+    throw MethodNotImplemented();
+  }
+#endif
+
+  virtual folly::SemiFuture<folly::Unit> semifuture_onStartServing() {
+#if FOLLY_HAS_COROUTINES
+    if constexpr (folly::kIsLinux) {
+      return co_onStartServing().semi();
+    }
+#endif
+    return folly::makeSemiFuture();
+  }
+
+  virtual folly::SemiFuture<folly::Unit> semifuture_onStopServing() {
+#if FOLLY_HAS_COROUTINES
+    if constexpr (folly::kIsLinux) {
+      // TODO: onStopServing should be implemented similar to onStartServing
+      try {
+        return co_onStopServing().semi();
+      } catch (MethodNotImplemented&) {
+        // If co_onStopServing() is not implemented we just return
+      }
+    }
+#endif
+    return folly::makeSemiFuture();
+  }
+
+  void setServer(ThriftServer* server) { server_ = server; }
 
   virtual ~ServiceHandler() = default;
+
+ protected:
+#if FOLLY_HAS_COROUTINES
+  folly::coro::CancellableAsyncScope* getAsyncScope();
+#endif
+
+ private:
+  ThriftServer* server_;
 };
 
 /**
@@ -555,13 +623,6 @@ class ServerInterface : public virtual AsyncProcessorFactory,
   concurrency::ThreadManager::ExecutionScope getRequestExecutionScope(
       Cpp2RequestContext* ctx) {
     return getRequestExecutionScope(ctx, concurrency::NORMAL);
-  }
-
-  folly::SemiFuture<folly::Unit> semifuture_onStartServing() override {
-    return folly::makeSemiFuture();
-  }
-  folly::SemiFuture<folly::Unit> semifuture_onStopServing() override {
-    return folly::makeSemiFuture();
   }
 
   std::vector<ServiceHandler*> getServiceHandlers() override { return {this}; }

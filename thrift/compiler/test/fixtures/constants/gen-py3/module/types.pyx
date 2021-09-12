@@ -278,6 +278,7 @@ cdef class Internship(thrift.py3.types.Struct):
           "title": deref(self._cpp_obj).title_ref().has_value(),
           "employer": deref(self._cpp_obj).employer_ref().has_value(),
           "compensation": deref(self._cpp_obj).compensation_ref().has_value(),
+          "school": deref(self._cpp_obj).school_ref().has_value(),
         })
 
     @staticmethod
@@ -312,9 +313,23 @@ cdef class Internship(thrift.py3.types.Struct):
 
         return deref(self._cpp_obj).compensation_ref().value_unchecked()
 
+    @property
+    def school(self):
+        if not deref(self._cpp_obj).school_ref().has_value():
+            return None
+
+        return (<bytes>deref(self._cpp_obj).school_ref().value_unchecked()).decode('UTF-8')
+
 
     def __hash__(Internship self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(Internship self):
+        return super().__repr__()
+
+    def __str__(Internship self):
+        return super().__str__()
+
 
     def __copy__(Internship self):
         cdef shared_ptr[cInternship] cpp_obj = make_shared[cInternship](
@@ -348,15 +363,15 @@ cdef class Internship(thrift.py3.types.Struct):
         return __get_field_name_by_index[cInternship](idx)
 
     def __cinit__(self):
-        self._fbthrift_struct_size = 4
+        self._fbthrift_struct_size = 5
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(Internship self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(Internship self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cInternship](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(Internship self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(Internship self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cInternship]()
         with nogil:
@@ -408,7 +423,14 @@ cdef class Range(thrift.py3.types.Struct):
 
 
     def __hash__(Range self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(Range self):
+        return super().__repr__()
+
+    def __str__(Range self):
+        return super().__str__()
+
 
     def __copy__(Range self):
         cdef shared_ptr[cRange] cpp_obj = make_shared[cRange](
@@ -444,13 +466,13 @@ cdef class Range(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 2
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(Range self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(Range self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cRange](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(Range self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(Range self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cRange]()
         with nogil:
@@ -502,7 +524,14 @@ cdef class struct1(thrift.py3.types.Struct):
 
 
     def __hash__(struct1 self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(struct1 self):
+        return super().__repr__()
+
+    def __str__(struct1 self):
+        return super().__str__()
+
 
     def __copy__(struct1 self):
         cdef shared_ptr[cstruct1] cpp_obj = make_shared[cstruct1](
@@ -538,13 +567,13 @@ cdef class struct1(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 2
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(struct1 self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(struct1 self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cstruct1](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(struct1 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(struct1 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cstruct1]()
         with nogil:
@@ -612,7 +641,14 @@ cdef class struct2(thrift.py3.types.Struct):
 
 
     def __hash__(struct2 self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(struct2 self):
+        return super().__repr__()
+
+    def __str__(struct2 self):
+        return super().__str__()
+
 
     def __copy__(struct2 self):
         cdef shared_ptr[cstruct2] cpp_obj = make_shared[cstruct2](
@@ -648,13 +684,13 @@ cdef class struct2(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 4
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(struct2 self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(struct2 self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cstruct2](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(struct2 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(struct2 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cstruct2]()
         with nogil:
@@ -714,7 +750,14 @@ cdef class struct3(thrift.py3.types.Struct):
 
 
     def __hash__(struct3 self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(struct3 self):
+        return super().__repr__()
+
+    def __str__(struct3 self):
+        return super().__str__()
+
 
     def __copy__(struct3 self):
         cdef shared_ptr[cstruct3] cpp_obj = make_shared[cstruct3](
@@ -750,13 +793,13 @@ cdef class struct3(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 3
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(struct3 self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(struct3 self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cstruct3](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(struct3 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(struct3 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cstruct3]()
         with nogil:
@@ -818,7 +861,14 @@ cdef class struct4(thrift.py3.types.Struct):
 
 
     def __hash__(struct4 self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(struct4 self):
+        return super().__repr__()
+
+    def __str__(struct4 self):
+        return super().__str__()
+
 
     def __copy__(struct4 self):
         cdef shared_ptr[cstruct4] cpp_obj = make_shared[cstruct4](
@@ -854,13 +904,13 @@ cdef class struct4(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 3
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(struct4 self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(struct4 self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cstruct4](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(struct4 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(struct4 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cstruct4]()
         with nogil:
@@ -1009,13 +1059,13 @@ cdef class union1(thrift.py3.types.Union):
     def __cinit__(self):
         self._fbthrift_struct_size = 2
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(union1 self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(union1 self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cunion1](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(union1 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(union1 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cunion1]()
         with nogil:
@@ -1202,13 +1252,13 @@ cdef class union2(thrift.py3.types.Union):
     def __cinit__(self):
         self._fbthrift_struct_size = 4
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(union2 self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(union2 self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cunion2](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(union2 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(union2 self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cunion2]()
         with nogil:

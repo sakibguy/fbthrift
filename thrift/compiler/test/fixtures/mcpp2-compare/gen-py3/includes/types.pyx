@@ -138,7 +138,14 @@ cdef class AStruct(thrift.py3.types.Struct):
 
 
     def __hash__(AStruct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(AStruct self):
+        return super().__repr__()
+
+    def __str__(AStruct self):
+        return super().__str__()
+
 
     def __copy__(AStruct self):
         cdef shared_ptr[cAStruct] cpp_obj = make_shared[cAStruct](
@@ -174,13 +181,13 @@ cdef class AStruct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(AStruct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(AStruct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cAStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(AStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(AStruct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cAStruct]()
         with nogil:
@@ -229,7 +236,14 @@ cdef class AStructB(thrift.py3.types.Struct):
 
 
     def __hash__(AStructB self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(AStructB self):
+        return super().__repr__()
+
+    def __str__(AStructB self):
+        return super().__str__()
+
 
     def __copy__(AStructB self):
         cdef shared_ptr[cAStructB] cpp_obj = make_shared[cAStructB](
@@ -265,13 +279,13 @@ cdef class AStructB(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(AStructB self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(AStructB self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cAStructB](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(AStructB self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(AStructB self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cAStructB]()
         with nogil:

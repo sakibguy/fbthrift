@@ -20,6 +20,7 @@
 #include <folly/synchronization/AtomicUtil.h>
 #include <folly/synchronization/Baton.h>
 #include <thrift/lib/cpp2/async/ServerStreamDetail.h>
+#include <thrift/lib/cpp2/async/StreamCallbacks.h>
 #include <thrift/lib/cpp2/async/TwoWayBridge.h>
 
 namespace apache {
@@ -145,19 +146,18 @@ class ServerPublisherStream : private StreamServerCallback {
   union CreditBuffer {
     using Queue =
         typename twowaybridge_detail::Queue<folly::Try<StreamPayload>>;
-    static constexpr uint64_t creditValSize = sizeof(void*) * 8 - 1;
-    static constexpr uint64_t maxCreditVal = (1ull << creditValSize) - 1;
+    static constexpr uint64_t maxCreditVal = ~uint64_t(0) >> 1;
 
     Queue buffer;
     struct {
       uint64_t isSet : 1;
-      uint64_t val : creditValSize;
+      uint64_t val : 63;
     } credits;
 
     CreditBuffer() {
       static_assert(
-          sizeof credits == sizeof buffer,
-          "CreditBuffer members must be the same size");
+          sizeof credits >= sizeof buffer,
+          "CreditBuffer queue must not be larger than u64 credits");
       credits.isSet = true;
       credits.val = 0;
     }
@@ -168,7 +168,8 @@ class ServerPublisherStream : private StreamServerCallback {
     }
     void addCredits(int64_t delta) {
       DCHECK(credits.isSet);
-      credits.val = std::min(maxCreditVal, credits.val + delta);
+      credits.val =
+          std::min(maxCreditVal, folly::to_unsigned(credits.val + delta));
     }
     bool hasCredit() { return credits.isSet && credits.val; }
     void storeBuffer(Queue&& buf) {
@@ -201,13 +202,20 @@ class ServerPublisherStream : private StreamServerCallback {
         [stream =
              std::unique_ptr<ServerPublisherStream<T>, CancelDeleter>(stream)](
             folly::Executor::KeepAlive<> serverExecutor,
-            folly::Try<StreamPayload> (*encode)(folly::Try<T> &&)) mutable {
+            apache::thrift::detail::StreamElementEncoder<T>* encode) mutable {
           stream->serverExecutor_ = std::move(serverExecutor);
 
           while (auto messages =
                      stream->encodeOrQueue_.closeOrGetMessages(encode)) {
             for (; !messages.empty(); messages.pop()) {
-              stream->queue_.push(encode(std::move(messages.front())));
+              auto message = std::move(messages.front());
+              if (message.hasValue()) {
+                stream->queue_.push((*encode)(std::move(message.value())));
+              } else if (message.hasException()) {
+                stream->queue_.push((*encode)(std::move(message.exception())));
+              } else {
+                stream->queue_.push((*encode)());
+              }
             }
           }
 
@@ -233,7 +241,13 @@ class ServerPublisherStream : private StreamServerCallback {
     // pushOrGetClosedPayload only moves from payload on success
     if (auto encode =
             encodeOrQueue_.pushOrGetClosedPayload(std::move(payload))) {
-      queue_.push(encode(std::move(payload)));
+      if (payload.hasValue()) {
+        queue_.push((*encode)(std::move(payload.value())));
+      } else if (payload.hasException()) {
+        queue_.push((*encode)(std::move(payload.exception())));
+      } else {
+        queue_.push((*encode)());
+      }
     }
 
     if (close) {
@@ -376,8 +390,7 @@ class ServerPublisherStream : private StreamServerCallback {
 
   CallOnceFunction onStreamCompleteOrCancel_;
 
-  using EncodeFn = typename std::remove_pointer_t<folly::Try<StreamPayload> (*)(
-      folly::Try<T>&&)>;
+  using EncodeFn = apache::thrift::detail::StreamElementEncoder<T>;
   typename twowaybridge_detail::AtomicQueueOrPtr<folly::Try<T>, EncodeFn>
       encodeOrQueue_;
 

@@ -6,6 +6,7 @@ shipit_fbcode_builder = true
 
 [git]
 repo_url = https://github.com/facebook/fboss.git
+rev = main
 
 [build.os=linux]
 builder = cmake
@@ -34,6 +35,7 @@ re2
 python
 yaml-cpp
 libyaml
+CLI11
 
 [shipit.pathmap]
 fbcode/fboss/github = .

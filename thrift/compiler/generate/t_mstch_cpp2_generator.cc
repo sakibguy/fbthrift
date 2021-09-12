@@ -34,10 +34,6 @@ namespace thrift {
 namespace compiler {
 
 namespace {
-bool field_has_isset(const t_field* field) {
-  return field->get_req() != t_field::e_req::required &&
-      !cpp2::is_explicit_ref(field);
-}
 
 std::string const& get_cpp_template(const t_type* type) {
   return type->get_annotation({"cpp.template", "cpp2.template"});
@@ -166,6 +162,11 @@ std::string render_fatal_string(const std::string& normal_string) {
   return res.str();
 }
 
+std::string get_out_dir_base(
+    const std::map<std::string, std::string>& options) {
+  return options.find("py3cpp") != options.end() ? "gen-py3cpp" : "gen-cpp2";
+}
+
 } // namespace
 
 class cpp2_generator_context {
@@ -183,12 +184,17 @@ class cpp2_generator_context {
     return cpp2::is_orderable(seen, memo, type);
   }
 
+  size_t isset_index(const t_field* f) {
+    return cpp2::isset_index(isset_index_memo_, f);
+  }
+
   gen::cpp::type_resolver& resolver() { return resolver_; }
 
  private:
   cpp2_generator_context() = default;
 
   std::unordered_map<t_type const*, bool> is_orderable_memo_;
+  std::unordered_map<t_field const*, int32_t> isset_index_memo_;
   gen::cpp::type_resolver resolver_;
 };
 
@@ -206,7 +212,7 @@ class t_mstch_cpp2_generator : public t_mstch_generator {
   static mstch::array get_namespace_array(t_program const* program);
   static mstch::node cpp_includes(t_program const* program);
   static mstch::node include_prefix(
-      t_program const* program, std::string& include_prefix);
+      t_program const* program, std::map<std::string, std::string>& options);
 
  private:
   void set_mstch_generators();
@@ -319,11 +325,11 @@ class mstch_cpp2_enum_value : public mstch_enum_value {
     register_methods(
         this,
         {
-            {"enumValue:name_hash", &mstch_cpp2_enum_value::name_hash},
-            {"enumValue:cpp_name", &mstch_cpp2_enum_value::cpp_name},
-            {"enumValue:fatal_annotations?",
+            {"enum_value:name_hash", &mstch_cpp2_enum_value::name_hash},
+            {"enum_value:cpp_name", &mstch_cpp2_enum_value::cpp_name},
+            {"enum_value:fatal_annotations?",
              &mstch_cpp2_enum_value::has_fatal_annotations},
-            {"enumValue:fatal_annotations",
+            {"enum_value:fatal_annotations",
              &mstch_cpp2_enum_value::fatal_annotations},
         });
   }
@@ -401,8 +407,10 @@ class mstch_cpp2_type : public mstch_type {
             {"type:cpp_standard_type", &mstch_cpp2_type::cpp_standard_type},
             {"type:cpp_adapter", &mstch_cpp2_type::cpp_adapter},
             {"type:raw_binary?", &mstch_cpp2_type::raw_binary},
-            {"type:resolved_cpp_type", &mstch_cpp2_type::resolved_cpp_type},
+            {"type:raw_string_or_binary?",
+             &mstch_cpp2_type::raw_string_or_binary},
             {"type:string_or_binary?", &mstch_cpp2_type::is_string_or_binary},
+            {"type:resolved_cpp_type", &mstch_cpp2_type::resolved_cpp_type},
             {"type:cpp_template", &mstch_cpp2_type::cpp_template},
             {"type:cpp_indirection?", &mstch_cpp2_type::cpp_indirection},
             {"type:non_empty_struct?", &mstch_cpp2_type::is_non_empty_struct},
@@ -498,8 +506,10 @@ class mstch_cpp2_type : public mstch_type {
     return {};
   }
   mstch::node raw_binary() {
-    return resolved_type_->is_binary() &&
-        gen::cpp::type_resolver::find_first_adapter(type_) == nullptr;
+    return resolved_type_->is_binary() && !is_adapted();
+  }
+  mstch::node raw_string_or_binary() {
+    return resolved_type_->is_string_or_binary() && !is_adapted();
   }
   mstch::node resolved_cpp_type() { return cpp2::get_type(resolved_type_); }
   mstch::node is_string_or_binary() {
@@ -542,6 +552,10 @@ class mstch_cpp2_type : public mstch_type {
 
  private:
   std::shared_ptr<cpp2_generator_context> context_;
+
+  bool is_adapted() const {
+    return gen::cpp::type_resolver::find_first_adapter(type_) != nullptr;
+  }
 };
 
 class mstch_cpp2_field : public mstch_field {
@@ -561,10 +575,13 @@ class mstch_cpp2_field : public mstch_field {
             {"field:name_hash", &mstch_cpp2_field::name_hash},
             {"field:index_plus_one", &mstch_cpp2_field::index_plus_one},
             {"field:has_isset?", &mstch_cpp2_field::has_isset},
+            {"field:isset_index", &mstch_cpp2_field::isset_index},
             {"field:cpp_name", &mstch_cpp2_field::cpp_name},
             {"field:cpp_storage_type", &mstch_cpp2_field::cpp_storage_type},
             {"field:cpp_deprecated_accessor_type",
              &mstch_cpp2_field::cpp_deprecated_accessor_type},
+            {"field:has_deprecated_accessors?",
+             &mstch_cpp2_field::has_deprecated_accessors},
             {"field:next_field_key", &mstch_cpp2_field::next_field_key},
             {"field:prev_field_key", &mstch_cpp2_field::prev_field_key},
             {"field:next_field_type", &mstch_cpp2_field::next_field_type},
@@ -574,6 +591,7 @@ class mstch_cpp2_field : public mstch_field {
             {"field:cpp_ref_shared?", &mstch_cpp2_field::cpp_ref_shared},
             {"field:cpp_ref_shared_const?",
              &mstch_cpp2_field::cpp_ref_shared_const},
+            {"field:cpp_adapter", &mstch_cpp2_field::cpp_adapter},
             {"field:zero_copy_arg", &mstch_cpp2_field::zero_copy_arg},
             {"field:cpp_noncopyable?", &mstch_cpp2_field::cpp_noncopyable},
             {"field:enum_has_value", &mstch_cpp2_field::enum_has_value},
@@ -595,6 +613,9 @@ class mstch_cpp2_field : public mstch_field {
     return "__fbthrift_hash_" + cpp2::sha256_hex(field_->get_name());
   }
   mstch::node index_plus_one() { return std::to_string(index_ + 1); }
+  mstch::node isset_index() {
+    return std::to_string(context_->isset_index(field_));
+  }
   mstch::node cpp_name() { return cpp2::get_name(field_); }
   mstch::node cpp_storage_type() {
     return context_->resolver().get_storage_type_name(field_);
@@ -606,6 +627,10 @@ class mstch_cpp2_field : public mstch_field {
     // TODO(afuller): Remove this once all non-field_ref based accessors have
     // been removed.
     return context_->resolver().get_storage_type_name(field_);
+  }
+  mstch::node has_deprecated_accessors() {
+    return !cpp2::is_explicit_ref(field_) && !cpp2::is_lazy(field_) &&
+        !gen::cpp::type_resolver::find_first_adapter(field_);
   }
   mstch::node cpp_ref() { return cpp2::is_explicit_ref(field_); }
   mstch::node non_opt_cpp_ref() {
@@ -621,10 +646,19 @@ class mstch_cpp2_field : public mstch_field {
   }
   mstch::node cpp_ref_unique() { return cpp2::is_unique_ref(field_); }
   mstch::node cpp_ref_shared() {
-    return cpp2::get_ref_type(field_) == "shared";
+    return gen::cpp::find_ref_type(*field_) ==
+        gen::cpp::reference_type::shared_mutable;
   }
   mstch::node cpp_ref_shared_const() {
-    return cpp2::get_ref_type(field_) == "shared_const";
+    return gen::cpp::find_ref_type(*field_) ==
+        gen::cpp::reference_type::shared_const;
+  }
+  mstch::node cpp_adapter() {
+    if (const std::string* adapter =
+            gen::cpp::type_resolver::find_first_adapter(field_)) {
+      return *adapter;
+    }
+    return {};
   }
   mstch::node cpp_noncopyable() {
     return field_->get_type()->has_annotation("cpp2.noncopyable");
@@ -677,7 +711,7 @@ class mstch_cpp2_field : public mstch_field {
   mstch::node has_fatal_annotations() {
     return get_fatal_annotations(field_->annotations()).size() > 0;
   }
-  mstch::node has_isset() { return field_has_isset(field_); }
+  mstch::node has_isset() { return cpp2::field_has_isset(field_); }
   mstch::node fatal_annotations() {
     return generate_annotations(get_fatal_annotations(field_->annotations()));
   }
@@ -767,6 +801,8 @@ class mstch_cpp2_struct : public mstch_struct {
             {"struct:cpp_allocator", &mstch_cpp2_struct::cpp_allocator},
             {"struct:cpp_allocator_via", &mstch_cpp2_struct::cpp_allocator_via},
             {"struct:cpp_data_method?", &mstch_cpp2_struct::cpp_data_method},
+            {"struct:cpp_frozen2_exclude?",
+             &mstch_cpp2_struct::cpp_frozen2_exclude},
         });
     register_has_option("struct:no_getters_setters?", "no_getters_setters");
   }
@@ -877,9 +913,12 @@ class mstch_cpp2_struct : public mstch_struct {
   mstch::node cpp_data_method() {
     return strct_->has_annotation("cpp.internal.deprecated._data.method");
   }
+  mstch::node cpp_frozen2_exclude() {
+    return strct_->has_annotation("cpp.frozen2_exclude");
+  }
   mstch::node cpp_allocator_via() {
     if (const auto* name =
-            strct_->get_annotation_or_null("cpp.allocator_via")) {
+            strct_->find_annotation_or_null("cpp.allocator_via")) {
       for (const auto& field : strct_->fields()) {
         if (cpp2::get_name(&field) == *name) {
           return *name;
@@ -900,7 +939,7 @@ class mstch_cpp2_struct : public mstch_struct {
   mstch::node indexing() { return has_lazy_fields(); }
   mstch::node has_isset_fields() {
     for (const auto& field : strct_->fields()) {
-      if (field_has_isset(&field)) {
+      if (cpp2::field_has_isset(&field)) {
         return true;
       }
     }
@@ -909,7 +948,7 @@ class mstch_cpp2_struct : public mstch_struct {
   mstch::node isset_fields() {
     std::vector<t_field const*> fields;
     for (const auto& field : strct_->fields()) {
-      if (field_has_isset(&field)) {
+      if (cpp2::field_has_isset(&field)) {
         fields.push_back(&field);
       }
     }
@@ -1167,7 +1206,7 @@ class mstch_cpp2_service : public mstch_service {
   }
   mstch::node include_prefix() {
     return t_mstch_cpp2_generator::include_prefix(
-        service_->program(), cache_->parsed_options_["include_prefix"]);
+        service_->program(), cache_->parsed_options_);
   }
   mstch::node thrift_includes() {
     mstch::array a{};
@@ -1394,7 +1433,7 @@ class mstch_cpp2_program : public mstch_program {
   }
   mstch::node include_prefix() {
     return t_mstch_cpp2_generator::include_prefix(
-        program_, cache_->parsed_options_["include_prefix"]);
+        program_, cache_->parsed_options_);
   }
   mstch::node cpp_declare_hash() {
     bool cpp_declare_in_structs = std::any_of(
@@ -1838,7 +1877,7 @@ t_mstch_cpp2_generator::t_mstch_cpp2_generator(
           program, std::move(context), "cpp2", parsed_options, true),
       context_(std::make_shared<cpp2_generator_context>(
           cpp2_generator_context::create(program))) {
-  out_dir_base_ = "gen-cpp2";
+  out_dir_base_ = get_out_dir_base(parsed_options);
 }
 
 void t_mstch_cpp2_generator::generate_program() {
@@ -2034,19 +2073,21 @@ mstch::node t_mstch_cpp2_generator::cpp_includes(t_program const* program) {
 }
 
 mstch::node t_mstch_cpp2_generator::include_prefix(
-    t_program const* program, std::string& include_prefix) {
+    t_program const* program, std::map<std::string, std::string>& options) {
   auto prefix = program->include_prefix();
+  auto include_prefix = options["include_prefix"];
+  auto out_dir_base = get_out_dir_base(options);
   if (prefix.empty()) {
     if (include_prefix.empty()) {
       return prefix;
     } else {
-      return include_prefix + "/gen-cpp2/";
+      return include_prefix + "/" + out_dir_base + "/";
     }
   }
   if (boost::filesystem::path(prefix).has_root_directory()) {
-    return include_prefix + "/gen-cpp2/";
+    return include_prefix + "/" + out_dir_base + "/";
   }
-  return prefix + "gen-cpp2/";
+  return prefix + out_dir_base + "/";
 }
 
 namespace {

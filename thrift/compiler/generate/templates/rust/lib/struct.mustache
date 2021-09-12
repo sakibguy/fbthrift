@@ -21,6 +21,8 @@
         }}Clone, Debug, PartialEq{{!
         }}{{#struct:ord?}}, Eq, PartialOrd, Ord, Hash{{/struct:ord?}}{{!
         }}{{#program:serde?}}, ::serde_derive::Serialize, ::serde_derive::Deserialize{{/program:serde?}}{{!
+        }}{{#struct:exception?}}{{#struct:union?}}, ::thiserror::Error{{/struct:union?}}{{/struct:exception?}}{{!
+        }}{{#struct:derive}}, {{.}}{{/struct:derive}}{{!
     }})]
     {{#struct:docs?}}
     #[doc = {{struct:docs}}]
@@ -38,6 +40,28 @@
         pub {{field:rust_name}}: {{>lib/fieldtype}},{{!
     }}{{/struct:fields}}
     }
+    {{#struct:exception?}}
+
+    impl ::std::error::Error for {{struct:rust_name}} {}
+
+    impl ::std::fmt::Display for {{struct:rust_name}} {{>lib/block}}
+        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            write!(f, {{!
+                }}{{#struct:has_exception_message?}}{{!
+                    }}{{#struct:is_exception_message_optional?}}{{!
+                        }}"{{struct:rust_name}}: {:?}: {:?}", self.{{struct:exception_message}}, self{{!
+                    }}{{/struct:is_exception_message_optional?}}{{!
+                    }}{{^struct:is_exception_message_optional?}}{{!
+                        }}"{{struct:rust_name}}: {}: {:?}", self.{{struct:exception_message}}, self{{!
+                    }}{{/struct:is_exception_message_optional?}}{{!
+                }}{{/struct:has_exception_message?}}{{!
+                }}{{^struct:has_exception_message?}}{{!
+                    }}"{:?}", self{{!
+                }}{{/struct:has_exception_message?}}{{!
+            }})
+        }
+    }
+    {{/struct:exception?}}
 {{/struct:union?}}
 {{#struct:union?}}
     pub enum {{struct:rust_name}} {{>lib/block}}{{!
@@ -45,6 +69,9 @@
         {{#field:docs?}}
         #[doc = {{field:docs}}]
         {{/field:docs?}}
+        {{#struct:exception?}}
+        #[error("{0:?}")]
+        {{/struct:exception?}}
         {{field:rust_name}}({{>lib/fieldtype}}),{{!
     }}{{/struct:fields}}
         UnknownField(::std::primitive::i32),

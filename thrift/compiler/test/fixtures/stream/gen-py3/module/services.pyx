@@ -37,10 +37,8 @@ from folly cimport (
   c_unit,
 )
 from thrift.py3.common cimport (
-    cThriftServiceContext as __fbthrift_cThriftServiceContext,
-    cThriftMetadata as __fbthrift_cThriftMetadata,
+    cThriftServiceMetadataResponse as __fbthrift_cThriftServiceMetadataResponse,
     ServiceMetadata,
-    extractMetadataFromServiceContext,
     MetadataBox as __MetadataBox,
 )
 
@@ -106,11 +104,17 @@ async def runGenerator_PubSubStreamingService_returnstream(object generator, Pro
         ))
     except Exception as ex:
         print(
-            "Unexpected error in [TODO template this properly]:",
+            "Unexpected error in returnstream:",
             file=sys.stderr)
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler returnstream:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
@@ -137,11 +141,17 @@ async def runGenerator_PubSubStreamingService_streamthrows(object generator, Pro
         ))
     except Exception as ex:
         print(
-            "Unexpected error in [TODO template this properly]:",
+            "Unexpected error in streamthrows:",
             file=sys.stderr)
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler streamthrows:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
@@ -168,11 +178,17 @@ async def runGenerator_PubSubStreamingService_boththrows(object generator, Promi
         ))
     except Exception as ex:
         print(
-            "Unexpected error in [TODO template this properly]:",
+            "Unexpected error in boththrows:",
             file=sys.stderr)
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler boththrows:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
@@ -199,11 +215,17 @@ async def runGenerator_PubSubStreamingService_responseandstreamthrows(object gen
         ))
     except Exception as ex:
         print(
-            "Unexpected error in [TODO template this properly]:",
+            "Unexpected error in responseandstreamthrows:",
             file=sys.stderr)
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler responseandstreamthrows:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
@@ -228,11 +250,17 @@ async def runGenerator_PubSubStreamingService_returnstreamFast(object generator,
         ))
     except Exception as ex:
         print(
-            "Unexpected error in [TODO template this properly]:",
+            "Unexpected error in returnstreamFast:",
             file=sys.stderr)
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler returnstreamFast:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
@@ -249,22 +277,34 @@ cdef void getNextGenerator_PubSubStreamingService_returnstreamFast(object genera
 
 @cython.auto_pickle(False)
 cdef class Promise_cResponseAndServerStream__cint32_t_cint32_t:
-    cdef cFollyPromise[cResponseAndServerStream[cint32_t,cint32_t]] cPromise
+    cdef cFollyPromise[cResponseAndServerStream[cint32_t,cint32_t]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cResponseAndServerStream[cint32_t,cint32_t]](cFollyPromise[cResponseAndServerStream[cint32_t,cint32_t]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cResponseAndServerStream[cint32_t,cint32_t]] cPromise):
         cdef Promise_cResponseAndServerStream__cint32_t_cint32_t inst = Promise_cResponseAndServerStream__cint32_t_cint32_t.__new__(Promise_cResponseAndServerStream__cint32_t_cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise_cServerStream__cint32_t:
-    cdef cFollyPromise[cServerStream[cint32_t]] cPromise
+    cdef cFollyPromise[cServerStream[cint32_t]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cServerStream[cint32_t]](cFollyPromise[cServerStream[cint32_t]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[cServerStream[cint32_t]] cPromise):
         cdef Promise_cServerStream__cint32_t inst = Promise_cServerStream__cint32_t.__new__(Promise_cServerStream__cint32_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
@@ -376,11 +416,9 @@ cdef class PubSubStreamingServiceInterface(
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cPubSubStreamingServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cPubSubStreamingServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -447,6 +485,12 @@ async def PubSubStreamingService_returnstream_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler returnstream:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(cmove(deref((<ServerStream_cint32_t?>result).cStream)))
 
@@ -502,6 +546,12 @@ async def PubSubStreamingService_streamthrows_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler streamthrows:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(cmove(deref((<ServerStream_cint32_t?>result).cStream)))
@@ -560,6 +610,12 @@ async def PubSubStreamingService_boththrows_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler boththrows:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(cmove(deref((<ServerStream_cint32_t?>result).cStream)))
@@ -620,6 +676,12 @@ async def PubSubStreamingService_responseandstreamthrows_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler responseandstreamthrows:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(createResponseAndServerStream[cint32_t,cint32_t]((<cint32_t?> item), cmove(deref((<ServerStream_cint32_t?>result).cStream))))
@@ -682,6 +744,12 @@ async def PubSubStreamingService_returnstreamFast_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler returnstreamFast:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(cmove(deref((<ServerStream_cint32_t?>result).cStream)))

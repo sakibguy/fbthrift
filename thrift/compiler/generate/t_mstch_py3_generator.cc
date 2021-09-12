@@ -76,7 +76,7 @@ const t_type* get_map_val_type(const t_type& type) {
 
 std::string get_cpp_template(const t_type& type) {
   if (const auto* val =
-          type.get_annotation_or_null({"cpp.template", "cpp2.template"})) {
+          type.find_annotation_or_null({"cpp.template", "cpp2.template"})) {
     return *val;
   } else if (type.is_list()) {
     return "std::vector";
@@ -96,6 +96,11 @@ const t_type* get_stream_first_response_type(const t_type& type) {
 const t_type* get_stream_elem_type(const t_type& type) {
   assert(type.is_streamresponse());
   return dynamic_cast<const t_stream_response&>(type).get_elem_type();
+}
+
+bool is_func_supported(bool no_stream, const t_function* func) {
+  return !(no_stream && func->returns_stream()) && !func->returns_sink() &&
+      !func->get_returntype()->is_service();
 }
 
 class mstch_py3_type : public mstch_type {
@@ -370,6 +375,7 @@ class mstch_py3_program : public mstch_program {
              &mstch_py3_program::getResponseAndStreamTypes},
             {"program:stream_exceptions",
              &mstch_py3_program::getStreamExceptions},
+            {"program:cpp_gen_path", &mstch_py3_program::getCppGenPath},
         });
     gather_included_program_namespaces();
     visit_types_for_services_and_interactions();
@@ -377,6 +383,10 @@ class mstch_py3_program : public mstch_program {
     visit_types_for_constants();
     visit_types_for_typedefs();
     visit_types_for_mixin_fields();
+  }
+
+  mstch::node getCppGenPath() {
+    return std::string(has_option("py3cpp") ? "gen-py3cpp" : "gen-cpp2");
   }
 
   mstch::node getContainerTypes() {
@@ -393,8 +403,9 @@ class mstch_py3_program : public mstch_program {
   }
   mstch::node unique_functions_by_return_type() {
     std::vector<const t_function*> functions;
+    bool no_stream = has_option("no_stream");
     for (auto& kv : uniqueFunctionsByReturnType_) {
-      if (!kv.second->get_returntype()->is_service()) {
+      if (is_func_supported(no_stream, kv.second)) {
         functions.push_back(kv.second);
       }
     }
@@ -430,8 +441,10 @@ class mstch_py3_program : public mstch_program {
 
   mstch::node getStreamTypes() {
     std::vector<const t_type*> types;
-    for (auto& it : streamTypes_) {
-      types.push_back(it.second);
+    if (!has_option("no_stream")) {
+      for (auto& it : streamTypes_) {
+        types.push_back(it.second);
+      }
     }
     return generate_types_array(types);
   }
@@ -458,7 +471,13 @@ class mstch_py3_program : public mstch_program {
   mstch::node hasServiceFunctions() {
     const auto& services = program_->services();
     return std::any_of(services.begin(), services.end(), [](const auto& s) {
-      return !s->get_functions().empty();
+      // TODO(ffrancet): This is here because service interaction functions
+      // aren't supported yet and won't be generated, so this shouldn't include
+      // them
+      const auto& functions = s->get_functions();
+      return std::any_of(functions.begin(), functions.end(), [](const auto& f) {
+        return !f->get_returntype()->is_service();
+      });
     });
   }
 
@@ -738,8 +757,7 @@ class mstch_py3_service : public mstch_service {
     std::vector<t_function*> funcs;
     bool no_stream = has_option("no_stream");
     for (auto func : service_->get_functions()) {
-      if (!(no_stream && func->returns_stream()) && !func->returns_sink() &&
-          !func->get_returntype()->is_service()) {
+      if (is_func_supported(no_stream, func)) {
         funcs.push_back(func);
       }
     }
@@ -834,27 +852,36 @@ class mstch_py3_field : public mstch_field {
       return ref_type_;
     }
     ref_type_cached_ = true;
-    if (cpp2::is_unique_ref(field_)) {
-      return ref_type_ = RefType::Unique;
-    }
-
-    const std::string& reftype = cpp2::get_ref_type(field_);
-    if (reftype.empty() && field_->get_type() != nullptr) {
-      const t_type* resolved_type = field_->get_type()->get_true_type();
-      if (cpp2::get_type(resolved_type) == "std::unique_ptr<folly::IOBuf>") {
-        return ref_type_ = RefType::IOBuf;
+    switch (gen::cpp::find_ref_type(*field_)) {
+      case gen::cpp::reference_type::unique: {
+        return ref_type_ = RefType::Unique;
       }
-      return ref_type_ = RefType::NotRef;
-    } else if (reftype == "shared") {
-      return ref_type_ = RefType::Shared;
-    } else if (reftype == "shared_const") {
-      return ref_type_ = RefType::SharedConst;
-    } else {
-      // It is legal to get here but hopefully nobody will in practice, since
-      // we're not set up to handle other kinds of refs:
-      throw std::runtime_error{"Unhandled ref_type " + reftype};
+      case gen::cpp::reference_type::shared_const: {
+        return ref_type_ = RefType::SharedConst;
+      }
+      case gen::cpp::reference_type::shared_mutable: {
+        return ref_type_ = RefType::Shared;
+      }
+      case gen::cpp::reference_type::boxed: {
+        return ref_type_ = RefType::NotRef;
+      }
+      case gen::cpp::reference_type::none: {
+        const t_type* resolved_type = field_->get_type()->get_true_type();
+        if (cpp2::get_type(resolved_type) == "std::unique_ptr<folly::IOBuf>") {
+          return ref_type_ = RefType::IOBuf;
+        }
+        return ref_type_ = RefType::NotRef;
+      }
+      case gen::cpp::reference_type::unrecognized: {
+        // It is legal to get here but hopefully nobody will in practice, since
+        // we're not set up to handle other kinds of refs:
+        throw std::runtime_error{"Unrecognized ref_type"};
+      }
     }
+    // Suppress "control reaches end of non-void function" warning
+    throw std::logic_error{"Unhandled ref_type"};
   }
+
   bool is_optional() const {
     return field_->get_req() == t_field::e_req::optional;
   }
@@ -968,9 +995,9 @@ class mstch_py3_enum_value : public mstch_enum_value {
     register_methods(
         this,
         {
-            {"enumValue:py_name", &mstch_py3_enum_value::pyName},
-            {"enumValue:cppName", &mstch_py3_enum_value::cppName},
-            {"enumValue:hasPyName?", &mstch_py3_enum_value::hasPyName},
+            {"enum_value:py_name", &mstch_py3_enum_value::pyName},
+            {"enum_value:cppName", &mstch_py3_enum_value::cppName},
+            {"enum_value:hasPyName?", &mstch_py3_enum_value::hasPyName},
         });
   }
 

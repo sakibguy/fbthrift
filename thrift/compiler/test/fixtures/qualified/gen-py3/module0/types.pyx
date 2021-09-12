@@ -144,7 +144,14 @@ cdef class Struct(thrift.py3.types.Struct):
 
 
     def __hash__(Struct self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(Struct self):
+        return super().__repr__()
+
+    def __str__(Struct self):
+        return super().__str__()
+
 
     def __copy__(Struct self):
         cdef shared_ptr[cStruct] cpp_obj = make_shared[cStruct](
@@ -180,13 +187,13 @@ cdef class Struct(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 2
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(Struct self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(Struct self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cStruct](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(Struct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(Struct self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cStruct]()
         with nogil:

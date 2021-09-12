@@ -251,6 +251,84 @@ struct apply_indirection_fn {
 
 FOLLY_INLINE_VARIABLE constexpr detail::apply_indirection_fn apply_indirection;
 
+class ExceptionMetadataOverrideBase {
+ public:
+  virtual ~ExceptionMetadataOverrideBase() {}
+
+  ExceptionKind errorKind() const { return errorKind_; }
+
+  ExceptionBlame errorBlame() const { return errorBlame_; }
+
+  ExceptionSafety errorSafety() const { return errorSafety_; }
+
+  virtual const std::type_info* type() const = 0;
+
+ protected:
+  ExceptionKind errorKind_{ExceptionKind::UNSPECIFIED};
+  ExceptionBlame errorBlame_{ExceptionBlame::UNSPECIFIED};
+  ExceptionSafety errorSafety_{ExceptionSafety::UNSPECIFIED};
+};
+
+template <typename T>
+class ExceptionMetadataOverride : public T,
+                                  public ExceptionMetadataOverrideBase {
+ public:
+  explicit ExceptionMetadataOverride(const T& t) : T(t) {}
+  explicit ExceptionMetadataOverride(T&& t) : T(std::move(t)) {}
+
+  const std::type_info* type() const override {
+#if FOLLY_HAS_RTTI
+    return &typeid(T);
+#else
+    return nullptr;
+#endif
+  }
+
+  // ExceptionKind
+  ExceptionMetadataOverride& setTransient() {
+    errorKind_ = ExceptionKind::TRANSIENT;
+    return *this;
+  }
+  ExceptionMetadataOverride& setPermanent() {
+    errorKind_ = ExceptionKind::PERMANENT;
+    return *this;
+  }
+  ExceptionMetadataOverride& setStateful() {
+    errorKind_ = ExceptionKind::STATEFUL;
+    return *this;
+  }
+
+  // ExceptionBlame
+  ExceptionMetadataOverride& setClient() {
+    errorBlame_ = ExceptionBlame::CLIENT;
+    return *this;
+  }
+  ExceptionMetadataOverride& setServer() {
+    errorBlame_ = ExceptionBlame::SERVER;
+    return *this;
+  }
+
+  // ExceptionSafety
+  ExceptionMetadataOverride& setSafe() {
+    errorSafety_ = ExceptionSafety::SAFE;
+    return *this;
+  }
+};
+
+template <typename T>
+ExceptionMetadataOverride<std::decay_t<T>> overrideExceptionMetadata(T&& ex) {
+  return ExceptionMetadataOverride<std::decay_t<T>>(std::forward<T>(ex));
+}
+
+namespace detail {
+
+enum LazyDeserializationState : uint8_t { // Bitfield.
+  UNTAINTED = 1 << 0,
+  DESERIALIZED = 1 << 1,
+};
+
+} // namespace detail
+
 } // namespace thrift
 } // namespace apache
 

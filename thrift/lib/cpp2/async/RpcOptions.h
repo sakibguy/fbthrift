@@ -108,18 +108,24 @@ class RpcOptions {
   RpcOptions& setRoutingData(std::shared_ptr<void> data);
   const std::shared_ptr<void>& getRoutingData() const;
 
+  // Opaque 64-bit host hint to be used by the routing layer (best-effort)
+  RpcOptions& setRoutingHint(uint64_t hint);
+  uint64_t getRoutingHint() const;
+
  private:
-  std::chrono::milliseconds timeout_{0};
-  std::chrono::milliseconds chunkTimeout_{0};
-  std::chrono::milliseconds queueTimeout_{0};
-  std::chrono::milliseconds overallTimeout_{0};
-  std::chrono::milliseconds processingTimeout_{0};
+  using timeout_ms_t = uint32_t;
+  timeout_ms_t timeout_{0};
+  timeout_ms_t chunkTimeout_{0};
+  timeout_ms_t queueTimeout_{0};
+  timeout_ms_t overallTimeout_{0};
+  timeout_ms_t processingTimeout_{0};
   uint8_t priority_{apache::thrift::concurrency::N_PRIORITIES};
   bool clientOnlyTimeouts_{false};
   bool enableChecksum_{false};
   bool enablePageAlignment_{false};
   BufferOptions bufferOptions_;
   int64_t interactionId_{0};
+  uint64_t routingHint_{0};
 
   std::string routingKey_;
   std::string shardId_;

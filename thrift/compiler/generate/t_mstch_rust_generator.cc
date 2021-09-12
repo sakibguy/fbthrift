@@ -470,6 +470,12 @@ class mstch_rust_struct : public mstch_struct {
             {"struct:fields_by_name", &mstch_rust_struct::rust_fields_by_name},
             {"struct:docs?", &mstch_rust_struct::rust_has_doc},
             {"struct:docs", &mstch_rust_struct::rust_doc},
+            {"struct:derive", &mstch_rust_struct::rust_derive},
+            {"struct:has_exception_message?",
+             &mstch_rust_struct::has_exception_message},
+            {"struct:is_exception_message_optional?",
+             &mstch_rust_struct::is_exception_message_optional},
+            {"struct:exception_message", &mstch_rust_struct::exception_message},
         });
   }
   mstch::node rust_name() {
@@ -502,6 +508,23 @@ class mstch_rust_struct : public mstch_struct {
   }
   mstch::node rust_has_doc() { return strct_->has_doc(); }
   mstch::node rust_doc() { return quoted_rust_doc(strct_); }
+  mstch::node rust_derive() {
+    if (!strct_->has_annotation("rust.derive")) {
+      return nullptr;
+    }
+    return strct_->get_annotation("rust.derive");
+  }
+  mstch::node has_exception_message() {
+    return strct_->has_annotation("message");
+  }
+  mstch::node is_exception_message_optional() {
+    if (!strct_->has_annotation("message")) {
+      return nullptr;
+    }
+    return strct_->get_field_by_name(strct_->get_annotation("message"))
+               ->get_req() == t_field::e_req::optional;
+  }
+  mstch::node exception_message() { return strct_->get_annotation("message"); }
 
  private:
   const rust_codegen_options& options_;
@@ -691,9 +714,9 @@ class mstch_rust_enum_value : public mstch_enum_value {
     register_methods(
         this,
         {
-            {"enumValue:rust_name", &mstch_rust_enum_value::rust_name},
-            {"enumValue:docs?", &mstch_rust_enum_value::rust_has_doc},
-            {"enumValue:docs", &mstch_rust_enum_value::rust_doc},
+            {"enum_value:rust_name", &mstch_rust_enum_value::rust_name},
+            {"enum_value:docs?", &mstch_rust_enum_value::rust_has_doc},
+            {"enum_value:docs", &mstch_rust_enum_value::rust_doc},
         });
   }
   mstch::node rust_name() {

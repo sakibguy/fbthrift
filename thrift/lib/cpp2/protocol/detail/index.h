@@ -16,14 +16,18 @@
 
 #pragma once
 
+#include <folly/MapUtil.h>
 #include <folly/Optional.h>
 #include <folly/Range.h>
 #include <folly/Traits.h>
+#include <folly/container/F14Map.h>
 #include <folly/io/Cursor.h>
 #include <folly/portability/GFlags.h>
+#include <thrift/lib/cpp2/protocol/Cpp2Ops.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
 #include <thrift/lib/cpp2/protocol/ProtocolReaderStructReadState.h>
 #include <thrift/lib/cpp2/protocol/Traits.h>
+#include <thrift/lib/cpp2/protocol/detail/ReservedId.h>
 
 DECLARE_bool(thrift_enable_lazy_deserialization);
 
@@ -33,6 +37,9 @@ namespace detail {
 
 /*
  * When index is enabled, we will inject following fields to thrift struct
+ *
+ * __fbthrift_random_number:
+ *   Randomly generated 64 bits integer to validate index field
  *
  * __fbthrift_index_offset:
  *   The size of all thrift fields except index
@@ -51,13 +58,33 @@ struct InternalField {
   TType type;
 };
 
+// This is randomly generated 64 bit integer for each thrif struct
+// serialization. The same random number will be added to index field to
+// validate whether we are using the correct index field
+constexpr auto kExpectedRandomNumberField = InternalField{
+    "__fbthrift_random_number",
+    static_cast<int16_t>(ReservedId::kExpectedRandomNumber),
+    TType::T_I64};
+
+// This is the field id (key) of random number in index field.
+// The id is different from random number field id to avoid confusion
+// since the value is not size of field, but random number in map
+constexpr int16_t kActualRandomNumberFieldId =
+    static_cast<int16_t>(ReservedId::kActualRandomNumber);
+
 // The reason this field is T_DOUBLE is because we will backfill it after
 // serializing the whole struct, though we will only use the integer part.
-constexpr auto kSizeField =
-    InternalField{"__fbthrift_index_offset", -32768, TType::T_DOUBLE};
+constexpr auto kSizeField = InternalField{
+    "__fbthrift_index_offset",
+    static_cast<int16_t>(ReservedId::kOffset),
+    TType::T_DOUBLE};
 
-constexpr auto kIndexField =
-    InternalField{"__fbthrift_field_id_to_size", -32767, TType::T_MAP};
+constexpr auto kIndexField = InternalField{
+    "__fbthrift_field_id_to_size",
+    static_cast<int16_t>(ReservedId::kIndex),
+    TType::T_MAP};
+
+int64_t xxh3_64bits(folly::io::Cursor cursor);
 
 struct DummyIndexWriter {
   DummyIndexWriter(void*, uint32_t&) {}
@@ -152,24 +179,6 @@ class ProtocolReaderStructReadStateWithIndexImpl
     Base::readStructBegin(iprot);
   }
 
-  void readFieldEnd(Protocol* iprot) {
-    tryAdvanceIndex(Base::fieldId);
-    Base::readFieldEnd(iprot);
-  }
-
-  FOLLY_ALWAYS_INLINE bool advanceToNextField(
-      Protocol* iprot,
-      int32_t currFieldId,
-      int32_t nextFieldId,
-      TType nextFieldType) {
-    if (currFieldId == 0 && foundSizeField_) {
-      currFieldId = detail::kSizeField.id;
-    }
-    tryAdvanceIndex(currFieldId);
-    return Base::advanceToNextField(
-        iprot, currFieldId, nextFieldId, nextFieldType);
-  }
-
   FOLLY_ALWAYS_INLINE folly::Optional<folly::IOBuf> tryFastSkip(
       Protocol* iprot, int16_t id, TType type, bool fixedCostSkip) {
     if (!FLAGS_thrift_enable_lazy_deserialization) {
@@ -180,9 +189,8 @@ class ProtocolReaderStructReadStateWithIndexImpl
       return tryFastSkipImpl(iprot, [&] { iprot->skip(type); });
     }
 
-    if (foundSizeField_ && currentIndexFieldId_ == id) {
-      return tryFastSkipImpl(
-          iprot, [&] { iprot->skipBytes(currentIndexFieldSize_); });
+    if (auto p = folly::get_ptr(fieldIdToSize_, id)) {
+      return tryFastSkipImpl(iprot, [&] { iprot->skipBytes(*p); });
     }
 
     return {};
@@ -200,70 +208,72 @@ class ProtocolReaderStructReadStateWithIndexImpl
   }
 
   void readStructBeginWithIndex(folly::io::Cursor structBegin) {
-    indexReader_.setInput(std::move(structBegin));
-    if (auto serializedDataSize = readIndexOffsetField(indexReader_)) {
-      foundSizeField_ = true;
-      if (!FLAGS_thrift_enable_lazy_deserialization) {
-        return;
-      }
-
-      indexReader_.skipBytes(*serializedDataSize);
-      if (auto count = readIndexField(indexReader_)) {
-        indexFieldCount_ = *count;
-        tryAdvanceIndex(0); // Read first (field id, size) pair
-        return;
-      }
+    if (!FLAGS_thrift_enable_lazy_deserialization) {
+      return;
     }
+
+    Protocol indexReader;
+    indexReader.setInput(std::move(structBegin));
+    if (!readHeadField(indexReader)) {
+      return;
+    }
+
+    indexReader.skipBytes(*indexOffset_);
+    readIndexField(indexReader);
   }
 
-  FOLLY_ALWAYS_INLINE void tryAdvanceIndex(int16_t id) {
-    if (indexFieldCount_ > 0 && id == currentIndexFieldId_) {
-      indexReader_.readI16(currentIndexFieldId_);
-      indexReader_.readI64(currentIndexFieldSize_);
-      --indexFieldCount_;
-    }
-  }
-
-  static folly::Optional<int64_t> readIndexOffsetField(Protocol& p) {
+  bool readHeadField(Protocol& p) {
     std::string name;
     TType fieldType;
     int16_t fieldId;
 
     p.readFieldBegin(name, fieldType, fieldId);
+
+    // TODO(ytj): enforce random number after migration
+    if (fieldId == kExpectedRandomNumberField.id) {
+      if (fieldType != kExpectedRandomNumberField.type) {
+        return false;
+      }
+      p.readI64(randomNumber_.emplace());
+      p.readFieldEnd();
+      p.readFieldBegin(name, fieldType, fieldId);
+    }
+
     if (fieldType != kSizeField.type || fieldId != kSizeField.id) {
-      return {};
+      return false;
     }
 
     double indexOffset;
     p.readDouble(indexOffset);
     p.readFieldEnd();
-    return indexOffset;
+    indexOffset_ = indexOffset;
+    return true;
   }
 
-  static folly::Optional<uint32_t> readIndexField(Protocol& p) {
+  using FieldIdToSize = folly::F14FastMap<int16_t, int64_t>;
+
+  void readIndexField(Protocol& p) {
     std::string name;
     TType fieldType;
     int16_t fieldId;
     p.readFieldBegin(name, fieldType, fieldId);
-    if (fieldType != kIndexField.type) {
-      return {};
+    if (fieldId != kIndexField.id || fieldType != kIndexField.type) {
+      return;
     }
 
-    TType key;
-    TType value;
-    uint32_t fieldCount;
-    p.readMapBegin(key, value, fieldCount);
-    if (key != TType::T_I16 || value != TType::T_I64) {
-      return {};
+    Cpp2Ops<FieldIdToSize>::read(&p, &fieldIdToSize_);
+
+    if (randomNumber_) {
+      auto i = fieldIdToSize_.find(kActualRandomNumberFieldId);
+      if (i == fieldIdToSize_.end() || i->second != randomNumber_) {
+        fieldIdToSize_.clear();
+      }
     }
-    return fieldCount;
   }
 
-  Protocol indexReader_;
-  bool foundSizeField_ = false;
-  uint32_t indexFieldCount_ = 0;
-  int16_t currentIndexFieldId_ = 0;
-  int64_t currentIndexFieldSize_ = 0;
+  FieldIdToSize fieldIdToSize_;
+  folly::Optional<int64_t> indexOffset_;
+  folly::Optional<int64_t> randomNumber_;
 };
 
 template <class Protocol>

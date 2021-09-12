@@ -26,11 +26,18 @@ void <%struct:name%>::readNoXfer(Protocol_* iprot) {
 <%#program:enforce_required?%><%#struct:fields%><%#field:required?%>
   bool isset_<%field:cpp_name%> = false;
 <%/field:required?%><%/struct:fields%><%/program:enforce_required?%>
+<%#struct:lazy_fields?%>
+  if (__fbthrift_protocol_ != iprot->protocolType()) {
+<%! Deserialize all lazy fields if new protocol is different that last deserialization protocol %>
 <%#struct:fields%><%#field:lazy?%>
-  bool __fbthrift_has_lazy_field_<%field:cpp_name%> = false;
+    std::as_const(*this).__fbthrift_read_field_<%field:cpp_name%>();
 <%/field:lazy?%><%/struct:fields%>
+    __fbthrift_protocol_ = iprot->protocolType();
+  }
+<%/struct:lazy_fields?%>
 
 <%#struct:fields?%>
+  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 <%#struct:fields%>
 <%#field:type%>
 <%#first?%>
@@ -44,8 +51,7 @@ void <%struct:name%>::readNoXfer(Protocol_* iprot) {
 <%/first?%>
 _readField_<%field:cpp_name%>:
 <%#field:lazy?%>
-  __fbthrift_has_lazy_field_<%field:cpp_name%> = true;
-  __fbthrift_read_field_<%field:cpp_name%>();
+  std::as_const(*this).__fbthrift_read_field_<%field:cpp_name%>();
   if (auto iobuf = _readState.tryFastSkip(
           iprot,
           <%field:key%>,
@@ -53,11 +59,10 @@ _readField_<%field:cpp_name%>:
           apache::thrift::fixed_cost_skip_v<Protocol_,
                                             <% > common/type_class%>,
                                             <% > types/type%>>)) {
-    __fbthrift_serializedData_.<%field:cpp_name%> = *iobuf;
-    __fbthrift_isDeserialized_.<%field:cpp_name%> = false;
+    const auto isDeserialized = __fbthrift_isDeserialized_.<%field:cpp_name%>.load();
+    __fbthrift_serializedData_.<%field:cpp_name%> = std::move(*iobuf);
+    __fbthrift_isDeserialized_.<%field:cpp_name%> = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
-    __fbthrift_serializedData_.<%field:cpp_name%>.clear();
-    __fbthrift_isDeserialized_.<%field:cpp_name%> = true;
 <%/field:lazy?%>
 <%^field:lazy?%>
   {
@@ -68,11 +73,9 @@ _readField_<%field:cpp_name%>:
 <%#program:enforce_required?%><%#field:required?%>
   isset_<%field:cpp_name%> = true;
 <%/field:required?%><%/program:enforce_required?%>
-<%^field:required?%><%^field:cpp_ref?%>
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
-  this->__isset.<%field:cpp_name%> = true;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
-<%/field:cpp_ref?%><%/field:required?%>
+<%#field:has_isset?%>
+ this->__isset.__fbthrift_set(folly::index_constant<<%field:isset_index%>>(), true);
+<%/field:has_isset?%>
 
 <%^last?%>
 <%#field:next_field_type%>
@@ -96,6 +99,7 @@ _readField_<%field:cpp_name%>:
 <%/last?%>
 <%/field:type%>
 <%/struct:fields%>
+  THRIFT_IGNORE_ISSET_USE_WARNING_END
 <%/struct:fields?%>
 <%^struct:fields?%>
   if (UNLIKELY(!_readState.advanceToNextField(
@@ -115,17 +119,6 @@ _end:
     TProtocolException::throwMissingRequiredField("<%field:name%>", "<%struct:name%>");
   }
   <%/field:required?%><%/struct:fields%><%/program:enforce_required?%>
-  <%#struct:fields%><%#field:lazy?%>
-  if (__fbthrift_protocol_ != iprot->protocolType()
-      && !__fbthrift_has_lazy_field_<%field:cpp_name%>
-      && !__fbthrift_isDeserialized_.<%field:cpp_name%>) {
-    <%! deserialize lazy field if it is not presented in serialized data %>
-    __fbthrift_read_field_<%field:cpp_name%>();
-  }
-  <%/field:lazy?%><%/struct:fields%>
-<%#struct:lazy_fields?%>
-  __fbthrift_protocol_ = iprot->protocolType();
-<%/struct:lazy_fields?%>
   return;
 
 _loop:

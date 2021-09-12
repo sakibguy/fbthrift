@@ -57,6 +57,8 @@ bool is_orderable(
     std::unordered_map<t_type const*, bool>& memo,
     t_type const& type);
 bool is_orderable(t_type const& type);
+int32_t isset_index(
+    std::unordered_map<t_field const*, int32_t>& memo, t_field const* field);
 
 /**
  * Return the cpp.type/cpp2.type attribute or empty string if nothing set.
@@ -82,8 +84,15 @@ inline bool is_ref(const t_field* f) {
   return is_explicit_ref(f) || is_implicit_ref(f->get_type());
 }
 
+inline bool field_has_isset(const t_field* field) {
+  return field->get_req() != t_field::e_req::required &&
+      !is_explicit_ref(field);
+}
+
 inline bool is_lazy(const t_field* field) {
-  return field->has_annotation("cpp.experimental.lazy");
+  return field->has_annotation("cpp.experimental.lazy") ||
+      field->find_structured_annotation_or_null(
+          "facebook.com/thrift/annotation/cpp/Lazy") != nullptr;
 }
 
 bool field_transitively_refers_to_unique(const t_field* field);
@@ -128,12 +137,6 @@ void for_each_transitive_field(const t_struct* s, F f) {
     }
   }
 }
-
-/**
- * The value of cpp.ref_type/cpp2.ref_type.
- */
-// TODO(afuller): Replace with type_resolver::find_ref_type.
-std::string const& get_ref_type(const t_field* f);
 
 /**
  * If the field has cpp.ref/cpp2.ref or cpp.ref_type/cpp2.ref_type == "unique".

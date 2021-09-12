@@ -45,6 +45,10 @@ class t_named : public t_node {
   }
   void add_structured_annotation(std::unique_ptr<t_const> annot);
 
+  const t_const* find_structured_annotation_or_null(const char* uri) const;
+
+  const std::string& uri() const { return get_annotation("thrift.uri"); }
+
  protected:
   // t_named is abstract.
   t_named() = default;
@@ -56,6 +60,8 @@ class t_named : public t_node {
 
  private:
   std::vector<std::shared_ptr<const t_const>> structured_annotations_;
+
+  // TODO(ytj): use thrift.uri --> t_const map for structured annotation
   std::vector<const t_const*> structured_annotations_raw_;
 
   // TODO(afuller): Remove everything below this comment. It is only provided
@@ -63,6 +69,10 @@ class t_named : public t_node {
  public:
   const std::string& get_name() const { return name_; }
 };
+
+// Returns true iff the node is a definition of a transitive annotation,
+// i.e. it has the @meta.Transitive annotation itself.
+bool is_transitive_annotation(const t_named& node);
 
 } // namespace compiler
 } // namespace thrift

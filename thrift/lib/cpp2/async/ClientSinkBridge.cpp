@@ -20,32 +20,21 @@ namespace apache {
 namespace thrift {
 namespace detail {
 
-#if FOLLY_HAS_COROUTINES
 // Explicitly instantiate the base of ClientSinkBridge
 template class TwoWayBridge<
-    CoroConsumer,
+    ClientSinkConsumer,
     ClientMessage,
     ClientSinkBridge,
     ServerMessage,
     ClientSinkBridge>;
 
-ClientSinkBridge::ClientSinkBridge() {}
+ClientSinkBridge::ClientSinkBridge(FirstResponseCallback* callback)
+    : firstResponseCallback_(callback) {}
 
 ClientSinkBridge::~ClientSinkBridge() {}
 
-folly::coro::Task<folly::Try<FirstResponsePayload>>
-ClientSinkBridge::getFirstThriftResponseImpl(ClientSinkBridge& self) {
-  co_await self.firstResponseBaton_;
-  co_return std::move(self.firstResponse_);
-}
-
-folly::coro::Task<folly::Try<FirstResponsePayload>>
-ClientSinkBridge::getFirstThriftResponse() {
-  return getFirstThriftResponseImpl(*this);
-}
-
-ClientSinkBridge::Ptr ClientSinkBridge::create() {
-  return (new ClientSinkBridge())->copy();
+SinkClientCallback* ClientSinkBridge::create(FirstResponseCallback* callback) {
+  return new ClientSinkBridge(callback);
 }
 
 void ClientSinkBridge::close() {
@@ -55,6 +44,7 @@ void ClientSinkBridge::close() {
   Ptr(this);
 }
 
+#if FOLLY_HAS_COROUTINES
 folly::coro::Task<void> ClientSinkBridge::waitEventImpl(
     ClientSinkBridge& self,
     int64_t& credit,
@@ -148,6 +138,7 @@ folly::coro::Task<folly::Try<StreamPayload>> ClientSinkBridge::sink(
     folly::coro::AsyncGenerator<folly::Try<StreamPayload>&&> generator) {
   return sinkImpl(*this, std::move(generator));
 }
+#endif
 
 void ClientSinkBridge::cancel(folly::Try<StreamPayload> payload) {
   CHECK(payload.hasException());
@@ -159,13 +150,13 @@ bool ClientSinkBridge::onFirstResponse(
     FirstResponsePayload&& firstPayload,
     folly::EventBase* evb,
     SinkServerCallback* serverCallback) {
+  auto firstResponseCallback = firstResponseCallback_;
   serverCallback_ = serverCallback;
   evb_ = folly::getKeepAliveToken(evb);
   bool scheduledWait = serverWait(this);
   DCHECK(scheduledWait);
   auto hasEx = detail::hasException(firstPayload);
-  firstResponse_.emplace(std::move(firstPayload));
-  firstResponseBaton_.post();
+  firstResponseCallback->onFirstResponse(std::move(firstPayload), copy());
   if (hasEx) {
     close();
   }
@@ -173,8 +164,7 @@ bool ClientSinkBridge::onFirstResponse(
 }
 
 void ClientSinkBridge::onFirstResponseError(folly::exception_wrapper ew) {
-  firstResponse_.emplaceException(std::move(ew));
-  firstResponseBaton_.post();
+  firstResponseCallback_->onFirstResponseError(std::move(ew));
   close();
 }
 
@@ -244,7 +234,6 @@ void ClientSinkBridge::processServerMessages() {
     }
   } while (!serverWait(this));
 }
-#endif
 
 } // namespace detail
 } // namespace thrift

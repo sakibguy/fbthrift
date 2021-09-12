@@ -16,7 +16,7 @@
 
 namespace cpp2 apache.thrift.test
 
-cpp_include "thrift/test/structs_extra.h"
+cpp_include "thrift/test/StructsExtra.h"
 
 struct Basic {
   1: i32 def_field;
@@ -73,7 +73,7 @@ struct HasSmallSortedVector {
 struct NoexceptMoveStruct {
   1: string string_field;
   2: i32 i32_field;
-} (cpp.noexcept_move)
+}
 
 struct CppDataMethod {
   1: i32 foo;

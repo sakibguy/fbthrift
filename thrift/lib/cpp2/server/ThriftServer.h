@@ -63,6 +63,8 @@
 DECLARE_bool(thrift_abort_if_exceeds_shutdown_deadline);
 DECLARE_string(service_identity);
 
+THRIFT_FLAG_DECLARE_bool(dump_snapshot_on_long_shutdown);
+
 namespace apache {
 namespace thrift {
 
@@ -184,8 +186,6 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
 
   void updateCertsToWatch();
 
-  bool queueSends_ = true;
-
   bool stopWorkersOnStopListening_ = true;
   bool joinRequestsWhenServerStops_{true};
 
@@ -216,13 +216,11 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
   void callOnStartServing();
   void callOnStopServing();
 
-  std::atomic<bool> stoppedListening_{false};
+  void ensureDecoratedProcessorFactoryInitialized();
 
 #if FOLLY_HAS_COROUTINES
   std::unique_ptr<folly::coro::CancellableAsyncScope> asyncScope_;
 #endif
-
-  bool stopAcceptingAndJoinOutstandingRequestsDone_{false};
 
   folly::Synchronized<std::optional<TLSCredentialWatcher>> tlsCredWatcher_{};
 
@@ -240,7 +238,103 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
 
   bool quickExitOnShutdownTimeout_ = false;
 
-  std::atomic<bool> started_{false};
+ public:
+  /**
+   * The goal of this enum is to capture every state the server goes through in
+   * its lifecycle. Notice how the lifecycle is actually a cycle - after the
+   * server stops, it returns to its initial state of NOT_RUNNING.
+   *
+   * NOTE: For the restrictions regarding only allowing internal methods - these
+   * do not apply if getRejectRequestsUntilStarted() is false.
+   */
+  enum class ServerStatus {
+    /**
+     * The server is not running. Either:
+     *   1. The server was never started. Or,
+     *   2. The server was stopped and there are outstanding requests
+     *      were drained.
+     */
+    NOT_RUNNING = 0,
+    /**
+     * The server is about to start and is executing
+     * TServerEventHandler::preStart hooks. If getRejectRequestsUntilStarted()
+     * is true, the server only responds to internal methods. See
+     * ServerConfigs::getInternalMethods.
+     */
+    PRE_STARTING,
+    /**
+     * The preStart hooks are done executing and
+     * ServiceHandler::semifuture_onStartServing hooks are executing. If
+     * getRejectRequestsUntilStarted() is true, the server only responds to
+     * internal methods.
+     */
+    STARTING,
+    /**
+     * The service is healthy and ready to handle traffic.
+     */
+    RUNNING,
+    /**
+     * The server is preparing to stop. No new connections are accepted.
+     * Existing connections are unaffected.
+     */
+    PRE_STOPPING,
+    /**
+     * The server is about to stop and ServiceHandler::semifuture_onStopServing
+     * hooks are still executing.
+     */
+    STOPPING,
+    /**
+     * ServiceHandler::semifuture_onStopServing hooks have finished executing.
+     * Outstanding requests are being joined. New requests are rejected.
+     */
+    DRAINING_UNTIL_STOPPED,
+  };
+
+  ServerStatus getServerStatus() const {
+    auto status = internalStatus_.load(std::memory_order_acquire);
+    if (status == ServerStatus::RUNNING && !getEnabled()) {
+      // Even if the server is capable of serving, the user might have
+      // explicitly disabled the service at startup, in which case the server
+      // only responds to internal methods.
+      return ServerStatus::STARTING;
+    }
+    return status;
+  }
+
+  RequestHandlingCapability shouldHandleRequests() const override {
+    auto status = getServerStatus();
+    switch (status) {
+      case ServerStatus::RUNNING:
+        return RequestHandlingCapability::ALL;
+      case ServerStatus::NOT_RUNNING:
+        // The server can be in the NOT_RUNNING state and still have open
+        // connections, for example, if useExistingSocket is called with a
+        // socket that is already listening.
+        [[fallthrough]];
+      case ServerStatus::PRE_STARTING:
+      case ServerStatus::STARTING:
+        return getRejectRequestsUntilStarted()
+            ? RequestHandlingCapability::INTERNAL_METHODS_ONLY
+            : RequestHandlingCapability::ALL;
+      case ServerStatus::PRE_STOPPING:
+      case ServerStatus::STOPPING:
+        // When the server is stopping, we close the sockets for new
+        // connections. However, existing connections should be unaffected.
+        return RequestHandlingCapability::ALL;
+      case ServerStatus::DRAINING_UNTIL_STOPPED:
+      default:
+        return RequestHandlingCapability::NONE;
+    }
+  }
+
+ private:
+  /**
+   * Thrift server's view of the currently running service. This status
+   * represents the source of truth for the status reported by the server.
+   */
+  std::atomic<ServerStatus> internalStatus_{ServerStatus::NOT_RUNNING};
+
+  std::unique_ptr<AsyncProcessorFactory> decoratedProcessorFactory_;
 
  public:
   ThriftServer();
@@ -555,9 +649,21 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
   /**
    * Get CancellableAsyncScope that will be maintained by the Thrift Server.
    * Cancellation is requested when the server is stopping.
+   * Returns nullptr, before server setup and after server stops.
    */
-  folly::coro::CancellableAsyncScope& getAsyncScope() { return *asyncScope_; }
+  folly::coro::CancellableAsyncScope* getAsyncScope() {
+    return asyncScope_.get();
+  }
+
+  /**
+   * Get the global CancellableAsyncScope, it is usally the AsyncScope
+   * associated with the global server Cancellation is requested when the
+   * global server is stopping.
+   */
+  static folly::coro::CancellableAsyncScope& getGlobalAsyncScope();
 #endif
+
+  static void setGlobalServer(ThriftServer* server);
 
   void setAcceptorFactory(
       const std::shared_ptr<wangle::AcceptorFactory>& acceptorFactory) {
@@ -601,13 +707,6 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
    * Get the number of connections dropped by the AsyncServerSocket
    */
   uint64_t getNumDroppedConnections() const override;
-
-  /**
-   * Check if the server and all the handlers have started.
-   */
-  bool getStarted() const override {
-    return started_.load(std::memory_order_acquire);
-  }
 
   /**
    * Clear all the workers.
@@ -696,14 +795,6 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
    */
   void stopListening() override;
 
-  /**
-   * Queue sends - better throughput by avoiding syscalls, but can increase
-   * latency for low-QPS servers.  Defaults to true
-   */
-  void setQueueSends(bool queueSends) { queueSends_ = queueSends; }
-
-  bool getQueueSends() { return queueSends_; }
-
   // client side duplex
   std::shared_ptr<HeaderServerChannel> getDuplexServerChannel() {
     return serverChannel_;
@@ -755,6 +846,41 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
    */
   virtual void setProcessorFactory(
       std::shared_ptr<AsyncProcessorFactory> pFac) override;
+
+  /**
+   * Returns an AsyncProcessorFactory that wraps the user-provided service and
+   * additionally handles Thrift-internal methods as well (such as the
+   * monitoring interface).
+   *
+   * This is the factory that all transports should use to handle requests.
+   */
+  AsyncProcessorFactory& getDecoratedProcessorFactory() const {
+    CHECK(decoratedProcessorFactory_)
+        << "Server must be set up before calling this method";
+    return *decoratedProcessorFactory_;
+  }
+
+  /**
+   * Returns an AsyncProcessor from getDecoratedProcessorFactory() without any
+   * application-specific event handlers installed on the underlying processors.
+   * This is useful, for example, in InterfaceKind::MONITORING where
+   * application-specific checks (such as ACL checks) should be bypassed.
+   */
+  std::unique_ptr<AsyncProcessor> getDecoratedProcessorWithoutEventHandlers()
+      const;
+
+  /**
+   * A struct containing all "extra" internal interfaces that the service
+   * multiplexes behind the main user-defined interface.
+   *
+   * See ThriftServer::getDecoratedProcessorFactory.
+   */
+  struct ExtraInterfaces {
+    // See ThriftServer::setMonitoringInterface.
+    std::shared_ptr<MonitoringServerInterface> monitoring;
+    // See ThriftServer::setStatusInterface.
+    std::shared_ptr<StatusServerInterface> status;
+  };
 
   // ThriftServer by defaults uses a global ShutdownSocketSet, so all socket's
   // FDs are registered there. But in some tests you might want to simulate 2
@@ -903,9 +1029,7 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
 template <typename AcceptorClass, typename SharedSSLContextManagerClass>
 class ThriftAcceptorFactory : public wangle::AcceptorFactorySharedSSLContext {
  public:
-  ThriftAcceptorFactory<AcceptorClass, SharedSSLContextManagerClass>(
-      ThriftServer* server)
-      : server_(server) {}
+  ThriftAcceptorFactory(ThriftServer* server) : server_(server) {}
 
   std::shared_ptr<wangle::SharedSSLContextManager>
   initSharedSSLContextManager() {

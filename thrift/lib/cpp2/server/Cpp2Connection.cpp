@@ -120,7 +120,7 @@ Cpp2Connection::Cpp2Connection(
     const folly::SocketAddress* address,
     std::shared_ptr<Cpp2Worker> worker,
     const std::shared_ptr<HeaderServerChannel>& serverChannel)
-    : processorFactory_(*worker->getServer()->getProcessorFactory()),
+    : processorFactory_(worker->getServer()->getDecoratedProcessorFactory()),
       serviceMetadata_(worker->getMetadataForService(processorFactory_)),
       processor_(processorFactory_.getProcessor()),
       duplexChannel_(
@@ -147,7 +147,6 @@ Cpp2Connection::Cpp2Connection(
       transport_(transport),
       threadManager_(worker_->getServer()->getThreadManager()) {
   context_.setTransportType(Cpp2ConnContext::TransportType::HEADER);
-  channel_->setQueueSends(worker_->getServer()->getQueueSends());
 
   if (auto* observer = worker_->getServer()->getObserver()) {
     channel_->setSampleRate(observer->getSampleRate());
@@ -483,17 +482,13 @@ void Cpp2Connection::requestReceived(
     return;
   }
 
-  if (!worker_->getServer()->getEnabled() ||
-      (worker_->getServer()->getRejectRequestsUntilStarted() &&
-       !worker_->getServer()->getStarted())) {
-    if (!worker_->getServer()->getInternalMethods().count(methodName)) {
-      killRequest(
-          std::move(hreq),
-          TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
-          kQueueOverloadedErrorCode,
-          "server not ready");
-      return;
-    }
+  if (!worker_->getServer()->shouldHandleRequestForMethod(methodName)) {
+    killRequest(
+        std::move(hreq),
+        TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
+        kQueueOverloadedErrorCode,
+        "server not ready");
+    return;
   }
 
   // After this, the request buffer is no longer owned by the request

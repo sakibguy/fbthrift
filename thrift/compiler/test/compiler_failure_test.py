@@ -713,6 +713,91 @@ class CompilerFailureTest(unittest.TestCase):
             "[WARNING:foo.thrift:2] `cpp.ref` field `rec` must be optional if it is recursive.\n",
         )
 
+    def test_structured_ref(self):
+        write_file(
+            "thrift/annotation/cpp.thrift",
+            textwrap.dedent(
+                """\
+                enum RefType {Unique, SharedConst, SharedMutable}
+                struct Ref {
+                  1: RefType type;
+                } (thrift.uri = "facebook.com/thrift/annotation/cpp/Ref")
+                """
+            ),
+        )
+
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                include "thrift/annotation/cpp.thrift"
+
+                struct Foo {
+                  1: optional Foo field1 (cpp.ref);
+
+                  @cpp.Ref{type = cpp.RefType.Unique}
+                  2: optional Foo field2;
+
+                  @cpp.Ref{type = cpp.RefType.Unique}
+                  3: optional Foo field3 (cpp.ref);
+
+                  @cpp.Ref{type = cpp.RefType.Unique}
+                  @cpp.Ref{type = cpp.RefType.Unique}
+                  4: optional Foo field4;
+                }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            '\n' + err,
+            textwrap.dedent("""
+                [FAILURE:foo.thrift:10] The @cpp.Ref annotation cannot be combined with the `cpp.ref` or `cpp.ref_type` annotations. Remove one of the annotations from `field3`.
+                [FAILURE:foo.thrift:13] Structured annotation `Ref` is already defined for `field4`.
+                [FAILURE:foo.thrift:13] Structured annotation thrift.uri `facebook.com/thrift/annotation/cpp/Ref` is already defined for `field4`.
+            """)
+        )
+
+    def test_experimental_adapter(self):
+        write_file(
+            "thrift/annotation/cpp.thrift",
+            textwrap.dedent(
+                """\
+                struct ExperimentalAdapter {
+                  1: string name;
+                } (thrift.uri = "facebook.com/thrift/annotation/cpp/ExperimentalAdapter")
+                """
+            ),
+        )
+
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                include "thrift/annotation/cpp.thrift"
+
+                typedef i64 MyI64 (cpp.adapter="MyAdapter")
+
+                struct MyStruct {
+                  @cpp.ExperimentalAdapter{name="MyAdapter"}
+                  1: MyI64 my_field;
+                }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            "[FAILURE:foo.thrift:7] `@cpp.ExperimentalAdapter` cannot be "
+            "combined with `cpp_adapter` in `my_field`.\n",
+        )
+
     def test_mixin_nonstruct_members(self):
         write_file(
             "foo.thrift",
@@ -1153,12 +1238,15 @@ class CompilerFailureTest(unittest.TestCase):
                 } (thrift.uri = "facebook.com/thrift/annotation/Interaction")
                 struct Function {
                 } (thrift.uri = "facebook.com/thrift/annotation/Function")
-                struct Enum {
-                } (thrift.uri = "facebook.com/thrift/annotation/Enum")
                 struct EnumValue {
                 } (thrift.uri = "facebook.com/thrift/annotation/EnumValue")
                 struct Const {
                 } (thrift.uri = "facebook.com/thrift/annotation/Const")
+
+                // Due to cython bug, we can not use `Enum` as class name directly
+                // https://github.com/cython/cython/issues/2474
+                struct FbthriftInternalEnum {}
+                typedef FbthriftInternalEnum Enum (thrift.uri = "facebook.com/thrift/annotation/Enum")
                 """
             ),
         )
@@ -1180,16 +1268,23 @@ class CompilerFailureTest(unittest.TestCase):
                 @scope.Field
                 struct StructOrFieldAnnot {}
 
+                @scope.Enum
+                struct EnumAnnot {}
+
                 @NotAnAnnot
                 @StructAnnot
                 @FieldAnnot
                 @StructOrFieldAnnot
+                @EnumAnnot
                 struct TestStruct {
                     @FieldAnnot
                     @StructAnnot
                     @StructOrFieldAnnot
                     1: bool test_field;
                 }
+
+                @EnumAnnot
+                enum TestEnum { Foo = 0, Bar = 1 }
                 """
             ),
         )
@@ -1199,9 +1294,10 @@ class CompilerFailureTest(unittest.TestCase):
             "\n" + err,
             textwrap.dedent(
                 """
-                [WARNING:foo.thrift:15] Using `NotAnAnnot` as an annotation, even though it has not been enabled for any annotation scope.
-                [FAILURE:foo.thrift:17] `FieldAnnot` cannot annotate `TestStruct`
-                [FAILURE:foo.thrift:21] `StructAnnot` cannot annotate `test_field`
+                [WARNING:foo.thrift:18] Using `NotAnAnnot` as an annotation, even though it has not been enabled for any annotation scope.
+                [FAILURE:foo.thrift:20] `FieldAnnot` cannot annotate `TestStruct`
+                [FAILURE:foo.thrift:22] `EnumAnnot` cannot annotate `TestStruct`
+                [FAILURE:foo.thrift:25] `StructAnnot` cannot annotate `test_field`
                 """
             ),
         )
@@ -1224,5 +1320,66 @@ class CompilerFailureTest(unittest.TestCase):
             err,
             textwrap.dedent(
                 "[FAILURE:foo.thrift:1] cpp.methods is incompatible with lazy deserialization in struct `Foo`\n"
+            ),
+        )
+
+    def test_duplicate_field_id(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                struct A {
+                    1: i64 field1;
+                    1: i64 field2;
+                }
+
+                struct B {
+                    1: i64 field1;
+                }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            textwrap.dedent(
+                '[FAILURE:foo.thrift:3] Field identifier 1 for "field2" has already been used.\n'
+            ),
+        )
+
+    def test_structured_annotation_thrift_uri(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                struct Struct1 {
+                } (thrift.uri = "facebook.com/thrift/annotation/Struct")
+                struct Struct2 {
+                } (thrift.uri = "facebook.com/thrift/annotation/Struct")
+
+                @Struct1
+                struct Struct3 {}
+
+                @Struct2
+                struct Struct4 {}
+
+                @Struct1
+                @Struct2
+                struct Struct5 {}
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift")
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            "\n" + err,
+            textwrap.dedent(
+                """
+                [FAILURE:foo.thrift:14] Structured annotation thrift.uri `facebook.com/thrift/annotation/Struct` is already defined for `Struct5`.
+                """
             ),
         )

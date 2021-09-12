@@ -37,6 +37,7 @@
 #include <thrift/lib/cpp/server/TServerObserver.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/PluggableFunction.h>
+#include <thrift/lib/cpp2/async/MultiplexAsyncProcessor.h>
 #include <thrift/lib/cpp2/server/Cpp2Connection.h>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
 #include <thrift/lib/cpp2/server/LoggingEvent.h>
@@ -65,12 +66,19 @@ DEFINE_string(
 
 THRIFT_FLAG_DEFINE_bool(server_alpn_prefer_rocket, true);
 THRIFT_FLAG_DEFINE_bool(server_enable_stoptls, false);
-THRIFT_FLAG_DEFINE_bool(ssl_policy_default_required, false);
+THRIFT_FLAG_DEFINE_bool(ssl_policy_default_required, true);
 
+THRIFT_FLAG_DEFINE_bool(dump_snapshot_on_long_shutdown, true);
 THRIFT_PLUGGABLE_FUNC_REGISTER(
     apache::thrift::ThriftServer::DumpSnapshotOnLongShutdownResult,
     dumpSnapshotOnLongShutdown) {
   return {folly::makeSemiFuture(folly::unit), 0ms};
+}
+
+THRIFT_PLUGGABLE_FUNC_REGISTER(
+    apache::thrift::ThriftServer::ExtraInterfaces,
+    createDefaultExtraInterfaces) {
+  return {nullptr /* monitoring */, nullptr /* status */};
 }
 
 namespace {
@@ -103,6 +111,35 @@ using RequestSnapshot = ThriftServer::RequestSnapshot;
 using std::shared_ptr;
 using wangle::TLSCredProcessor;
 
+namespace {
+/**
+ * Multiplexes the user-service (set via setProcessorFactory) with the
+ * monitoring interface (set via setMonitoringInterface).
+ */
+std::unique_ptr<AsyncProcessorFactory> createDecoratedProcessorFactory(
+    std::shared_ptr<AsyncProcessorFactory> processorFactory,
+    std::shared_ptr<StatusServerInterface> statusProcessorFactory,
+    std::shared_ptr<MonitoringServerInterface> monitoringProcessorFactory) {
+  std::vector<std::shared_ptr<AsyncProcessorFactory>> servicesToMultiplex;
+  CHECK(processorFactory != nullptr);
+  servicesToMultiplex.emplace_back(std::move(processorFactory));
+  if (statusProcessorFactory != nullptr) {
+    servicesToMultiplex.emplace_back(std::move(statusProcessorFactory));
+  }
+  if (monitoringProcessorFactory != nullptr) {
+    servicesToMultiplex.emplace_back(std::move(monitoringProcessorFactory));
+  }
+  return std::make_unique<MultiplexAsyncProcessorFactory>(
+      std::move(servicesToMultiplex));
+}
+} // namespace
+
+#if FOLLY_HAS_COROUTINES
+folly::coro::CancellableAsyncScope* ServiceHandler::getAsyncScope() {
+  return server_->getAsyncScope();
+}
+#endif
+
 TLSCredentialWatcher::TLSCredentialWatcher(ThriftServer* server)
     : credProcessor_() {
   credProcessor_.addCertCallback([server] { server->updateTLSCert(); });
@@ -122,6 +159,9 @@ ThriftServer::ThriftServer()
     sslPolicy_ = SSLPolicy::PERMITTED;
   }
   metadata().wrapper = "ThriftServer-cpp";
+  auto extraInterfaces = THRIFT_PLUGGABLE_FUNC(createDefaultExtraInterfaces)();
+  setMonitoringInterface(std::move(extraInterfaces.monitoring));
+  setStatusInterface(std::move(extraInterfaces.status));
 }
 
 ThriftServer::ThriftServer(
@@ -164,8 +204,8 @@ SSLPolicy ThriftServer::getSSLPolicy() const {
     return *sslPolicy_;
   }
   // Otherwise, fallback to default (currently defined through a ThriftFlag).
-  // PERMITTED is the old default. REQUIRED is the new default we're migrating
-  // to. We can use ThriftFlags to opt-out services.
+  // REQUIRED is the new default we're migrating to. We use ThriftFlags to
+  // opt-out services that still need to use PERMITTED.
   return THRIFT_FLAG(ssl_policy_default_required) ? SSLPolicy::REQUIRED
                                                   : SSLPolicy::PERMITTED;
 }
@@ -175,6 +215,14 @@ void ThriftServer::setProcessorFactory(
   CHECK(configMutable());
   BaseThriftServer::setProcessorFactory(pFac);
   thriftProcessor_.reset(new ThriftProcessor(*this));
+}
+
+std::unique_ptr<AsyncProcessor>
+ThriftServer::getDecoratedProcessorWithoutEventHandlers() const {
+  return static_cast<MultiplexAsyncProcessorFactory&>(
+             getDecoratedProcessorFactory())
+      .getProcessorWithUnderlyingModifications(
+          [](AsyncProcessor& processor) { processor.clearEventHandlers(); });
 }
 
 void ThriftServer::useExistingSocket(
@@ -269,11 +317,10 @@ void ThriftServer::touchRequestTimestamp() noexcept {
 void ThriftServer::setup() {
   THRIFT_SERVER_EVENT(serve).log(*this);
 
-  DCHECK(getProcessorFactory().get());
+  ensureDecoratedProcessorFactoryInitialized();
+
   auto nWorkers = getNumIOWorkerThreads();
   DCHECK_GT(nWorkers, 0u);
-
-  stopAcceptingAndJoinOutstandingRequestsDone_ = false;
 
   addRoutingHandler(
       std::make_unique<apache::thrift::RocketRoutingHandler>(*this));
@@ -382,14 +429,6 @@ void ThriftServer::setup() {
       // the kernel.)
       ServerBootstrap::getSockets()[0]->getAddress(&addresses_.at(0));
 
-      // THRIFT_PORT_OUT should be set with value of length 5. After thrift
-      // server setup the env var will contain the port.
-      if (auto portOutput = getenv("THRIFT_PORT_OUT")) {
-        if (strlen(portOutput) == 5) {
-          snprintf(portOutput, 6, "%05d", addresses_.at(0).getPort());
-        }
-      }
-
       // we enable zerocopy for the server socket if the
       // zeroCopyEnableFunc_ is valid
       bool useZeroCopy = !!zeroCopyEnableFunc_;
@@ -414,20 +453,34 @@ void ThriftServer::setup() {
       startDuplex();
     }
 
+#if FOLLY_HAS_COROUTINES
+    asyncScope_ = std::make_unique<folly::coro::CancellableAsyncScope>();
+#endif
+    for (auto handler : getDecoratedProcessorFactory().getServiceHandlers()) {
+      handler->setServer(this);
+    }
+
+    DCHECK(
+        internalStatus_.load(std::memory_order_relaxed) ==
+        ServerStatus::NOT_RUNNING);
+    // The server is not yet ready for the user's service methods but fine to
+    // handle internal methods. See ServerConfigs::getInternalMethods().
+    internalStatus_.store(
+        ServerStatus::PRE_STARTING, std::memory_order_release);
+
     // Notify handler of the preStart event
     for (const auto& eventHandler : getEventHandlersUnsafe()) {
       eventHandler->preStart(&addresses_.at(0));
     }
 
-    stoppedListening_ = false;
-#if FOLLY_HAS_COROUTINES
-    asyncScope_ = std::make_unique<folly::coro::CancellableAsyncScope>();
-#endif
+    internalStatus_.store(ServerStatus::STARTING, std::memory_order_release);
 
     // Called after setup
     callOnStartServing();
 
-    started_.store(true, std::memory_order_release);
+    // After the onStartServing hooks have finished, we are ready to handle
+    // requests, at least from the server's perspective.
+    internalStatus_.store(ServerStatus::RUNNING, std::memory_order_release);
 
     // Notify handler of the preServe event
     for (const auto& eventHandler : getEventHandlersUnsafe()) {
@@ -473,6 +526,7 @@ void ThriftServer::setupThreadManager() {
  */
 void ThriftServer::startDuplex() {
   CHECK(configMutable());
+  ensureDecoratedProcessorFactoryInitialized();
   duplexWorker_ = Cpp2Worker::create(this, serverChannel_);
   // we don't control the EventBase for the duplexWorker, so when we shut
   // it down, we need to ensure there's no delay
@@ -565,12 +619,22 @@ void ThriftServer::stop() {
 void ThriftServer::stopListening() {
   // We have to make sure stopListening() is not called twice when both
   // stopListening() and cleanUp() are called
-  if (stoppedListening_.exchange(true)) {
-    // stopListening() was called earlier
-    return;
+  {
+    auto expected = ServerStatus::RUNNING;
+    if (!internalStatus_.compare_exchange_strong(
+            expected,
+            ServerStatus::PRE_STOPPING,
+            std::memory_order_release,
+            std::memory_order_relaxed)) {
+      // stopListening() was called earlier
+      DCHECK(
+          expected == ServerStatus::PRE_STOPPING ||
+          expected == ServerStatus::STOPPING ||
+          expected == ServerStatus::DRAINING_UNTIL_STOPPED ||
+          expected == ServerStatus::NOT_RUNNING);
+      return;
+    }
   }
-  // Called before cleanUp
-  callOnStopServing();
 
 #if FOLLY_HAS_COROUTINES
   asyncScope_->requestCancellation();
@@ -609,9 +673,27 @@ void ThriftServer::stopWorkers() {
 }
 
 void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
-  if (std::exchange(stopAcceptingAndJoinOutstandingRequestsDone_, true)) {
-    return;
+  {
+    auto expected = ServerStatus::PRE_STOPPING;
+    if (!internalStatus_.compare_exchange_strong(
+            expected,
+            ServerStatus::STOPPING,
+            std::memory_order_release,
+            std::memory_order_relaxed)) {
+      // stopListening() was called earlier
+      DCHECK(
+          expected == ServerStatus::STOPPING ||
+          expected == ServerStatus::DRAINING_UNTIL_STOPPED ||
+          expected == ServerStatus::NOT_RUNNING);
+      return;
+    }
   }
+
+  callOnStopServing();
+
+  internalStatus_.store(
+      ServerStatus::DRAINING_UNTIL_STOPPED, std::memory_order_release);
+
   forEachWorker([&](wangle::Acceptor* acceptor) {
     if (auto worker = dynamic_cast<Cpp2Worker*>(acceptor)) {
       worker->requestStop();
@@ -630,10 +712,10 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
         &done, [](folly::Baton<>* done) { done->post(); });
 
     for (auto& socket : sockets) {
-      // Stop accepting new connections
+      // We should have already paused accepting new connections. This just
+      // closes the sockets once and for all.
       auto eb = socket->getEventBase();
       eb->runInEventBaseThread([socket = std::move(socket), doneGuard] {
-        // Close the listening socket
         // This will also cause the workers to stop
         socket->stopAccepting();
       });
@@ -642,23 +724,30 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
 
   auto joinDeadline =
       std::chrono::steady_clock::now() + getWorkersJoinTimeout();
+  bool dumpSnapshotFlag = THRIFT_FLAG(dump_snapshot_on_long_shutdown);
 
   forEachWorker([&](wangle::Acceptor* acceptor) {
     if (auto worker = dynamic_cast<Cpp2Worker*>(acceptor)) {
       if (!worker->waitForStop(joinDeadline)) {
         // Before we crash, let's dump a snapshot of the server.
+
+        // We create the CPUThreadPoolExecutor outside the if block so that it
+        // doesn't wait for our task to complete when exiting the block even
+        // after the timeout expires as we can't cancel the task
         folly::CPUThreadPoolExecutor dumpSnapshotExecutor{1};
-        // The IO threads may be deadlocked in which case we won't be able to
-        // dump snapshots. It still shouldn't block shutdown indefinitely.
-        auto dumpSnapshotResult =
-            THRIFT_PLUGGABLE_FUNC(dumpSnapshotOnLongShutdown)();
-        try {
-          std::move(dumpSnapshotResult.task)
-              .via(folly::getKeepAliveToken(dumpSnapshotExecutor))
-              .get(dumpSnapshotResult.timeout);
-        } catch (...) {
-          LOG(ERROR) << "Failed to dump server snapshot on long shutdown: "
-                     << folly::exceptionStr(std::current_exception());
+        if (dumpSnapshotFlag) {
+          // The IO threads may be deadlocked in which case we won't be able to
+          // dump snapshots. It still shouldn't block shutdown indefinitely.
+          auto dumpSnapshotResult =
+              THRIFT_PLUGGABLE_FUNC(dumpSnapshotOnLongShutdown)();
+          try {
+            std::move(dumpSnapshotResult.task)
+                .via(folly::getKeepAliveToken(dumpSnapshotExecutor))
+                .get(dumpSnapshotResult.timeout);
+          } catch (...) {
+            LOG(ERROR) << "Failed to dump server snapshot on long shutdown: "
+                       << folly::exceptionStr(std::current_exception());
+          }
         }
 
         auto msgTemplate =
@@ -683,43 +772,85 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
     }
   });
 
-  started_.store(false, std::memory_order_relaxed);
+  // Clear the decorated processor factory so that it's re-created if the server
+  // is restarted.
+  decoratedProcessorFactory_.reset();
+
+  internalStatus_.store(ServerStatus::NOT_RUNNING, std::memory_order_release);
+}
+
+void ThriftServer::ensureDecoratedProcessorFactoryInitialized() {
+  DCHECK(getProcessorFactory().get());
+  if (decoratedProcessorFactory_ == nullptr) {
+    decoratedProcessorFactory_ = createDecoratedProcessorFactory(
+        getProcessorFactory(), getStatusInterface(), getMonitoringInterface());
+    ;
+  }
 }
 
 void ThriftServer::callOnStartServing() {
-  auto handlerList = getProcessorFactory()->getServiceHandlers();
+  auto handlerList = getDecoratedProcessorFactory().getServiceHandlers();
+  // Exception is handled in setup()
   std::vector<folly::SemiFuture<folly::Unit>> futures;
   futures.reserve(handlerList.size());
   for (auto handler : handlerList) {
-    futures.emplace_back(handler->semifuture_onStartServing());
+    futures.emplace_back(
+        folly::makeSemiFuture().deferValue([handler](folly::Unit) {
+          return handler->semifuture_onStartServing();
+        }));
   }
-  folly::collectAll(futures.begin(), futures.end())
-      .via(getThreadManager().get())
-      .get();
+  folly::collectAll(futures).via(getThreadManager().get()).get();
 }
 
 void ThriftServer::callOnStopServing() {
-  auto handlerList = getProcessorFactory()->getServiceHandlers();
+  auto handlerList = getDecoratedProcessorFactory().getServiceHandlers();
   std::vector<folly::SemiFuture<folly::Unit>> futures;
   futures.reserve(handlerList.size());
   for (auto handler : handlerList) {
     futures.emplace_back(handler->semifuture_onStopServing());
   }
-  folly::collectAll(futures.begin(), futures.end())
-      .via(getThreadManager().get())
-      .get();
+  auto result =
+      folly::collectAll(futures).via(getThreadManager().get()).getTry();
+  if (result.hasException()) {
+    LOG(FATAL) << "Exception thrown by onStopServing(): "
+               << folly::exceptionStr(result.exception());
+  }
+}
+
+ThriftServer* globalServer;
+
+#if FOLLY_HAS_COROUTINES
+folly::coro::CancellableAsyncScope& ThriftServer::getGlobalAsyncScope() {
+  DCHECK(globalServer);
+  auto asyncScope = globalServer->getAsyncScope();
+  DCHECK(asyncScope);
+  return *asyncScope;
+}
+#endif
+
+void ThriftServer::setGlobalServer(ThriftServer* server) {
+  globalServer = server;
 }
 
 void ThriftServer::stopCPUWorkers() {
-#if FOLLY_HAS_COROUTINES
-  // Wait for tasks running on AsyncScope to join
-  folly::coro::blockingWait(asyncScope_->joinAsync());
-#endif
   // Wait for any tasks currently running on the task queue workers to
   // finish, then stop the task queue workers. Have to do this now, so
   // there aren't tasks completing and trying to write to i/o thread
   // workers after we've stopped the i/o workers.
   threadManager_->join();
+#if FOLLY_HAS_COROUTINES
+  // Wait for tasks running on AsyncScope to join
+  folly::coro::blockingWait(asyncScope_->joinAsync());
+#endif
+
+  // Notify handler of the postStop event
+  for (const auto& eventHandler : getEventHandlersUnsafe()) {
+    eventHandler->postStop();
+  }
+
+#if FOLLY_HAS_COROUTINES
+  asyncScope_.reset();
+#endif
 }
 
 void ThriftServer::handleSetupFailure(void) {
@@ -880,26 +1011,29 @@ folly::SemiFuture<ThriftServer::ServerSnapshot> ThriftServer::getServerSnapshot(
 
           std::unordered_map<folly::SocketAddress, ConnectionSnapshot>
               connectionSnapshots;
-          worker->getConnectionManager()->forEachConnection(
-              [&](wangle::ManagedConnection* wangleConnection) {
-                if (auto managedConnection =
-                        dynamic_cast<ManagedConnectionIf*>(wangleConnection)) {
-                  auto numActiveRequests =
-                      managedConnection->getNumActiveRequests();
-                  auto numPendingWrites =
-                      managedConnection->getNumPendingWrites();
-                  auto creationTime = managedConnection->getCreationTime();
-                  auto minCreationTime =
-                      snapshotTime - options.connectionsAgeMax;
-                  if (numActiveRequests > 0 || numPendingWrites > 0 ||
-                      creationTime > minCreationTime) {
-                    connectionSnapshots.emplace(
-                        managedConnection->getPeerAddress(),
-                        ConnectionSnapshot{
-                            numActiveRequests, numPendingWrites, creationTime});
-                  }
+          // ConnectionManager can be nullptr if the worker didn't have any open
+          // connections during shutdown
+          if (auto connectionManager = worker->getConnectionManager()) {
+            connectionManager->forEachConnection([&](wangle::ManagedConnection*
+                                                         wangleConnection) {
+              if (auto managedConnection =
+                      dynamic_cast<ManagedConnectionIf*>(wangleConnection)) {
+                auto numActiveRequests =
+                    managedConnection->getNumActiveRequests();
+                auto numPendingWrites =
+                    managedConnection->getNumPendingWrites();
+                auto creationTime = managedConnection->getCreationTime();
+                auto minCreationTime = snapshotTime - options.connectionsAgeMax;
+                if (numActiveRequests > 0 || numPendingWrites > 0 ||
+                    creationTime > minCreationTime) {
+                  connectionSnapshots.emplace(
+                      managedConnection->getPeerAddress(),
+                      ConnectionSnapshot{
+                          numActiveRequests, numPendingWrites, creationTime});
                 }
-              });
+              }
+            });
+          }
           return WorkerSnapshot{
               worker->getRequestsRegistry()->getRequestCounter().get(),
               std::move(requestSnapshots),

@@ -302,9 +302,17 @@ cdef class ConnectionContext:
     @property
     def peer_certificate(ConnectionContext self):
         cdef const_uchar* data
-        cdef shared_ptr[X509] cert
+        cdef X509UniquePtr cert
         cdef uint64_t length
-        cert = self._ctx.getPeerCertificate()
+        cdef const AsyncTransport* transport
+        cdef const AsyncTransportCertificate* osslCert
+        transport = self._ctx.getTransport()
+        if not transport:
+            return None
+        osslCert = transport.getPeerCertificate()
+        if not osslCert:
+            return None
+        cert = osslCert.getX509();
         if cert.get():
             iobuf = create_IOBuf(derEncode(deref(cert.get())))
             if iobuf.is_chained:
@@ -345,6 +353,7 @@ cdef class RequestContext:
         inst = <RequestContext>RequestContext.__new__(RequestContext)
         inst._ctx = ctx
         inst._c_ctx = ConnectionContext.create(ctx.getConnectionContext())
+        inst._requestId = getRequestId()
         return inst
 
     @property
@@ -374,3 +383,7 @@ cdef class RequestContext:
     @property
     def method_name(ConnectionContext self):
         return self._ctx.getMethodName().decode('utf-8')
+
+    @property
+    def request_id(self):
+        return self._requestId.decode('utf-8')

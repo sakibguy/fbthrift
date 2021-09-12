@@ -61,6 +61,10 @@ class Handler(TestingServiceInterface):
         ctx = get_context()
         return ctx.method_name
 
+    async def getRequestId(self) -> str:
+        ctx = get_context()
+        return ctx.request_id
+
     async def shutdown(self) -> None:
         pass
 
@@ -143,6 +147,11 @@ class ClientServerTests(unittest.TestCase):
                     self.assertEqual(
                         "getMethodName",
                         await client.getMethodName(),
+                    )
+                    # requestId is a 16 char wide hex string
+                    self.assertEqual(
+                        len(await client.getRequestId()),
+                        16,
                     )
 
         loop.run_until_complete(inner_test())
@@ -429,6 +438,34 @@ class ClientServerTests(unittest.TestCase):
                 self.assertEqual(results.count("Queue Timeout"), 3)
 
         loop.run_until_complete(clients_run(testing))
+
+    def test_cancelled_task(self) -> None:
+        """
+        This tests whether cancelled tasks are handled properly.
+        """
+        cancelledMessage: str = "I have been cancelled"
+
+        class CancelHandler(Handler):
+            async def getName(self) -> str:
+                raise asyncio.CancelledError(
+                    cancelledMessage
+                )  # Pretend that this is some await call that gets cancelled
+
+        loop = asyncio.get_event_loop()
+
+        async def inner_test() -> None:
+            async with TestServer(handler=CancelHandler(), ip="::1") as sa:
+                ip, port = sa.ip, sa.port
+                assert ip and port
+                async with get_client(TestingService, host=ip, port=port) as client:
+                    with self.assertRaises(ApplicationError) as ex:
+                        await client.getName()
+                    self.assertEqual(
+                        ex.exception.message,
+                        f"Application was cancelled on the server with message: {cancelledMessage}",
+                    )
+
+        loop.run_until_complete(inner_test())
 
 
 class StackHandler(StackServiceInterface):

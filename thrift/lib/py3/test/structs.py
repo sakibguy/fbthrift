@@ -44,14 +44,22 @@ class StructTests(unittest.TestCase):
     def test_isset_Struct(self) -> None:
         serialized = b'{"name":"/dev/null","type":8}'
         file = deserialize(File, serialized, protocol=Protocol.JSON)
+        # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for 1st
+        #  param but got `File`.
         self.assertTrue(Struct.isset(file).type)
+        # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for 1st
+        #  param but got `File`.
         self.assertFalse(Struct.isset(file).permissions)
         # required fields are always set
+        # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for 1st
+        #  param but got `File`.
         self.assertTrue(Struct.isset(file).name)
 
         serialized = b'{"name":"/dev/null"}'
         file = deserialize(File, serialized, protocol=Protocol.JSON)
         self.assertEqual(file.type, Kind.REGULAR)
+        # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for 1st
+        #  param but got `File`.
         self.assertFalse(Struct.isset(file).type)
 
     def test_isset_repr(self) -> None:
@@ -59,23 +67,33 @@ class StructTests(unittest.TestCase):
         file = deserialize(File, serialized, protocol=Protocol.JSON)
         self.assertEqual(
             "Struct.isset(<File>, name=True, permissions=False, type=True)",
+            # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for
+            #  1st param but got `File`.
             repr(Struct.isset(file)),
         )
         self.assertEqual(
             "Struct.isset(<File>, name=True, permissions=False, type=True)",
+            # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for
+            #  1st param but got `File`.
             str(Struct.isset(file)),
         )
 
     def test_isset_Union(self) -> None:
         i = Integers(large=2)
         with self.assertRaises(TypeError):
+            # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for
+            #  1st param but got `Integers`.
             Struct.isset(i).large
 
     def test_isset_Error(self) -> None:
         e = UnusedError()
+        # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for 1st
+        #  param but got `UnusedError`.
         self.assertFalse(Struct.isset(e).message)
 
         e = UnusedError(message="ACK")
+        # pyre-fixme[6]: Expected `HasIsSet[Variable[thrift.py3.types._T]]` for 1st
+        #  param but got `UnusedError`.
         self.assertTrue(Struct.isset(e).message)
 
     def test_copy(self) -> None:
@@ -87,6 +105,26 @@ class StructTests(unittest.TestCase):
 
     def test_hashability(self) -> None:
         hash(easy())
+
+    def test_str(self) -> None:
+        self.assertEqual(
+            "easy(val=0, val_list=i[], name=None, an_int=Integers(type=EMPTY, value=None))",
+            str(easy()),
+        )
+        self.assertEqual(
+            "easy(val=0, val_list=i[], name=None, an_int=Integers(type=EMPTY, value=None))",
+            repr(easy()),
+        )
+
+        x = easy(val=1, an_int=Integers(small=300), name="foo", val_list=[1, 2, 3, 4])
+        self.assertEqual(
+            "easy(val=1, val_list=i[1, 2, 3, 4], name='foo', an_int=Integers(type=small, value=300))",
+            str(x),
+        )
+        self.assertEqual(
+            "easy(val=1, val_list=i[1, 2, 3, 4], name='foo', an_int=Integers(type=small, value=300))",
+            repr(x),
+        )
 
     def test_optional_struct_creation(self) -> None:
         with self.assertRaises(TypeError):
@@ -131,8 +169,6 @@ class StructTests(unittest.TestCase):
     def test_runtime_checks(self) -> None:
         x = Runtime()
         with self.assertRaises(TypeError):
-            # pyre-fixme[6]: Expected `Union[None, bool, thrift.py3.types.__NotSet]`
-            #  for 1st param but got `int`.
             x(bool_val=5)
 
         with self.assertRaises(TypeError):
@@ -140,8 +176,6 @@ class StructTests(unittest.TestCase):
             Runtime(bool_val=5)
 
         with self.assertRaises(TypeError):
-            # pyre-fixme[6]: Expected `Union[None, Color,
-            #  thrift.py3.types.__NotSet]` for 1st param but got `int`.
             x(enum_val=2)
 
         with self.assertRaises(TypeError):
@@ -149,8 +183,6 @@ class StructTests(unittest.TestCase):
             Runtime(enum_val=2)
 
         with self.assertRaises(TypeError):
-            # pyre-fixme[6]: Expected `Union[None, typing.Sequence[int],
-            #  thrift.py3.types.__NotSet]` for 1st param but got `List[str]`.
             x(int_list_val=["foo", "bar", "baz"])
 
         with self.assertRaises(TypeError):

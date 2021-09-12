@@ -118,12 +118,23 @@ bool is_orderable(t_type const& type) {
   return is_orderable(seen, memo, type);
 }
 
-std::string const& get_type(const t_type* type) {
-  return value_or_empty(gen::cpp::type_resolver::find_type(type));
+int32_t isset_index(
+    std::unordered_map<t_field const*, int32_t>& memo, t_field const* field) {
+  if (field == nullptr) {
+    return -1;
+  }
+  if (!memo.count(field)) {
+    auto index = isset_index(memo, field->prev());
+    if (field_has_isset(field)) {
+      ++index;
+    }
+    memo[field] = index;
+  }
+  return memo[field];
 }
 
-std::string const& get_ref_type(const t_field* field) {
-  return value_or_empty(gen::cpp::detail::find_ref_type_annot(*field));
+std::string const& get_type(const t_type* type) {
+  return value_or_empty(gen::cpp::type_resolver::find_type(type));
 }
 
 bool is_implicit_ref(const t_type* type) {
@@ -254,8 +265,17 @@ bool is_mixin(const t_field& field) {
 }
 
 bool has_ref_annotation(const t_field& field) {
-  return field.has_annotation(
-      {"cpp.ref", "cpp2.ref", "cpp.ref_type", "cpp2.ref_type"});
+  switch (gen::cpp::find_ref_type(field)) {
+    case gen::cpp::reference_type::unique:
+    case gen::cpp::reference_type::shared_const:
+    case gen::cpp::reference_type::shared_mutable:
+    case gen::cpp::reference_type::unrecognized:
+      return true;
+    case gen::cpp::reference_type::none:
+    case gen::cpp::reference_type::boxed:
+      return false;
+  }
+  throw std::logic_error("Unhandled ref_type");
 }
 
 static void get_mixins_and_members_impl(

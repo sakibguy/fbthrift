@@ -19,6 +19,7 @@
 #include <cassert>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -62,6 +63,9 @@ namespace compiler {
  */
 class t_program : public t_node {
  public:
+  // The value used when an offset is not specified/unknown.
+  static constexpr auto noffset = static_cast<size_t>(-1);
+
   /**
    * Constructor for t_program
    *
@@ -253,6 +257,25 @@ class t_program : public t_node {
    */
   std::string compute_name_from_file_path(std::string path);
 
+  // Add the byte offset, from the beginning of the file, for the next new line
+  // ('\n').
+  void add_line_offset(size_t offset) {
+    assert(line_to_offset_.empty() || offset > line_to_offset_.back());
+    line_to_offset_.push_back(offset);
+  }
+  /**
+   * Computes the bytes offset for the given line, based on the offsets provied
+   * via `add_line_offset`
+   *
+   * @param line The 1-based line number.
+   * @param line_offset Optional additional 0-based byte offset to add to the
+   * result, iff line offset could be determined.
+   *
+   * @returns The byte offset, or `noffset` if line==0 or no offset data was
+   * provided for the given for line via `add_line_offset`.
+   */
+  size_t get_byte_offset(size_t line, size_t line_offset = 0) const noexcept;
+
  private:
   // All the elements owned by this program.
   node_list<t_node> nodes_;
@@ -278,6 +301,7 @@ class t_program : public t_node {
   std::map<std::string, std::string> namespaces_;
   std::vector<std::string> cpp_includes_;
   std::unique_ptr<t_scope> scope_{new t_scope{}};
+  std::vector<size_t> line_to_offset_{0};
 
   // TODO(afuller): Remove everything below this comment. It is only provided
   // for backwards compatibility.

@@ -25,8 +25,8 @@
 namespace apache {
 namespace thrift {
 namespace compiler {
-typedef void* yyscan_t;
-}
+using yyscan_t = void*;
+} // namespace compiler
 } // namespace thrift
 } // namespace apache
 

@@ -96,7 +96,14 @@ cdef class InitialResponse(thrift.py3.types.Struct):
 
 
     def __hash__(InitialResponse self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(InitialResponse self):
+        return super().__repr__()
+
+    def __str__(InitialResponse self):
+        return super().__str__()
+
 
     def __copy__(InitialResponse self):
         cdef shared_ptr[cInitialResponse] cpp_obj = make_shared[cInitialResponse](
@@ -132,13 +139,13 @@ cdef class InitialResponse(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(InitialResponse self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(InitialResponse self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cInitialResponse](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(InitialResponse self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(InitialResponse self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cInitialResponse]()
         with nogil:
@@ -184,7 +191,14 @@ cdef class FinalResponse(thrift.py3.types.Struct):
 
 
     def __hash__(FinalResponse self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(FinalResponse self):
+        return super().__repr__()
+
+    def __str__(FinalResponse self):
+        return super().__str__()
+
 
     def __copy__(FinalResponse self):
         cdef shared_ptr[cFinalResponse] cpp_obj = make_shared[cFinalResponse](
@@ -220,13 +234,13 @@ cdef class FinalResponse(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(FinalResponse self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(FinalResponse self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cFinalResponse](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(FinalResponse self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(FinalResponse self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cFinalResponse]()
         with nogil:
@@ -272,7 +286,14 @@ cdef class SinkPayload(thrift.py3.types.Struct):
 
 
     def __hash__(SinkPayload self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(SinkPayload self):
+        return super().__repr__()
+
+    def __str__(SinkPayload self):
+        return super().__str__()
+
 
     def __copy__(SinkPayload self):
         cdef shared_ptr[cSinkPayload] cpp_obj = make_shared[cSinkPayload](
@@ -308,13 +329,13 @@ cdef class SinkPayload(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(SinkPayload self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(SinkPayload self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cSinkPayload](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(SinkPayload self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(SinkPayload self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cSinkPayload]()
         with nogil:
@@ -360,7 +381,14 @@ cdef class CompatibleWithKeywordSink(thrift.py3.types.Struct):
 
 
     def __hash__(CompatibleWithKeywordSink self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(CompatibleWithKeywordSink self):
+        return super().__repr__()
+
+    def __str__(CompatibleWithKeywordSink self):
+        return super().__str__()
+
 
     def __copy__(CompatibleWithKeywordSink self):
         cdef shared_ptr[cCompatibleWithKeywordSink] cpp_obj = make_shared[cCompatibleWithKeywordSink](
@@ -396,13 +424,13 @@ cdef class CompatibleWithKeywordSink(thrift.py3.types.Struct):
     def __cinit__(self):
         self._fbthrift_struct_size = 1
 
-    cdef _fbthrift_iobuf.IOBuf _serialize(CompatibleWithKeywordSink self, __Protocol proto):
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(CompatibleWithKeywordSink self, __Protocol proto):
         cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
         with nogil:
             data = cmove(serializer.cserialize[cCompatibleWithKeywordSink](self._cpp_obj.get(), proto))
         return _fbthrift_iobuf.from_unique_ptr(cmove(data))
 
-    cdef cuint32_t _deserialize(CompatibleWithKeywordSink self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+    cdef cuint32_t _fbthrift_deserialize(CompatibleWithKeywordSink self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
         cdef cuint32_t needed
         self._cpp_obj = make_shared[cCompatibleWithKeywordSink]()
         with nogil:
@@ -439,7 +467,14 @@ cdef class InitialException(thrift.py3.exceptions.GeneratedError):
 
 
     def __hash__(InitialException self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(InitialException self):
+        return super().__repr__()
+
+    def __str__(InitialException self):
+        return super().__str__()
+
 
     def __copy__(InitialException self):
         cdef shared_ptr[cInitialException] cpp_obj = make_shared[cInitialException](
@@ -506,7 +541,14 @@ cdef class SinkException1(thrift.py3.exceptions.GeneratedError):
 
 
     def __hash__(SinkException1 self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(SinkException1 self):
+        return super().__repr__()
+
+    def __str__(SinkException1 self):
+        return super().__str__()
+
 
     def __copy__(SinkException1 self):
         cdef shared_ptr[cSinkException1] cpp_obj = make_shared[cSinkException1](
@@ -573,7 +615,14 @@ cdef class SinkException2(thrift.py3.exceptions.GeneratedError):
 
 
     def __hash__(SinkException2 self):
-        return  super().__hash__()
+        return super().__hash__()
+
+    def __repr__(SinkException2 self):
+        return super().__repr__()
+
+    def __str__(SinkException2 self):
+        return super().__str__()
+
 
     def __copy__(SinkException2 self):
         cdef shared_ptr[cSinkException2] cpp_obj = make_shared[cSinkException2](

@@ -26,7 +26,7 @@ const std::string* t_typedef::get_first_annotation_or_null(
     const t_type* type, alias_span name) {
   const std::string* result = nullptr;
   find_type_if(type, [&result, name](const t_type* type) {
-    return (result = type->get_annotation_or_null(name)) != nullptr;
+    return (result = type->find_annotation_or_null(name)) != nullptr;
   });
   return result;
 }
@@ -37,7 +37,7 @@ bool t_typedef::is_defined() const {
 
 bool t_placeholder_typedef::resolve() {
   assert(type_.get_type() == nullptr);
-  type_.set_type(scope_->get_type(program()->name() + "." + name()));
+  type_.set_type(scope_->find_type(program()->name() + "." + name()));
   return type_.get_type() != nullptr;
 }
 

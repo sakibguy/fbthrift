@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+include "thrift/annotation/cpp.thrift"
+
 cpp_include "<deque>"
 cpp_include "folly/container/F14Map.h"
 cpp_include "folly/FBString.h"
@@ -321,6 +323,7 @@ struct StructuredAnnotation {
 service TestingService {
   string getName();
   string getMethodName();
+  string getRequestId();
   oneway void shutdown();
   bool invert(1: bool value);
   i32 complex_action(
@@ -340,4 +343,12 @@ service TestingService {
 
 service TestingServiceChild extends TestingService {
   stream<i32> stream_func();
+}
+
+struct ListNode {
+  1: i32 value;
+
+
+  @cpp.Ref{type = cpp.RefType.Unique}
+  2: optional ListNode next;
 }

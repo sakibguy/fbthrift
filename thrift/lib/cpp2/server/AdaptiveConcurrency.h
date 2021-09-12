@@ -87,7 +87,8 @@ class AdaptiveConcurrencyController {
 
   using Clock = std::chrono::steady_clock;
   explicit AdaptiveConcurrencyController(
-      folly::observer::Observer<Config> config);
+      folly::observer::Observer<Config> config,
+      folly::observer::Observer<uint32_t> maxRequestsLimit);
 
   // server should call this methods for requests
   // it wants to use as input to the algorithm
@@ -131,11 +132,11 @@ class AdaptiveConcurrencyController {
   std::atomic<Clock::time_point> rttRecalcStart_{Clock::time_point{}};
   std::atomic<Clock::time_point> nextRttRecalcStart_{Clock::time_point{}};
   std::atomic<Clock::time_point> samplingPeriodStart_{Clock::time_point{}};
-  std::atomic<bool> enabled_{false};
 
   std::atomic<Duration> targetRtt_{Duration{}};
   std::atomic<Duration> sampledRtt_{Duration{}};
   folly::observer::Observer<Config> config_;
+  folly::observer::Observer<uint32_t> maxRequestsLimit_;
   folly::observer::CallbackHandle enablingCallback_;
   // the following concurrency limits are related but are not always
   // identical. Both keep track of the concurrency limit for the server.

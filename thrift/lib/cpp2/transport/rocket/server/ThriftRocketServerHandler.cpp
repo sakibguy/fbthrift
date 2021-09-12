@@ -192,7 +192,8 @@ void ThriftRocketServerHandler::handleSetupFrame(
       }
     }
     // no custom frame handler was found, do the default
-    processorFactory_ = worker_->getServer()->getProcessorFactory().get();
+    processorFactory_ =
+        std::addressof(worker_->getServer()->getDecoratedProcessorFactory());
     serviceMetadata_ =
         std::addressof(worker_->getMetadataForService(*processorFactory_));
     processor_ = processorFactory_->getProcessor();
@@ -486,13 +487,9 @@ void ThriftRocketServerHandler::handleRequestCommon(
     return;
   }
 
-  if (!serverConfigs_->getEnabled() ||
-      (serverConfigs_->getRejectRequestsUntilStarted() &&
-       !serverConfigs_->getStarted())) {
-    if (!serverConfigs_->getInternalMethods().count(name)) {
-      handleServerNotReady(std::move(request));
-      return;
-    }
+  if (!serverConfigs_->shouldHandleRequestForMethod(name)) {
+    handleServerNotReady(std::move(request));
+    return;
   }
 
   auto preprocessResult =
@@ -563,34 +560,37 @@ void ThriftRocketServerHandler::handleRequestCommon(
           : metadata.compression_ref().value_or(CompressionAlgorithm::NONE));
 
   try {
-    folly::variant_match(
-        methodMetadataResult,
-        [&](PerServiceMetadata::MetadataNotImplemented) {
-          // The AsyncProcessorFactory does not implement createMethodMetadata
-          // so we need to fallback to processSerializedCompressedRequest.
-          processor_->processSerializedCompressedRequest(
-              std::move(request),
-              std::move(serializedCompressedRequest),
-              protocolId,
-              cpp2ReqCtx,
-              eventBase_,
-              threadManager_.get());
-        },
-        [&](PerServiceMetadata::MetadataNotFound) {
-          std::string_view methodName = request->getMethodName();
-          AsyncProcessorHelper::sendUnknownMethodError(
-              std::move(request), methodName);
-        },
-        [&](const PerServiceMetadata::MetadataFound& found) {
-          processor_->processSerializedCompressedRequestWithMetadata(
-              std::move(request),
-              std::move(serializedCompressedRequest),
-              found.metadata,
-              protocolId,
-              cpp2ReqCtx,
-              eventBase_,
-              threadManager_.get());
-        });
+    if (auto* found = std::get_if<PerServiceMetadata::MetadataFound>(
+            &methodMetadataResult);
+        LIKELY(found != nullptr)) {
+      processor_->processSerializedCompressedRequestWithMetadata(
+          std::move(request),
+          std::move(serializedCompressedRequest),
+          found->metadata,
+          protocolId,
+          cpp2ReqCtx,
+          eventBase_,
+          threadManager_.get());
+    } else if (std::holds_alternative<
+                   PerServiceMetadata::MetadataNotImplemented>(
+                   methodMetadataResult)) {
+      // The AsyncProcessorFactory does not implement createMethodMetadata
+      // so we need to fallback to processSerializedCompressedRequest.
+      processor_->processSerializedCompressedRequest(
+          std::move(request),
+          std::move(serializedCompressedRequest),
+          protocolId,
+          cpp2ReqCtx,
+          eventBase_,
+          threadManager_.get());
+    } else if (std::holds_alternative<PerServiceMetadata::MetadataNotFound>(
+                   methodMetadataResult)) {
+      std::string_view methodName = request->getMethodName();
+      AsyncProcessorHelper::sendUnknownMethodError(
+          std::move(request), methodName);
+    } else {
+      LOG(FATAL) << "Invalid PerServiceMetadata from Cpp2Worker";
+    }
   } catch (...) {
     LOG(DFATAL) << "AsyncProcessor::process exception: "
                 << folly::exceptionStr(std::current_exception());

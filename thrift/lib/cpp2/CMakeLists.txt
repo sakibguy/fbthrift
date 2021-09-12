@@ -146,6 +146,7 @@ add_library(
   async/HeaderServerChannel.cpp
   async/HibernatingRequestChannel.cpp
   async/Interaction.cpp
+  async/MultiplexAsyncProcessor.cpp
   async/PooledRequestChannel.cpp
   async/ReconnectingRequestChannel.cpp
   async/RequestCallback.cpp
@@ -202,6 +203,7 @@ add_library(
   transport/rocket/server/ThriftRocketServerHandler.cpp
   util/Checksum.cpp
   util/DebugString.cpp
+  util/EmptyAsyncProcessor.cpp
   util/ScopedServerInterfaceThread.cpp
   util/ScopedServerThread.cpp
   visitation/visit_by_thrift_field_metadata.cpp

@@ -47,6 +47,18 @@ class EventHandler : public TProcessorEventHandler {
   }
 };
 
+class EventHandlerFactory : public TProcessorEventHandlerFactory {
+ public:
+  explicit EventHandlerFactory(std::shared_ptr<EventHandler> handler)
+      : handler_(std::move(handler)) {}
+  std::shared_ptr<TProcessorEventHandler> getEventHandler() override {
+    return handler_;
+  }
+
+ private:
+  std::shared_ptr<EventHandler> handler_;
+};
+
 template <class E>
 exception_ptr to_eptr(const E& e) {
   try {
@@ -57,6 +69,9 @@ exception_ptr to_eptr(const E& e) {
 }
 
 class TProcessorEventHandlerTest : public testing::Test {};
+
+class TProcessorTester : public TProcessorBase {};
+class TClientTester : public TClientBase {};
 
 } // namespace
 
@@ -93,4 +108,88 @@ TEST_F(TProcessorEventHandlerTest, with_wrap_declared) {
   eh.userExceptionWrapped(nullptr, nullptr, true, wrap);
   EXPECT_EQ("lulz", eh.ex_type);
   EXPECT_EQ("hello", eh.ex_what);
+}
+
+TEST_F(TProcessorEventHandlerTest, registerProcessorHandler) {
+  auto countProcessor = [](const auto& h) {
+    TProcessorTester tpt;
+    return std::count(
+        tpt.getEventHandlers().begin(), tpt.getEventHandlers().end(), h);
+  };
+  auto countClient = [](const auto& h) {
+    TClientTester tct;
+    return std::count(
+        tct.getEventHandlers().begin(), tct.getEventHandlers().end(), h);
+  };
+
+  auto h = std::make_shared<EventHandler>();
+  EXPECT_FALSE(countProcessor(h));
+  EXPECT_FALSE(countClient(h));
+  TProcessorBase::addProcessorEventHandler(h);
+  EXPECT_TRUE(countProcessor(h));
+  EXPECT_FALSE(countClient(h));
+  TClientBase::addClientEventHandler(h);
+  EXPECT_TRUE(countProcessor(h));
+  EXPECT_TRUE(countClient(h));
+  TProcessorBase::removeProcessorEventHandler(h);
+  EXPECT_FALSE(countProcessor(h));
+  EXPECT_TRUE(countClient(h));
+  TClientBase::removeClientEventHandler(h);
+  EXPECT_FALSE(countProcessor(h));
+  EXPECT_FALSE(countClient(h));
+}
+
+TEST_F(TProcessorEventHandlerTest, registrationActivity) {
+  auto count = []() { return TProcessorTester().getEventHandlers().size(); };
+
+  auto h1 = std::make_shared<EventHandler>();
+  auto h2 = std::make_shared<EventHandler>();
+  auto h3 = std::make_shared<EventHandler>();
+
+  EXPECT_EQ(count(), 0);
+  TProcessorBase::addProcessorEventHandler(h1);
+  EXPECT_EQ(count(), 1);
+  TProcessorBase::removeProcessorEventHandler(h1);
+  EXPECT_EQ(count(), 0);
+  TProcessorBase::addProcessorEventHandler(h1);
+  EXPECT_EQ(count(), 1);
+  TProcessorBase::addProcessorEventHandler(h2);
+  EXPECT_EQ(count(), 2);
+  TProcessorBase::removeProcessorEventHandler(h1);
+  EXPECT_EQ(count(), 1);
+  TProcessorBase::addProcessorEventHandler(h3);
+  EXPECT_EQ(count(), 2);
+  TProcessorBase::removeProcessorEventHandler(h3);
+  EXPECT_EQ(count(), 1);
+  TProcessorBase::removeProcessorEventHandler(h2);
+  EXPECT_EQ(count(), 0);
+}
+
+TEST_F(TProcessorEventHandlerTest, registerMultipleProcessorHandlerAndFactory) {
+  auto h1 = std::make_shared<EventHandler>();
+  auto h2 = std::make_shared<EventHandler>();
+  auto hf1 = std::make_shared<EventHandler>();
+  auto hf2 = std::make_shared<EventHandler>();
+  auto f1 = std::make_shared<EventHandlerFactory>(hf1);
+  auto f2 = std::make_shared<EventHandlerFactory>(hf2);
+
+  auto size = []() { return TProcessorTester().getEventHandlers().size(); };
+
+  EXPECT_EQ(size(), 0);
+  TProcessorBase::addProcessorEventHandler(h1);
+  EXPECT_EQ(size(), 1);
+  TProcessorBase::addProcessorEventHandler(h2);
+  EXPECT_EQ(size(), 2);
+  TProcessorBase::addProcessorEventHandlerFactory(f1);
+  EXPECT_EQ(size(), 3);
+  TProcessorBase::addProcessorEventHandlerFactory(f2);
+  EXPECT_EQ(size(), 4);
+  TProcessorBase::removeProcessorEventHandler(h1);
+  EXPECT_EQ(size(), 3);
+  TProcessorBase::removeProcessorEventHandlerFactory(f2);
+  EXPECT_EQ(size(), 2);
+  TProcessorBase::removeProcessorEventHandlerFactory(f1);
+  EXPECT_EQ(size(), 1);
+  TProcessorBase::removeProcessorEventHandler(h2);
+  EXPECT_EQ(size(), 0);
 }

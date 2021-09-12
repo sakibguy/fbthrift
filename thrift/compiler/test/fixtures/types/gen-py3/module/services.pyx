@@ -37,10 +37,8 @@ from folly cimport (
   c_unit,
 )
 from thrift.py3.common cimport (
-    cThriftServiceContext as __fbthrift_cThriftServiceContext,
-    cThriftMetadata as __fbthrift_cThriftMetadata,
+    cThriftServiceMetadataResponse as __fbthrift_cThriftServiceMetadataResponse,
     ServiceMetadata,
-    extractMetadataFromServiceContext,
     MetadataBox as __MetadataBox,
 )
 
@@ -73,22 +71,34 @@ from module.services_wrapper cimport cSomeServiceInterface
 
 @cython.auto_pickle(False)
 cdef class Promise_cmap__binary_cint64_t:
-    cdef cFollyPromise[unique_ptr[cmap[string,cint64_t]]] cPromise
+    cdef cFollyPromise[unique_ptr[cmap[string,cint64_t]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[cmap[string,cint64_t]]](cFollyPromise[unique_ptr[cmap[string,cint64_t]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[cmap[string,cint64_t]]] cPromise):
         cdef Promise_cmap__binary_cint64_t inst = Promise_cmap__binary_cint64_t.__new__(Promise_cmap__binary_cint64_t)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 @cython.auto_pickle(False)
 cdef class Promise__module_types_std_unordered_map__cint32_t_string:
-    cdef cFollyPromise[unique_ptr[_module_types.std_unordered_map[cint32_t,string]]] cPromise
+    cdef cFollyPromise[unique_ptr[_module_types.std_unordered_map[cint32_t,string]]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[unique_ptr[_module_types.std_unordered_map[cint32_t,string]]](cFollyPromise[unique_ptr[_module_types.std_unordered_map[cint32_t,string]]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
 
     @staticmethod
     cdef create(cFollyPromise[unique_ptr[_module_types.std_unordered_map[cint32_t,string]]] cPromise):
         cdef Promise__module_types_std_unordered_map__cint32_t_string inst = Promise__module_types_std_unordered_map__cint32_t_string.__new__(Promise__module_types_std_unordered_map__cint32_t_string)
-        inst.cPromise = cmove(cPromise)
+        inst.cPromise[0] = cmove(cPromise)
         return inst
 
 cdef object _SomeService_annotations = _py_types.MappingProxyType({
@@ -131,11 +141,9 @@ cdef class SomeServiceInterface(
 
     @staticmethod
     def __get_metadata__():
-        cdef __fbthrift_cThriftMetadata meta
-        cdef __fbthrift_cThriftServiceContext context
-        ServiceMetadata[_services_reflection.cSomeServiceSvIf].gen(meta, context)
-        extractMetadataFromServiceContext(meta, context)
-        return __MetadataBox.box(cmove(meta))
+        cdef __fbthrift_cThriftServiceMetadataResponse response
+        ServiceMetadata[_services_reflection.cSomeServiceSvIf].gen(response)
+        return __MetadataBox.box(cmove(deref(response.metadata_ref())))
 
     @staticmethod
     def __get_thrift_name__():
@@ -193,6 +201,12 @@ async def SomeService_bounce_map_coro(
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
         ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler bounce_map:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
     else:
         promise.cPromise.setValue(make_unique[_module_types.std_unordered_map[cint32_t,string]](deref((<_module_types.std_unordered_map__Map__i32_string?> result)._cpp_obj)))
 
@@ -245,6 +259,12 @@ async def SomeService_binary_keyed_map_coro(
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler binary_keyed_map:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
         ))
     else:
         promise.cPromise.setValue(make_unique[cmap[string,cint64_t]](deref((<_module_types.Map__binary_i64?> result)._cpp_obj)))

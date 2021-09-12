@@ -43,6 +43,9 @@ using apache::thrift::instrumentation::ServerTracker;
 constexpr std::string_view kServe = "serve";
 // Note not setting a ssl config is seen as a manual override
 constexpr std::string_view kNonTls = "non_tls.manual_policy";
+constexpr std::string_view kNewConnection = "new_connection";
+constexpr std::string_view kNewConnectionRocket = "new_connection.rocket";
+constexpr std::string_view kNewConnectionHeader = "new_connection.header";
 constexpr std::string_view kRocketSetup = "rocket.setup";
 
 using namespace apache::thrift;
@@ -72,6 +75,12 @@ class TestEventRegistry : public LoggingEventRegistry {
   TestEventRegistry() {
     serverEventMap_[kServe] = makeHandler<TestServerEventHandler>();
     connectionEventMap_[kNonTls] = makeHandler<TestConnectionEventHandler>();
+    connectionEventMap_[kNewConnection] =
+        makeHandler<TestConnectionEventHandler>();
+    connectionEventMap_[kNewConnectionRocket] =
+        makeHandler<TestConnectionEventHandler>();
+    connectionEventMap_[kNewConnectionHeader] =
+        makeHandler<TestConnectionEventHandler>();
     connectionEventMap_[kRocketSetup] =
         makeHandler<TestConnectionEventHandler>();
     serverTrackerMap_
@@ -225,6 +234,9 @@ class ConnectionEventLogTest
 
 TEST_P(ConnectionEventLogTest, connectionTest) {
   expectConnectionEventCall(kNonTls, 1);
+  expectConnectionEventCall(kNewConnection, 1);
+  expectConnectionEventCall(kNewConnectionRocket, isRocket() ? 1 : 0);
+  expectConnectionEventCall(kNewConnectionHeader, isRocket() ? 0 : 1);
   expectConnectionEventCall(kRocketSetup, isRocket() ? 1 : 0);
   auto handler = std::make_shared<TestServiceHandler>();
   ScopedServerInterfaceThread runner(handler);

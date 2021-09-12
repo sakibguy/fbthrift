@@ -25,6 +25,8 @@
 #include <folly/experimental/coro/AsyncGenerator.h>
 #include <folly/experimental/coro/Baton.h>
 #include <folly/experimental/coro/Task.h>
+#else
+#include <folly/CancellationToken.h>
 #endif
 
 #include <thrift/lib/cpp2/async/SinkBridgeUtil.h>
@@ -36,19 +38,18 @@ namespace apache {
 namespace thrift {
 namespace detail {
 
-#if FOLLY_HAS_COROUTINES
 class ClientSinkBridge;
 
 // Instantiated in ClientSinkBridge.cpp
 extern template class TwoWayBridge<
-    CoroConsumer,
+    ClientSinkConsumer,
     ClientMessage,
     ClientSinkBridge,
     ServerMessage,
     ClientSinkBridge>;
 
 class ClientSinkBridge : public TwoWayBridge<
-                             CoroConsumer,
+                             ClientSinkConsumer,
                              ClientMessage,
                              ClientSinkBridge,
                              ServerMessage,
@@ -57,14 +58,21 @@ class ClientSinkBridge : public TwoWayBridge<
  public:
   ~ClientSinkBridge() override;
 
-  folly::coro::Task<folly::Try<FirstResponsePayload>> getFirstThriftResponse();
+  class FirstResponseCallback {
+   public:
+    virtual ~FirstResponseCallback() = default;
+    virtual void onFirstResponse(FirstResponsePayload&&, Ptr) = 0;
+    virtual void onFirstResponseError(folly::exception_wrapper) = 0;
+  };
 
-  static Ptr create();
+  static SinkClientCallback* create(FirstResponseCallback* callback);
 
   void close();
 
+#if FOLLY_HAS_COROUTINES
   folly::coro::Task<folly::Try<StreamPayload>> sink(
       folly::coro::AsyncGenerator<folly::Try<StreamPayload>&&> generator);
+#endif
 
   void cancel(folly::Try<StreamPayload> payload);
 
@@ -89,16 +97,14 @@ class ClientSinkBridge : public TwoWayBridge<
   void canceled() {}
 
  private:
-  ClientSinkBridge();
+  explicit ClientSinkBridge(FirstResponseCallback* callback);
 
   void processServerMessages();
 
+#if FOLLY_HAS_COROUTINES
   // TODO(T88629984): These are implemented as static functions because
   // clang-9 + member function coroutines + ASAN == ICE. Revert D27688850
   // once everything using thrift sink is past clang-9.
-  static folly::coro::Task<folly::Try<FirstResponsePayload>>
-  getFirstThriftResponseImpl(ClientSinkBridge&);
-
   static folly::coro::Task<folly::Try<StreamPayload>> sinkImpl(
       ClientSinkBridge& self,
       folly::coro::AsyncGenerator<folly::Try<StreamPayload>&&> generator);
@@ -108,20 +114,15 @@ class ClientSinkBridge : public TwoWayBridge<
       int64_t& credit,
       folly::Try<StreamPayload>& finalResponse,
       folly::CancellationToken& clientCancelToken);
+#endif
 
-  folly::coro::Baton firstResponseBaton_{};
-  folly::Try<FirstResponsePayload> firstResponse_;
-
-  SinkServerCallback* serverCallback_{nullptr};
+  union {
+    FirstResponseCallback* firstResponseCallback_;
+    SinkServerCallback* serverCallback_;
+  };
   folly::Executor::KeepAlive<folly::EventBase> evb_;
   folly::CancellationSource serverCancelSource_;
 };
-#else
-class ClientSinkBridge {
- public:
-  using Ptr = std::unique_ptr<ClientSinkBridge>;
-};
-#endif
 
 } // namespace detail
 } // namespace thrift

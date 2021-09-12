@@ -119,7 +119,13 @@ fn test_struct_key() -> Result<()> {
     assert!(v.is_err());
 
     // ...but it needs to deserialize
-    assert_eq!(sub, deserialize(s).unwrap());
+    assert_eq!(sub, deserialize(&s).unwrap());
+
+    // ...though not to serde_json::Value.
+    if let Ok(wat) = deserialize(&s) {
+        let _: serde_json::Value = wat;
+        panic!("map with struct keys is not supposed to deserialize to Value");
+    }
 
     Ok(())
 }
@@ -203,7 +209,7 @@ fn test_need_commas() -> Result<()> {
     }"#
     .replace(" ", "")
     .replace("\n", "");
-    assert!(deserialize::<Small, _>(input).is_err());
+    assert!(deserialize::<Small, _, _>(input).is_err());
 
     // even when skipping
     let input2 = r#"{
@@ -214,7 +220,7 @@ fn test_need_commas() -> Result<()> {
     }"#
     .replace(" ", "")
     .replace("\n", "");
-    assert!(deserialize::<Small, _>(input2).is_err());
+    assert!(deserialize::<Small, _, _>(input2).is_err());
 
     Ok(())
 }
@@ -230,8 +236,8 @@ fn test_need_commas_containers() -> Result<()> {
     let badinput = r#"{
         "m":{"m1":"m1""m2":"m2"}
     }"#;
-    assert!(deserialize::<Containers, _>(goodinput).is_ok());
-    assert!(deserialize::<Containers, _>(badinput).is_err());
+    assert!(deserialize::<Containers, _, _>(goodinput).is_ok());
+    assert!(deserialize::<Containers, _, _>(badinput).is_err());
 
     let goodinput2 = r#"{
         "l":["l1","l2"]
@@ -240,8 +246,8 @@ fn test_need_commas_containers() -> Result<()> {
     let badinput2 = r#"{
         "l":["l1""l2"]
     }"#;
-    assert!(deserialize::<Containers, _>(goodinput2).is_ok());
-    assert!(deserialize::<Containers, _>(badinput2).is_err());
+    assert!(deserialize::<Containers, _, _>(goodinput2).is_ok());
+    assert!(deserialize::<Containers, _, _>(badinput2).is_err());
 
     Ok(())
 }

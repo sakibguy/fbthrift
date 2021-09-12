@@ -43,7 +43,7 @@
 #include <thrift/compiler/mutator/mutator.h>
 #include <thrift/compiler/parse/parsing_driver.h>
 #include <thrift/compiler/platform.h>
-#include <thrift/compiler/sema/ast_validator.h>
+#include <thrift/compiler/sema/standard_validator.h>
 #include <thrift/compiler/validator/validator.h>
 
 namespace apache {
@@ -399,6 +399,30 @@ std::string get_include_path(
 }
 
 } // namespace
+
+// TODO(urielrivas): Reuse somehow this function in compile(...).
+std::unique_ptr<t_program_bundle> parse_and_get_program(
+    const std::vector<std::string>& arguments) {
+  // Parse arguments.
+  parsing_params pparams{};
+  gen_params gparams{};
+  diagnostic_params dparams{};
+  std::string input_filename = parseArgs(arguments, pparams, gparams, dparams);
+
+  if (input_filename.empty()) {
+    return {};
+  }
+
+  // Parse and mutate it!
+  auto ctx = diagnostic_context::ignore_all();
+  parsing_driver driver{ctx, input_filename, std::move(pparams)};
+  auto program = driver.parse();
+  if (program) {
+    mutator::mutate(program->root_program());
+  }
+
+  return program;
+}
 
 compile_result compile(const std::vector<std::string>& arguments) {
   compile_result result;
