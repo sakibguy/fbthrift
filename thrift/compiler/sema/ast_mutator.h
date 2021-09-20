@@ -16,37 +16,30 @@
 
 #pragma once
 
-#include <cstdint>
+#include <thrift/compiler/ast/ast_visitor.h>
+#include <thrift/compiler/ast/diagnostic_context.h>
 
 namespace apache {
 namespace thrift {
 namespace compiler {
 
-inline constexpr bool kIsBigEndian() {
-#ifdef _WIN32
-  return false;
-#else
-  return __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__;
-#endif
-}
+// Mutators have mutable access to the AST.
+using mutator_context = visitor_context;
 
-/*
- * Use system specific byte swap functions
- */
-inline uint64_t bswap(const uint64_t b) {
-#ifdef _WIN32
-  return _byteswap_uint64(b);
-#else
-  return __builtin_bswap64(b);
-#endif
-}
+// An AST mutator is a ast_visitor that collects diagnostics and can
+// change the ast.
+class ast_mutator
+    : public basic_ast_visitor<false, diagnostic_context&, mutator_context&> {
+  using base = basic_ast_visitor<false, diagnostic_context&, mutator_context&>;
 
-/*
- * Convert a number from any platform to little Endian form.
- */
-inline uint64_t bswap_host_to_little_endian(const uint64_t b) {
-  return kIsBigEndian() ? bswap(b) : b;
-}
+ public:
+  using base::base;
+
+  void mutate(diagnostic_context& ctx, t_program& program) {
+    mutator_context mctx;
+    operator()(ctx, mctx, program);
+  }
+};
 
 } // namespace compiler
 } // namespace thrift

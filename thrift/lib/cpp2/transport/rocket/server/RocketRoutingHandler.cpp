@@ -36,7 +36,7 @@
 
 namespace apache {
 namespace thrift {
-namespace {
+namespace detail {
 
 #define REGISTER_SERVER_EXTENSION_DEFAULT(FUNC)                   \
   THRIFT_PLUGGABLE_FUNC_REGISTER(                                 \
@@ -52,7 +52,7 @@ REGISTER_SERVER_EXTENSION_DEFAULT(createRocketProfilingSetupFrameHandler)
 
 #undef REGISTER_SERVER_EXTENSION_DEFAULT
 
-} // namespace
+} // namespace detail
 
 RocketRoutingHandler::RocketRoutingHandler(ThriftServer& server) {
   auto addSetupFramehandler = [&](auto&& handlerFactory) {
@@ -61,11 +61,11 @@ RocketRoutingHandler::RocketRoutingHandler(ThriftServer& server) {
     }
   };
   addSetupFramehandler(
-      THRIFT_PLUGGABLE_FUNC(createRocketDebugSetupFrameHandler));
+      detail::THRIFT_PLUGGABLE_FUNC(createRocketDebugSetupFrameHandler));
   addSetupFramehandler(
-      THRIFT_PLUGGABLE_FUNC(createRocketMonitoringSetupFrameHandler));
+      detail::THRIFT_PLUGGABLE_FUNC(createRocketMonitoringSetupFrameHandler));
   addSetupFramehandler(
-      THRIFT_PLUGGABLE_FUNC(createRocketProfilingSetupFrameHandler));
+      detail::THRIFT_PLUGGABLE_FUNC(createRocketProfilingSetupFrameHandler));
 }
 
 RocketRoutingHandler::~RocketRoutingHandler() {
@@ -130,6 +130,7 @@ void RocketRoutingHandler::handleConnection(
   cfg.streamStarvationTimeout = server->getStreamExpireTime();
   cfg.writeBatchingInterval = server->getWriteBatchingInterval();
   cfg.writeBatchingSize = server->getWriteBatchingSize();
+  cfg.writeBatchingByteSize = server->getWriteBatchingByteSize();
   cfg.egressBufferBackpressureThreshold =
       server->getEgressBufferBackpressureThreshold();
   cfg.egressBufferBackpressureRecoveryFactor =

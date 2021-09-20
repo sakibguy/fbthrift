@@ -855,9 +855,15 @@ std::chrono::milliseconds requestedDumpSnapshotDelay = 0ms;
 // Dummy exit code to signal that we did manage to finish the (fake) snapshot
 constexpr int kExitCode = 156;
 
+} // namespace
+} // namespace long_shutdown
+
+namespace apache::thrift::detail {
+
 THRIFT_PLUGGABLE_FUNC_SET(
     apache::thrift::ThriftServer::DumpSnapshotOnLongShutdownResult,
     dumpSnapshotOnLongShutdown) {
+  using namespace long_shutdown;
   return {
       folly::futures::sleep(actualDumpSnapshotDelay).defer([](auto&&) {
         std::quick_exit(kExitCode);
@@ -865,8 +871,7 @@ THRIFT_PLUGGABLE_FUNC_SET(
       requestedDumpSnapshotDelay};
 }
 
-} // namespace
-} // namespace long_shutdown
+} // namespace apache::thrift::detail
 
 TEST(ThriftServerDeathTest, LongShutdown_DumpSnapshot) {
   EXPECT_EXIT(
@@ -2674,6 +2679,62 @@ TEST(ThriftServer, ClientOnlyTimeouts) {
   base.loop();
 }
 
+TEST(ThriftServerTest, QueueTimeHeaderTest) {
+  using namespace ::testing;
+  // Tests that queue time metadata is returned in the THeader when
+  // queueing delay on server side is greater than pre-defined threshold.
+  static constexpr std::chrono::milliseconds kDefaultQueueTimeout{100};
+  class QueueTimeTestHandler : public TestServiceSvIf {
+   public:
+    void sendResponse(std::string& _return, int64_t size) override {
+      _return = folly::to<std::string>(size);
+    }
+  };
+
+  auto handler = std::make_shared<QueueTimeTestHandler>();
+  ScopedServerInterfaceThread runner(handler);
+  folly::EventBase eb;
+  auto client = runner.newClient<TestServiceAsyncClient>(
+      &eb, RocketClientChannel::newChannel);
+  // Queue a task on the runner's ThreadManager to block it from
+  // executing the Thrift request.
+  auto tServer = dynamic_cast<ThriftServer*>(&runner.getThriftServer());
+  tServer->setQueueTimeout(kDefaultQueueTimeout);
+  auto threadManager = tServer->getThreadManager();
+
+  folly::Baton<> startedBaton;
+  threadManager->add([&startedBaton]() {
+    startedBaton.post();
+    /* sleep override */
+    std::this_thread::sleep_for(50ms);
+  });
+
+  startedBaton.wait();
+  // Send the request with a high queue timeout to make sure it succeeds.
+  RpcOptions options;
+  options.setTimeout(std::chrono::milliseconds(1000));
+  auto [resp, header] =
+      client->header_semifuture_sendResponse(options, 42).get();
+  EXPECT_EQ(resp, "42");
+  // Check that queue time headers are set
+  auto queueTimeout = header->getServerQueueTimeout();
+  auto queueingTime = header->getProcessDelay();
+  EXPECT_TRUE(queueTimeout.hasValue() && queueingTime.hasValue());
+  EXPECT_EQ(queueTimeout.value(), kDefaultQueueTimeout);
+  EXPECT_THAT(
+      queueingTime.value(),
+      AllOf(
+          Gt(std::chrono::milliseconds(5)), Lt(std::chrono::milliseconds(50))));
+
+  // Now send a request that will complete without any queueing.
+  // Verify that the headers are not present.
+  auto [resp2, header2] =
+      client->header_semifuture_sendResponse(options, 100).get();
+  EXPECT_EQ(resp2, "100");
+  EXPECT_FALSE(header2->getServerQueueTimeout().hasValue());
+  EXPECT_FALSE(header2->getProcessDelay().hasValue());
+}
+
 TEST(ThriftServer, QueueTimeoutStressTest) {
   // Make sure we only open one connection to the server.
   auto ioExecutor = std::make_shared<folly::IOThreadPoolExecutor>(1);
@@ -2732,6 +2793,116 @@ TEST(ThriftServer, QueueTimeoutStressTest) {
   }
 
   EXPECT_EQ(received_reply, server_reply);
+}
+
+class ServerResponseEnqueuedInterface : public TestInterface {
+ public:
+  explicit ServerResponseEnqueuedInterface(
+      folly::Baton<>& responseEnqueuedBaton)
+      : responseEnqueuedBaton_(responseEnqueuedBaton) {}
+
+  void async_eb_eventBaseAsync(
+      std::unique_ptr<
+          apache::thrift::HandlerCallback<std::unique_ptr<::std::string>>>
+          callback) override {
+    callback->getEventBase()->runInEventBaseThread(
+        [&]() mutable { responseEnqueuedBaton_.post(); });
+
+    callback->result(folly::make_unique<std::string>("done"));
+  }
+
+  folly::Baton<>& responseEnqueuedBaton_;
+};
+
+class WriteBatchingTest : public testing::Test {
+ protected:
+  std::unique_ptr<ScopedServerInterfaceThread> runner_;
+  std::unique_ptr<TestServiceAsyncClient> client_;
+  folly::Baton<> baton_;
+  size_t tearDownDummyRequestCount_ = 0;
+
+  void init(
+      std::chrono::milliseconds batchingInterval,
+      size_t batchingSize,
+      size_t batchingByteSize,
+      size_t tearDownDummyRequestCount) {
+    tearDownDummyRequestCount_ = tearDownDummyRequestCount;
+
+    runner_ = folly::make_unique<ScopedServerInterfaceThread>(
+        std::make_shared<ServerResponseEnqueuedInterface>(baton_));
+    runner_->getThriftServer().setWriteBatchingInterval(batchingInterval);
+    runner_->getThriftServer().setWriteBatchingSize(batchingSize);
+    runner_->getThriftServer().setWriteBatchingByteSize(batchingByteSize);
+
+    client_ = runner_->newStickyClient<TestServiceAsyncClient>(
+        nullptr, [](auto socket) mutable {
+          return RocketClientChannel::newChannel(std::move(socket));
+        });
+  }
+
+  void waitUntilServerWriteScheduled() {
+    baton_.wait();
+    baton_.reset();
+  }
+
+  void TearDown() override {
+    // Since we have configured the Thrift Server to use write batching, the
+    // last ErrorFrame that is sent by the server during destruction will be
+    // buffered and will cause the test to wait until the buffer is flushed. We
+    // can avoid this by sending dummy requests before the ErrorFrame is queued
+    // so that the buffer is flushed immediately after the ErrorFrame is queued.
+    for (size_t i = 0; i < tearDownDummyRequestCount_; ++i) {
+      client_->semifuture_eventBaseAsync();
+      waitUntilServerWriteScheduled();
+    }
+  }
+};
+
+TEST_F(WriteBatchingTest, SizeEarlyFlushTest) {
+  init(std::chrono::seconds{1}, 3, 0, 2);
+
+  // Send first request. This will cause 2 writes to be buffered on the server
+  // (1 SetupFrame and 1 response). Ensure we don't get a response.
+  auto f = client_->semifuture_eventBaseAsync();
+  waitUntilServerWriteScheduled();
+  bool isFulfilled = std::move(f).wait(std::chrono::milliseconds{50});
+  EXPECT_FALSE(isFulfilled);
+
+  // Send second request. This will cause batching size limit to be reached and
+  // buffered writes will be flushed. Ensure we get a response.
+  f = client_->semifuture_eventBaseAsync();
+  waitUntilServerWriteScheduled();
+  isFulfilled = std::move(f).wait(std::chrono::milliseconds{50});
+  EXPECT_TRUE(isFulfilled);
+}
+
+TEST_F(WriteBatchingTest, ByteSizeEarlyFlushTest) {
+  init(std::chrono::seconds{1}, 4, 60, 2);
+
+  // Send first request. This will cause 2 writes to be buffered on the server
+  // (1 SetupFrame - 14 bytes and 1 response - 25 bytes). Ensure we don't get
+  // a response.
+  auto f = client_->semifuture_eventBaseAsync();
+  waitUntilServerWriteScheduled();
+  bool isFulfilled = std::move(f).wait(std::chrono::milliseconds{50});
+  EXPECT_FALSE(isFulfilled);
+
+  // Send second request. This will cause batching byte size limit to be
+  // reached and buffered writes will be flushed. Ensure we get a response.
+  f = client_->semifuture_eventBaseAsync();
+  waitUntilServerWriteScheduled();
+  isFulfilled = std::move(f).wait(std::chrono::milliseconds{50});
+  EXPECT_TRUE(isFulfilled);
+}
+
+TEST_F(WriteBatchingTest, IntervalTest) {
+  init(std::chrono::milliseconds{100}, 3, 0, 2);
+
+  // Send first request. This will cause 2 writes to be buffered on the server
+  // (1 SetupFrame and 1 response). Ensure we get a response after batching
+  // interval has elapsed even if batching size has not been reached.
+  auto f = client_->semifuture_sendResponse(0).wait();
+  EXPECT_TRUE(f.hasValue());
 }
 
 TEST_P(HeaderOrRocket, PreprocessHeaders) {
@@ -2908,12 +3079,20 @@ namespace {
 folly::observer::SimpleObservable<AdaptiveConcurrencyController::Config>
     oConfig{AdaptiveConcurrencyController::Config{}};
 
+}
+
+namespace apache::thrift::detail {
+
 THRIFT_PLUGGABLE_FUNC_SET(
     folly::observer::Observer<
         apache::thrift::AdaptiveConcurrencyController::Config>,
     makeAdaptiveConcurrencyConfig) {
   return oConfig.getObserver();
 }
+
+} // namespace apache::thrift::detail
+
+namespace {
 
 static auto makeConfig(size_t concurrency, double jitter = 0.0) {
   AdaptiveConcurrencyController::Config config;

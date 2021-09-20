@@ -58,16 +58,17 @@ class ClientSinkBridge : public TwoWayBridge<
  public:
   ~ClientSinkBridge() override;
 
-  class FirstResponseCallback {
-   public:
-    virtual ~FirstResponseCallback() = default;
-    virtual void onFirstResponse(FirstResponsePayload&&, Ptr) = 0;
-    virtual void onFirstResponseError(folly::exception_wrapper) = 0;
-  };
+  using FirstResponseCallback = FirstResponseClientCallback<Ptr>;
 
   static SinkClientCallback* create(FirstResponseCallback* callback);
 
   void close();
+
+  bool wait(ClientSinkConsumer* consumer);
+
+  void push(ServerMessage&& value);
+
+  ClientQueue getMessages();
 
 #if FOLLY_HAS_COROUTINES
   folly::coro::Task<folly::Try<StreamPayload>> sink(
@@ -93,6 +94,8 @@ class ClientSinkBridge : public TwoWayBridge<
   void resetServerCallback(SinkServerCallback& serverCallback) override;
 
   void consume();
+
+  bool hasServerCancelled();
 
   void canceled() {}
 

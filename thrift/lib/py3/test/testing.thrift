@@ -116,6 +116,11 @@ struct File {
   3: Kind type = Kind.REGULAR;
 }
 
+struct OptionalFile {
+  1: optional string name;
+  3: optional i32 type;
+}
+
 struct Digits {
   1: optional list<Integers> data;
 }
@@ -187,7 +192,7 @@ union ComplexUnion {
 
 union IOBufUnion {
   1: binary (cpp2.type = "folly::IOBuf") buf;
-} (cpp2.noncomparable)
+} (cpp.noncomparable)
 
 struct hard {
   1: required i32 val;
@@ -227,6 +232,12 @@ struct ColorGroups {
   1: list<Color> color_list;
   2: set<Color> color_set;
   3: map<Color, Color> color_map;
+}
+
+struct OptionalColorGroups {
+  1: optional list<i32> color_list;
+  2: optional set<i32> color_set;
+  3: optional map<i32, i32> color_map;
 }
 
 typedef list<i32> (cpp.type = "std::deque<int>") list_typedef
@@ -274,11 +285,11 @@ struct SlowCompare {
   1: string field1;
   2: i32 field2;
   3: Color field3;
-} (cpp2.noncomparable)
+} (cpp.noncomparable)
 
 struct NonCopyable {
   1: i64 num;
-} (cpp2.noncopyable)
+} (cpp.noncopyable)
 
 struct Messy {
   1: optional string opt_field (some = "annotation", a.b.c = "d.e.f");

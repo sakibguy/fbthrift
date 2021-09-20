@@ -69,6 +69,8 @@ THRIFT_FLAG_DEFINE_bool(server_enable_stoptls, false);
 THRIFT_FLAG_DEFINE_bool(ssl_policy_default_required, true);
 
 THRIFT_FLAG_DEFINE_bool(dump_snapshot_on_long_shutdown, true);
+
+namespace apache::thrift::detail {
 THRIFT_PLUGGABLE_FUNC_REGISTER(
     apache::thrift::ThriftServer::DumpSnapshotOnLongShutdownResult,
     dumpSnapshotOnLongShutdown) {
@@ -80,6 +82,7 @@ THRIFT_PLUGGABLE_FUNC_REGISTER(
     createDefaultExtraInterfaces) {
   return {nullptr /* monitoring */, nullptr /* status */};
 }
+} // namespace apache::thrift::detail
 
 namespace {
 
@@ -159,7 +162,8 @@ ThriftServer::ThriftServer()
     sslPolicy_ = SSLPolicy::PERMITTED;
   }
   metadata().wrapper = "ThriftServer-cpp";
-  auto extraInterfaces = THRIFT_PLUGGABLE_FUNC(createDefaultExtraInterfaces)();
+  auto extraInterfaces = apache::thrift::detail::THRIFT_PLUGGABLE_FUNC(
+      createDefaultExtraInterfaces)();
   setMonitoringInterface(std::move(extraInterfaces.monitoring));
   setStatusInterface(std::move(extraInterfaces.status));
 }
@@ -739,7 +743,8 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
           // The IO threads may be deadlocked in which case we won't be able to
           // dump snapshots. It still shouldn't block shutdown indefinitely.
           auto dumpSnapshotResult =
-              THRIFT_PLUGGABLE_FUNC(dumpSnapshotOnLongShutdown)();
+              apache::thrift::detail::THRIFT_PLUGGABLE_FUNC(
+                  dumpSnapshotOnLongShutdown)();
           try {
             std::move(dumpSnapshotResult.task)
                 .via(folly::getKeepAliveToken(dumpSnapshotExecutor))
@@ -774,7 +779,13 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
 
   // Clear the decorated processor factory so that it's re-created if the server
   // is restarted.
-  decoratedProcessorFactory_.reset();
+  // Note that duplex servers drain connections in the destructor so we need to
+  // keep the AsyncProcessorFactory alive until then. Duplex servers also don't
+  // support restarting the server so extending its lifetime should not cause
+  // issues.
+  if (!isDuplex()) {
+    decoratedProcessorFactory_.reset();
+  }
 
   internalStatus_.store(ServerStatus::NOT_RUNNING, std::memory_order_release);
 }
@@ -817,7 +828,9 @@ void ThriftServer::callOnStopServing() {
   }
 }
 
-ThriftServer* globalServer;
+namespace {
+ThriftServer* globalServer = nullptr;
+}
 
 #if FOLLY_HAS_COROUTINES
 folly::coro::CancellableAsyncScope& ThriftServer::getGlobalAsyncScope() {

@@ -853,6 +853,24 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
    * monitoring interface).
    *
    * This is the factory that all transports should use to handle requests.
+   *
+   * Logically, this is an apache::thrift::MultiplexAsyncProcessorFactory with
+   * the following composition:
+   *
+   *    ┌────────────────────────┐
+   *    │      User Service      │
+   *    │ (setProcessorFactory)  │  │
+   *    └────────────────────────┘  │
+   *                                │
+   *    ┌────────────────────────┐  │
+   *    │    Status Interface    │  │   Method
+   *    │  (setStatusInterface)  │  │ precedence
+   *    └────────────────────────┘  │
+   *                                │
+   *    ┌────────────────────────┐  │
+   *    │  Monitoring Interface  │  ▼
+   *    │(setMonitoringInterface)│
+   *    └────────────────────────┘
    */
   AsyncProcessorFactory& getDecoratedProcessorFactory() const {
     CHECK(decoratedProcessorFactory_)
@@ -915,6 +933,7 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
           protoId_(stub.getProtoId()),
           peerAddress_(*stub.getPeerAddress()),
           localAddress_(*stub.getLocalAddress()),
+          clientMetadataRef_(stub.getClientMetadataRef()),
           rootRequestContextId_(stub.getRootRequestContextId()),
           reqId_(RequestsRegistry::getRequestId(rootRequestContextId_)),
           reqDebugLog_(collectRequestDebugLog(stub)) {
@@ -964,6 +983,10 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
     }
     const folly::SocketAddress& getPeerAddress() const { return peerAddress_; }
 
+    const std::optional<ClientMetadataRef>& getClientMetadataRef() const {
+      return clientMetadataRef_;
+    }
+
     const std::vector<std::string>& getDebugLog() const { return reqDebugLog_; }
 
     const auto& clientId() const { return clientId_; }
@@ -983,6 +1006,7 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
     std::optional<std::string> serviceTraceMeta_;
     folly::SocketAddress peerAddress_;
     folly::SocketAddress localAddress_;
+    const std::optional<ClientMetadataRef> clientMetadataRef_;
     intptr_t rootRequestContextId_;
     const std::string reqId_;
     const std::vector<std::string> reqDebugLog_;
