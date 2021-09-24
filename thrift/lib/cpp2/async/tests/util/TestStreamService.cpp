@@ -81,7 +81,7 @@ apache::thrift::ServerStream<int32_t> TestStreamPublisherService::rangeThrowUDE(
   return std::move(stream);
 }
 
-using Pair = apache::thrift::ServerStream<int32_t>::PayloadAndHeader;
+using Pair = apache::thrift::detail::PayloadAndHeader<int32_t>;
 
 apache::thrift::ServerStream<int32_t>
 TestStreamGeneratorWithHeaderService::range(int32_t from, int32_t to) {
@@ -113,6 +113,48 @@ TestStreamGeneratorWithHeaderService::rangeThrowUDE(int32_t from, int32_t to) {
     }
     throw UserDefinedException();
   });
+}
+
+apache::thrift::ServerStream<int32_t>
+TestStreamPublisherWithHeaderService::range(int32_t from, int32_t to) {
+  auto [stream, publisher] =
+      apache::thrift::ServerStream<int32_t>::createPublisherWithHeader([] {});
+
+  for (int i = from; i <= to; i++) {
+    publisher.next(Pair{i, {{"val", std::to_string(i)}}});
+    publisher.next(Pair{std::nullopt, {{"val", std::to_string(i)}}});
+  }
+  std::move(publisher).complete();
+
+  return std::move(stream);
+}
+
+apache::thrift::ServerStream<int32_t>
+TestStreamPublisherWithHeaderService::rangeThrow(int32_t from, int32_t to) {
+  auto [stream, publisher] =
+      apache::thrift::ServerStream<int32_t>::createPublisherWithHeader([] {});
+
+  for (int i = from; i <= to; i++) {
+    publisher.next(Pair{i, {{"val", std::to_string(i)}}});
+    publisher.next(Pair{std::nullopt, {{"val", std::to_string(i)}}});
+  }
+  std::move(publisher).complete(std::runtime_error("I am a search bar"));
+
+  return std::move(stream);
+}
+
+apache::thrift::ServerStream<int32_t>
+TestStreamPublisherWithHeaderService::rangeThrowUDE(int32_t from, int32_t to) {
+  auto [stream, publisher] =
+      apache::thrift::ServerStream<int32_t>::createPublisherWithHeader([] {});
+
+  for (int i = from; i <= to; i++) {
+    publisher.next(Pair{i, {{"val", std::to_string(i)}}});
+    publisher.next(Pair{std::nullopt, {{"val", std::to_string(i)}}});
+  }
+  std::move(publisher).complete(UserDefinedException());
+
+  return std::move(stream);
 }
 
 } // namespace testservice

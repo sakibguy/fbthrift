@@ -45,8 +45,7 @@ class ServerStream {
       : fn_(apache::thrift::detail::ServerGeneratorStream::
                 fromAsyncGenerator<false, T>(std::move(gen))) {}
 
-  using PayloadAndHeader =
-      apache::thrift::detail::ServerGeneratorStream::PayloadAndHeader<T>;
+  using PayloadAndHeader = apache::thrift::detail::PayloadAndHeader<T>;
   /* implicit */ ServerStream(
       folly::coro::AsyncGenerator<PayloadAndHeader&&>&& gen)
       : fn_(apache::thrift::detail::ServerGeneratorStream::
@@ -60,10 +59,11 @@ class ServerStream {
   // It must not call complete() on the publisher object inline
   static std::pair<ServerStream<T>, ServerStreamPublisher<T>> createPublisher(
       folly::Function<void()> onStreamCompleteOrCancel) {
-    auto pair = apache::thrift::detail::ServerPublisherStream<T>::create(
-        std::move(onStreamCompleteOrCancel));
-    return std::make_pair<ServerStream<T>, ServerStreamPublisher<T>>(
-        ServerStream<T>(std::move(pair.first)), std::move(pair.second));
+    return createPublisherImpl<false>(std::move(onStreamCompleteOrCancel));
+  }
+  static std::pair<ServerStream<T>, ServerStreamPublisher<T, true>>
+  createPublisherWithHeader(folly::Function<void()> onStreamCompleteOrCancel) {
+    return createPublisherImpl<true>(std::move(onStreamCompleteOrCancel));
   }
   static std::pair<ServerStream<T>, ServerStreamPublisher<T>>
   createPublisher() {
@@ -94,6 +94,17 @@ class ServerStream {
  private:
   explicit ServerStream(apache::thrift::detail::ServerStreamFn<T> fn)
       : fn_(std::move(fn)) {}
+
+  template <bool WithHeader>
+  static std::pair<ServerStream<T>, ServerStreamPublisher<T, WithHeader>>
+  createPublisherImpl(folly::Function<void()> onStreamCompleteOrCancel) {
+    auto pair =
+        apache::thrift::detail::ServerPublisherStream<T, WithHeader>::create(
+            std::move(onStreamCompleteOrCancel));
+    return std::
+        make_pair<ServerStream<T>, ServerStreamPublisher<T, WithHeader>>(
+            ServerStream<T>(std::move(pair.first)), std::move(pair.second));
+  }
 
   apache::thrift::detail::ServerStreamFn<T> fn_;
 
