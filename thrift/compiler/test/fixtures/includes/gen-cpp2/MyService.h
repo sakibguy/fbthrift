@@ -41,6 +41,8 @@ class MyServiceAsyncProcessor;
 
 class MyServiceSvIf : public MyServiceSvAsyncIf, public apache::thrift::ServerInterface {
  public:
+  std::string_view getGeneratedName() const override { return "MyService"; }
+
   typedef MyServiceAsyncProcessor ProcessorType;
   std::unique_ptr<apache::thrift::AsyncProcessor> getProcessor() override;
   CreateMethodMetadataResult createMethodMetadata() override;
@@ -90,7 +92,7 @@ class MyServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcessor
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_query(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static apache::thrift::LegacySerializedResponse return_query(int32_t protoSeqId, apache::thrift::ContextStack* ctx);
+  static apache::thrift::SerializedResponse return_query(apache::thrift::ContextStack* ctx);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_query(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -98,7 +100,7 @@ class MyServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcessor
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_has_arg_docs(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static apache::thrift::LegacySerializedResponse return_has_arg_docs(int32_t protoSeqId, apache::thrift::ContextStack* ctx);
+  static apache::thrift::SerializedResponse return_has_arg_docs(apache::thrift::ContextStack* ctx);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_has_arg_docs(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
  public:

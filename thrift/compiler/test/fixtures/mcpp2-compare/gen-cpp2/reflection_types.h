@@ -37,13 +37,13 @@ class ReflectionStruct;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class ReflectionStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -62,7 +62,7 @@ class ReflectionStruct final  {
  public:
 
   ReflectionStruct() :
-      fieldA(5) {
+      fieldA(static_cast<::std::int32_t>(5)) {
   }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
@@ -79,22 +79,8 @@ class ReflectionStruct final  {
   void __clear();
  private:
   ::std::int32_t fieldA;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -103,22 +89,22 @@ class ReflectionStruct final  {
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> fieldA_ref() const& {
-    return {this->fieldA, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->fieldA, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> fieldA_ref() const&& {
-    return {std::move(this->fieldA), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->fieldA), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> fieldA_ref() & {
-    return {this->fieldA, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->fieldA, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> fieldA_ref() && {
-    return {std::move(this->fieldA), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->fieldA), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   ::std::int32_t get_fieldA() const {
@@ -127,8 +113,7 @@ class ReflectionStruct final  {
 
   [[deprecated("Use `FOO.fieldA_ref() = BAR;` instead of `FOO.set_fieldA(BAR);`")]]
   ::std::int32_t& set_fieldA(::std::int32_t fieldA_) {
-    fieldA = fieldA_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    fieldA_ref() = fieldA_;
     return fieldA;
   }
 
@@ -157,4 +142,3 @@ uint32_t ReflectionStruct::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

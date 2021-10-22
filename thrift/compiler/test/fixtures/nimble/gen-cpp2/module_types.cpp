@@ -36,7 +36,6 @@ void TccStructTraits<::cpp2::BasicTypes>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 BasicTypes::BasicTypes(apache::thrift::FragileConstructor, ::std::int32_t first__arg, ::std::int32_t second__arg, ::std::int64_t third__arg, bool isTrue__arg) :
     first(std::move(first__arg)),
     second(std::move(second__arg)),
@@ -46,17 +45,15 @@ BasicTypes::BasicTypes(apache::thrift::FragileConstructor, ::std::int32_t first_
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void BasicTypes::__clear() {
   // clear all fields
-  this->first = 0;
-  this->second = 0;
-  this->third = 0;
-  this->isTrue = 0;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->first = ::std::int32_t();
+  this->second = ::std::int32_t();
+  this->third = ::std::int64_t();
+  this->isTrue = bool();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool BasicTypes::operator==(const BasicTypes& rhs) const {
@@ -104,9 +101,7 @@ void swap(BasicTypes& a, BasicTypes& b) {
   swap(a.second_ref().value_unchecked(), b.second_ref().value_unchecked());
   swap(a.third_ref().value_unchecked(), b.third_ref().value_unchecked());
   swap(a.isTrue_ref().value(), b.isTrue_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void BasicTypes::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -125,3 +120,8 @@ template uint32_t BasicTypes::serializedSizeZC<>(apache::thrift::NimbleProtocolW
 
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

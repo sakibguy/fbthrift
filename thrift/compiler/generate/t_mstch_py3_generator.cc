@@ -782,8 +782,9 @@ class mstch_py3_field : public mstch_field {
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION const pos,
-      int32_t index)
-      : mstch_field(field, generators, cache, pos, index),
+      int32_t index,
+      field_generator_context const* field_context)
+      : mstch_field(field, generators, cache, pos, index, field_context),
         pyName_{py3::get_py3_name(*field)},
         cppName_{cpp2::get_name(field)} {
     register_methods(
@@ -1081,8 +1082,8 @@ class program_py3_generator : public program_generator {
       const t_program* program,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     const std::string& id = program->path();
     auto it = cache->programs_.find(id);
     if (it != cache->programs_.end()) {
@@ -1103,8 +1104,8 @@ class struct_py3_generator : public struct_generator {
       const t_struct* strct,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3_struct>(strct, generators, cache, pos);
   }
 };
@@ -1117,8 +1118,8 @@ class function_py3_generator : public function_generator {
       t_function const* function,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3_function>(
         function, generators, cache, pos);
   }
@@ -1131,8 +1132,8 @@ class service_py3_generator : public service_generator {
       const t_service* service,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3_service>(
         service, generators, cache, pos, prog_);
   }
@@ -1147,10 +1148,11 @@ class field_py3_generator : public field_generator {
       const t_field* field,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      field_generator_context const* field_context) const override {
     return std::make_shared<mstch_py3_field>(
-        field, generators, cache, pos, index);
+        field, generators, cache, pos, index, field_context);
   }
 };
 
@@ -1160,8 +1162,8 @@ class enum_py3_generator : public enum_generator {
       const t_enum* enm,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3_enum>(enm, generators, cache, pos);
   }
 };
@@ -1172,8 +1174,8 @@ class enum_value_py3_generator : public enum_value_generator {
       const t_enum_value* enm_value,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3_enum_value>(
         enm_value, generators, cache, pos);
   }
@@ -1185,8 +1187,8 @@ class annotation_py3_generator : public annotation_generator {
       const t_annotation& annotation,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t index) const override {
     return std::make_shared<mstch_py3_annotation>(
         annotation, generators, cache, pos, index);
   }

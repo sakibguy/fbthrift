@@ -37,6 +37,8 @@ class MyServicePrioChildAsyncProcessor;
 
 class MyServicePrioChildSvIf : public MyServicePrioChildSvAsyncIf, virtual public ::cpp2::MyServicePrioParentSvIf {
  public:
+  std::string_view getGeneratedName() const override { return "MyServicePrioChild"; }
+
   typedef MyServicePrioChildAsyncProcessor ProcessorType;
   std::unique_ptr<apache::thrift::AsyncProcessor> getProcessor() override;
   CreateMethodMetadataResult createMethodMetadata() override;
@@ -80,7 +82,7 @@ class MyServicePrioChildAsyncProcessor : public ::cpp2::MyServicePrioParentAsync
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_pang(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static apache::thrift::LegacySerializedResponse return_pang(int32_t protoSeqId, apache::thrift::ContextStack* ctx);
+  static apache::thrift::SerializedResponse return_pang(apache::thrift::ContextStack* ctx);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_pang(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
  public:

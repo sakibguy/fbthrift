@@ -69,22 +69,19 @@ void TccStructTraits<::cpp2::SmallStruct>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SmallStruct::SmallStruct(apache::thrift::FragileConstructor, bool small_A__arg, ::std::int32_t small_B__arg) :
     small_A(std::move(small_A__arg)),
     small_B(std::move(small_B__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void SmallStruct::__clear() {
   // clear all fields
-  this->small_A = 0;
-  this->small_B = 0;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->small_A = bool();
+  this->small_B = ::std::int32_t();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool SmallStruct::operator==(const SmallStruct& rhs) const {
@@ -118,9 +115,7 @@ void swap(SmallStruct& a, SmallStruct& b) {
   using ::std::swap;
   swap(a.small_A_ref().value(), b.small_A_ref().value());
   swap(a.small_B_ref().value(), b.small_B_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void SmallStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -161,73 +156,39 @@ namespace cpp2 {
 
 containerStruct::containerStruct(const containerStruct& srcObj) {
   fieldA = srcObj.fieldA;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<0>(),srcObj.__isset.__fbthrift_get(folly::index_constant<0>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldB = srcObj.fieldB;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<1>(),srcObj.__isset.__fbthrift_get(folly::index_constant<1>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldC = srcObj.fieldC;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<2>(),srcObj.__isset.__fbthrift_get(folly::index_constant<2>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldD = srcObj.fieldD;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<3>(),srcObj.__isset.__fbthrift_get(folly::index_constant<3>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldE = srcObj.fieldE;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<4>(),srcObj.__isset.__fbthrift_get(folly::index_constant<4>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldF = srcObj.fieldF;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<5>(),srcObj.__isset.__fbthrift_get(folly::index_constant<5>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldG = srcObj.fieldG;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<6>(),srcObj.__isset.__fbthrift_get(folly::index_constant<6>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldH = srcObj.fieldH;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<7>(),srcObj.__isset.__fbthrift_get(folly::index_constant<7>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldI = srcObj.fieldI;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<8>(),srcObj.__isset.__fbthrift_get(folly::index_constant<8>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldJ = srcObj.fieldJ;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<9>(),srcObj.__isset.__fbthrift_get(folly::index_constant<9>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldK = srcObj.fieldK;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<10>(),srcObj.__isset.__fbthrift_get(folly::index_constant<10>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldL = srcObj.fieldL;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<11>(),srcObj.__isset.__fbthrift_get(folly::index_constant<11>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldM = srcObj.fieldM;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<12>(),srcObj.__isset.__fbthrift_get(folly::index_constant<12>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldN = srcObj.fieldN;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<13>(),srcObj.__isset.__fbthrift_get(folly::index_constant<13>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldO = srcObj.fieldO;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<14>(),srcObj.__isset.__fbthrift_get(folly::index_constant<14>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldP = srcObj.fieldP;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<15>(),srcObj.__isset.__fbthrift_get(folly::index_constant<15>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldQ = srcObj.fieldQ;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<16>(),srcObj.__isset.__fbthrift_get(folly::index_constant<16>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldR = ::apache::thrift::detail::st::copy_field<
         ::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>>(srcObj.fieldR);
   fieldS = ::apache::thrift::detail::st::copy_field<
@@ -244,23 +205,22 @@ containerStruct& containerStruct::operator=(const containerStruct& src) {
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 containerStruct::containerStruct() :
       fieldA(),
-      fieldC(std::initializer_list<::std::int32_t>{1,
+      fieldC(static_cast<::std::set<::std::int32_t>>(std::initializer_list<::std::int32_t>{1,
   2,
   3,
-  4}),
+  4})),
       fieldE(apache::thrift::StringTraits<std::string>::fromStringLiteral("somestring")),
-      fieldI(true),
-      fieldJ(std::initializer_list<std::pair<const ::std::string, ::std::vector<::std::int32_t>>>{{apache::thrift::StringTraits<std::string>::fromStringLiteral("subfieldA"), std::initializer_list<::std::int32_t>{1,
+      fieldI(static_cast<bool>(true)),
+      fieldJ(static_cast<::std::map<::std::string, ::std::vector<::std::int32_t>>>(std::initializer_list<std::pair<const ::std::string, ::std::vector<::std::int32_t>>>{{apache::thrift::StringTraits<std::string>::fromStringLiteral("subfieldA"), std::initializer_list<::std::int32_t>{1,
   4,
   8,
   12}},
   {apache::thrift::StringTraits<std::string>::fromStringLiteral("subfieldB"), std::initializer_list<::std::int32_t>{2,
   5,
   9,
-  13}}}),
+  13}}})),
       fieldQ(),
       fieldR(std::make_unique<::std::map<::std::string, bool>>()),
       fieldS(std::make_unique<::cpp2::SmallStruct>()),
@@ -269,11 +229,9 @@ containerStruct::containerStruct() :
       fieldX(std::make_unique<::cpp2::SmallStruct>()) {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 containerStruct::~containerStruct() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 containerStruct::containerStruct(containerStruct&& other) noexcept  :
     fieldA(std::move(other.fieldA)),
     fieldB(std::move(other.fieldB)),
@@ -297,7 +255,9 @@ containerStruct::containerStruct(containerStruct&& other) noexcept  :
     fieldT(std::move(other.fieldT)),
     fieldU(std::move(other.fieldU)),
     fieldX(std::move(other.fieldX)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 containerStruct& containerStruct::operator=(FOLLY_MAYBE_UNUSED containerStruct&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->fieldB = std::move(other.fieldB);
@@ -324,10 +284,8 @@ containerStruct& containerStruct::operator=(FOLLY_MAYBE_UNUSED containerStruct&&
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 containerStruct::containerStruct(apache::thrift::FragileConstructor, bool fieldA__arg, ::std::map<::std::string, bool> fieldB__arg, ::std::set<::std::int32_t> fieldC__arg, ::std::string fieldD__arg, ::std::string fieldE__arg, ::std::vector<::std::vector<::std::vector<::std::int32_t>>> fieldF__arg, ::std::map<::std::string, ::std::map<::std::string, ::std::map<::std::string, ::std::int32_t>>> fieldG__arg, ::std::vector<::std::set<::std::int32_t>> fieldH__arg, bool fieldI__arg, ::std::map<::std::string, ::std::vector<::std::int32_t>> fieldJ__arg, ::std::vector<::std::vector<::std::vector<::std::vector<::std::int32_t>>>> fieldK__arg, ::std::set<::std::set<::std::set<bool>>> fieldL__arg, ::std::map<::std::set<::std::vector<::std::int32_t>>, ::std::map<::std::vector<::std::set<::std::string>>, ::std::string>> fieldM__arg, ::std::vector<::cpp2::IndirectionA> fieldN__arg, ::std::vector<::cpp2::IndirectionB> fieldO__arg, ::std::vector<::cpp2::IndirectionC> fieldP__arg, ::cpp2::MyEnumA fieldQ__arg, ::std::unique_ptr<::std::map<::std::string, bool>> fieldR__arg, ::std::unique_ptr<::cpp2::SmallStruct> fieldS__arg, ::std::shared_ptr<::cpp2::SmallStruct> fieldT__arg, ::std::shared_ptr<const ::cpp2::SmallStruct> fieldU__arg, ::std::unique_ptr<::cpp2::SmallStruct> fieldX__arg) :
     fieldA(std::move(fieldA__arg)),
     fieldB(std::move(fieldB__arg)),
@@ -369,11 +327,11 @@ containerStruct::containerStruct(apache::thrift::FragileConstructor, bool fieldA
   __isset.__fbthrift_set(folly::index_constant<15>(), true);
   __isset.__fbthrift_set(folly::index_constant<16>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void containerStruct::__clear() {
   // clear all fields
-  this->fieldA = 0;
+  this->fieldA = bool();
   this->fieldB.clear();
   this->fieldC.clear();
   this->fieldD = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
@@ -381,7 +339,7 @@ void containerStruct::__clear() {
   this->fieldF.clear();
   this->fieldG.clear();
   this->fieldH.clear();
-  this->fieldI = true;
+  this->fieldI = static_cast<bool>(true);
   this->fieldJ.clear();
   this->fieldK.clear();
   this->fieldL.clear();
@@ -389,15 +347,13 @@ void containerStruct::__clear() {
   this->fieldN.clear();
   this->fieldO.clear();
   this->fieldP.clear();
-  this->fieldQ = static_cast< ::cpp2::MyEnumA>(0);
+  this->fieldQ = ::cpp2::MyEnumA();
   this->fieldR = ::apache::thrift::detail::make_mutable_smart_ptr<::std::unique_ptr<::std::map<::std::string, bool>>>();
   if (this->fieldS) this->fieldS->__clear();
   if (this->fieldT) this->fieldT->__clear();
   if (this->fieldU) this->fieldU.reset(new typename decltype(this->fieldU)::element_type());
   if (this->fieldX) this->fieldX->__clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool containerStruct::operator==(const containerStruct& rhs) const {
@@ -455,19 +411,19 @@ bool containerStruct::operator==(const containerStruct& rhs) const {
   if (!(lhs.fieldQ_ref() == rhs.fieldQ_ref())) {
     return false;
   }
-  if ((lhs.fieldR == nullptr) != (rhs.fieldR == nullptr) || (lhs.fieldR != nullptr && lhs.fieldR != rhs.fieldR && !(*lhs.fieldR == *rhs.fieldR))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldR_ref(), rhs.fieldR_ref()))) {
     return false;
   }
-  if ((lhs.fieldS == nullptr) != (rhs.fieldS == nullptr) || (lhs.fieldS != nullptr && lhs.fieldS != rhs.fieldS && !(*lhs.fieldS == *rhs.fieldS))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldS_ref(), rhs.fieldS_ref()))) {
     return false;
   }
-  if ((lhs.fieldT == nullptr) != (rhs.fieldT == nullptr) || (lhs.fieldT != nullptr && lhs.fieldT != rhs.fieldT && !(*lhs.fieldT == *rhs.fieldT))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldT_ref(), rhs.fieldT_ref()))) {
     return false;
   }
-  if ((lhs.fieldU == nullptr) != (rhs.fieldU == nullptr) || (lhs.fieldU != nullptr && lhs.fieldU != rhs.fieldU && !(*lhs.fieldU == *rhs.fieldU))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldU_ref(), rhs.fieldU_ref()))) {
     return false;
   }
-  if ((lhs.fieldX == nullptr) != (rhs.fieldX == nullptr) || (lhs.fieldX != nullptr && lhs.fieldX != rhs.fieldX && !(*lhs.fieldX == *rhs.fieldX))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldX_ref(), rhs.fieldX_ref()))) {
     return false;
   }
   return true;
@@ -528,20 +484,20 @@ bool containerStruct::operator<(const containerStruct& rhs) const {
   if (!(lhs.fieldQ_ref() == rhs.fieldQ_ref())) {
     return lhs.fieldQ_ref() < rhs.fieldQ_ref();
   }
-  if ((lhs.fieldR == nullptr) != (rhs.fieldR == nullptr) || (lhs.fieldR != nullptr && lhs.fieldR != rhs.fieldR && !(*lhs.fieldR == *rhs.fieldR))) {
-    return lhs.fieldR == nullptr || (rhs.fieldR != nullptr && *lhs.fieldR < *rhs.fieldR);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldR_ref(), rhs.fieldR_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.fieldR_ref(), rhs.fieldR_ref());
   }
-  if ((lhs.fieldS == nullptr) != (rhs.fieldS == nullptr) || (lhs.fieldS != nullptr && lhs.fieldS != rhs.fieldS && !(*lhs.fieldS == *rhs.fieldS))) {
-    return lhs.fieldS == nullptr || (rhs.fieldS != nullptr && *lhs.fieldS < *rhs.fieldS);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldS_ref(), rhs.fieldS_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.fieldS_ref(), rhs.fieldS_ref());
   }
-  if ((lhs.fieldT == nullptr) != (rhs.fieldT == nullptr) || (lhs.fieldT != nullptr && lhs.fieldT != rhs.fieldT && !(*lhs.fieldT == *rhs.fieldT))) {
-    return lhs.fieldT == nullptr || (rhs.fieldT != nullptr && *lhs.fieldT < *rhs.fieldT);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldT_ref(), rhs.fieldT_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.fieldT_ref(), rhs.fieldT_ref());
   }
-  if ((lhs.fieldU == nullptr) != (rhs.fieldU == nullptr) || (lhs.fieldU != nullptr && lhs.fieldU != rhs.fieldU && !(*lhs.fieldU == *rhs.fieldU))) {
-    return lhs.fieldU == nullptr || (rhs.fieldU != nullptr && *lhs.fieldU < *rhs.fieldU);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldU_ref(), rhs.fieldU_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.fieldU_ref(), rhs.fieldU_ref());
   }
-  if ((lhs.fieldX == nullptr) != (rhs.fieldX == nullptr) || (lhs.fieldX != nullptr && lhs.fieldX != rhs.fieldX && !(*lhs.fieldX == *rhs.fieldX))) {
-    return lhs.fieldX == nullptr || (rhs.fieldX != nullptr && *lhs.fieldX < *rhs.fieldX);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.fieldX_ref(), rhs.fieldX_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.fieldX_ref(), rhs.fieldX_ref());
   }
   return false;
 }
@@ -667,9 +623,7 @@ void swap(containerStruct& a, containerStruct& b) {
   swap(a.fieldT, b.fieldT);
   swap(a.fieldU, b.fieldU);
   swap(a.fieldX, b.fieldX);
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void containerStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -732,3 +686,8 @@ static_assert(
     "inconsistent use of nimble option");
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

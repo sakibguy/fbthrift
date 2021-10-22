@@ -69,7 +69,6 @@ void TccStructTraits<::cpp2::Color>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Color::Color(apache::thrift::FragileConstructor, double red__arg, double green__arg, double blue__arg, double alpha__arg) :
     red(std::move(red__arg)),
     green(std::move(green__arg)),
@@ -80,17 +79,15 @@ Color::Color(apache::thrift::FragileConstructor, double red__arg, double green__
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void Color::__clear() {
   // clear all fields
-  this->red = 0;
-  this->green = 0;
-  this->blue = 0;
-  this->alpha = 0;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->red = double();
+  this->green = double();
+  this->blue = double();
+  this->alpha = double();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool Color::operator==(const Color& rhs) const {
@@ -138,9 +135,7 @@ void swap(Color& a, Color& b) {
   swap(a.green_ref().value(), b.green_ref().value());
   swap(a.blue_ref().value(), b.blue_ref().value());
   swap(a.alpha_ref().value(), b.alpha_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void Color::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -179,27 +174,24 @@ void TccStructTraits<::cpp2::Vehicle>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Vehicle::Vehicle(const Vehicle&) = default;
 Vehicle& Vehicle::operator=(const Vehicle&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Vehicle::Vehicle() :
-      hasAC(false) {
+      hasAC(static_cast<bool>(false)) {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 Vehicle::~Vehicle() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Vehicle::Vehicle(Vehicle&& other) noexcept  :
     color(std::move(other.color)),
     licensePlate(std::move(other.licensePlate)),
     description(std::move(other.description)),
     name(std::move(other.name)),
     hasAC(std::move(other.hasAC)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 Vehicle& Vehicle::operator=(FOLLY_MAYBE_UNUSED Vehicle&& other) noexcept {
     this->color = std::move(other.color);
     this->licensePlate = std::move(other.licensePlate);
@@ -209,10 +201,8 @@ Vehicle& Vehicle::operator=(FOLLY_MAYBE_UNUSED Vehicle&& other) noexcept {
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Vehicle::Vehicle(apache::thrift::FragileConstructor, ::cpp2::Color color__arg, ::std::string licensePlate__arg, ::std::string description__arg, ::std::string name__arg, bool hasAC__arg) :
     color(std::move(color__arg)),
     licensePlate(std::move(licensePlate__arg)),
@@ -225,7 +215,7 @@ Vehicle::Vehicle(apache::thrift::FragileConstructor, ::cpp2::Color color__arg, :
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
   __isset.__fbthrift_set(folly::index_constant<4>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void Vehicle::__clear() {
   // clear all fields
@@ -233,10 +223,8 @@ void Vehicle::__clear() {
   this->licensePlate = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
   this->description = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
   this->name = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
-  this->hasAC = false;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->hasAC = static_cast<bool>(false);
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool Vehicle::operator==(const Vehicle& rhs) const {
@@ -299,9 +287,7 @@ void swap(Vehicle& a, Vehicle& b) {
   swap(a.description_ref().value_unchecked(), b.description_ref().value_unchecked());
   swap(a.name_ref().value_unchecked(), b.name_ref().value_unchecked());
   swap(a.hasAC_ref().value_unchecked(), b.hasAC_ref().value_unchecked());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void Vehicle::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -352,11 +338,8 @@ void TccStructTraits<::cpp2::Person>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Person::Person(const Person&) = default;
 Person& Person::operator=(const Person&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Person::Person() :
       id(),
       age(),
@@ -364,11 +347,9 @@ Person::Person() :
       afraidOfAnimal() {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 Person::~Person() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Person::Person(Person&& other) noexcept  :
     id(std::move(other.id)),
     name(std::move(other.name)),
@@ -380,7 +361,9 @@ Person::Person(Person&& other) noexcept  :
     petNames(std::move(other.petNames)),
     afraidOfAnimal(std::move(other.afraidOfAnimal)),
     vehicles(std::move(other.vehicles)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 Person& Person::operator=(FOLLY_MAYBE_UNUSED Person&& other) noexcept {
     this->id = std::move(other.id);
     this->name = std::move(other.name);
@@ -395,10 +378,8 @@ Person& Person::operator=(FOLLY_MAYBE_UNUSED Person&& other) noexcept {
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Person::Person(apache::thrift::FragileConstructor, ::cpp2::PersonID id__arg, ::std::string name__arg, ::std::int16_t age__arg, ::std::string address__arg, ::cpp2::Color favoriteColor__arg, ::std::set<::cpp2::PersonID> friends__arg, ::cpp2::PersonID bestFriend__arg, ::std::map<::cpp2::Animal, ::std::string> petNames__arg, ::cpp2::Animal afraidOfAnimal__arg, ::std::vector<::cpp2::Vehicle> vehicles__arg) :
     id(std::move(id__arg)),
     name(std::move(name__arg)),
@@ -421,23 +402,21 @@ Person::Person(apache::thrift::FragileConstructor, ::cpp2::PersonID id__arg, ::s
   __isset.__fbthrift_set(folly::index_constant<8>(), true);
   __isset.__fbthrift_set(folly::index_constant<9>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void Person::__clear() {
   // clear all fields
-  this->id = 0;
+  this->id = ::cpp2::PersonID();
   this->name = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
-  this->age = 0;
+  this->age = ::std::int16_t();
   this->address = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
   this->favoriteColor.__clear();
   this->friends.clear();
-  this->bestFriend = 0;
+  this->bestFriend = ::cpp2::PersonID();
   this->petNames.clear();
-  this->afraidOfAnimal = static_cast< ::cpp2::Animal>(0);
+  this->afraidOfAnimal = ::cpp2::Animal();
   this->vehicles.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool Person::operator==(const Person& rhs) const {
@@ -559,9 +538,7 @@ void swap(Person& a, Person& b) {
   swap(a.petNames_ref().value_unchecked(), b.petNames_ref().value_unchecked());
   swap(a.afraidOfAnimal_ref().value_unchecked(), b.afraidOfAnimal_ref().value_unchecked());
   swap(a.vehicles_ref().value_unchecked(), b.vehicles_ref().value_unchecked());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void Person::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -600,3 +577,8 @@ static_assert(
     "inconsistent use of nimble option");
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

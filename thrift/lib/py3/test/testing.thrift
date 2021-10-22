@@ -94,8 +94,7 @@ enum BadMembers {
 enum EmptyEnum {
 }
 
-union EmptyUnion {
-}
+union EmptyUnion {}
 
 struct StringBucket {
   1: string one;
@@ -135,13 +134,9 @@ union Integers {
   7: Digits digits (cpp.ref = "True");
 }
 
-struct Error {
-  1: string message;
-}
-
 union ValueOrError {
   1: File value (py3.name = "value_");
-  2: Error error;
+  3: HardError error;
 }
 
 struct easy {
@@ -335,6 +330,7 @@ service TestingService {
   string getName();
   string getMethodName();
   string getRequestId();
+  float getRequestTimeout();
   oneway void shutdown();
   bool invert(1: bool value);
   i32 complex_action(
@@ -350,7 +346,7 @@ service TestingService {
 
   void hard_error(1: bool valid) throws (1: HardError e);
   bool renamed_func(1: bool ret) (cpp.name = "renamed_func_in_cpp");
-} (fun_times = "yes",single_quote = "'",double_quotes = '"""',py3.pass_context,)
+} (fun_times = "yes", single_quote = "'", double_quotes = '"""')
 
 service TestingServiceChild extends TestingService {
   stream<i32> stream_func();
@@ -358,7 +354,6 @@ service TestingServiceChild extends TestingService {
 
 struct ListNode {
   1: i32 value;
-
 
   @cpp.Ref{type = cpp.RefType.Unique}
   2: optional ListNode next;

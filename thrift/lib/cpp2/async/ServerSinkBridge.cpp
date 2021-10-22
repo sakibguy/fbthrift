@@ -16,6 +16,8 @@
 
 #include <thrift/lib/cpp2/async/ServerSinkBridge.h>
 
+#include <folly/Overload.h>
+
 #if FOLLY_HAS_COROUTINES
 namespace apache {
 namespace thrift {
@@ -58,20 +60,17 @@ bool ServerSinkBridge::onSinkNext(StreamPayload&& payload) {
 }
 
 void ServerSinkBridge::onSinkError(folly::exception_wrapper ew) {
-  folly::exception_wrapper hijacked;
-  if (ew.with_exception([&hijacked](rocket::RocketException& rex) {
-        hijacked = folly::exception_wrapper(
-            apache::thrift::detail::EncodedError(rex.moveErrorData()));
-      })) {
-    clientPush(folly::Try<StreamPayload>(std::move(hijacked)));
-  } else {
-    clientPush(folly::Try<StreamPayload>(std::move(ew)));
-  }
+  using apache::thrift::detail::EncodedError;
+  auto rex = ew.get_exception<rocket::RocketException>();
+  auto payload = rex
+      ? folly::Try<StreamPayload>(EncodedError(rex->moveErrorData()))
+      : folly::Try<StreamPayload>(std::move(ew));
+  clientPush(std::move(payload));
   close();
 }
 
 bool ServerSinkBridge::onSinkComplete() {
-  clientPush(SinkComplete{});
+  clientPush({});
   sinkComplete_ = true;
   return true;
 }
@@ -118,26 +117,18 @@ ServerSinkBridge::makeGenerator(ServerSinkBridge& self) {
     co_await folly::coro::co_safe_point;
     for (auto messages = self.serverGetMessages(); !messages.empty();
          messages.pop()) {
-      auto& message = messages.front();
-      folly::Try<StreamPayload> ele;
-
-      folly::variant_match(
-          message,
-          [&](folly::Try<StreamPayload>& payload) { ele = std::move(payload); },
-          [](SinkComplete&) {});
-
-      // empty Try represent the normal completion of the sink
-      if (!ele.hasValue() && !ele.hasException()) {
+      folly::Try<StreamPayload> payload = std::move(messages.front());
+      if (!payload.hasValue() && !payload.hasException()) {
         co_return;
       }
 
-      if (ele.hasException()) {
+      if (payload.hasException()) {
         self.clientException_ = true;
-        co_yield std::move(ele);
+        co_yield std::move(payload);
         co_return;
       }
 
-      co_yield std::move(ele);
+      co_yield std::move(payload);
       counter++;
       if (counter > self.consumer_.bufferSize / 2) {
         self.serverPush(counter);
@@ -152,7 +143,7 @@ void ServerSinkBridge::processClientMessages() {
     return;
   }
 
-  int64_t credits = 0;
+  uint64_t credits = 0;
   do {
     for (auto messages = clientGetMessages(); !messages.empty();
          messages.pop()) {

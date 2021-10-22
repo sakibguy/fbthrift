@@ -128,13 +128,13 @@ class SecretStruct;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class MyStructNestedAnnotation final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -168,22 +168,8 @@ class MyStructNestedAnnotation final  {
   void __clear();
  private:
   ::std::string name;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -192,22 +178,22 @@ class MyStructNestedAnnotation final  {
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> name_ref() const& {
-    return {this->name, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->name, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> name_ref() const&& {
-    return {std::move(this->name), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->name), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> name_ref() & {
-    return {this->name, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->name, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> name_ref() && {
-    return {std::move(this->name), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->name), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   const ::std::string& get_name() const& {
@@ -221,8 +207,7 @@ class MyStructNestedAnnotation final  {
   template <typename T_MyStructNestedAnnotation_name_struct_setter = ::std::string>
   [[deprecated("Use `FOO.name_ref() = BAR;` instead of `FOO.set_name(BAR);`")]]
   ::std::string& set_name(T_MyStructNestedAnnotation_name_struct_setter&& name_) {
-    name = std::forward<T_MyStructNestedAnnotation_name_struct_setter>(name_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    name_ref() = std::forward<T_MyStructNestedAnnotation_name_struct_setter>(name_);
     return name;
   }
 
@@ -252,11 +237,6 @@ uint32_t MyStructNestedAnnotation::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -309,22 +289,8 @@ class MyStruct final  {
   ::std::string annotation_with_trailing_comma;
  private:
   ::std::string empty_annotations;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,6> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 6, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 6, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<6> __isset;
 
  public:
 
@@ -333,122 +299,122 @@ class MyStruct final  {
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> majorVer_ref() const& {
-    return {this->majorVer, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->majorVer, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> majorVer_ref() const&& {
-    return {std::move(this->majorVer), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->majorVer), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> majorVer_ref() & {
-    return {this->majorVer, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->majorVer, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> majorVer_ref() && {
-    return {std::move(this->majorVer), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->majorVer), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> package_ref() const& {
-    return {this->package, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->package, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> package_ref() const&& {
-    return {std::move(this->package), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->package), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> package_ref() & {
-    return {this->package, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->package, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> package_ref() && {
-    return {std::move(this->package), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->package), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> annotation_with_quote_ref() const& {
-    return {this->annotation_with_quote, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->annotation_with_quote, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> annotation_with_quote_ref() const&& {
-    return {std::move(this->annotation_with_quote), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->annotation_with_quote), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> annotation_with_quote_ref() & {
-    return {this->annotation_with_quote, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->annotation_with_quote, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> annotation_with_quote_ref() && {
-    return {std::move(this->annotation_with_quote), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->annotation_with_quote), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> class__ref() const& {
-    return {this->class_, __isset.array_isset.at(folly::index_constant<3>())};
+    return {this->class_, __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> class__ref() const&& {
-    return {std::move(this->class_), __isset.array_isset.at(folly::index_constant<3>())};
+    return {std::move(this->class_), __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> class__ref() & {
-    return {this->class_, __isset.array_isset.at(folly::index_constant<3>())};
+    return {this->class_, __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> class__ref() && {
-    return {std::move(this->class_), __isset.array_isset.at(folly::index_constant<3>())};
+    return {std::move(this->class_), __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> annotation_with_trailing_comma_ref() const& {
-    return {this->annotation_with_trailing_comma, __isset.array_isset.at(folly::index_constant<4>())};
+    return {this->annotation_with_trailing_comma, __isset.__fbthrift_at(folly::index_constant<4>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> annotation_with_trailing_comma_ref() const&& {
-    return {std::move(this->annotation_with_trailing_comma), __isset.array_isset.at(folly::index_constant<4>())};
+    return {std::move(this->annotation_with_trailing_comma), __isset.__fbthrift_at(folly::index_constant<4>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> annotation_with_trailing_comma_ref() & {
-    return {this->annotation_with_trailing_comma, __isset.array_isset.at(folly::index_constant<4>())};
+    return {this->annotation_with_trailing_comma, __isset.__fbthrift_at(folly::index_constant<4>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> annotation_with_trailing_comma_ref() && {
-    return {std::move(this->annotation_with_trailing_comma), __isset.array_isset.at(folly::index_constant<4>())};
+    return {std::move(this->annotation_with_trailing_comma), __isset.__fbthrift_at(folly::index_constant<4>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> empty_annotations_ref() const& {
-    return {this->empty_annotations, __isset.array_isset.at(folly::index_constant<5>())};
+    return {this->empty_annotations, __isset.__fbthrift_at(folly::index_constant<5>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> empty_annotations_ref() const&& {
-    return {std::move(this->empty_annotations), __isset.array_isset.at(folly::index_constant<5>())};
+    return {std::move(this->empty_annotations), __isset.__fbthrift_at(folly::index_constant<5>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> empty_annotations_ref() & {
-    return {this->empty_annotations, __isset.array_isset.at(folly::index_constant<5>())};
+    return {this->empty_annotations, __isset.__fbthrift_at(folly::index_constant<5>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> empty_annotations_ref() && {
-    return {std::move(this->empty_annotations), __isset.array_isset.at(folly::index_constant<5>())};
+    return {std::move(this->empty_annotations), __isset.__fbthrift_at(folly::index_constant<5>())};
   }
 
   ::std::int64_t get_majorVer() const {
@@ -457,8 +423,7 @@ class MyStruct final  {
 
   [[deprecated("Use `FOO.majorVer_ref() = BAR;` instead of `FOO.set_majorVer(BAR);`")]]
   ::std::int64_t& set_majorVer(::std::int64_t majorVer_) {
-    majorVer = majorVer_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    majorVer_ref() = majorVer_;
     return majorVer;
   }
 
@@ -473,8 +438,7 @@ class MyStruct final  {
   template <typename T_MyStruct_package_struct_setter = ::std::string>
   [[deprecated("Use `FOO.package_ref() = BAR;` instead of `FOO.set_package(BAR);`")]]
   ::std::string& set_package(T_MyStruct_package_struct_setter&& package_) {
-    package = std::forward<T_MyStruct_package_struct_setter>(package_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    package_ref() = std::forward<T_MyStruct_package_struct_setter>(package_);
     return package;
   }
 
@@ -489,8 +453,7 @@ class MyStruct final  {
   template <typename T_MyStruct_annotation_with_quote_struct_setter = ::std::string>
   [[deprecated("Use `FOO.annotation_with_quote_ref() = BAR;` instead of `FOO.set_annotation_with_quote(BAR);`")]]
   ::std::string& set_annotation_with_quote(T_MyStruct_annotation_with_quote_struct_setter&& annotation_with_quote_) {
-    annotation_with_quote = std::forward<T_MyStruct_annotation_with_quote_struct_setter>(annotation_with_quote_);
-    __isset.__fbthrift_set(folly::index_constant<2>(), true);
+    annotation_with_quote_ref() = std::forward<T_MyStruct_annotation_with_quote_struct_setter>(annotation_with_quote_);
     return annotation_with_quote;
   }
 
@@ -505,8 +468,7 @@ class MyStruct final  {
   template <typename T_MyStruct_class__struct_setter = ::std::string>
   [[deprecated("Use `FOO.class__ref() = BAR;` instead of `FOO.set_class_(BAR);`")]]
   ::std::string& set_class_(T_MyStruct_class__struct_setter&& class__) {
-    class_ = std::forward<T_MyStruct_class__struct_setter>(class__);
-    __isset.__fbthrift_set(folly::index_constant<3>(), true);
+    class__ref() = std::forward<T_MyStruct_class__struct_setter>(class__);
     return class_;
   }
 
@@ -521,8 +483,7 @@ class MyStruct final  {
   template <typename T_MyStruct_annotation_with_trailing_comma_struct_setter = ::std::string>
   [[deprecated("Use `FOO.annotation_with_trailing_comma_ref() = BAR;` instead of `FOO.set_annotation_with_trailing_comma(BAR);`")]]
   ::std::string& set_annotation_with_trailing_comma(T_MyStruct_annotation_with_trailing_comma_struct_setter&& annotation_with_trailing_comma_) {
-    annotation_with_trailing_comma = std::forward<T_MyStruct_annotation_with_trailing_comma_struct_setter>(annotation_with_trailing_comma_);
-    __isset.__fbthrift_set(folly::index_constant<4>(), true);
+    annotation_with_trailing_comma_ref() = std::forward<T_MyStruct_annotation_with_trailing_comma_struct_setter>(annotation_with_trailing_comma_);
     return annotation_with_trailing_comma;
   }
 
@@ -537,8 +498,7 @@ class MyStruct final  {
   template <typename T_MyStruct_empty_annotations_struct_setter = ::std::string>
   [[deprecated("Use `FOO.empty_annotations_ref() = BAR;` instead of `FOO.set_empty_annotations(BAR);`")]]
   ::std::string& set_empty_annotations(T_MyStruct_empty_annotations_struct_setter&& empty_annotations_) {
-    empty_annotations = std::forward<T_MyStruct_empty_annotations_struct_setter>(empty_annotations_);
-    __isset.__fbthrift_set(folly::index_constant<5>(), true);
+    empty_annotations_ref() = std::forward<T_MyStruct_empty_annotations_struct_setter>(empty_annotations_);
     return empty_annotations;
   }
 
@@ -568,11 +528,6 @@ uint32_t MyStruct::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class SecretStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -609,22 +564,8 @@ class SecretStruct final  {
   ::std::int64_t id;
  private:
   ::std::string password;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -633,42 +574,42 @@ class SecretStruct final  {
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> id_ref() const& {
-    return {this->id, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->id, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> id_ref() const&& {
-    return {std::move(this->id), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->id), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> id_ref() & {
-    return {this->id, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->id, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> id_ref() && {
-    return {std::move(this->id), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->id), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> password_ref() const& {
-    return {this->password, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->password, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> password_ref() const&& {
-    return {std::move(this->password), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->password), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> password_ref() & {
-    return {this->password, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->password, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> password_ref() && {
-    return {std::move(this->password), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->password), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   ::std::int64_t get_id() const {
@@ -677,8 +618,7 @@ class SecretStruct final  {
 
   [[deprecated("Use `FOO.id_ref() = BAR;` instead of `FOO.set_id(BAR);`")]]
   ::std::int64_t& set_id(::std::int64_t id_) {
-    id = id_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    id_ref() = id_;
     return id;
   }
 
@@ -693,8 +633,7 @@ class SecretStruct final  {
   template <typename T_SecretStruct_password_struct_setter = ::std::string>
   [[deprecated("Use `FOO.password_ref() = BAR;` instead of `FOO.set_password(BAR);`")]]
   ::std::string& set_password(T_SecretStruct_password_struct_setter&& password_) {
-    password = std::forward<T_SecretStruct_password_struct_setter>(password_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    password_ref() = std::forward<T_SecretStruct_password_struct_setter>(password_);
     return password;
   }
 
@@ -723,4 +662,3 @@ uint32_t SecretStruct::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

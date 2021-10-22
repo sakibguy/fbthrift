@@ -42,13 +42,13 @@ class IncludedA;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace some { namespace ns {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+}} // some::ns
+namespace some { namespace ns {
 class IncludedA final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -85,22 +85,8 @@ class IncludedA final  {
   ::std::int32_t i32Field;
  private:
   ::std::string strField;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -109,42 +95,42 @@ class IncludedA final  {
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> i32Field_ref() const& {
-    return {this->i32Field, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->i32Field, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> i32Field_ref() const&& {
-    return {std::move(this->i32Field), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->i32Field), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> i32Field_ref() & {
-    return {this->i32Field, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->i32Field, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> i32Field_ref() && {
-    return {std::move(this->i32Field), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->i32Field), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> strField_ref() const& {
-    return {this->strField, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->strField, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> strField_ref() const&& {
-    return {std::move(this->strField), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->strField), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> strField_ref() & {
-    return {this->strField, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->strField, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> strField_ref() && {
-    return {std::move(this->strField), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->strField), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   ::std::int32_t get_i32Field() const {
@@ -153,8 +139,7 @@ class IncludedA final  {
 
   [[deprecated("Use `FOO.i32Field_ref() = BAR;` instead of `FOO.set_i32Field(BAR);`")]]
   ::std::int32_t& set_i32Field(::std::int32_t i32Field_) {
-    i32Field = i32Field_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    i32Field_ref() = i32Field_;
     return i32Field;
   }
 
@@ -169,8 +154,7 @@ class IncludedA final  {
   template <typename T_IncludedA_strField_struct_setter = ::std::string>
   [[deprecated("Use `FOO.strField_ref() = BAR;` instead of `FOO.set_strField(BAR);`")]]
   ::std::string& set_strField(T_IncludedA_strField_struct_setter&& strField_) {
-    strField = std::forward<T_IncludedA_strField_struct_setter>(strField_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    strField_ref() = std::forward<T_IncludedA_strField_struct_setter>(strField_);
     return strField;
   }
 
@@ -199,4 +183,3 @@ uint32_t IncludedA::read(Protocol_* iprot) {
 }
 
 }} // some::ns
-THRIFT_IGNORE_ISSET_USE_WARNING_END

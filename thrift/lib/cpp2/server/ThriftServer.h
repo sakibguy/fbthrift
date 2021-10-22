@@ -42,14 +42,17 @@
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 #include <thrift/lib/cpp/server/TServerObserver.h>
 #include <thrift/lib/cpp/transport/THeader.h>
+#include <thrift/lib/cpp2/PluggableFunction.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
 #include <thrift/lib/cpp2/async/HeaderServerChannel.h>
 #include <thrift/lib/cpp2/server/BaseThriftServer.h>
+#include <thrift/lib/cpp2/server/PolledServiceHealth.h>
 #include <thrift/lib/cpp2/server/PreprocessParams.h>
 #include <thrift/lib/cpp2/server/RequestDebugLog.h>
 #include <thrift/lib/cpp2/server/RequestsRegistry.h>
 #include <thrift/lib/cpp2/server/ServerInstrumentation.h>
+#include <thrift/lib/cpp2/server/ServiceHealthPoller.h>
 #include <thrift/lib/cpp2/server/TransportRoutingHandler.h>
 #include <thrift/lib/cpp2/transport/rocket/PayloadUtils.h>
 #include <thrift/lib/cpp2/transport/rocket/Types.h>
@@ -64,6 +67,7 @@ DECLARE_bool(thrift_abort_if_exceeds_shutdown_deadline);
 DECLARE_string(service_identity);
 
 THRIFT_FLAG_DECLARE_bool(dump_snapshot_on_long_shutdown);
+THRIFT_FLAG_DECLARE_bool(alpn_allow_mismatch);
 
 namespace apache {
 namespace thrift {
@@ -301,6 +305,16 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
     return status;
   }
 
+#if FOLLY_HAS_COROUTINES
+  using ServiceHealth = PolledServiceHealth::ServiceHealth;
+
+  std::optional<ServiceHealth> getServiceHealth() const {
+    auto health = cachedServiceHealth_.load(std::memory_order_relaxed);
+    return health == ServiceHealth{} ? std::nullopt
+                                     : std::make_optional(health);
+  }
+#endif
+
   RequestHandlingCapability shouldHandleRequests() const override {
     auto status = getServerStatus();
     switch (status) {
@@ -333,8 +347,35 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
    * represents the source of truth for the status reported by the server.
    */
   std::atomic<ServerStatus> internalStatus_{ServerStatus::NOT_RUNNING};
+#if FOLLY_HAS_COROUTINES
+  /**
+   * Thrift server's latest view of the running service's reported health.
+   */
+  std::atomic<ServiceHealth> cachedServiceHealth_{};
+#endif
 
   std::unique_ptr<AsyncProcessorFactory> decoratedProcessorFactory_;
+
+  /**
+   * Collects service handlers of the current service of a specific type.
+   */
+  template <
+      typename TServiceHandler = ServiceHandler,
+      typename =
+          std::enable_if_t<std::is_base_of_v<ServiceHandler, TServiceHandler>>>
+  std::vector<TServiceHandler*> collectServiceHandlers() const {
+    if constexpr (std::is_same_v<TServiceHandler, ServiceHandler>) {
+      return getDecoratedProcessorFactory().getServiceHandlers();
+    }
+    std::vector<TServiceHandler*> matchedServiceHandlers;
+    for (auto* serviceHandler :
+         getDecoratedProcessorFactory().getServiceHandlers()) {
+      if (auto matched = dynamic_cast<TServiceHandler*>(serviceHandler)) {
+        matchedServiceHandlers.push_back(matched);
+      }
+    }
+    return matchedServiceHandlers;
+  }
 
  public:
   ThriftServer();
@@ -469,9 +510,11 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
   void setSSLConfig(
       folly::observer::Observer<wangle::SSLContextConfig> contextObserver) {
     sslContextObserver_ = folly::observer::makeObserver(
-        [observer = std::move(contextObserver)]() {
+        [observer = std::move(contextObserver),
+         alpnObserver = ThriftServer::alpnAllowMismatch()]() {
           auto context = **observer;
           context.isDefault = true;
+          context.alpnAllowMismatch = **alpnObserver;
           return context;
         });
   }
@@ -920,6 +963,8 @@ class ThriftServer : public apache::thrift::BaseThriftServer,
     quickExitOnShutdownTimeout_ = quickExitOnShutdownTimeout;
   }
 
+  static folly::observer::Observer<bool> alpnAllowMismatch();
+
   /**
    * For each request debug stub, a snapshot information can be constructed to
    * persist some transitent states about the corresponding request.
@@ -1081,6 +1126,19 @@ using DefaultThriftAcceptorFactory = ThriftAcceptorFactory<Cpp2Worker, void>;
 using DefaultThriftAcceptorFactorySharedSSLContext = ThriftAcceptorFactory<
     Cpp2Worker,
     wangle::SharedSSLContextManagerImpl<wangle::FizzConfigUtil>>;
+
+namespace detail {
+
+THRIFT_PLUGGABLE_FUNC_DECLARE(
+    apache::thrift::ThriftServer::DumpSnapshotOnLongShutdownResult,
+    dumpSnapshotOnLongShutdown);
+
+THRIFT_PLUGGABLE_FUNC_DECLARE(
+    apache::thrift::ThriftServer::ExtraInterfaces,
+    createDefaultExtraInterfaces);
+
+} // namespace detail
+
 } // namespace thrift
 } // namespace apache
 

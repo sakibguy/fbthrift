@@ -30,9 +30,13 @@
 #include <folly/ScopeGuard.h>
 #include <folly/portability/Sockets.h>
 
-#include <thrift/lib/cpp2/PluggableFunction.h>
-
 THRIFT_FLAG_DEFINE_int64(server_default_socket_queue_timeout_ms, 0);
+THRIFT_FLAG_DEFINE_int64(server_default_queue_timeout_ms, 0);
+
+THRIFT_FLAG_DEFINE_int64(server_polled_service_health_liveness_ms, 100);
+THRIFT_FLAG_DEFINE_int64(
+    server_ingress_memory_limit_enforcement_payload_size_min_bytes, 1024);
+
 namespace apache {
 namespace thrift {
 
@@ -57,8 +61,8 @@ const size_t BaseThriftServer::T_ASYNC_DEFAULT_WORKER_THREADS =
     std::thread::hardware_concurrency();
 
 BaseThriftServer::BaseThriftServer()
-    : adaptiveConcurrencyController_{apache::thrift::detail::THRIFT_PLUGGABLE_FUNC(
-          makeAdaptiveConcurrencyConfig()), maxRequests_.getObserver()},
+    : adaptiveConcurrencyController_{apache::thrift::detail::
+          makeAdaptiveConcurrencyConfig(), maxRequests_.getObserver()},
       addresses_(1) {}
 
 void BaseThriftServer::CumulativeFailureInjection::set(

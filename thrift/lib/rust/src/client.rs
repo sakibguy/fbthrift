@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::{Framing, FramingDecoded, FramingEncodedFinal, Protocol};
+use crate::{help::Spawner, Framing, FramingDecoded, FramingEncodedFinal, Protocol};
 use futures::stream::Stream;
 use futures::{future, FutureExt};
 use std::ffi::CStr;
@@ -29,7 +29,18 @@ pub trait ClientFactory {
     where
         P: Protocol<Frame = T> + 'static,
         T: Transport + Sync,
-        P::Deserializer: Send;
+        P::Deserializer: Send,
+    {
+        let spawner = crate::NoopSpawner;
+        Self::with_spawner(protocol, transport, spawner)
+    }
+
+    fn with_spawner<P, T, S>(protocol: P, transport: T, spawner: S) -> Arc<Self::Api>
+    where
+        P: Protocol<Frame = T> + 'static,
+        T: Transport + Sync,
+        P::Deserializer: Send,
+        S: Spawner;
 }
 
 pub trait Transport: Framing + Send + 'static {

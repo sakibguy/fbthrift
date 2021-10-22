@@ -52,6 +52,23 @@ struct OptionalLazyFoo {
   4: optional list<i32> field4;
 }
 
+struct FooNoChecksum {
+  1: list<double> field1;
+  2: list<i32> field2;
+  3: list<double> field3;
+  4: list<i32> field4;
+}
+
+@cpp.DisableLazyChecksum
+struct LazyFooNoChecksum {
+  1: list<double> field1;
+  2: list<i32> field2;
+  @cpp.Lazy
+  3: list<double> field3;
+  @cpp.Lazy
+  4: list<i32> field4;
+}
+
 struct LazyCppRef {
   @cpp.Lazy
   @cpp.Ref{type = cpp.RefType.Unique}
@@ -91,8 +108,7 @@ struct OptionalIndexedFoo {
   101: map<i16, i64> field_id_to_size;
 }
 
-struct Empty {
-}
+struct Empty {}
 
 const i32 kSizeId = 100;
 const i32 kIndexId = 101;

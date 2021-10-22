@@ -170,13 +170,13 @@ class MyStruct;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace test { namespace fixtures { namespace enumstrict {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+}}} // test::fixtures::enumstrict
+namespace test { namespace fixtures { namespace enumstrict {
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -215,22 +215,8 @@ class MyStruct final  {
   ::test::fixtures::enumstrict::MyEnum myEnum;
  private:
   ::test::fixtures::enumstrict::MyBigEnum myBigEnum;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -239,42 +225,42 @@ class MyStruct final  {
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> myEnum_ref() const& {
-    return {this->myEnum, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->myEnum, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> myEnum_ref() const&& {
-    return {std::move(this->myEnum), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->myEnum), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> myEnum_ref() & {
-    return {this->myEnum, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->myEnum, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> myEnum_ref() && {
-    return {std::move(this->myEnum), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->myEnum), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> myBigEnum_ref() const& {
-    return {this->myBigEnum, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->myBigEnum, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> myBigEnum_ref() const&& {
-    return {std::move(this->myBigEnum), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->myBigEnum), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> myBigEnum_ref() & {
-    return {this->myBigEnum, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->myBigEnum, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> myBigEnum_ref() && {
-    return {std::move(this->myBigEnum), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->myBigEnum), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   ::test::fixtures::enumstrict::MyEnum get_myEnum() const {
@@ -283,8 +269,7 @@ class MyStruct final  {
 
   [[deprecated("Use `FOO.myEnum_ref() = BAR;` instead of `FOO.set_myEnum(BAR);`")]]
   ::test::fixtures::enumstrict::MyEnum& set_myEnum(::test::fixtures::enumstrict::MyEnum myEnum_) {
-    myEnum = myEnum_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    myEnum_ref() = myEnum_;
     return myEnum;
   }
 
@@ -294,8 +279,7 @@ class MyStruct final  {
 
   [[deprecated("Use `FOO.myBigEnum_ref() = BAR;` instead of `FOO.set_myBigEnum(BAR);`")]]
   ::test::fixtures::enumstrict::MyBigEnum& set_myBigEnum(::test::fixtures::enumstrict::MyBigEnum myBigEnum_) {
-    myBigEnum = myBigEnum_;
-  __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    myBigEnum_ref() = myBigEnum_;
     return myBigEnum;
   }
 
@@ -324,4 +308,3 @@ uint32_t MyStruct::read(Protocol_* iprot) {
 }
 
 }}} // test::fixtures::enumstrict
-THRIFT_IGNORE_ISSET_USE_WARNING_END

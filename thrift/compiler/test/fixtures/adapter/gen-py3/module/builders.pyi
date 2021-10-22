@@ -10,6 +10,8 @@ import typing as _typing
 import folly.iobuf as _fbthrift_iobuf
 import thrift.py3.builder
 
+import facebook.thrift.annotation.cpp.cpp.types as _facebook_thrift_annotation_cpp_cpp_types
+import facebook.thrift.annotation.cpp.cpp.builders as _facebook_thrift_annotation_cpp_cpp_builders
 
 import module.types as _module_types
 
@@ -43,6 +45,12 @@ class Bar_Builder(thrift.py3.builder.StructBuilder):
     optionalStructListField: _typing.Optional[list]
     unionField: _typing.Any
     optionalUnionField: _typing.Any
+
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[str, _typing.Any]]: ...
+
+
+class StructWithFieldAdapter_Builder(thrift.py3.builder.StructBuilder):
+    field: _typing.Optional[int]
 
     def __iter__(self) -> _typing.Iterator[_typing.Tuple[str, _typing.Any]]: ...
 

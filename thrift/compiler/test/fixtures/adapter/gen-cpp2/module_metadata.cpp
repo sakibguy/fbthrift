@@ -106,6 +106,30 @@ StructMetadata<::cpp2::Bar>::gen(ThriftMetadata& metadata) {
   }
   return res.first->second;
 }
+const ::apache::thrift::metadata::ThriftStruct&
+StructMetadata<::cpp2::StructWithFieldAdapter>::gen(ThriftMetadata& metadata) {
+  auto res = metadata.structs_ref()->emplace("module.StructWithFieldAdapter", ::apache::thrift::metadata::ThriftStruct{});
+  if (!res.second) {
+    return res.first->second;
+  }
+  ::apache::thrift::metadata::ThriftStruct& module_StructWithFieldAdapter = res.first->second;
+  module_StructWithFieldAdapter.name_ref() = "module.StructWithFieldAdapter";
+  module_StructWithFieldAdapter.is_union_ref() = false;
+  static const EncodedThriftField
+  module_StructWithFieldAdapter_fields[] = {
+    {1, "field", false, std::make_unique<Primitive>(ThriftPrimitiveType::THRIFT_I32_TYPE), std::vector<ThriftConstStruct>{*cvStruct("cpp.ExperimentalAdapter", {{"name", cvString(R"(my::Adapter1)")}}).cv_struct_ref(), }},
+  };
+  for (const auto& f : module_StructWithFieldAdapter_fields) {
+    ::apache::thrift::metadata::ThriftField field;
+    field.id_ref() = f.id;
+    field.name_ref() = f.name;
+    field.is_optional_ref() = f.is_optional;
+    f.metadata_type_interface->writeAndGenType(*field.type_ref(), metadata);
+    field.structured_annotations_ref() = f.structured_annotations;
+    module_StructWithFieldAdapter.fields_ref()->push_back(std::move(field));
+  }
+  return res.first->second;
+}
 
 void ServiceMetadata<::cpp2::ServiceSvIf>::gen_func(ThriftMetadata& metadata, ThriftService& service) {
   ::apache::thrift::metadata::ThriftFunction func;
@@ -124,9 +148,16 @@ void ServiceMetadata<::cpp2::ServiceSvIf>::gen_func(ThriftMetadata& metadata, Th
   module_Service_func_arg2_2.id_ref() = 2;
   module_Service_func_arg2_2.name_ref() = "arg2";
   module_Service_func_arg2_2.is_optional_ref() = false;
-  auto module_Service_func_arg2_2_type = std::make_unique<Struct< ::cpp2::Foo>>("module.Foo");
+  auto module_Service_func_arg2_2_type = std::make_unique<Primitive>(ThriftPrimitiveType::THRIFT_STRING_TYPE);
   module_Service_func_arg2_2_type->writeAndGenType(*module_Service_func_arg2_2.type_ref(), metadata);
   func.arguments_ref()->push_back(std::move(module_Service_func_arg2_2));
+  ::apache::thrift::metadata::ThriftField module_Service_func_arg3_3;
+  module_Service_func_arg3_3.id_ref() = 3;
+  module_Service_func_arg3_3.name_ref() = "arg3";
+  module_Service_func_arg3_3.is_optional_ref() = false;
+  auto module_Service_func_arg3_3_type = std::make_unique<Struct< ::cpp2::Foo>>("module.Foo");
+  module_Service_func_arg3_3_type->writeAndGenType(*module_Service_func_arg3_3.type_ref(), metadata);
+  func.arguments_ref()->push_back(std::move(module_Service_func_arg3_3));
   func.is_oneway_ref() = false;
   service.functions_ref()->push_back(std::move(func));
 }

@@ -22,11 +22,6 @@
 
 #include <xxhash.h>
 
-DEFINE_bool(
-    thrift_enable_lazy_deserialization,
-    true,
-    "Whether to enable lazy deserialization");
-
 namespace apache {
 namespace thrift {
 namespace detail {
@@ -58,6 +53,14 @@ int64_t random_64bits_integer() {
   thread_local std::uniform_int_distribution<int64_t> dist(
       std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max());
   return dist(engine);
+}
+
+void throwChecksumMismatch(int64_t expected, int64_t actual) {
+  gLazyDeserializationIsDisabledDueToChecksumMismatch.store(
+      true, std::memory_order_relaxed);
+  throw TProtocolException(
+      TProtocolException::CHECKSUM_MISMATCH,
+      fmt::format("expected ({}) != actual ({})", expected, actual));
 }
 
 } // namespace detail

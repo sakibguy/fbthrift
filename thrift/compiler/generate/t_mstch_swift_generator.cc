@@ -15,6 +15,7 @@
  */
 
 #include <cctype>
+#include <set>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -411,6 +412,10 @@ class mstch_swift_service : public mstch_service {
             {"service:javaPackage", &mstch_swift_service::java_package},
             {"service:javaCapitalName",
              &mstch_swift_service::java_capital_name},
+            {"service:onewayFunctions",
+             &mstch_swift_service::get_oneway_functions},
+            {"service:requestResponseFunctions",
+             &mstch_swift_service::get_request_response_functions},
             {"service:supportedFunctions",
              &mstch_swift_service::get_supported_functions},
             {"service:streamingFunctions",
@@ -425,6 +430,25 @@ class mstch_swift_service : public mstch_service {
   }
   mstch::node java_capital_name() {
     return java::mangle_java_name(service_->get_name(), true);
+  }
+  mstch::node get_oneway_functions() {
+    std::vector<t_function*> funcs;
+    for (auto func : service_->get_functions()) {
+      if (func->is_oneway()) {
+        funcs.push_back(func);
+      }
+    }
+    return generate_functions(funcs);
+  }
+  mstch::node get_request_response_functions() {
+    std::vector<t_function*> funcs;
+    for (auto func : service_->get_functions()) {
+      if (!func->returns_stream() && !func->returns_sink() &&
+          !func->get_returntype()->is_service() && !func->is_oneway()) {
+        funcs.push_back(func);
+      }
+    }
+    return generate_functions(funcs);
   }
   mstch::node get_supported_functions() {
     std::vector<t_function*> funcs;
@@ -530,8 +554,9 @@ class mstch_swift_field : public mstch_field {
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION const pos,
-      int32_t index)
-      : mstch_field(field, generators, cache, pos, index) {
+      int32_t index,
+      field_generator_context const* field_context)
+      : mstch_field(field, generators, cache, pos, index, field_context) {
     register_methods(
         this,
         {
@@ -914,8 +939,8 @@ class program_swift_generator : public program_generator {
       t_program const* program,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_program>(
         program, generators, cache, pos);
   }
@@ -929,8 +954,8 @@ class struct_swift_generator : public struct_generator {
       t_struct const* strct,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_struct>(strct, generators, cache, pos);
   }
 };
@@ -943,8 +968,8 @@ class service_swift_generator : public service_generator {
       t_service const* service,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_service>(
         service, generators, cache, pos);
   }
@@ -958,8 +983,8 @@ class function_swift_generator : public function_generator {
       t_function const* function,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_function>(
         function, generators, cache, pos);
   }
@@ -973,10 +998,11 @@ class field_swift_generator : public field_generator {
       t_field const* field,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      field_generator_context const* field_context) const override {
     return std::make_shared<mstch_swift_field>(
-        field, generators, cache, pos, index);
+        field, generators, cache, pos, index, field_context);
   }
 };
 
@@ -988,8 +1014,8 @@ class enum_swift_generator : public enum_generator {
       t_enum const* enm,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_enum>(enm, generators, cache, pos);
   }
 };
@@ -1002,8 +1028,8 @@ class enum_value_swift_generator : public enum_value_generator {
       t_enum_value const* enm_value,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_enum_value>(
         enm_value, generators, cache, pos);
   }
@@ -1017,8 +1043,8 @@ class type_swift_generator : public type_generator {
       t_type const* type,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_swift_type>(type, generators, cache, pos);
   }
 };
@@ -1031,11 +1057,11 @@ class const_swift_generator : public const_generator {
       t_const const* cnst,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0,
-      t_const const* current_const = nullptr,
-      t_type const* expected_type = nullptr,
-      const std::string& field_name = std::string()) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      t_const const* current_const,
+      t_type const* expected_type,
+      const std::string& field_name) const override {
     return std::make_shared<mstch_swift_const>(
         cnst,
         current_const,
@@ -1056,10 +1082,10 @@ class const_value_swift_generator : public const_value_generator {
       t_const_value const* const_value,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0,
-      t_const const* current_const = nullptr,
-      t_type const* expected_type = nullptr) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      t_const const* current_const,
+      t_type const* expected_type) const override {
     return std::make_shared<mstch_swift_const_value>(
         const_value,
         current_const,

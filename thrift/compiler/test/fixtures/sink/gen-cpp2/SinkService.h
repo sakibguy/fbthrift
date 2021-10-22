@@ -53,6 +53,8 @@ class SinkServiceAsyncProcessor;
 
 class SinkServiceSvIf : public SinkServiceSvAsyncIf, public apache::thrift::ServerInterface {
  public:
+  std::string_view getGeneratedName() const override { return "SinkService"; }
+
   typedef SinkServiceAsyncProcessor ProcessorType;
   std::unique_ptr<apache::thrift::AsyncProcessor> getProcessor() override;
   CreateMethodMetadataResult createMethodMetadata() override;
@@ -127,7 +129,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_method(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_method(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_method(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_method(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -135,7 +137,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_methodAndReponse(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodAndReponse(apache::thrift::ContextStack* ctx, ::apache::thrift::ResponseAndSinkConsumer<::cpp2::InitialResponse, ::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodAndReponse(apache::thrift::ContextStack* ctx, ::apache::thrift::ResponseAndSinkConsumer<::cpp2::InitialResponse, ::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_methodAndReponse(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -143,7 +145,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_methodThrow(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_methodThrow(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -151,7 +153,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_methodSinkThrow(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodSinkThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodSinkThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_methodSinkThrow(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -159,7 +161,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_methodFinalThrow(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodFinalThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodFinalThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_methodFinalThrow(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -167,7 +169,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_methodBothThrow(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodBothThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodBothThrow(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_methodBothThrow(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
   template <typename ProtocolIn_, typename ProtocolOut_>
@@ -175,7 +177,7 @@ class SinkServiceAsyncProcessor : public ::apache::thrift::GeneratedAsyncProcess
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_methodFast(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static std::pair<apache::thrift::LegacySerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodFast(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
+  static std::pair<apache::thrift::SerializedResponse, apache::thrift::detail::SinkConsumerImpl> return_methodFast(apache::thrift::ContextStack* ctx, ::apache::thrift::SinkConsumer<::cpp2::SinkPayload, ::cpp2::FinalResponse>&& _return, folly::Executor::KeepAlive<> executor);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_methodFast(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
  public:

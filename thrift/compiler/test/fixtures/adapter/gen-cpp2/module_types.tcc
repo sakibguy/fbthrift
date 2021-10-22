@@ -36,6 +36,13 @@ struct TccStructTraits<::cpp2::Bar> {
       int16_t& fid,
       apache::thrift::protocol::TType& _ftype) noexcept;
 };
+template <>
+struct TccStructTraits<::cpp2::StructWithFieldAdapter> {
+  static void translateFieldName(
+      folly::StringPiece _fname,
+      int16_t& fid,
+      apache::thrift::protocol::TType& _ftype) noexcept;
+};
 
 } // namespace detail
 } // namespace thrift
@@ -52,7 +59,6 @@ void Foo::readNoXfer(Protocol_* iprot) {
   using apache::thrift::TProtocolException;
 
 
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   if (UNLIKELY(!_readState.advanceToNextField(
           iprot,
           0,
@@ -64,7 +70,7 @@ _readField_intField:
   {
     ::std::int32_t tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->intField, ::std::move(tvalue));
+    this->intField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 1>(::std::move(tvalue), *this);
     
   }
  this->__isset.__fbthrift_set(folly::index_constant<0>(), true);
@@ -80,7 +86,7 @@ _readField_optionalIntField:
   {
     ::std::int32_t tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->optionalIntField, ::std::move(tvalue));
+    this->optionalIntField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 2>(::std::move(tvalue), *this);
     
   }
  this->__isset.__fbthrift_set(folly::index_constant<1>(), true);
@@ -96,7 +102,7 @@ _readField_intFieldWithDefault:
   {
     ::std::int32_t tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->intFieldWithDefault, ::std::move(tvalue));
+    this->intFieldWithDefault = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 3>(::std::move(tvalue), *this);
     
   }
  this->__isset.__fbthrift_set(folly::index_constant<2>(), true);
@@ -114,7 +120,7 @@ _readField_setField:
     ::std::set<::std::string> tvalue;
     this->setField = ::cpp2::SetWithAdapter();
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::string>, ::std::set<::std::string>>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter2>(this->setField, ::std::move(tvalue));
+    this->setField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter2, 4>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -133,7 +139,7 @@ _readField_optionalSetField:
     ::std::set<::std::string> tvalue;
     this->optionalSetField = ::cpp2::SetWithAdapter();
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::string>, ::std::set<::std::string>>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter2>(this->optionalSetField, ::std::move(tvalue));
+    this->optionalSetField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter2, 5>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -152,7 +158,7 @@ _readField_mapField:
     ::std::map<::std::string, ::cpp2::ListWithElemAdapter> tvalue;
     this->mapField = ::apache::thrift::adapt_detail::adapted_t<my::Adapter3, ::std::map<::std::string, ::apache::thrift::adapt_detail::adapted_t<my::Adapter2, ::cpp2::ListWithElemAdapter>>>();
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::list<::apache::thrift::type_class::string>>, ::std::map<::std::string, ::cpp2::ListWithElemAdapter>>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter3>(this->mapField, ::std::move(tvalue));
+    this->mapField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter3, 6>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -171,7 +177,7 @@ _readField_optionalMapField:
     ::std::map<::std::string, ::cpp2::ListWithElemAdapter> tvalue;
     this->optionalMapField = ::apache::thrift::adapt_detail::adapted_t<my::Adapter3, ::std::map<::std::string, ::apache::thrift::adapt_detail::adapted_t<my::Adapter2, ::cpp2::ListWithElemAdapter>>>();
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::list<::apache::thrift::type_class::string>>, ::std::map<::std::string, ::cpp2::ListWithElemAdapter>>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter3>(this->optionalMapField, ::std::move(tvalue));
+    this->optionalMapField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter3, 7>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -188,7 +194,7 @@ _readField_binaryField:
   {
     ::std::string tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::std::string>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->binaryField, ::std::move(tvalue));
+    this->binaryField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 8>(::std::move(tvalue), *this);
     
   }
  this->__isset.__fbthrift_set(folly::index_constant<7>(), true);
@@ -200,7 +206,6 @@ _readField_binaryField:
           apache::thrift::protocol::T_STOP))) {
     goto _loop;
   }
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 _end:
   _readState.readStructEnd(iprot);
@@ -294,7 +299,6 @@ _skip:
 
 template <class Protocol_>
 uint32_t Foo::serializedSize(Protocol_ const* prot_) const {
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   uint32_t xfer = 0;
   xfer += prot_->serializedStructSize("Foo");
   {
@@ -331,12 +335,10 @@ uint32_t Foo::serializedSize(Protocol_ const* prot_) const {
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template <class Protocol_>
 uint32_t Foo::serializedSizeZC(Protocol_ const* prot_) const {
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   uint32_t xfer = 0;
   xfer += prot_->serializedStructSize("Foo");
   {
@@ -373,12 +375,10 @@ uint32_t Foo::serializedSizeZC(Protocol_ const* prot_) const {
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template <class Protocol_>
 uint32_t Foo::write(Protocol_* prot_) const {
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   uint32_t xfer = 0;
   xfer += prot_->writeStructBegin("Foo");
   bool previousFieldHasValue = true;
@@ -447,7 +447,6 @@ uint32_t Foo::write(Protocol_* prot_) const {
   xfer += prot_->writeFieldStop();
   xfer += prot_->writeStructEnd();
   return xfer;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 extern template void Foo::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -483,7 +482,7 @@ void Baz::readNoXfer(Protocol_* iprot) {
           this->set_intField();
           ::std::int32_t tvalue;
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::readWithContext(*iprot, tvalue, _readState);
-          ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(value_.intField, ::std::move(tvalue));
+          value_.intField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 1>(::std::move(tvalue), *this);
           
         } else {
           _readState.skip(iprot);
@@ -498,7 +497,7 @@ void Baz::readNoXfer(Protocol_* iprot) {
           ::std::set<::std::string> tvalue;
           value_.setField = ::cpp2::SetWithAdapter();
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::string>, ::std::set<::std::string>>::readWithContext(*iprot, tvalue, _readState);
-          ::apache::thrift::adapt_detail::fromThrift<my::Adapter2>(value_.setField, ::std::move(tvalue));
+          value_.setField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter2, 4>(::std::move(tvalue), *this);
           _readState.afterSubobject(iprot);
           
         } else {
@@ -514,7 +513,7 @@ void Baz::readNoXfer(Protocol_* iprot) {
           ::std::map<::std::string, ::cpp2::ListWithElemAdapter> tvalue;
           value_.mapField = ::apache::thrift::adapt_detail::adapted_t<my::Adapter3, ::std::map<::std::string, ::apache::thrift::adapt_detail::adapted_t<my::Adapter2, ::cpp2::ListWithElemAdapter>>>();
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::list<::apache::thrift::type_class::string>>, ::std::map<::std::string, ::cpp2::ListWithElemAdapter>>::readWithContext(*iprot, tvalue, _readState);
-          ::apache::thrift::adapt_detail::fromThrift<my::Adapter3>(value_.mapField, ::std::move(tvalue));
+          value_.mapField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter3, 6>(::std::move(tvalue), *this);
           _readState.afterSubobject(iprot);
           
         } else {
@@ -528,7 +527,7 @@ void Baz::readNoXfer(Protocol_* iprot) {
           this->set_binaryField();
           ::std::string tvalue;
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::std::string>::readWithContext(*iprot, tvalue, _readState);
-          ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(value_.binaryField, ::std::move(tvalue));
+          value_.binaryField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 8>(::std::move(tvalue), *this);
           
         } else {
           _readState.skip(iprot);
@@ -685,7 +684,6 @@ void Bar::readNoXfer(Protocol_* iprot) {
   using apache::thrift::TProtocolException;
 
 
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   if (UNLIKELY(!_readState.advanceToNextField(
           iprot,
           0,
@@ -698,7 +696,7 @@ _readField_structField:
     _readState.beforeSubobject(iprot);
     ::cpp2::Foo tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::structure, ::cpp2::Foo>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->structField, ::std::move(tvalue));
+    this->structField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 1>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -716,7 +714,7 @@ _readField_optionalStructField:
     _readState.beforeSubobject(iprot);
     ::cpp2::Foo tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::structure, ::cpp2::Foo>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->optionalStructField, ::std::move(tvalue));
+    this->optionalStructField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 2>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -768,7 +766,7 @@ _readField_unionField:
     _readState.beforeSubobject(iprot);
     ::cpp2::Baz tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::variant, ::cpp2::Baz>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->unionField, ::std::move(tvalue));
+    this->unionField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 5>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -786,7 +784,7 @@ _readField_optionalUnionField:
     _readState.beforeSubobject(iprot);
     ::cpp2::Baz tvalue;
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::variant, ::cpp2::Baz>::readWithContext(*iprot, tvalue, _readState);
-    ::apache::thrift::adapt_detail::fromThrift<my::Adapter1>(this->optionalUnionField, ::std::move(tvalue));
+    this->optionalUnionField = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 6>(::std::move(tvalue), *this);
     _readState.afterSubobject(iprot);
     
   }
@@ -799,7 +797,6 @@ _readField_optionalUnionField:
           apache::thrift::protocol::T_STOP))) {
     goto _loop;
   }
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 _end:
   _readState.readStructEnd(iprot);
@@ -877,7 +874,6 @@ _skip:
 
 template <class Protocol_>
 uint32_t Bar::serializedSize(Protocol_ const* prot_) const {
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   uint32_t xfer = 0;
   xfer += prot_->serializedStructSize("Bar");
   {
@@ -906,12 +902,10 @@ uint32_t Bar::serializedSize(Protocol_ const* prot_) const {
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template <class Protocol_>
 uint32_t Bar::serializedSizeZC(Protocol_ const* prot_) const {
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   uint32_t xfer = 0;
   xfer += prot_->serializedStructSize("Bar");
   {
@@ -940,12 +934,10 @@ uint32_t Bar::serializedSizeZC(Protocol_ const* prot_) const {
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template <class Protocol_>
 uint32_t Bar::write(Protocol_* prot_) const {
-  THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   uint32_t xfer = 0;
   xfer += prot_->writeStructBegin("Bar");
   bool previousFieldHasValue = true;
@@ -1000,7 +992,6 @@ uint32_t Bar::write(Protocol_* prot_) const {
   xfer += prot_->writeFieldStop();
   xfer += prot_->writeStructEnd();
   return xfer;
-  THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 extern template void Bar::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -1011,5 +1002,125 @@ extern template void Bar::readNoXfer<>(apache::thrift::CompactProtocolReader*);
 extern template uint32_t Bar::write<>(apache::thrift::CompactProtocolWriter*) const;
 extern template uint32_t Bar::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
 extern template uint32_t Bar::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
+} // cpp2
+namespace cpp2 {
+
+template <class Protocol_>
+void StructWithFieldAdapter::readNoXfer(Protocol_* iprot) {
+  apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
+
+  _readState.readStructBegin(iprot);
+
+  using apache::thrift::TProtocolException;
+
+
+  if (UNLIKELY(!_readState.advanceToNextField(
+          iprot,
+          0,
+          1,
+          apache::thrift::protocol::T_I32))) {
+    goto _loop;
+  }
+_readField_field:
+  {
+    ::std::int32_t tvalue;
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::readWithContext(*iprot, tvalue, _readState);
+    this->field = ::apache::thrift::adapt_detail::fromThriftField<my::Adapter1, 1>(::std::move(tvalue), *this);
+    
+  }
+ this->__isset.__fbthrift_set(folly::index_constant<0>(), true);
+
+  if (UNLIKELY(!_readState.advanceToNextField(
+          iprot,
+          1,
+          0,
+          apache::thrift::protocol::T_STOP))) {
+    goto _loop;
+  }
+
+_end:
+  _readState.readStructEnd(iprot);
+
+  return;
+
+_loop:
+  _readState.afterAdvanceFailure(iprot);
+  if (_readState.atStop()) {
+    goto _end;
+  }
+  if (iprot->kUsesFieldNames()) {
+    _readState.template fillFieldTraitsFromName<apache::thrift::detail::TccStructTraits<StructWithFieldAdapter>>();
+  }
+
+  switch (_readState.fieldId) {
+    case 1:
+    {
+      if (LIKELY(_readState.isCompatibleWithType(iprot, apache::thrift::protocol::T_I32))) {
+        goto _readField_field;
+      } else {
+        goto _skip;
+      }
+    }
+    default:
+    {
+_skip:
+      _readState.skip(iprot);
+      _readState.readFieldEnd(iprot);
+      _readState.readFieldBeginNoInline(iprot);
+      goto _loop;
+    }
+  }
+}
+
+template <class Protocol_>
+uint32_t StructWithFieldAdapter::serializedSize(Protocol_ const* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->serializedStructSize("StructWithFieldAdapter");
+  {
+    xfer += prot_->serializedFieldSize("field", apache::thrift::protocol::T_I32, 1);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::serializedSize<false>(*prot_, my::Adapter1::toThrift(this->field));
+  }
+  xfer += prot_->serializedSizeStop();
+  return xfer;
+}
+
+template <class Protocol_>
+uint32_t StructWithFieldAdapter::serializedSizeZC(Protocol_ const* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->serializedStructSize("StructWithFieldAdapter");
+  {
+    xfer += prot_->serializedFieldSize("field", apache::thrift::protocol::T_I32, 1);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::serializedSize<false>(*prot_, my::Adapter1::toThrift(this->field));
+  }
+  xfer += prot_->serializedSizeStop();
+  return xfer;
+}
+
+template <class Protocol_>
+uint32_t StructWithFieldAdapter::write(Protocol_* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->writeStructBegin("StructWithFieldAdapter");
+  bool previousFieldHasValue = true;
+  {
+    constexpr int16_t kPrevFieldId = 0;
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::T_I32, 1, kPrevFieldId>(*prot_, "field", previousFieldHasValue);
+    previousFieldHasValue = true;
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t>::write(*prot_, my::Adapter1::toThrift(this->field));
+    xfer += prot_->writeFieldEnd();
+  }
+  xfer += prot_->writeFieldStop();
+  xfer += prot_->writeStructEnd();
+  return xfer;
+}
+
+extern template void StructWithFieldAdapter::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+extern template uint32_t StructWithFieldAdapter::write<>(apache::thrift::BinaryProtocolWriter*) const;
+extern template uint32_t StructWithFieldAdapter::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+extern template uint32_t StructWithFieldAdapter::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+extern template void StructWithFieldAdapter::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+extern template uint32_t StructWithFieldAdapter::write<>(apache::thrift::CompactProtocolWriter*) const;
+extern template uint32_t StructWithFieldAdapter::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+extern template uint32_t StructWithFieldAdapter::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
 
 } // cpp2

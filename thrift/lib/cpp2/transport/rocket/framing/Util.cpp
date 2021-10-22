@@ -53,8 +53,8 @@ size_t readFrameOrMetadataSize(folly::io::Cursor& cursor) {
 std::pair<uint8_t, Flags> readFrameTypeAndFlagsUnsafe(
     folly::io::Cursor& cursor) {
   const uint16_t frameTypeAndFlags = cursor.readBE<uint16_t>();
-  const uint8_t frameType = frameTypeAndFlags >> Flags::frameTypeOffset();
-  const Flags flags(frameTypeAndFlags & Flags::mask());
+  const uint8_t frameType = frameTypeAndFlags >> Flags::kBits;
+  const Flags flags(frameTypeAndFlags & Flags::kMask);
   return {frameType, flags};
 }
 
@@ -86,6 +86,7 @@ ExtFrameType readExtFrameType(folly::io::Cursor& cursor) {
     case ExtFrameType::HEADERS_PUSH:
     case ExtFrameType::ALIGNED_PAGE:
     case ExtFrameType::INTERACTION_TERMINATE:
+    case ExtFrameType::CUSTOM_ALLOC:
       return static_cast<ExtFrameType>(extFrameType);
     default:
       return ExtFrameType::UNKNOWN;
@@ -164,13 +165,13 @@ bool isMaybeRocketFrame(const folly::IOBuf& data) {
     }
 
     const uint16_t frameTypeAndFlags = cursor.readBE<uint16_t>();
-    const uint16_t flags = frameTypeAndFlags & Flags::mask();
+    const uint16_t flags = frameTypeAndFlags & Flags::kMask;
     const uint16_t kMinFlag = 1 << 5;
     if (flags != 0 && flags < kMinFlag) {
       return false;
     }
 
-    const uint8_t frameType = frameTypeAndFlags >> Flags::frameTypeOffset();
+    const uint8_t frameType = frameTypeAndFlags >> Flags::kBits;
     switch (static_cast<FrameType>(frameType)) {
       case FrameType::SETUP:
       case FrameType::KEEPALIVE:

@@ -25,6 +25,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for MapListExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    MapListExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    MapListExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    MapListExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    MapListExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    MapListExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    MapListExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for MapListExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    MapListExn::Success(_) => ::fbthrift::ResultType::Return,
+                    MapListExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for MapListExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -34,6 +66,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let MapListExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("MapList");
                 match self {
                     MapListExn::Success(inner) => {
@@ -45,11 +80,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    MapListExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    MapListExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -110,6 +141,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for MapSetExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    MapSetExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    MapSetExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    MapSetExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    MapSetExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    MapSetExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    MapSetExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for MapSetExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    MapSetExn::Success(_) => ::fbthrift::ResultType::Return,
+                    MapSetExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for MapSetExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -119,6 +182,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let MapSetExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("MapSet");
                 match self {
                     MapSetExn::Success(inner) => {
@@ -130,11 +196,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    MapSetExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    MapSetExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -195,6 +257,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for ListMapExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    ListMapExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    ListMapExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    ListMapExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    ListMapExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    ListMapExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    ListMapExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for ListMapExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    ListMapExn::Success(_) => ::fbthrift::ResultType::Return,
+                    ListMapExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for ListMapExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -204,6 +298,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let ListMapExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("ListMap");
                 match self {
                     ListMapExn::Success(inner) => {
@@ -215,11 +312,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    ListMapExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    ListMapExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -280,6 +373,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for ListSetExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    ListSetExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    ListSetExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    ListSetExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    ListSetExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    ListSetExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    ListSetExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for ListSetExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    ListSetExn::Success(_) => ::fbthrift::ResultType::Return,
+                    ListSetExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for ListSetExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -289,6 +414,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let ListSetExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("ListSet");
                 match self {
                     ListSetExn::Success(inner) => {
@@ -300,11 +428,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    ListSetExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    ListSetExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -365,6 +489,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for TurtlesExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    TurtlesExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    TurtlesExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    TurtlesExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    TurtlesExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    TurtlesExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    TurtlesExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for TurtlesExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    TurtlesExn::Success(_) => ::fbthrift::ResultType::Return,
+                    TurtlesExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for TurtlesExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -374,6 +530,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let TurtlesExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("Turtles");
                 match self {
                     TurtlesExn::Success(inner) => {
@@ -385,11 +544,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    TurtlesExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    TurtlesExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -443,12 +598,12 @@ pub mod services {
 /// Client implementation for each service in `module`.
 pub mod client {
 
-    pub struct NestedContainersImpl<P, T> {
+    pub struct NestedContainersImpl<P, T, S = ::fbthrift::NoopSpawner> {
         transport: T,
-        _phantom: ::std::marker::PhantomData<fn() -> P>,
+        _phantom: ::std::marker::PhantomData<fn() -> (P, S)>,
     }
 
-    impl<P, T> NestedContainersImpl<P, T> {
+    impl<P, T, S> NestedContainersImpl<P, T, S> {
         pub fn new(
             transport: T,
         ) -> Self {
@@ -486,593 +641,329 @@ pub mod client {
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::nested_containers::TurtlesError>> + ::std::marker::Send + 'static>>;
     }
 
-    impl<P, T> NestedContainers for NestedContainersImpl<P, T>
+    struct Args_NestedContainers_mapList<'a> {
+        foo: &'a ::std::collections::BTreeMap<::std::primitive::i32, ::std::vec::Vec<::std::primitive::i32>>,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_NestedContainers_mapList<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "NestedContainers.mapList"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("foo", ::fbthrift::TType::Map, 1i16);
+            ::fbthrift::Serialize::write(&self.foo, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_NestedContainers_mapSet<'a> {
+        foo: &'a ::std::collections::BTreeMap<::std::primitive::i32, ::std::collections::BTreeSet<::std::primitive::i32>>,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_NestedContainers_mapSet<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "NestedContainers.mapSet"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("foo", ::fbthrift::TType::Map, 1i16);
+            ::fbthrift::Serialize::write(&self.foo, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_NestedContainers_listMap<'a> {
+        foo: &'a [::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32>],
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_NestedContainers_listMap<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "NestedContainers.listMap"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("foo", ::fbthrift::TType::List, 1i16);
+            ::fbthrift::Serialize::write(&self.foo, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_NestedContainers_listSet<'a> {
+        foo: &'a [::std::collections::BTreeSet<::std::primitive::i32>],
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_NestedContainers_listSet<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "NestedContainers.listSet"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("foo", ::fbthrift::TType::List, 1i16);
+            ::fbthrift::Serialize::write(&self.foo, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_NestedContainers_turtles<'a> {
+        foo: &'a [::std::vec::Vec<::std::collections::BTreeMap<::std::primitive::i32, ::std::collections::BTreeMap<::std::primitive::i32, ::std::collections::BTreeSet<::std::primitive::i32>>>>],
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_NestedContainers_turtles<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "NestedContainers.turtles"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("foo", ::fbthrift::TType::List, 1i16);
+            ::fbthrift::Serialize::write(&self.foo, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    impl<P, T, S> NestedContainers for NestedContainersImpl<P, T, S>
     where
         P: ::fbthrift::Protocol,
         T: ::fbthrift::Transport,
         P::Frame: ::fbthrift::Framing<DecBuf = ::fbthrift::FramingDecoded<T>>,
         ::fbthrift::ProtocolEncoded<P>: ::fbthrift::BufMutExt<Final = ::fbthrift::FramingEncodedFinal<T>>,
         P::Deserializer: ::std::marker::Send,
+        S: ::fbthrift::help::Spawner,
     {
-        #[::tracing::instrument(name = "NestedContainers.mapList", skip_all)]
         fn mapList(
             &self,
             arg_foo: &::std::collections::BTreeMap<::std::primitive::i32, ::std::vec::Vec<::std::primitive::i32>>,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::nested_containers::MapListError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.mapList";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "mapList",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_foo", ::fbthrift::TType::Map, 1i16);
-                        ::fbthrift::Serialize::write(&arg_foo, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "NestedContainers.mapList"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::nested_containers::MapListExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::nested_containers::MapListExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::nested_containers::MapListExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::nested_containers::MapListError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::nested_containers::MapListError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::nested_containers::MapListError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "NestedContainers.mapList"))
-                )
-                .boxed()
+            let args = self::Args_NestedContainers_mapList {
+                foo: arg_foo,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("mapList", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "NestedContainers.mapList"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::nested_containers::MapListExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::nested_containers::MapListError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("NestedContainers.mapList"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "NestedContainers.mapSet", skip_all)]
+
         fn mapSet(
             &self,
             arg_foo: &::std::collections::BTreeMap<::std::primitive::i32, ::std::collections::BTreeSet<::std::primitive::i32>>,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::nested_containers::MapSetError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.mapSet";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "mapSet",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_foo", ::fbthrift::TType::Map, 1i16);
-                        ::fbthrift::Serialize::write(&arg_foo, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "NestedContainers.mapSet"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::nested_containers::MapSetExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::nested_containers::MapSetExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::nested_containers::MapSetExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::nested_containers::MapSetError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::nested_containers::MapSetError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::nested_containers::MapSetError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "NestedContainers.mapSet"))
-                )
-                .boxed()
+            let args = self::Args_NestedContainers_mapSet {
+                foo: arg_foo,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("mapSet", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "NestedContainers.mapSet"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::nested_containers::MapSetExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::nested_containers::MapSetError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("NestedContainers.mapSet"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "NestedContainers.listMap", skip_all)]
+
         fn listMap(
             &self,
             arg_foo: &[::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32>],
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::nested_containers::ListMapError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.listMap";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "listMap",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_foo", ::fbthrift::TType::List, 1i16);
-                        ::fbthrift::Serialize::write(&arg_foo, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "NestedContainers.listMap"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::nested_containers::ListMapExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::nested_containers::ListMapExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::nested_containers::ListMapExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::nested_containers::ListMapError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::nested_containers::ListMapError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::nested_containers::ListMapError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "NestedContainers.listMap"))
-                )
-                .boxed()
+            let args = self::Args_NestedContainers_listMap {
+                foo: arg_foo,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("listMap", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "NestedContainers.listMap"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::nested_containers::ListMapExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::nested_containers::ListMapError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("NestedContainers.listMap"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "NestedContainers.listSet", skip_all)]
+
         fn listSet(
             &self,
             arg_foo: &[::std::collections::BTreeSet<::std::primitive::i32>],
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::nested_containers::ListSetError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.listSet";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "listSet",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_foo", ::fbthrift::TType::List, 1i16);
-                        ::fbthrift::Serialize::write(&arg_foo, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "NestedContainers.listSet"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::nested_containers::ListSetExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::nested_containers::ListSetExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::nested_containers::ListSetExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::nested_containers::ListSetError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::nested_containers::ListSetError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::nested_containers::ListSetError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "NestedContainers.listSet"))
-                )
-                .boxed()
+            let args = self::Args_NestedContainers_listSet {
+                foo: arg_foo,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("listSet", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "NestedContainers.listSet"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::nested_containers::ListSetExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::nested_containers::ListSetError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("NestedContainers.listSet"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "NestedContainers.turtles", skip_all)]
+
         fn turtles(
             &self,
             arg_foo: &[::std::vec::Vec<::std::collections::BTreeMap<::std::primitive::i32, ::std::collections::BTreeMap<::std::primitive::i32, ::std::collections::BTreeSet<::std::primitive::i32>>>>],
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::nested_containers::TurtlesError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.turtles";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "turtles",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_foo", ::fbthrift::TType::List, 1i16);
-                        ::fbthrift::Serialize::write(&arg_foo, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "NestedContainers.turtles"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::nested_containers::TurtlesExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::nested_containers::TurtlesExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::nested_containers::TurtlesExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::nested_containers::TurtlesError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::nested_containers::TurtlesError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::nested_containers::TurtlesError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "NestedContainers.turtles"))
-                )
-                .boxed()
+            let args = self::Args_NestedContainers_turtles {
+                foo: arg_foo,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("turtles", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "NestedContainers.turtles"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::nested_containers::TurtlesExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::nested_containers::TurtlesError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("NestedContainers.turtles"))
+            .boxed()
         }
+
     }
 
     impl<'a, T> NestedContainers for T
@@ -1148,8 +1039,24 @@ pub mod client {
             T: ::fbthrift::Transport,
             P::Deserializer: ::std::marker::Send,
         {
+            let spawner = ::fbthrift::help::NoopSpawner;
+            Self::with_spawner(protocol, transport, spawner)
+        }
+
+        pub fn with_spawner<P, T, S>(
+            protocol: P,
+            transport: T,
+            spawner: S,
+        ) -> ::std::sync::Arc<impl NestedContainers + ::std::marker::Send + 'static>
+        where
+            P: ::fbthrift::Protocol<Frame = T>,
+            T: ::fbthrift::Transport,
+            P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
+        {
             let _ = protocol;
-            ::std::sync::Arc::new(NestedContainersImpl::<P, T>::new(transport))
+            let _ = spawner;
+            ::std::sync::Arc::new(NestedContainersImpl::<P, T, S>::new(transport))
         }
     }
 
@@ -1161,13 +1068,14 @@ pub mod client {
     impl ::fbthrift::ClientFactory for make_NestedContainers {
         type Api = dyn NestedContainers + ::std::marker::Send + ::std::marker::Sync + 'static;
 
-        fn new<P, T>(protocol: P, transport: T) -> ::std::sync::Arc<Self::Api>
+        fn with_spawner<P, T, S>(protocol: P, transport: T, spawner: S) -> ::std::sync::Arc<Self::Api>
         where
             P: ::fbthrift::Protocol<Frame = T>,
             T: ::fbthrift::Transport + ::std::marker::Sync,
             P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
         {
-            <dyn NestedContainers>::new(protocol, transport)
+            <dyn NestedContainers>::with_spawner(protocol, transport, spawner)
         }
     }
 
@@ -1409,68 +1317,57 @@ pub mod server {
         async fn handle_mapList<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::nested_containers::MapListExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.mapList";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_NestedContainers_mapList = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.mapList(
-                _args.foo,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.mapList(
+                    _args.foo,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "NestedContainers.mapList"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "NestedContainers.mapList", "success");
                     crate::services::nested_containers::MapListExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::nested_containers::MapListExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "NestedContainers.mapList", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::nested_containers::MapListExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::nested_containers::MapListExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "mapList",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "NestedContainers.mapList", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("NestedContainers.mapList", exn);
+                    crate::services::nested_containers::MapListExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "NestedContainers.mapList").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "mapList",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -1478,68 +1375,57 @@ pub mod server {
         async fn handle_mapSet<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::nested_containers::MapSetExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.mapSet";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_NestedContainers_mapSet = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.mapSet(
-                _args.foo,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.mapSet(
+                    _args.foo,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "NestedContainers.mapSet"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "NestedContainers.mapSet", "success");
                     crate::services::nested_containers::MapSetExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::nested_containers::MapSetExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "NestedContainers.mapSet", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::nested_containers::MapSetExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::nested_containers::MapSetExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "mapSet",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "NestedContainers.mapSet", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("NestedContainers.mapSet", exn);
+                    crate::services::nested_containers::MapSetExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "NestedContainers.mapSet").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "mapSet",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -1547,68 +1433,57 @@ pub mod server {
         async fn handle_listMap<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::nested_containers::ListMapExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.listMap";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_NestedContainers_listMap = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.listMap(
-                _args.foo,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.listMap(
+                    _args.foo,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "NestedContainers.listMap"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "NestedContainers.listMap", "success");
                     crate::services::nested_containers::ListMapExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::nested_containers::ListMapExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "NestedContainers.listMap", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::nested_containers::ListMapExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::nested_containers::ListMapExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "listMap",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "NestedContainers.listMap", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("NestedContainers.listMap", exn);
+                    crate::services::nested_containers::ListMapExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "NestedContainers.listMap").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "listMap",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -1616,68 +1491,57 @@ pub mod server {
         async fn handle_listSet<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::nested_containers::ListSetExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.listSet";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_NestedContainers_listSet = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.listSet(
-                _args.foo,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.listSet(
+                    _args.foo,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "NestedContainers.listSet"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "NestedContainers.listSet", "success");
                     crate::services::nested_containers::ListSetExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::nested_containers::ListSetExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "NestedContainers.listSet", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::nested_containers::ListSetExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::nested_containers::ListSetExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "listSet",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "NestedContainers.listSet", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("NestedContainers.listSet", exn);
+                    crate::services::nested_containers::ListSetExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "NestedContainers.listSet").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "listSet",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -1685,68 +1549,57 @@ pub mod server {
         async fn handle_turtles<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::nested_containers::TurtlesExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "NestedContainers";
                 METHOD_NAME = "NestedContainers.turtles";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_NestedContainers_turtles = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.turtles(
-                _args.foo,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.turtles(
+                    _args.foo,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "NestedContainers.turtles"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "NestedContainers.turtles", "success");
                     crate::services::nested_containers::TurtlesExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::nested_containers::TurtlesExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "NestedContainers.turtles", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::nested_containers::TurtlesExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::nested_containers::TurtlesExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "turtles",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "NestedContainers.turtles", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("NestedContainers.turtles", exn);
+                    crate::services::nested_containers::TurtlesExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "NestedContainers.turtles").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "turtles",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
     }
@@ -1783,11 +1636,111 @@ pub mod server {
             _seqid: ::std::primitive::u32,
         ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
             match idx {
-                0usize => self.handle_mapList(_p, _r, _seqid).await,
-                1usize => self.handle_mapSet(_p, _r, _seqid).await,
-                2usize => self.handle_listMap(_p, _r, _seqid).await,
-                3usize => self.handle_listSet(_p, _r, _seqid).await,
-                4usize => self.handle_turtles(_p, _r, _seqid).await,
+                0usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "NestedContainers";
+                        METHOD_NAME = "NestedContainers.mapList";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_mapList(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "mapList",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                1usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "NestedContainers";
+                        METHOD_NAME = "NestedContainers.mapSet";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_mapSet(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "mapSet",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                2usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "NestedContainers";
+                        METHOD_NAME = "NestedContainers.listMap";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_listMap(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "listMap",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                3usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "NestedContainers";
+                        METHOD_NAME = "NestedContainers.listSet";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_listSet(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "listSet",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                4usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "NestedContainers";
+                        METHOD_NAME = "NestedContainers.turtles";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_turtles(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "turtles",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
                 bad => panic!(
                     "{}: unexpected method idx {}",
                     "NestedContainersProcessor",
@@ -1833,26 +1786,10 @@ pub mod server {
                     return self.supa.call(cur, req_ctxt).await;
                 }
             };
-            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await;
+            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await?;
             p.read_message_end()?;
-            match res {
-                ::std::result::Result::Ok(bytes) => ::std::result::Result::Ok(bytes),
-                ::std::result::Result::Err(err) => match err.downcast_ref::<::fbthrift::ProtocolError>() {
-                    ::std::option::Option::Some(::fbthrift::ProtocolError::ApplicationException(ae)) => {
-                        let res = ::fbthrift::serialize!(P, |p| {
-                            ::fbthrift::protocol::write_message(
-                                p,
-                                "NestedContainersProcessor",
-                                ::fbthrift::MessageType::Exception,
-                                seqid,
-                                |p| ::fbthrift::Serialize::write(&ae, p),
-                            )
-                        });
-                        ::std::result::Result::Ok(res)
-                    }
-                    _ => ::std::result::Result::Err(err),
-                },
-            }
+
+            Ok(res)
         }
     }
 
@@ -2002,7 +1939,6 @@ pub mod mock {
         }
     }
 
-    #[::async_trait::async_trait]
     impl<'mock> super::client::NestedContainers for NestedContainers<'mock> {
         fn mapList(
             &self,
@@ -2279,13 +2215,78 @@ pub mod errors {
 
         pub type MapListError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::nested_containers::MapListExn> for
+            ::std::result::Result<(), MapListError>
+        {
+            fn from(e: crate::services::nested_containers::MapListExn) -> Self {
+                match e {
+                    crate::services::nested_containers::MapListExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::nested_containers::MapListExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(MapListError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type MapSetError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::nested_containers::MapSetExn> for
+            ::std::result::Result<(), MapSetError>
+        {
+            fn from(e: crate::services::nested_containers::MapSetExn) -> Self {
+                match e {
+                    crate::services::nested_containers::MapSetExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::nested_containers::MapSetExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(MapSetError::ApplicationException(aexn)),
+                }
+            }
+        }
 
         pub type ListMapError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::nested_containers::ListMapExn> for
+            ::std::result::Result<(), ListMapError>
+        {
+            fn from(e: crate::services::nested_containers::ListMapExn) -> Self {
+                match e {
+                    crate::services::nested_containers::ListMapExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::nested_containers::ListMapExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(ListMapError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type ListSetError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::nested_containers::ListSetExn> for
+            ::std::result::Result<(), ListSetError>
+        {
+            fn from(e: crate::services::nested_containers::ListSetExn) -> Self {
+                match e {
+                    crate::services::nested_containers::ListSetExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::nested_containers::ListSetExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(ListSetError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type TurtlesError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::nested_containers::TurtlesExn> for
+            ::std::result::Result<(), TurtlesError>
+        {
+            fn from(e: crate::services::nested_containers::TurtlesExn) -> Self {
+                match e {
+                    crate::services::nested_containers::TurtlesExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::nested_containers::TurtlesExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(TurtlesError::ApplicationException(aexn)),
+                }
+            }
+        }
 
     }
 

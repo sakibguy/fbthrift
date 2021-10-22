@@ -10,6 +10,8 @@ cimport folly.iobuf as _fbthrift_iobuf
 
 cimport thrift.py3.builder
 
+cimport facebook.thrift.annotation.cpp.cpp.types as _facebook_thrift_annotation_cpp_cpp_types
+cimport facebook.thrift.annotation.cpp.cpp.builders as _facebook_thrift_annotation_cpp_cpp_builders
 
 cimport module.types as _module_types
 
@@ -38,5 +40,9 @@ cdef class Bar_Builder(thrift.py3.builder.StructBuilder):
     cdef public list optionalStructListField
     cdef public object unionField
     cdef public object optionalUnionField
+
+
+cdef class StructWithFieldAdapter_Builder(thrift.py3.builder.StructBuilder):
+    cdef public pint field
 
 

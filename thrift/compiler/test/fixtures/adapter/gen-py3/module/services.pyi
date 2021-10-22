@@ -11,6 +11,7 @@ from thrift.py3.server import RequestContext, ServiceInterface
 from abc import abstractmethod, ABCMeta
 
 import module.types as _module_types
+import facebook.thrift.annotation.cpp.cpp.types as _facebook_thrift_annotation_cpp_cpp_types
 
 _ServiceInterfaceT = _typing.TypeVar('_ServiceInterfaceT', bound='ServiceInterface')
 
@@ -20,22 +21,13 @@ class ServiceInterface(
     metaclass=ABCMeta,
 ):
 
-    @staticmethod
-    def pass_context_func(
-        fn: _typing.Callable[
-                [_ServiceInterfaceT, RequestContext, str, _module_types.Foo],
-                _typing.Coroutine[_typing.Any, _typing.Any, int]
-        ]
-    ) -> _typing.Callable[
-        [_ServiceInterfaceT, str, _module_types.Foo],
-        _typing.Coroutine[_typing.Any, _typing.Any, int]
-    ]: ...
 
     @abstractmethod
     async def func(
         self,
         arg1: str,
-        arg2: _module_types.Foo
+        arg2: str,
+        arg3: _module_types.Foo
     ) -> int: ...
     pass
 

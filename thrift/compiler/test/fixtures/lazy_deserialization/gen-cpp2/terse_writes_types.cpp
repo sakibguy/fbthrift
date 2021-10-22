@@ -35,17 +35,16 @@ void TccStructTraits<::apache::thrift::test::TerseFoo>::translateFieldName(
 
 namespace apache { namespace thrift { namespace test {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseFoo::TerseFoo(const TerseFoo&) = default;
 TerseFoo& TerseFoo::operator=(const TerseFoo&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseFoo::TerseFoo(TerseFoo&& other) noexcept  :
     field1(std::move(other.field1)),
     field2(std::move(other.field2)),
     field3(std::move(other.field3)),
     field4(std::move(other.field4)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 TerseFoo& TerseFoo::operator=(FOLLY_MAYBE_UNUSED TerseFoo&& other) noexcept {
     this->field1 = std::move(other.field1);
     this->field2 = std::move(other.field2);
@@ -54,10 +53,8 @@ TerseFoo& TerseFoo::operator=(FOLLY_MAYBE_UNUSED TerseFoo&& other) noexcept {
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseFoo::TerseFoo(apache::thrift::FragileConstructor, ::std::vector<double> field1__arg, ::std::vector<::std::int32_t> field2__arg, ::std::vector<double> field3__arg, ::std::vector<::std::int32_t> field4__arg) :
     field1(std::move(field1__arg)),
     field2(std::move(field2__arg)),
@@ -68,7 +65,7 @@ TerseFoo::TerseFoo(apache::thrift::FragileConstructor, ::std::vector<double> fie
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void TerseFoo::__clear() {
   // clear all fields
@@ -76,9 +73,7 @@ void TerseFoo::__clear() {
   this->field2.clear();
   this->field3.clear();
   this->field4.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool TerseFoo::operator==(const TerseFoo& rhs) const {
@@ -158,9 +153,7 @@ void swap(TerseFoo& a, TerseFoo& b) {
   swap(a.field2_ref().value(), b.field2_ref().value());
   swap(a.field3_ref().value(), b.field3_ref().value());
   swap(a.field4_ref().value(), b.field4_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void TerseFoo::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -205,29 +198,21 @@ TerseLazyFoo::TerseLazyFoo(const TerseLazyFoo& srcObj) {
   __fbthrift_protocol_ = srcObj.__fbthrift_protocol_;
   __fbthrift_serializedData_ = srcObj.__fbthrift_serializedData_;
   field1 = srcObj.field1;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<0>(),srcObj.__isset.__fbthrift_get(folly::index_constant<0>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   field2 = srcObj.field2;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<1>(),srcObj.__isset.__fbthrift_get(folly::index_constant<1>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   {
     const auto isDeserialized = srcObj.__fbthrift_isDeserialized_.field3.load(relaxed);
     __fbthrift_isDeserialized_.field3.store(isDeserialized, relaxed);
   }
   field3 = srcObj.field3;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<2>(),srcObj.__isset.__fbthrift_get(folly::index_constant<2>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   {
     const auto isDeserialized = srcObj.__fbthrift_isDeserialized_.field4.load(relaxed);
     __fbthrift_isDeserialized_.field4.store(isDeserialized, relaxed);
   }
   field4 = srcObj.field4;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<3>(),srcObj.__isset.__fbthrift_get(folly::index_constant<3>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 TerseLazyFoo& TerseLazyFoo::operator=(const TerseLazyFoo& src) {
@@ -236,7 +221,6 @@ TerseLazyFoo& TerseLazyFoo::operator=(const TerseLazyFoo& src) {
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseLazyFoo::TerseLazyFoo(TerseLazyFoo&& other) noexcept  :
     field1(std::move(other.field1)),
     field2(std::move(other.field2)),
@@ -257,6 +241,7 @@ TerseLazyFoo::TerseLazyFoo(TerseLazyFoo&& other) noexcept  :
     other.__fbthrift_isDeserialized_.field4.store(isDeserialized | ::apache::thrift::detail::LazyDeserializationState::DESERIALIZED, relaxed);
   }
 }
+
 TerseLazyFoo& TerseLazyFoo::operator=(FOLLY_MAYBE_UNUSED TerseLazyFoo&& other) noexcept {
     const auto relaxed = std::memory_order::memory_order_relaxed;
     __fbthrift_protocol_ = other.__fbthrift_protocol_;
@@ -278,10 +263,8 @@ TerseLazyFoo& TerseLazyFoo::operator=(FOLLY_MAYBE_UNUSED TerseLazyFoo&& other) n
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseLazyFoo::TerseLazyFoo(apache::thrift::FragileConstructor, ::std::vector<double> field1__arg, ::std::vector<::std::int32_t> field2__arg, ::std::vector<double> field3__arg, ::std::vector<::std::int32_t> field4__arg) :
     field1(std::move(field1__arg)),
     field2(std::move(field2__arg)),
@@ -292,7 +275,7 @@ TerseLazyFoo::TerseLazyFoo(apache::thrift::FragileConstructor, ::std::vector<dou
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 const ::std::vector<double>& TerseLazyFoo::__fbthrift_read_field_field3() const {
   const auto isDeserialized = __fbthrift_isDeserialized_.field3.load(std::memory_order_relaxed);
   if (!(isDeserialized & ::apache::thrift::detail::LazyDeserializationState::DESERIALIZED)) {
@@ -377,9 +360,7 @@ void TerseLazyFoo::__clear() {
   __fbthrift_serializedData_ = {};
   __fbthrift_isDeserialized_.~__fbthrift_IsDeserialized();
   new (&__fbthrift_isDeserialized_) __fbthrift_IsDeserialized();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool TerseLazyFoo::operator==(const TerseLazyFoo& rhs) const {
@@ -451,9 +432,7 @@ void swap(TerseLazyFoo& a, TerseLazyFoo& b) {
   swap(a.field2_ref().value(), b.field2_ref().value());
   swap(a.field3_ref().value(), b.field3_ref().value());
   swap(a.field4_ref().value(), b.field4_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void TerseLazyFoo::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -492,17 +471,16 @@ void TccStructTraits<::apache::thrift::test::TerseOptionalFoo>::translateFieldNa
 
 namespace apache { namespace thrift { namespace test {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseOptionalFoo::TerseOptionalFoo(const TerseOptionalFoo&) = default;
 TerseOptionalFoo& TerseOptionalFoo::operator=(const TerseOptionalFoo&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseOptionalFoo::TerseOptionalFoo(TerseOptionalFoo&& other) noexcept  :
     field1(std::move(other.field1)),
     field2(std::move(other.field2)),
     field3(std::move(other.field3)),
     field4(std::move(other.field4)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 TerseOptionalFoo& TerseOptionalFoo::operator=(FOLLY_MAYBE_UNUSED TerseOptionalFoo&& other) noexcept {
     this->field1 = std::move(other.field1);
     this->field2 = std::move(other.field2);
@@ -511,10 +489,8 @@ TerseOptionalFoo& TerseOptionalFoo::operator=(FOLLY_MAYBE_UNUSED TerseOptionalFo
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseOptionalFoo::TerseOptionalFoo(apache::thrift::FragileConstructor, ::std::vector<double> field1__arg, ::std::vector<::std::int32_t> field2__arg, ::std::vector<double> field3__arg, ::std::vector<::std::int32_t> field4__arg) :
     field1(std::move(field1__arg)),
     field2(std::move(field2__arg)),
@@ -525,7 +501,7 @@ TerseOptionalFoo::TerseOptionalFoo(apache::thrift::FragileConstructor, ::std::ve
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void TerseOptionalFoo::__clear() {
   // clear all fields
@@ -533,9 +509,7 @@ void TerseOptionalFoo::__clear() {
   this->field2.clear();
   this->field3.clear();
   this->field4.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool TerseOptionalFoo::operator==(const TerseOptionalFoo& rhs) const {
@@ -615,9 +589,7 @@ void swap(TerseOptionalFoo& a, TerseOptionalFoo& b) {
   swap(a.field2_ref().value_unchecked(), b.field2_ref().value_unchecked());
   swap(a.field3_ref().value_unchecked(), b.field3_ref().value_unchecked());
   swap(a.field4_ref().value_unchecked(), b.field4_ref().value_unchecked());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void TerseOptionalFoo::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -662,29 +634,21 @@ TerseOptionalLazyFoo::TerseOptionalLazyFoo(const TerseOptionalLazyFoo& srcObj) {
   __fbthrift_protocol_ = srcObj.__fbthrift_protocol_;
   __fbthrift_serializedData_ = srcObj.__fbthrift_serializedData_;
   field1 = srcObj.field1;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<0>(),srcObj.__isset.__fbthrift_get(folly::index_constant<0>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   field2 = srcObj.field2;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<1>(),srcObj.__isset.__fbthrift_get(folly::index_constant<1>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   {
     const auto isDeserialized = srcObj.__fbthrift_isDeserialized_.field3.load(relaxed);
     __fbthrift_isDeserialized_.field3.store(isDeserialized, relaxed);
   }
   field3 = srcObj.field3;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<2>(),srcObj.__isset.__fbthrift_get(folly::index_constant<2>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   {
     const auto isDeserialized = srcObj.__fbthrift_isDeserialized_.field4.load(relaxed);
     __fbthrift_isDeserialized_.field4.store(isDeserialized, relaxed);
   }
   field4 = srcObj.field4;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<3>(),srcObj.__isset.__fbthrift_get(folly::index_constant<3>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 TerseOptionalLazyFoo& TerseOptionalLazyFoo::operator=(const TerseOptionalLazyFoo& src) {
@@ -693,7 +657,6 @@ TerseOptionalLazyFoo& TerseOptionalLazyFoo::operator=(const TerseOptionalLazyFoo
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseOptionalLazyFoo::TerseOptionalLazyFoo(TerseOptionalLazyFoo&& other) noexcept  :
     field1(std::move(other.field1)),
     field2(std::move(other.field2)),
@@ -714,6 +677,7 @@ TerseOptionalLazyFoo::TerseOptionalLazyFoo(TerseOptionalLazyFoo&& other) noexcep
     other.__fbthrift_isDeserialized_.field4.store(isDeserialized | ::apache::thrift::detail::LazyDeserializationState::DESERIALIZED, relaxed);
   }
 }
+
 TerseOptionalLazyFoo& TerseOptionalLazyFoo::operator=(FOLLY_MAYBE_UNUSED TerseOptionalLazyFoo&& other) noexcept {
     const auto relaxed = std::memory_order::memory_order_relaxed;
     __fbthrift_protocol_ = other.__fbthrift_protocol_;
@@ -735,10 +699,8 @@ TerseOptionalLazyFoo& TerseOptionalLazyFoo::operator=(FOLLY_MAYBE_UNUSED TerseOp
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TerseOptionalLazyFoo::TerseOptionalLazyFoo(apache::thrift::FragileConstructor, ::std::vector<double> field1__arg, ::std::vector<::std::int32_t> field2__arg, ::std::vector<double> field3__arg, ::std::vector<::std::int32_t> field4__arg) :
     field1(std::move(field1__arg)),
     field2(std::move(field2__arg)),
@@ -749,7 +711,7 @@ TerseOptionalLazyFoo::TerseOptionalLazyFoo(apache::thrift::FragileConstructor, :
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 const ::std::vector<double>& TerseOptionalLazyFoo::__fbthrift_read_field_field3() const {
   const auto isDeserialized = __fbthrift_isDeserialized_.field3.load(std::memory_order_relaxed);
   if (!(isDeserialized & ::apache::thrift::detail::LazyDeserializationState::DESERIALIZED)) {
@@ -834,9 +796,7 @@ void TerseOptionalLazyFoo::__clear() {
   __fbthrift_serializedData_ = {};
   __fbthrift_isDeserialized_.~__fbthrift_IsDeserialized();
   new (&__fbthrift_isDeserialized_) __fbthrift_IsDeserialized();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool TerseOptionalLazyFoo::operator==(const TerseOptionalLazyFoo& rhs) const {
@@ -908,9 +868,7 @@ void swap(TerseOptionalLazyFoo& a, TerseOptionalLazyFoo& b) {
   swap(a.field2_ref().value_unchecked(), b.field2_ref().value_unchecked());
   swap(a.field3_ref().value_unchecked(), b.field3_ref().value_unchecked());
   swap(a.field4_ref().value_unchecked(), b.field4_ref().value_unchecked());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void TerseOptionalLazyFoo::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -925,3 +883,8 @@ template uint32_t TerseOptionalLazyFoo::serializedSizeZC<>(apache::thrift::Compa
 
 
 }}} // apache::thrift::test
+
+namespace apache { namespace thrift { namespace test { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}}}} // apache::thrift::test

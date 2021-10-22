@@ -69,19 +69,16 @@ void TccStructTraits<::a::different::ns::AStruct>::translateFieldName(
 namespace a { namespace different { namespace ns {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 AStruct::AStruct(apache::thrift::FragileConstructor, ::std::int32_t FieldA__arg) :
     FieldA(std::move(FieldA__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void AStruct::__clear() {
   // clear all fields
-  this->FieldA = 0;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->FieldA = ::std::int32_t();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool AStruct::operator==(const AStruct& rhs) const {
@@ -108,9 +105,7 @@ bool AStruct::operator<(const AStruct& rhs) const {
 void swap(AStruct& a, AStruct& b) {
   using ::std::swap;
   swap(a.FieldA_ref().value(), b.FieldA_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void AStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -153,25 +148,22 @@ void TccStructTraits<::a::different::ns::AStructB>::translateFieldName(
 
 namespace a { namespace different { namespace ns {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 AStructB::AStructB(const AStructB&) = default;
 AStructB& AStructB::operator=(const AStructB&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 AStructB::AStructB(AStructB&& other) noexcept  :
-    FieldA(std::move(other.FieldA)) {}
+    FieldA(std::move(other.FieldA)) {
+}
 
 AStructB& AStructB::operator=(FOLLY_MAYBE_UNUSED AStructB&& other) noexcept {
     this->FieldA = std::move(other.FieldA);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 AStructB::AStructB(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::a::different::ns::AStruct> FieldA__arg) :
-    FieldA(std::move(FieldA__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    FieldA(std::move(FieldA__arg)) {
+}
+
 
 void AStructB::__clear() {
   // clear all fields
@@ -182,7 +174,7 @@ bool AStructB::operator==(const AStructB& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.FieldA == nullptr) != (rhs.FieldA == nullptr) || (lhs.FieldA != nullptr && lhs.FieldA != rhs.FieldA && !(*lhs.FieldA == *rhs.FieldA))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.FieldA_ref(), rhs.FieldA_ref()))) {
     return false;
   }
   return true;
@@ -192,8 +184,8 @@ bool AStructB::operator<(const AStructB& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.FieldA == nullptr) != (rhs.FieldA == nullptr) || (lhs.FieldA != nullptr && lhs.FieldA != rhs.FieldA && !(*lhs.FieldA == *rhs.FieldA))) {
-    return lhs.FieldA == nullptr || (rhs.FieldA != nullptr && *lhs.FieldA < *rhs.FieldA);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.FieldA_ref(), rhs.FieldA_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.FieldA_ref(), rhs.FieldA_ref());
   }
   return false;
 }
@@ -232,3 +224,8 @@ static_assert(
     "inconsistent use of nimble option");
 
 }}} // a::different::ns
+
+namespace a { namespace different { namespace ns { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}}}} // a::different::ns

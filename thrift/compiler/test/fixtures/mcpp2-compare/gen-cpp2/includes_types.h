@@ -95,13 +95,13 @@ typedef ::std::int64_t IncludedInt64;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace a { namespace different { namespace ns {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+}}} // a::different::ns
+namespace a { namespace different { namespace ns {
 class AStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -137,22 +137,8 @@ class AStruct final  {
   void __clear();
  private:
   ::std::int32_t FieldA;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -161,22 +147,22 @@ class AStruct final  {
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> FieldA_ref() const& {
-    return {this->FieldA, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->FieldA, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> FieldA_ref() const&& {
-    return {std::move(this->FieldA), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->FieldA), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> FieldA_ref() & {
-    return {this->FieldA, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->FieldA, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> FieldA_ref() && {
-    return {std::move(this->FieldA), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->FieldA), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   ::std::int32_t get_FieldA() const {
@@ -185,8 +171,7 @@ class AStruct final  {
 
   [[deprecated("Use `FOO.FieldA_ref() = BAR;` instead of `FOO.set_FieldA(BAR);`")]]
   ::std::int32_t& set_FieldA(::std::int32_t FieldA_) {
-    FieldA = FieldA_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    FieldA_ref() = FieldA_;
     return FieldA;
   }
 
@@ -216,11 +201,6 @@ uint32_t AStruct::read(Protocol_* iprot) {
 
 }}} // a::different::ns
 namespace a { namespace different { namespace ns {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class AStructB final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -255,8 +235,6 @@ class AStructB final  {
   void __clear();
  public:
   ::std::shared_ptr<const ::a::different::ns::AStruct> FieldA;
-
- private:
 
  public:
 
@@ -299,4 +277,3 @@ uint32_t AStructB::read(Protocol_* iprot) {
 }
 
 }}} // a::different::ns
-THRIFT_IGNORE_ISSET_USE_WARNING_END

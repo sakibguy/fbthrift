@@ -13,9 +13,14 @@
 namespace apache {
 namespace thrift {
 namespace tag {
+struct foo;
 struct bar;
 } // namespace tag
 namespace detail {
+#ifndef APACHE_THRIFT_ACCESSOR_foo
+#define APACHE_THRIFT_ACCESSOR_foo
+APACHE_THRIFT_DEFINE_ACCESSOR(foo);
+#endif
 #ifndef APACHE_THRIFT_ACCESSOR_bar
 #define APACHE_THRIFT_ACCESSOR_bar
 APACHE_THRIFT_DEFINE_ACCESSOR(bar);
@@ -37,13 +42,13 @@ class Foo;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class Foo final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -62,11 +67,12 @@ class Foo final  {
  public:
 
   Foo() :
+      foo(),
       bar() {
   }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
-  Foo(apache::thrift::FragileConstructor, ::std::int32_t bar__arg);
+  Foo(apache::thrift::FragileConstructor, ::std::int32_t foo__arg, ::std::int32_t bar__arg);
 
   Foo(Foo&&) = default;
 
@@ -78,23 +84,11 @@ class Foo final  {
   Foo& operator=(const Foo&) = default;
   void __clear();
  private:
+  ::std::int32_t foo;
+ public:
   ::std::int32_t bar;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -102,38 +96,67 @@ class Foo final  {
   bool operator<(const Foo&) const;
 
   template <typename..., typename T = ::std::int32_t>
-  FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&> bar_ref() const& {
-    return {this->bar, __isset.array_isset.at(folly::index_constant<0>())};
+  FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&> foo_ref() const& {
+    return {this->foo, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
-  FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&&> bar_ref() const&& {
-    return {std::move(this->bar), __isset.array_isset.at(folly::index_constant<0>())};
+  FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&&> foo_ref() const&& {
+    return {std::move(this->foo), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
-  FOLLY_ERASE ::apache::thrift::optional_field_ref<T&> bar_ref() & {
-    return {this->bar, __isset.array_isset.at(folly::index_constant<0>())};
+  FOLLY_ERASE ::apache::thrift::optional_field_ref<T&> foo_ref() & {
+    return {this->foo, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
-  FOLLY_ERASE ::apache::thrift::optional_field_ref<T&&> bar_ref() && {
-    return {std::move(this->bar), __isset.array_isset.at(folly::index_constant<0>())};
+  FOLLY_ERASE ::apache::thrift::optional_field_ref<T&&> foo_ref() && {
+    return {std::move(this->foo), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
-  const ::std::int32_t* get_bar() const& {
-    return bar_ref() ? std::addressof(bar) : nullptr;
+  template <typename..., typename T = ::std::int32_t>
+  FOLLY_ERASE ::apache::thrift::field_ref<const T&> bar_ref() const& {
+    return {this->bar, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
-  ::std::int32_t* get_bar() & {
-    return bar_ref() ? std::addressof(bar) : nullptr;
+  template <typename..., typename T = ::std::int32_t>
+  FOLLY_ERASE ::apache::thrift::field_ref<const T&&> bar_ref() const&& {
+    return {std::move(this->bar), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
-  ::std::int32_t* get_bar() && = delete;
+
+  template <typename..., typename T = ::std::int32_t>
+  FOLLY_ERASE ::apache::thrift::field_ref<T&> bar_ref() & {
+    return {this->bar, __isset.__fbthrift_at(folly::index_constant<1>())};
+  }
+
+  template <typename..., typename T = ::std::int32_t>
+  FOLLY_ERASE ::apache::thrift::field_ref<T&&> bar_ref() && {
+    return {std::move(this->bar), __isset.__fbthrift_at(folly::index_constant<1>())};
+  }
+
+  const ::std::int32_t* get_foo() const& {
+    return foo_ref() ? std::addressof(foo) : nullptr;
+  }
+
+  ::std::int32_t* get_foo() & {
+    return foo_ref() ? std::addressof(foo) : nullptr;
+  }
+  ::std::int32_t* get_foo() && = delete;
+
+  [[deprecated("Use `FOO.foo_ref() = BAR;` instead of `FOO.set_foo(BAR);`")]]
+  ::std::int32_t& set_foo(::std::int32_t foo_) {
+    foo_ref() = foo_;
+    return foo;
+  }
+
+  ::std::int32_t get_bar() const {
+    return bar;
+  }
 
   [[deprecated("Use `FOO.bar_ref() = BAR;` instead of `FOO.set_bar(BAR);`")]]
   ::std::int32_t& set_bar(::std::int32_t bar_) {
-    bar = bar_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    bar_ref() = bar_;
     return bar;
   }
 
@@ -162,4 +185,3 @@ uint32_t Foo::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

@@ -22,8 +22,8 @@ Generated Python classes for Thrift types
 import enum
 
 {{/program:enums?}}
-import thrift.py3lite.types as _fbthrift_py3lite_types
-import thrift.py3lite.exceptions as _fbthrift_py3lite_exceptions
+import {{program:base_library_package}}.types as _fbthrift_py3lite_types
+import {{program:base_library_package}}.exceptions as _fbthrift_py3lite_exceptions
 {{#program:include_namespaces}}
 {{#has_types?}}
 
@@ -101,3 +101,62 @@ _fbthrift_py3lite_types.fill_specs(
 {{typedef:name}} = {{#typedef:type}}{{> types/PythonType}}{{/typedef:type}}
 {{/program:typedefs}}
 {{/program:typedefs?}}
+{{#program:services?}}
+{{#program:services}}
+{{#service:supported_functions}}
+
+
+class {{> types/function_args_struct_name}}(metaclass=_fbthrift_py3lite_types.StructMeta):
+    _fbthrift_SPEC = (
+        {{#function:args}}
+        (
+            {{field:key}},  # id
+            True,  # isUnqualified
+            "{{field:py_name}}",  # name
+            {{#field:type}}{{^type:base?}}lambda: {{/type:base?}}{{ >types/typeinfo }}{{/field:type}},  # typeinfo
+            None,  # default value
+        ),
+        {{/function:args}}
+    )
+
+{{^function:oneway?}}
+class {{> types/function_return_struct_name}}(metaclass=_fbthrift_py3lite_types.StructMeta):
+    _fbthrift_SPEC = (
+        {{#function:return_type}}
+        {{^type:void?}}
+        (
+            0,  # id
+            False,  # isUnqualified
+            "success",  # name
+            {{#function:return_type}}{{^type:base?}}lambda: {{/type:base?}}{{ >types/typeinfo }}{{/function:return_type}},  # typeinfo
+            None,  # default value
+
+        ),
+        {{/type:void?}}
+        {{/function:return_type}}
+        {{#function:exceptions}}
+        (
+            {{field:key}},  # id
+            False,  # isUnqualified
+            "{{field:py_name}}",  # name
+            {{#field:type}}{{^type:base?}}lambda: {{/type:base?}}{{ >types/typeinfo }}{{/field:type}},  # typeinfo
+            None,  # default value
+        ),
+        {{/function:exceptions}}
+    )
+{{/function:oneway?}}
+{{/service:supported_functions}}
+{{/program:services}}
+
+
+_fbthrift_py3lite_types.fill_specs(
+    {{#program:services}}
+    {{#service:supported_functions}}
+    {{> types/function_args_struct_name}},
+    {{^function:oneway?}}
+    {{> types/function_return_struct_name}},
+    {{/function:oneway?}}
+    {{/service:supported_functions}}
+    {{/program:services}}
+)
+{{/program:services?}}

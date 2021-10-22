@@ -63,11 +63,11 @@ constexpr ptrdiff_t fieldOffset<::test::fixtures::tablebased::TrivialTypesStruct
 template<>
 constexpr ptrdiff_t issetOffset<::test::fixtures::tablebased::TrivialTypesStruct>(std::int16_t fieldIndex) {
   constexpr ptrdiff_t offsets[] = {
-    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset.array_isset) + 0,
-    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset.array_isset) + 1,
-    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset.array_isset) + 2,
-    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset.array_isset) + 3,
-    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset.array_isset) + 4};
+    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset) + isset_bitset<5>::get_offset() + 0,
+    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset) + isset_bitset<5>::get_offset() + 1,
+    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset) + isset_bitset<5>::get_offset() + 2,
+    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset) + isset_bitset<5>::get_offset() + 3,
+    offsetof(::test::fixtures::tablebased::TrivialTypesStruct, __isset) + isset_bitset<5>::get_offset() + 4};
   return offsets[fieldIndex];
 }
 
@@ -88,14 +88,14 @@ constexpr ptrdiff_t fieldOffset<::test::fixtures::tablebased::ContainerStruct>(s
 template<>
 constexpr ptrdiff_t issetOffset<::test::fixtures::tablebased::ContainerStruct>(std::int16_t fieldIndex) {
   constexpr ptrdiff_t offsets[] = {
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 1,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 2,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 3,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 4,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 5,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 6,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 7,
-    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset.array_isset) + 0};
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 1,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 2,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 3,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 4,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 5,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 6,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 7,
+    offsetof(::test::fixtures::tablebased::ContainerStruct, __isset) + isset_bitset<8>::get_offset() + 0};
   return offsets[fieldIndex];
 }
 
@@ -111,26 +111,16 @@ namespace test { namespace fixtures { namespace tablebased {
 
 TrivialTypesStruct::TrivialTypesStruct(const TrivialTypesStruct& srcObj) {
   fieldA = srcObj.fieldA;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<0>(),srcObj.__isset.__fbthrift_get(folly::index_constant<0>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldB = srcObj.fieldB;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<1>(),srcObj.__isset.__fbthrift_get(folly::index_constant<1>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldC = srcObj.fieldC;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<2>(),srcObj.__isset.__fbthrift_get(folly::index_constant<2>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldD = ::apache::thrift::detail::st::copy_field<
         ::apache::thrift::type_class::binary>(srcObj.fieldD);
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<3>(),srcObj.__isset.__fbthrift_get(folly::index_constant<3>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
   fieldE = srcObj.fieldE;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<4>(),srcObj.__isset.__fbthrift_get(folly::index_constant<4>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 TrivialTypesStruct& TrivialTypesStruct::operator=(const TrivialTypesStruct& src) {
@@ -139,24 +129,23 @@ TrivialTypesStruct& TrivialTypesStruct::operator=(const TrivialTypesStruct& src)
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TrivialTypesStruct::TrivialTypesStruct() :
       fieldA(),
       fieldE() {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 TrivialTypesStruct::~TrivialTypesStruct() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TrivialTypesStruct::TrivialTypesStruct(TrivialTypesStruct&& other) noexcept  :
     fieldA(std::move(other.fieldA)),
     fieldB(std::move(other.fieldB)),
     fieldC(std::move(other.fieldC)),
     fieldD(std::move(other.fieldD)),
     fieldE(std::move(other.fieldE)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 TrivialTypesStruct& TrivialTypesStruct::operator=(FOLLY_MAYBE_UNUSED TrivialTypesStruct&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->fieldB = std::move(other.fieldB);
@@ -166,10 +155,8 @@ TrivialTypesStruct& TrivialTypesStruct::operator=(FOLLY_MAYBE_UNUSED TrivialType
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TrivialTypesStruct::TrivialTypesStruct(apache::thrift::FragileConstructor, ::std::int32_t fieldA__arg, ::std::string fieldB__arg, ::std::string fieldC__arg, ::test::fixtures::tablebased::IOBufPtr fieldD__arg, ::test::fixtures::tablebased::ExampleEnum fieldE__arg) :
     fieldA(std::move(fieldA__arg)),
     fieldB(std::move(fieldB__arg)),
@@ -182,18 +169,16 @@ TrivialTypesStruct::TrivialTypesStruct(apache::thrift::FragileConstructor, ::std
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
   __isset.__fbthrift_set(folly::index_constant<4>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void TrivialTypesStruct::__clear() {
   // clear all fields
-  this->fieldA = 0;
+  this->fieldA = ::std::int32_t();
   this->fieldB = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
   this->fieldC = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
   this->fieldD = apache::thrift::StringTraits<std::unique_ptr<folly::IOBuf>>::fromStringLiteral("");
-  this->fieldE =  ::test::fixtures::tablebased::ExampleEnum::ZERO;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->fieldE = ::test::fixtures::tablebased::ExampleEnum();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool TrivialTypesStruct::operator==(const TrivialTypesStruct& rhs) const {
@@ -248,9 +233,7 @@ void swap(TrivialTypesStruct& a, TrivialTypesStruct& b) {
   swap(a.fieldC_ref().value_unchecked(), b.fieldC_ref().value_unchecked());
   swap(a.fieldD_ref().value_unchecked(), b.fieldD_ref().value_unchecked());
   swap(a.fieldE_ref().value(), b.fieldE_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void TrivialTypesStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -321,19 +304,14 @@ constexpr ::apache::thrift::detail::StructInfoN<5> __fbthrift_struct_info_Trivia
 
 namespace test { namespace fixtures { namespace tablebased {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ContainerStruct::ContainerStruct(const ContainerStruct&) = default;
 ContainerStruct& ContainerStruct::operator=(const ContainerStruct&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ContainerStruct::ContainerStruct() {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 ContainerStruct::~ContainerStruct() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ContainerStruct::ContainerStruct(ContainerStruct&& other) noexcept  :
     fieldA(std::move(other.fieldA)),
     fieldB(std::move(other.fieldB)),
@@ -343,7 +321,9 @@ ContainerStruct::ContainerStruct(ContainerStruct&& other) noexcept  :
     fieldF(std::move(other.fieldF)),
     fieldG(std::move(other.fieldG)),
     fieldH(std::move(other.fieldH)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 ContainerStruct& ContainerStruct::operator=(FOLLY_MAYBE_UNUSED ContainerStruct&& other) noexcept {
     this->fieldA = std::move(other.fieldA);
     this->fieldB = std::move(other.fieldB);
@@ -356,10 +336,8 @@ ContainerStruct& ContainerStruct::operator=(FOLLY_MAYBE_UNUSED ContainerStruct&&
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ContainerStruct::ContainerStruct(apache::thrift::FragileConstructor, ::std::vector<::std::int32_t> fieldA__arg, std::list<::std::int32_t> fieldB__arg, std::deque<::std::int32_t> fieldC__arg, folly::fbvector<::std::int32_t> fieldD__arg, folly::small_vector<::std::int32_t> fieldE__arg, folly::sorted_vector_set<::std::int32_t> fieldF__arg, folly::sorted_vector_map<::std::int32_t, ::std::string> fieldG__arg, ::std::vector<::test::fixtures::tablebased::TrivialTypesStruct> fieldH__arg) :
     fieldA(std::move(fieldA__arg)),
     fieldB(std::move(fieldB__arg)),
@@ -378,7 +356,7 @@ ContainerStruct::ContainerStruct(apache::thrift::FragileConstructor, ::std::vect
   __isset.__fbthrift_set(folly::index_constant<6>(), true);
   __isset.__fbthrift_set(folly::index_constant<7>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void ContainerStruct::__clear() {
   // clear all fields
@@ -390,9 +368,7 @@ void ContainerStruct::__clear() {
   this->fieldF.clear();
   this->fieldG.clear();
   this->fieldH.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool ContainerStruct::operator==(const ContainerStruct& rhs) const {
@@ -501,9 +477,7 @@ void swap(ContainerStruct& a, ContainerStruct& b) {
   swap(a.fieldF_ref().value(), b.fieldF_ref().value());
   swap(a.fieldG_ref().value(), b.fieldG_ref().value());
   swap(a.fieldH_ref().value(), b.fieldH_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void ContainerStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -741,6 +715,11 @@ static_assert(
     "inconsistent use of nimble option");
 
 }}} // test::fixtures::tablebased
+
+namespace test { namespace fixtures { namespace tablebased { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}}}} // test::fixtures::tablebased
 
 namespace apache {
 namespace thrift {

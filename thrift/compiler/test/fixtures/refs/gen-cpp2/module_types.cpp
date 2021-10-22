@@ -232,7 +232,6 @@ MyField& MyField::operator=(const MyField& src) {
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyField::MyField() :
       opt_value(std::make_unique<::std::int64_t>()),
       value(std::make_unique<::std::int64_t>()),
@@ -242,18 +241,17 @@ MyField::MyField() :
       req_enum_value(std::make_unique<::cpp2::MyEnum>()) {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 MyField::~MyField() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyField::MyField(MyField&& other) noexcept  :
     opt_value(std::move(other.opt_value)),
     value(std::move(other.value)),
     req_value(std::move(other.req_value)),
     opt_enum_value(std::move(other.opt_enum_value)),
     enum_value(std::move(other.enum_value)),
-    req_enum_value(std::move(other.req_enum_value)) {}
+    req_enum_value(std::move(other.req_enum_value)) {
+}
 
 MyField& MyField::operator=(FOLLY_MAYBE_UNUSED MyField&& other) noexcept {
     this->opt_value = std::move(other.opt_value);
@@ -264,49 +262,42 @@ MyField& MyField::operator=(FOLLY_MAYBE_UNUSED MyField&& other) noexcept {
     this->req_enum_value = std::move(other.req_enum_value);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyField::MyField(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::int64_t> opt_value__arg, ::std::unique_ptr<::std::int64_t> value__arg, ::std::unique_ptr<::std::int64_t> req_value__arg, ::std::unique_ptr<::cpp2::MyEnum> opt_enum_value__arg, ::std::unique_ptr<::cpp2::MyEnum> enum_value__arg, ::std::unique_ptr<::cpp2::MyEnum> req_enum_value__arg) :
     opt_value(std::move(opt_value__arg)),
     value(std::move(value__arg)),
     req_value(std::move(req_value__arg)),
     opt_enum_value(std::move(opt_enum_value__arg)),
     enum_value(std::move(enum_value__arg)),
-    req_enum_value(std::move(req_enum_value__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_enum_value(std::move(req_enum_value__arg)) {
+}
+
 
 void MyField::__clear() {
   // clear all fields
-  this->opt_value = 0;
-  this->value = 0;
-  this->req_value = 0;
-  this->opt_enum_value =  ::cpp2::MyEnum::Zero;
-  this->enum_value =  ::cpp2::MyEnum::Zero;
-  this->req_enum_value =  ::cpp2::MyEnum::Zero;
 }
 
 bool MyField::operator==(const MyField& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.opt_value == nullptr) != (rhs.opt_value == nullptr) || (lhs.opt_value != nullptr && lhs.opt_value != rhs.opt_value && !(*lhs.opt_value == *rhs.opt_value))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_value_ref(), rhs.opt_value_ref()))) {
     return false;
   }
-  if ((lhs.value == nullptr) != (rhs.value == nullptr) || (lhs.value != nullptr && lhs.value != rhs.value && !(*lhs.value == *rhs.value))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.value_ref(), rhs.value_ref()))) {
     return false;
   }
-  if ((lhs.req_value == nullptr) != (rhs.req_value == nullptr) || (lhs.req_value != nullptr && lhs.req_value != rhs.req_value && !(*lhs.req_value == *rhs.req_value))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_value_ref(), rhs.req_value_ref()))) {
     return false;
   }
-  if ((lhs.opt_enum_value == nullptr) != (rhs.opt_enum_value == nullptr) || (lhs.opt_enum_value != nullptr && lhs.opt_enum_value != rhs.opt_enum_value && !(*lhs.opt_enum_value == *rhs.opt_enum_value))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_enum_value_ref(), rhs.opt_enum_value_ref()))) {
     return false;
   }
-  if ((lhs.enum_value == nullptr) != (rhs.enum_value == nullptr) || (lhs.enum_value != nullptr && lhs.enum_value != rhs.enum_value && !(*lhs.enum_value == *rhs.enum_value))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.enum_value_ref(), rhs.enum_value_ref()))) {
     return false;
   }
-  if ((lhs.req_enum_value == nullptr) != (rhs.req_enum_value == nullptr) || (lhs.req_enum_value != nullptr && lhs.req_enum_value != rhs.req_enum_value && !(*lhs.req_enum_value == *rhs.req_enum_value))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_enum_value_ref(), rhs.req_enum_value_ref()))) {
     return false;
   }
   return true;
@@ -316,23 +307,23 @@ bool MyField::operator<(const MyField& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.opt_value == nullptr) != (rhs.opt_value == nullptr) || (lhs.opt_value != nullptr && lhs.opt_value != rhs.opt_value && !(*lhs.opt_value == *rhs.opt_value))) {
-    return lhs.opt_value == nullptr || (rhs.opt_value != nullptr && *lhs.opt_value < *rhs.opt_value);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_value_ref(), rhs.opt_value_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_value_ref(), rhs.opt_value_ref());
   }
-  if ((lhs.value == nullptr) != (rhs.value == nullptr) || (lhs.value != nullptr && lhs.value != rhs.value && !(*lhs.value == *rhs.value))) {
-    return lhs.value == nullptr || (rhs.value != nullptr && *lhs.value < *rhs.value);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.value_ref(), rhs.value_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.value_ref(), rhs.value_ref());
   }
-  if ((lhs.req_value == nullptr) != (rhs.req_value == nullptr) || (lhs.req_value != nullptr && lhs.req_value != rhs.req_value && !(*lhs.req_value == *rhs.req_value))) {
-    return lhs.req_value == nullptr || (rhs.req_value != nullptr && *lhs.req_value < *rhs.req_value);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_value_ref(), rhs.req_value_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_value_ref(), rhs.req_value_ref());
   }
-  if ((lhs.opt_enum_value == nullptr) != (rhs.opt_enum_value == nullptr) || (lhs.opt_enum_value != nullptr && lhs.opt_enum_value != rhs.opt_enum_value && !(*lhs.opt_enum_value == *rhs.opt_enum_value))) {
-    return lhs.opt_enum_value == nullptr || (rhs.opt_enum_value != nullptr && *lhs.opt_enum_value < *rhs.opt_enum_value);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_enum_value_ref(), rhs.opt_enum_value_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_enum_value_ref(), rhs.opt_enum_value_ref());
   }
-  if ((lhs.enum_value == nullptr) != (rhs.enum_value == nullptr) || (lhs.enum_value != nullptr && lhs.enum_value != rhs.enum_value && !(*lhs.enum_value == *rhs.enum_value))) {
-    return lhs.enum_value == nullptr || (rhs.enum_value != nullptr && *lhs.enum_value < *rhs.enum_value);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.enum_value_ref(), rhs.enum_value_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.enum_value_ref(), rhs.enum_value_ref());
   }
-  if ((lhs.req_enum_value == nullptr) != (rhs.req_enum_value == nullptr) || (lhs.req_enum_value != nullptr && lhs.req_enum_value != rhs.req_enum_value && !(*lhs.req_enum_value == *rhs.req_enum_value))) {
-    return lhs.req_enum_value == nullptr || (rhs.req_enum_value != nullptr && *lhs.req_enum_value < *rhs.req_enum_value);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_enum_value_ref(), rhs.req_enum_value_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_enum_value_ref(), rhs.req_enum_value_ref());
   }
   return false;
 }
@@ -399,11 +390,11 @@ MyStruct& MyStruct::operator=(const MyStruct& src) {
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct(MyStruct&& other) noexcept  :
     opt_ref(std::move(other.opt_ref)),
     ref(std::move(other.ref)),
-    req_ref(std::move(other.req_ref)) {}
+    req_ref(std::move(other.req_ref)) {
+}
 
 MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->opt_ref = std::move(other.opt_ref);
@@ -411,15 +402,14 @@ MyStruct& MyStruct::operator=(FOLLY_MAYBE_UNUSED MyStruct&& other) noexcept {
     this->req_ref = std::move(other.req_ref);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::MyField> opt_ref__arg, ::std::unique_ptr<::cpp2::MyField> ref__arg, ::std::unique_ptr<::cpp2::MyField> req_ref__arg) :
     opt_ref(std::move(opt_ref__arg)),
     ref(std::move(ref__arg)),
-    req_ref(std::move(req_ref__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_ref(std::move(req_ref__arg)) {
+}
+
 
 void MyStruct::__clear() {
   // clear all fields
@@ -432,13 +422,13 @@ bool MyStruct::operator==(const MyStruct& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.opt_ref == nullptr) != (rhs.opt_ref == nullptr) || (lhs.opt_ref != nullptr && lhs.opt_ref != rhs.opt_ref && !(*lhs.opt_ref == *rhs.opt_ref))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_ref_ref(), rhs.opt_ref_ref()))) {
     return false;
   }
-  if ((lhs.ref == nullptr) != (rhs.ref == nullptr) || (lhs.ref != nullptr && lhs.ref != rhs.ref && !(*lhs.ref == *rhs.ref))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.ref_ref(), rhs.ref_ref()))) {
     return false;
   }
-  if ((lhs.req_ref == nullptr) != (rhs.req_ref == nullptr) || (lhs.req_ref != nullptr && lhs.req_ref != rhs.req_ref && !(*lhs.req_ref == *rhs.req_ref))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_ref_ref(), rhs.req_ref_ref()))) {
     return false;
   }
   return true;
@@ -448,14 +438,14 @@ bool MyStruct::operator<(const MyStruct& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.opt_ref == nullptr) != (rhs.opt_ref == nullptr) || (lhs.opt_ref != nullptr && lhs.opt_ref != rhs.opt_ref && !(*lhs.opt_ref == *rhs.opt_ref))) {
-    return lhs.opt_ref == nullptr || (rhs.opt_ref != nullptr && *lhs.opt_ref < *rhs.opt_ref);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_ref_ref(), rhs.opt_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_ref_ref(), rhs.opt_ref_ref());
   }
-  if ((lhs.ref == nullptr) != (rhs.ref == nullptr) || (lhs.ref != nullptr && lhs.ref != rhs.ref && !(*lhs.ref == *rhs.ref))) {
-    return lhs.ref == nullptr || (rhs.ref != nullptr && *lhs.ref < *rhs.ref);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.ref_ref(), rhs.ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.ref_ref(), rhs.ref_ref());
   }
-  if ((lhs.req_ref == nullptr) != (rhs.req_ref == nullptr) || (lhs.req_ref != nullptr && lhs.req_ref != rhs.req_ref && !(*lhs.req_ref == *rhs.req_ref))) {
-    return lhs.req_ref == nullptr || (rhs.req_ref != nullptr && *lhs.req_ref < *rhs.req_ref);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_ref_ref(), rhs.req_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_ref_ref(), rhs.req_ref_ref());
   }
   return false;
 }
@@ -546,9 +536,7 @@ StructWithUnion::StructWithUnion(const StructWithUnion& srcObj) {
   aDouble = ::apache::thrift::detail::st::copy_field<
         ::apache::thrift::type_class::floating_point>(srcObj.aDouble);
   f = srcObj.f;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset.__fbthrift_set(folly::index_constant<0>(),srcObj.__isset.__fbthrift_get(folly::index_constant<0>()));
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 StructWithUnion& StructWithUnion::operator=(const StructWithUnion& src) {
@@ -557,12 +545,13 @@ StructWithUnion& StructWithUnion::operator=(const StructWithUnion& src) {
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithUnion::StructWithUnion(StructWithUnion&& other) noexcept  :
     u(std::move(other.u)),
     aDouble(std::move(other.aDouble)),
     f(std::move(other.f)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 StructWithUnion& StructWithUnion::operator=(FOLLY_MAYBE_UNUSED StructWithUnion&& other) noexcept {
     this->u = std::move(other.u);
     this->aDouble = std::move(other.aDouble);
@@ -570,36 +559,31 @@ StructWithUnion& StructWithUnion::operator=(FOLLY_MAYBE_UNUSED StructWithUnion&&
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithUnion::StructWithUnion(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::MyUnion> u__arg, ::std::unique_ptr<double> aDouble__arg, ::cpp2::MyField f__arg) :
     u(std::move(u__arg)),
     aDouble(std::move(aDouble__arg)),
     f(std::move(f__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void StructWithUnion::__clear() {
   // clear all fields
   if (this->u) this->u->__clear();
-  this->aDouble = 0;
   this->f.__clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool StructWithUnion::operator==(const StructWithUnion& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.u == nullptr) != (rhs.u == nullptr) || (lhs.u != nullptr && lhs.u != rhs.u && !(*lhs.u == *rhs.u))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.u_ref(), rhs.u_ref()))) {
     return false;
   }
-  if ((lhs.aDouble == nullptr) != (rhs.aDouble == nullptr) || (lhs.aDouble != nullptr && lhs.aDouble != rhs.aDouble && !(*lhs.aDouble == *rhs.aDouble))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.aDouble_ref(), rhs.aDouble_ref()))) {
     return false;
   }
   if (!(lhs.f_ref() == rhs.f_ref())) {
@@ -612,11 +596,11 @@ bool StructWithUnion::operator<(const StructWithUnion& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.u == nullptr) != (rhs.u == nullptr) || (lhs.u != nullptr && lhs.u != rhs.u && !(*lhs.u == *rhs.u))) {
-    return lhs.u == nullptr || (rhs.u != nullptr && *lhs.u < *rhs.u);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.u_ref(), rhs.u_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.u_ref(), rhs.u_ref());
   }
-  if ((lhs.aDouble == nullptr) != (rhs.aDouble == nullptr) || (lhs.aDouble != nullptr && lhs.aDouble != rhs.aDouble && !(*lhs.aDouble == *rhs.aDouble))) {
-    return lhs.aDouble == nullptr || (rhs.aDouble != nullptr && *lhs.aDouble < *rhs.aDouble);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.aDouble_ref(), rhs.aDouble_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.aDouble_ref(), rhs.aDouble_ref());
   }
   if (!(lhs.f_ref() == rhs.f_ref())) {
     return lhs.f_ref() < rhs.f_ref();
@@ -638,9 +622,7 @@ void swap(StructWithUnion& a, StructWithUnion& b) {
   swap(a.u, b.u);
   swap(a.aDouble, b.aDouble);
   swap(a.f_ref().value(), b.f_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void StructWithUnion::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -703,35 +685,30 @@ void TccStructTraits<::cpp2::RecursiveStruct>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 RecursiveStruct::RecursiveStruct(const RecursiveStruct&) = default;
 RecursiveStruct& RecursiveStruct::operator=(const RecursiveStruct&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 RecursiveStruct::RecursiveStruct(RecursiveStruct&& other) noexcept  :
     mes(std::move(other.mes)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 RecursiveStruct& RecursiveStruct::operator=(FOLLY_MAYBE_UNUSED RecursiveStruct&& other) noexcept {
     this->mes = std::move(other.mes);
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 RecursiveStruct::RecursiveStruct(apache::thrift::FragileConstructor, ::std::vector<::cpp2::RecursiveStruct> mes__arg) :
     mes(std::move(mes__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void RecursiveStruct::__clear() {
   // clear all fields
   this->mes.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool RecursiveStruct::operator==(const RecursiveStruct& rhs) const {
@@ -766,9 +743,7 @@ const ::std::vector<::cpp2::RecursiveStruct>* RecursiveStruct::get_mes() const& 
 void swap(RecursiveStruct& a, RecursiveStruct& b) {
   using ::std::swap;
   swap(a.mes_ref().value_unchecked(), b.mes_ref().value_unchecked());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void RecursiveStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -826,7 +801,6 @@ StructWithContainers& StructWithContainers::operator=(const StructWithContainers
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithContainers::StructWithContainers() :
       list_ref(std::make_unique<::std::vector<::std::int32_t>>()),
       set_ref(std::make_unique<::std::set<::std::int32_t>>()),
@@ -836,18 +810,17 @@ StructWithContainers::StructWithContainers() :
       list_ref_shared_const(std::make_shared<::std::vector<::std::int32_t>>()) {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 StructWithContainers::~StructWithContainers() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithContainers::StructWithContainers(StructWithContainers&& other) noexcept  :
     list_ref(std::move(other.list_ref)),
     set_ref(std::move(other.set_ref)),
     map_ref(std::move(other.map_ref)),
     list_ref_unique(std::move(other.list_ref_unique)),
     set_ref_shared(std::move(other.set_ref_shared)),
-    list_ref_shared_const(std::move(other.list_ref_shared_const)) {}
+    list_ref_shared_const(std::move(other.list_ref_shared_const)) {
+}
 
 StructWithContainers& StructWithContainers::operator=(FOLLY_MAYBE_UNUSED StructWithContainers&& other) noexcept {
     this->list_ref = std::move(other.list_ref);
@@ -858,18 +831,17 @@ StructWithContainers& StructWithContainers::operator=(FOLLY_MAYBE_UNUSED StructW
     this->list_ref_shared_const = std::move(other.list_ref_shared_const);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithContainers::StructWithContainers(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::vector<::std::int32_t>> list_ref__arg, ::std::unique_ptr<::std::set<::std::int32_t>> set_ref__arg, ::std::unique_ptr<::std::map<::std::int32_t, ::std::int32_t>> map_ref__arg, ::std::unique_ptr<::std::vector<::std::int32_t>> list_ref_unique__arg, ::std::shared_ptr<::std::set<::std::int32_t>> set_ref_shared__arg, ::std::shared_ptr<const ::std::vector<::std::int32_t>> list_ref_shared_const__arg) :
     list_ref(std::move(list_ref__arg)),
     set_ref(std::move(set_ref__arg)),
     map_ref(std::move(map_ref__arg)),
     list_ref_unique(std::move(list_ref_unique__arg)),
     set_ref_shared(std::move(set_ref_shared__arg)),
-    list_ref_shared_const(std::move(list_ref_shared_const__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    list_ref_shared_const(std::move(list_ref_shared_const__arg)) {
+}
+
 
 void StructWithContainers::__clear() {
   // clear all fields
@@ -885,22 +857,22 @@ bool StructWithContainers::operator==(const StructWithContainers& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.list_ref == nullptr) != (rhs.list_ref == nullptr) || (lhs.list_ref != nullptr && lhs.list_ref != rhs.list_ref && !(*lhs.list_ref == *rhs.list_ref))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.list_ref_ref(), rhs.list_ref_ref()))) {
     return false;
   }
-  if ((lhs.set_ref == nullptr) != (rhs.set_ref == nullptr) || (lhs.set_ref != nullptr && lhs.set_ref != rhs.set_ref && !(*lhs.set_ref == *rhs.set_ref))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.set_ref_ref(), rhs.set_ref_ref()))) {
     return false;
   }
-  if ((lhs.map_ref == nullptr) != (rhs.map_ref == nullptr) || (lhs.map_ref != nullptr && lhs.map_ref != rhs.map_ref && !(*lhs.map_ref == *rhs.map_ref))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.map_ref_ref(), rhs.map_ref_ref()))) {
     return false;
   }
-  if ((lhs.list_ref_unique == nullptr) != (rhs.list_ref_unique == nullptr) || (lhs.list_ref_unique != nullptr && lhs.list_ref_unique != rhs.list_ref_unique && !(*lhs.list_ref_unique == *rhs.list_ref_unique))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.list_ref_unique_ref(), rhs.list_ref_unique_ref()))) {
     return false;
   }
-  if ((lhs.set_ref_shared == nullptr) != (rhs.set_ref_shared == nullptr) || (lhs.set_ref_shared != nullptr && lhs.set_ref_shared != rhs.set_ref_shared && !(*lhs.set_ref_shared == *rhs.set_ref_shared))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.set_ref_shared_ref(), rhs.set_ref_shared_ref()))) {
     return false;
   }
-  if ((lhs.list_ref_shared_const == nullptr) != (rhs.list_ref_shared_const == nullptr) || (lhs.list_ref_shared_const != nullptr && lhs.list_ref_shared_const != rhs.list_ref_shared_const && !(*lhs.list_ref_shared_const == *rhs.list_ref_shared_const))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.list_ref_shared_const_ref(), rhs.list_ref_shared_const_ref()))) {
     return false;
   }
   return true;
@@ -910,23 +882,23 @@ bool StructWithContainers::operator<(const StructWithContainers& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.list_ref == nullptr) != (rhs.list_ref == nullptr) || (lhs.list_ref != nullptr && lhs.list_ref != rhs.list_ref && !(*lhs.list_ref == *rhs.list_ref))) {
-    return lhs.list_ref == nullptr || (rhs.list_ref != nullptr && *lhs.list_ref < *rhs.list_ref);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.list_ref_ref(), rhs.list_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.list_ref_ref(), rhs.list_ref_ref());
   }
-  if ((lhs.set_ref == nullptr) != (rhs.set_ref == nullptr) || (lhs.set_ref != nullptr && lhs.set_ref != rhs.set_ref && !(*lhs.set_ref == *rhs.set_ref))) {
-    return lhs.set_ref == nullptr || (rhs.set_ref != nullptr && *lhs.set_ref < *rhs.set_ref);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.set_ref_ref(), rhs.set_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.set_ref_ref(), rhs.set_ref_ref());
   }
-  if ((lhs.map_ref == nullptr) != (rhs.map_ref == nullptr) || (lhs.map_ref != nullptr && lhs.map_ref != rhs.map_ref && !(*lhs.map_ref == *rhs.map_ref))) {
-    return lhs.map_ref == nullptr || (rhs.map_ref != nullptr && *lhs.map_ref < *rhs.map_ref);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.map_ref_ref(), rhs.map_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.map_ref_ref(), rhs.map_ref_ref());
   }
-  if ((lhs.list_ref_unique == nullptr) != (rhs.list_ref_unique == nullptr) || (lhs.list_ref_unique != nullptr && lhs.list_ref_unique != rhs.list_ref_unique && !(*lhs.list_ref_unique == *rhs.list_ref_unique))) {
-    return lhs.list_ref_unique == nullptr || (rhs.list_ref_unique != nullptr && *lhs.list_ref_unique < *rhs.list_ref_unique);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.list_ref_unique_ref(), rhs.list_ref_unique_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.list_ref_unique_ref(), rhs.list_ref_unique_ref());
   }
-  if ((lhs.set_ref_shared == nullptr) != (rhs.set_ref_shared == nullptr) || (lhs.set_ref_shared != nullptr && lhs.set_ref_shared != rhs.set_ref_shared && !(*lhs.set_ref_shared == *rhs.set_ref_shared))) {
-    return lhs.set_ref_shared == nullptr || (rhs.set_ref_shared != nullptr && *lhs.set_ref_shared < *rhs.set_ref_shared);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.set_ref_shared_ref(), rhs.set_ref_shared_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.set_ref_shared_ref(), rhs.set_ref_shared_ref());
   }
-  if ((lhs.list_ref_shared_const == nullptr) != (rhs.list_ref_shared_const == nullptr) || (lhs.list_ref_shared_const != nullptr && lhs.list_ref_shared_const != rhs.list_ref_shared_const && !(*lhs.list_ref_shared_const == *rhs.list_ref_shared_const))) {
-    return lhs.list_ref_shared_const == nullptr || (rhs.list_ref_shared_const != nullptr && *lhs.list_ref_shared_const < *rhs.list_ref_shared_const);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.list_ref_shared_const_ref(), rhs.list_ref_shared_const_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.list_ref_shared_const_ref(), rhs.list_ref_shared_const_ref());
   }
   return false;
 }
@@ -978,15 +950,13 @@ void TccStructTraits<::cpp2::StructWithSharedConst>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithSharedConst::StructWithSharedConst(const StructWithSharedConst&) = default;
 StructWithSharedConst& StructWithSharedConst::operator=(const StructWithSharedConst&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithSharedConst::StructWithSharedConst(StructWithSharedConst&& other) noexcept  :
     opt_shared_const(std::move(other.opt_shared_const)),
     shared_const(std::move(other.shared_const)),
-    req_shared_const(std::move(other.req_shared_const)) {}
+    req_shared_const(std::move(other.req_shared_const)) {
+}
 
 StructWithSharedConst& StructWithSharedConst::operator=(FOLLY_MAYBE_UNUSED StructWithSharedConst&& other) noexcept {
     this->opt_shared_const = std::move(other.opt_shared_const);
@@ -994,15 +964,14 @@ StructWithSharedConst& StructWithSharedConst::operator=(FOLLY_MAYBE_UNUSED Struc
     this->req_shared_const = std::move(other.req_shared_const);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithSharedConst::StructWithSharedConst(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::cpp2::MyField> opt_shared_const__arg, ::std::shared_ptr<const ::cpp2::MyField> shared_const__arg, ::std::shared_ptr<const ::cpp2::MyField> req_shared_const__arg) :
     opt_shared_const(std::move(opt_shared_const__arg)),
     shared_const(std::move(shared_const__arg)),
-    req_shared_const(std::move(req_shared_const__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_shared_const(std::move(req_shared_const__arg)) {
+}
+
 
 void StructWithSharedConst::__clear() {
   // clear all fields
@@ -1015,13 +984,13 @@ bool StructWithSharedConst::operator==(const StructWithSharedConst& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.opt_shared_const == nullptr) != (rhs.opt_shared_const == nullptr) || (lhs.opt_shared_const != nullptr && lhs.opt_shared_const != rhs.opt_shared_const && !(*lhs.opt_shared_const == *rhs.opt_shared_const))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_shared_const_ref(), rhs.opt_shared_const_ref()))) {
     return false;
   }
-  if ((lhs.shared_const == nullptr) != (rhs.shared_const == nullptr) || (lhs.shared_const != nullptr && lhs.shared_const != rhs.shared_const && !(*lhs.shared_const == *rhs.shared_const))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.shared_const_ref(), rhs.shared_const_ref()))) {
     return false;
   }
-  if ((lhs.req_shared_const == nullptr) != (rhs.req_shared_const == nullptr) || (lhs.req_shared_const != nullptr && lhs.req_shared_const != rhs.req_shared_const && !(*lhs.req_shared_const == *rhs.req_shared_const))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_shared_const_ref(), rhs.req_shared_const_ref()))) {
     return false;
   }
   return true;
@@ -1031,14 +1000,14 @@ bool StructWithSharedConst::operator<(const StructWithSharedConst& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.opt_shared_const == nullptr) != (rhs.opt_shared_const == nullptr) || (lhs.opt_shared_const != nullptr && lhs.opt_shared_const != rhs.opt_shared_const && !(*lhs.opt_shared_const == *rhs.opt_shared_const))) {
-    return lhs.opt_shared_const == nullptr || (rhs.opt_shared_const != nullptr && *lhs.opt_shared_const < *rhs.opt_shared_const);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_shared_const_ref(), rhs.opt_shared_const_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_shared_const_ref(), rhs.opt_shared_const_ref());
   }
-  if ((lhs.shared_const == nullptr) != (rhs.shared_const == nullptr) || (lhs.shared_const != nullptr && lhs.shared_const != rhs.shared_const && !(*lhs.shared_const == *rhs.shared_const))) {
-    return lhs.shared_const == nullptr || (rhs.shared_const != nullptr && *lhs.shared_const < *rhs.shared_const);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.shared_const_ref(), rhs.shared_const_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.shared_const_ref(), rhs.shared_const_ref());
   }
-  if ((lhs.req_shared_const == nullptr) != (rhs.req_shared_const == nullptr) || (lhs.req_shared_const != nullptr && lhs.req_shared_const != rhs.req_shared_const && !(*lhs.req_shared_const == *rhs.req_shared_const))) {
-    return lhs.req_shared_const == nullptr || (rhs.req_shared_const != nullptr && *lhs.req_shared_const < *rhs.req_shared_const);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_shared_const_ref(), rhs.req_shared_const_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_shared_const_ref(), rhs.req_shared_const_ref());
   }
   return false;
 }
@@ -1124,9 +1093,8 @@ void TccStructTraits<::cpp2::Empty>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Empty::Empty(apache::thrift::FragileConstructor) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void Empty::__clear() {
   // clear all fields
@@ -1204,11 +1172,11 @@ StructWithRef& StructWithRef::operator=(const StructWithRef& src) {
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRef::StructWithRef(StructWithRef&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
-    req_field(std::move(other.req_field)) {}
+    req_field(std::move(other.req_field)) {
+}
 
 StructWithRef& StructWithRef::operator=(FOLLY_MAYBE_UNUSED StructWithRef&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1216,15 +1184,14 @@ StructWithRef& StructWithRef::operator=(FOLLY_MAYBE_UNUSED StructWithRef&& other
     this->req_field = std::move(other.req_field);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRef::StructWithRef(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg, ::std::unique_ptr<::cpp2::Empty> opt_field__arg, ::std::unique_ptr<::cpp2::Empty> req_field__arg) :
     def_field(std::move(def_field__arg)),
     opt_field(std::move(opt_field__arg)),
-    req_field(std::move(req_field__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_field(std::move(req_field__arg)) {
+}
+
 
 void StructWithRef::__clear() {
   // clear all fields
@@ -1234,13 +1201,13 @@ bool StructWithRef::operator==(const StructWithRef& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
     return false;
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
     return false;
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
     return false;
   }
   return true;
@@ -1250,14 +1217,14 @@ bool StructWithRef::operator<(const StructWithRef& rhs) const {
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
-    return lhs.def_field == nullptr || (rhs.def_field != nullptr && *lhs.def_field < *rhs.def_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_field_ref(), rhs.def_field_ref());
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
-    return lhs.opt_field == nullptr || (rhs.opt_field != nullptr && *lhs.opt_field < *rhs.opt_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_field_ref(), rhs.opt_field_ref());
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
-    return lhs.req_field == nullptr || (rhs.req_field != nullptr && *lhs.req_field < *rhs.req_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_field_ref(), rhs.req_field_ref());
   }
   return false;
 }
@@ -1357,11 +1324,11 @@ StructWithRefTypeUnique& StructWithRefTypeUnique::operator=(const StructWithRefT
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeUnique::StructWithRefTypeUnique(StructWithRefTypeUnique&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
-    req_field(std::move(other.req_field)) {}
+    req_field(std::move(other.req_field)) {
+}
 
 StructWithRefTypeUnique& StructWithRefTypeUnique::operator=(FOLLY_MAYBE_UNUSED StructWithRefTypeUnique&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1369,15 +1336,14 @@ StructWithRefTypeUnique& StructWithRefTypeUnique::operator=(FOLLY_MAYBE_UNUSED S
     this->req_field = std::move(other.req_field);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeUnique::StructWithRefTypeUnique(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg, ::std::unique_ptr<::cpp2::Empty> opt_field__arg, ::std::unique_ptr<::cpp2::Empty> req_field__arg) :
     def_field(std::move(def_field__arg)),
     opt_field(std::move(opt_field__arg)),
-    req_field(std::move(req_field__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_field(std::move(req_field__arg)) {
+}
+
 
 void StructWithRefTypeUnique::__clear() {
   // clear all fields
@@ -1387,13 +1353,13 @@ bool StructWithRefTypeUnique::operator==(const StructWithRefTypeUnique& rhs) con
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
     return false;
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
     return false;
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
     return false;
   }
   return true;
@@ -1403,14 +1369,14 @@ bool StructWithRefTypeUnique::operator<(const StructWithRefTypeUnique& rhs) cons
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
-    return lhs.def_field == nullptr || (rhs.def_field != nullptr && *lhs.def_field < *rhs.def_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_field_ref(), rhs.def_field_ref());
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
-    return lhs.opt_field == nullptr || (rhs.opt_field != nullptr && *lhs.opt_field < *rhs.opt_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_field_ref(), rhs.opt_field_ref());
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
-    return lhs.req_field == nullptr || (rhs.req_field != nullptr && *lhs.req_field < *rhs.req_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_field_ref(), rhs.req_field_ref());
   }
   return false;
 }
@@ -1495,15 +1461,13 @@ void TccStructTraits<::cpp2::StructWithRefTypeShared>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeShared::StructWithRefTypeShared(const StructWithRefTypeShared&) = default;
 StructWithRefTypeShared& StructWithRefTypeShared::operator=(const StructWithRefTypeShared&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeShared::StructWithRefTypeShared(StructWithRefTypeShared&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
-    req_field(std::move(other.req_field)) {}
+    req_field(std::move(other.req_field)) {
+}
 
 StructWithRefTypeShared& StructWithRefTypeShared::operator=(FOLLY_MAYBE_UNUSED StructWithRefTypeShared&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1511,15 +1475,14 @@ StructWithRefTypeShared& StructWithRefTypeShared::operator=(FOLLY_MAYBE_UNUSED S
     this->req_field = std::move(other.req_field);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeShared::StructWithRefTypeShared(apache::thrift::FragileConstructor, ::std::shared_ptr<::cpp2::Empty> def_field__arg, ::std::shared_ptr<::cpp2::Empty> opt_field__arg, ::std::shared_ptr<::cpp2::Empty> req_field__arg) :
     def_field(std::move(def_field__arg)),
     opt_field(std::move(opt_field__arg)),
-    req_field(std::move(req_field__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_field(std::move(req_field__arg)) {
+}
+
 
 void StructWithRefTypeShared::__clear() {
   // clear all fields
@@ -1529,13 +1492,13 @@ bool StructWithRefTypeShared::operator==(const StructWithRefTypeShared& rhs) con
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
     return false;
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
     return false;
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
     return false;
   }
   return true;
@@ -1545,14 +1508,14 @@ bool StructWithRefTypeShared::operator<(const StructWithRefTypeShared& rhs) cons
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
-    return lhs.def_field == nullptr || (rhs.def_field != nullptr && *lhs.def_field < *rhs.def_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_field_ref(), rhs.def_field_ref());
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
-    return lhs.opt_field == nullptr || (rhs.opt_field != nullptr && *lhs.opt_field < *rhs.opt_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_field_ref(), rhs.opt_field_ref());
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
-    return lhs.req_field == nullptr || (rhs.req_field != nullptr && *lhs.req_field < *rhs.req_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_field_ref(), rhs.req_field_ref());
   }
   return false;
 }
@@ -1637,15 +1600,13 @@ void TccStructTraits<::cpp2::StructWithRefTypeSharedConst>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeSharedConst::StructWithRefTypeSharedConst(const StructWithRefTypeSharedConst&) = default;
 StructWithRefTypeSharedConst& StructWithRefTypeSharedConst::operator=(const StructWithRefTypeSharedConst&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeSharedConst::StructWithRefTypeSharedConst(StructWithRefTypeSharedConst&& other) noexcept  :
     def_field(std::move(other.def_field)),
     opt_field(std::move(other.opt_field)),
-    req_field(std::move(other.req_field)) {}
+    req_field(std::move(other.req_field)) {
+}
 
 StructWithRefTypeSharedConst& StructWithRefTypeSharedConst::operator=(FOLLY_MAYBE_UNUSED StructWithRefTypeSharedConst&& other) noexcept {
     this->def_field = std::move(other.def_field);
@@ -1653,15 +1614,14 @@ StructWithRefTypeSharedConst& StructWithRefTypeSharedConst::operator=(FOLLY_MAYB
     this->req_field = std::move(other.req_field);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefTypeSharedConst::StructWithRefTypeSharedConst(apache::thrift::FragileConstructor, ::std::shared_ptr<const ::cpp2::Empty> def_field__arg, ::std::shared_ptr<const ::cpp2::Empty> opt_field__arg, ::std::shared_ptr<const ::cpp2::Empty> req_field__arg) :
     def_field(std::move(def_field__arg)),
     opt_field(std::move(opt_field__arg)),
-    req_field(std::move(req_field__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    req_field(std::move(req_field__arg)) {
+}
+
 
 void StructWithRefTypeSharedConst::__clear() {
   // clear all fields
@@ -1671,13 +1631,13 @@ bool StructWithRefTypeSharedConst::operator==(const StructWithRefTypeSharedConst
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
     return false;
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
     return false;
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
     return false;
   }
   return true;
@@ -1687,14 +1647,14 @@ bool StructWithRefTypeSharedConst::operator<(const StructWithRefTypeSharedConst&
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
-    return lhs.def_field == nullptr || (rhs.def_field != nullptr && *lhs.def_field < *rhs.def_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_field_ref(), rhs.def_field_ref());
   }
-  if ((lhs.opt_field == nullptr) != (rhs.opt_field == nullptr) || (lhs.opt_field != nullptr && lhs.opt_field != rhs.opt_field && !(*lhs.opt_field == *rhs.opt_field))) {
-    return lhs.opt_field == nullptr || (rhs.opt_field != nullptr && *lhs.opt_field < *rhs.opt_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.opt_field_ref(), rhs.opt_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.opt_field_ref(), rhs.opt_field_ref());
   }
-  if ((lhs.req_field == nullptr) != (rhs.req_field == nullptr) || (lhs.req_field != nullptr && lhs.req_field != rhs.req_field && !(*lhs.req_field == *rhs.req_field))) {
-    return lhs.req_field == nullptr || (rhs.req_field != nullptr && *lhs.req_field < *rhs.req_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.req_field_ref(), rhs.req_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.req_field_ref(), rhs.req_field_ref());
   }
   return false;
 }
@@ -1790,21 +1750,20 @@ StructWithRefAndAnnotCppNoexceptMoveCtor& StructWithRefAndAnnotCppNoexceptMoveCt
   return *this;
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefAndAnnotCppNoexceptMoveCtor::StructWithRefAndAnnotCppNoexceptMoveCtor(StructWithRefAndAnnotCppNoexceptMoveCtor&& other) noexcept  :
-    def_field(std::move(other.def_field)) {}
+    def_field(std::move(other.def_field)) {
+}
 
 StructWithRefAndAnnotCppNoexceptMoveCtor& StructWithRefAndAnnotCppNoexceptMoveCtor::operator=(FOLLY_MAYBE_UNUSED StructWithRefAndAnnotCppNoexceptMoveCtor&& other) noexcept {
     this->def_field = std::move(other.def_field);
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 StructWithRefAndAnnotCppNoexceptMoveCtor::StructWithRefAndAnnotCppNoexceptMoveCtor(apache::thrift::FragileConstructor, ::std::unique_ptr<::cpp2::Empty> def_field__arg) :
-    def_field(std::move(def_field__arg)) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+    def_field(std::move(def_field__arg)) {
+}
+
 
 void StructWithRefAndAnnotCppNoexceptMoveCtor::__clear() {
   // clear all fields
@@ -1814,7 +1773,7 @@ bool StructWithRefAndAnnotCppNoexceptMoveCtor::operator==(const StructWithRefAnd
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
     return false;
   }
   return true;
@@ -1824,8 +1783,8 @@ bool StructWithRefAndAnnotCppNoexceptMoveCtor::operator<(const StructWithRefAndA
   (void)rhs;
   auto& lhs = *this;
   (void)lhs;
-  if ((lhs.def_field == nullptr) != (rhs.def_field == nullptr) || (lhs.def_field != nullptr && lhs.def_field != rhs.def_field && !(*lhs.def_field == *rhs.def_field))) {
-    return lhs.def_field == nullptr || (rhs.def_field != nullptr && *lhs.def_field < *rhs.def_field);
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_field_ref(), rhs.def_field_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_field_ref(), rhs.def_field_ref());
   }
   return false;
 }
@@ -1860,3 +1819,154 @@ static_assert(
     "inconsistent use of nimble option");
 
 } // cpp2
+
+namespace apache {
+namespace thrift {
+namespace detail {
+
+void TccStructTraits<::cpp2::StructWithString>::translateFieldName(
+    folly::StringPiece _fname,
+    int16_t& fid,
+    apache::thrift::protocol::TType& _ftype) noexcept {
+  using data = apache::thrift::TStructDataStorage<::cpp2::StructWithString>;
+  static const st::translate_field_name_table table{
+      data::fields_size,
+      data::fields_names.data(),
+      data::fields_ids.data(),
+      data::fields_types.data()};
+  st::translate_field_name(_fname, fid, _ftype, table);
+}
+
+} // namespace detail
+} // namespace thrift
+} // namespace apache
+
+namespace cpp2 {
+
+StructWithString::StructWithString(const StructWithString& srcObj) {
+  def_unique_string_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::string>(srcObj.def_unique_string_ref);
+  def_shared_string_ref = srcObj.def_shared_string_ref;
+  def_shared_string_const_ref = srcObj.def_shared_string_const_ref;
+  unique_string_ref = ::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::type_class::string>(srcObj.unique_string_ref);
+  shared_string_ref = srcObj.shared_string_ref;
+}
+
+StructWithString& StructWithString::operator=(const StructWithString& src) {
+  StructWithString tmp(src);
+  swap(*this, tmp);
+  return *this;
+}
+
+StructWithString::StructWithString() :
+      def_unique_string_ref(std::make_unique<::std::string>()),
+      def_shared_string_ref(std::make_shared<::std::string>()),
+      def_shared_string_const_ref(std::make_shared<::std::string>()) {
+}
+
+
+StructWithString::~StructWithString() {}
+
+StructWithString::StructWithString(StructWithString&& other) noexcept  :
+    def_unique_string_ref(std::move(other.def_unique_string_ref)),
+    def_shared_string_ref(std::move(other.def_shared_string_ref)),
+    def_shared_string_const_ref(std::move(other.def_shared_string_const_ref)),
+    unique_string_ref(std::move(other.unique_string_ref)),
+    shared_string_ref(std::move(other.shared_string_ref)) {
+}
+
+StructWithString& StructWithString::operator=(FOLLY_MAYBE_UNUSED StructWithString&& other) noexcept {
+    this->def_unique_string_ref = std::move(other.def_unique_string_ref);
+    this->def_shared_string_ref = std::move(other.def_shared_string_ref);
+    this->def_shared_string_const_ref = std::move(other.def_shared_string_const_ref);
+    this->unique_string_ref = std::move(other.unique_string_ref);
+    this->shared_string_ref = std::move(other.shared_string_ref);
+    return *this;
+}
+
+
+StructWithString::StructWithString(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::string> def_unique_string_ref__arg, ::std::shared_ptr<::std::string> def_shared_string_ref__arg, ::std::shared_ptr<const ::std::string> def_shared_string_const_ref__arg, ::std::unique_ptr<::std::string> unique_string_ref__arg, ::std::shared_ptr<::std::string> shared_string_ref__arg) :
+    def_unique_string_ref(std::move(def_unique_string_ref__arg)),
+    def_shared_string_ref(std::move(def_shared_string_ref__arg)),
+    def_shared_string_const_ref(std::move(def_shared_string_const_ref__arg)),
+    unique_string_ref(std::move(unique_string_ref__arg)),
+    shared_string_ref(std::move(shared_string_ref__arg)) {
+}
+
+
+void StructWithString::__clear() {
+  // clear all fields
+}
+
+bool StructWithString::operator==(const StructWithString& rhs) const {
+  (void)rhs;
+  auto& lhs = *this;
+  (void)lhs;
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_unique_string_ref_ref(), rhs.def_unique_string_ref_ref()))) {
+    return false;
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_shared_string_ref_ref(), rhs.def_shared_string_ref_ref()))) {
+    return false;
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_shared_string_const_ref_ref(), rhs.def_shared_string_const_ref_ref()))) {
+    return false;
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.unique_string_ref_ref(), rhs.unique_string_ref_ref()))) {
+    return false;
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.shared_string_ref_ref(), rhs.shared_string_ref_ref()))) {
+    return false;
+  }
+  return true;
+}
+
+bool StructWithString::operator<(const StructWithString& rhs) const {
+  (void)rhs;
+  auto& lhs = *this;
+  (void)lhs;
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_unique_string_ref_ref(), rhs.def_unique_string_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_unique_string_ref_ref(), rhs.def_unique_string_ref_ref());
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_shared_string_ref_ref(), rhs.def_shared_string_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_shared_string_ref_ref(), rhs.def_shared_string_ref_ref());
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.def_shared_string_const_ref_ref(), rhs.def_shared_string_const_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.def_shared_string_const_ref_ref(), rhs.def_shared_string_const_ref_ref());
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.unique_string_ref_ref(), rhs.unique_string_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.unique_string_ref_ref(), rhs.unique_string_ref_ref());
+  }
+  if ((!::apache::thrift::detail::pointer_equal(lhs.shared_string_ref_ref(), rhs.shared_string_ref_ref()))) {
+    return ::apache::thrift::detail::pointer_less(lhs.shared_string_ref_ref(), rhs.shared_string_ref_ref());
+  }
+  return false;
+}
+
+
+void swap(StructWithString& a, StructWithString& b) {
+  using ::std::swap;
+  swap(a.def_unique_string_ref, b.def_unique_string_ref);
+  swap(a.def_shared_string_ref, b.def_shared_string_ref);
+  swap(a.def_shared_string_const_ref, b.def_shared_string_const_ref);
+  swap(a.unique_string_ref, b.unique_string_ref);
+  swap(a.shared_string_ref, b.shared_string_ref);
+}
+
+template void StructWithString::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+template uint32_t StructWithString::write<>(apache::thrift::BinaryProtocolWriter*) const;
+template uint32_t StructWithString::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+template uint32_t StructWithString::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+template void StructWithString::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+template uint32_t StructWithString::write<>(apache::thrift::CompactProtocolWriter*) const;
+template uint32_t StructWithString::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+template uint32_t StructWithString::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
+
+
+} // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

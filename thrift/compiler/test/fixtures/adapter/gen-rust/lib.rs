@@ -20,7 +20,7 @@ pub mod types {
 
     pub type UnionWithAdapter = crate::types::Baz;
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct Foo {
         pub intField: ::std::primitive::i32,
         pub optionalIntField: ::std::option::Option<::std::primitive::i32>,
@@ -30,9 +30,15 @@ pub mod types {
         pub mapField: ::std::collections::BTreeMap<::std::string::String, crate::types::ListWithElemAdapter>,
         pub optionalMapField: ::std::option::Option<::std::collections::BTreeMap<::std::string::String, crate::types::ListWithElemAdapter>>,
         pub binaryField: ::std::vec::Vec<::std::primitive::u8>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq, Debug)]
     pub enum Baz {
         intField(::std::primitive::i32),
         setField(crate::types::SetWithAdapter),
@@ -41,7 +47,7 @@ pub mod types {
         UnknownField(::std::primitive::i32),
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct Bar {
         pub structField: crate::types::Foo,
         pub optionalStructField: ::std::option::Option<crate::types::Foo>,
@@ -49,6 +55,23 @@ pub mod types {
         pub optionalStructListField: ::std::option::Option<::std::vec::Vec<crate::types::Foo>>,
         pub unionField: crate::types::Baz,
         pub optionalUnionField: ::std::option::Option<crate::types::Baz>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
+    }
+
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct StructWithFieldAdapter {
+        pub field: ::std::primitive::i32,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
 
@@ -66,7 +89,24 @@ pub mod types {
                 mapField: ::std::default::Default::default(),
                 optionalMapField: ::std::option::Option::None,
                 binaryField: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::Foo {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("Foo")
+                .field("intField", &self.intField)
+                .field("optionalIntField", &self.optionalIntField)
+                .field("intFieldWithDefault", &self.intFieldWithDefault)
+                .field("setField", &self.setField)
+                .field("optionalSetField", &self.optionalSetField)
+                .field("mapField", &self.mapField)
+                .field("optionalMapField", &self.optionalMapField)
+                .field("binaryField", &self.binaryField)
+                .finish()
         }
     }
 
@@ -168,6 +208,7 @@ pub mod types {
                 mapField: field_mapField.unwrap_or_default(),
                 optionalMapField: field_optionalMapField,
                 binaryField: field_binaryField.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -279,7 +320,22 @@ pub mod types {
                 optionalStructListField: ::std::option::Option::None,
                 unionField: ::std::default::Default::default(),
                 optionalUnionField: ::std::option::Option::None,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::Bar {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("Bar")
+                .field("structField", &self.structField)
+                .field("optionalStructField", &self.optionalStructField)
+                .field("structListField", &self.structListField)
+                .field("optionalStructListField", &self.optionalStructListField)
+                .field("unionField", &self.unionField)
+                .field("optionalUnionField", &self.optionalUnionField)
+                .finish()
         }
     }
 
@@ -367,14 +423,88 @@ pub mod types {
                 optionalStructListField: field_optionalStructListField,
                 unionField: field_unionField.unwrap_or_default(),
                 optionalUnionField: field_optionalUnionField,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
 
+
+    impl ::std::default::Default for self::StructWithFieldAdapter {
+        fn default() -> Self {
+            Self {
+                field: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
+            }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::StructWithFieldAdapter {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("StructWithFieldAdapter")
+                .field("field", &self.field)
+                .finish()
+        }
+    }
+
+    unsafe impl ::std::marker::Send for self::StructWithFieldAdapter {}
+    unsafe impl ::std::marker::Sync for self::StructWithFieldAdapter {}
+
+    impl ::fbthrift::GetTType for self::StructWithFieldAdapter {
+        const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
+    }
+
+    impl<P> ::fbthrift::Serialize<P> for self::StructWithFieldAdapter
+    where
+        P: ::fbthrift::ProtocolWriter,
+    {
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("StructWithFieldAdapter");
+            p.write_field_begin("field", ::fbthrift::TType::I32, 1);
+            ::fbthrift::Serialize::write(&self.field, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    impl<P> ::fbthrift::Deserialize<P> for self::StructWithFieldAdapter
+    where
+        P: ::fbthrift::ProtocolReader,
+    {
+        fn read(p: &mut P) -> ::anyhow::Result<Self> {
+            static FIELDS: &[::fbthrift::Field] = &[
+                ::fbthrift::Field::new("field", ::fbthrift::TType::I32, 1),
+            ];
+            let mut field_field = ::std::option::Option::None;
+            let _ = p.read_struct_begin(|_| ())?;
+            loop {
+                let (_, fty, fid) = p.read_field_begin(|_| (), FIELDS)?;
+                match (fty, fid as ::std::primitive::i32) {
+                    (::fbthrift::TType::Stop, _) => break,
+                    (::fbthrift::TType::I32, 1) => field_field = ::std::option::Option::Some(::fbthrift::Deserialize::read(p)?),
+                    (fty, _) => p.skip(fty)?,
+                }
+                p.read_field_end()?;
+            }
+            p.read_struct_end()?;
+            ::std::result::Result::Ok(Self {
+                field: field_field.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
+            })
+        }
+    }
+
+
+    mod dot_dot {
+        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct OtherFields(pub(crate) ());
+    }
 }
 
 #[doc(hidden)]
 pub mod dependencies {
+    pub use cpp as cpp;
 }
 
 pub mod services {
@@ -392,6 +522,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for FuncExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    FuncExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    FuncExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    FuncExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    FuncExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    FuncExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    FuncExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for FuncExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    FuncExn::Success(_) => ::fbthrift::ResultType::Return,
+                    FuncExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for FuncExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -401,6 +563,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let FuncExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("Func");
                 match self {
                     FuncExn::Success(inner) => {
@@ -412,11 +577,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    FuncExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    FuncExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -476,12 +637,12 @@ pub mod services {
 /// Client implementation for each service in `module`.
 pub mod client {
 
-    pub struct ServiceImpl<P, T> {
+    pub struct ServiceImpl<P, T, S = ::fbthrift::NoopSpawner> {
         transport: T,
-        _phantom: ::std::marker::PhantomData<fn() -> P>,
+        _phantom: ::std::marker::PhantomData<fn() -> (P, S)>,
     }
 
-    impl<P, T> ServiceImpl<P, T> {
+    impl<P, T, S> ServiceImpl<P, T, S> {
         pub fn new(
             transport: T,
         ) -> Self {
@@ -500,137 +661,94 @@ pub mod client {
         fn func(
             &self,
             arg_arg1: &::std::primitive::str,
-            arg_arg2: &crate::types::Foo,
+            arg_arg2: &::std::primitive::str,
+            arg_arg3: &crate::types::Foo,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::primitive::i32, crate::errors::service::FuncError>> + ::std::marker::Send + 'static>>;
     }
 
-    impl<P, T> Service for ServiceImpl<P, T>
+    struct Args_Service_func<'a> {
+        arg1: &'a ::std::primitive::str,
+        arg2: &'a ::std::primitive::str,
+        arg3: &'a crate::types::Foo,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_Service_func<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "Service.func"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("arg1", ::fbthrift::TType::String, 1i16);
+            ::fbthrift::Serialize::write(&self.arg1, p);
+            p.write_field_end();
+            p.write_field_begin("arg2", ::fbthrift::TType::String, 2i16);
+            ::fbthrift::Serialize::write(&self.arg2, p);
+            p.write_field_end();
+            p.write_field_begin("arg3", ::fbthrift::TType::Struct, 3i16);
+            ::fbthrift::Serialize::write(&self.arg3, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    impl<P, T, S> Service for ServiceImpl<P, T, S>
     where
         P: ::fbthrift::Protocol,
         T: ::fbthrift::Transport,
         P::Frame: ::fbthrift::Framing<DecBuf = ::fbthrift::FramingDecoded<T>>,
         ::fbthrift::ProtocolEncoded<P>: ::fbthrift::BufMutExt<Final = ::fbthrift::FramingEncodedFinal<T>>,
         P::Deserializer: ::std::marker::Send,
+        S: ::fbthrift::help::Spawner,
     {
-        #[::tracing::instrument(name = "Service.func", skip_all)]
         fn func(
             &self,
             arg_arg1: &::std::primitive::str,
-            arg_arg2: &crate::types::Foo,
+            arg_arg2: &::std::primitive::str,
+            arg_arg3: &crate::types::Foo,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::primitive::i32, crate::errors::service::FuncError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "Service";
                 METHOD_NAME = "Service.func";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "func",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_arg1", ::fbthrift::TType::String, 1i16);
-                        ::fbthrift::Serialize::write(&arg_arg1, p);
-                        p.write_field_end();
-                        p.write_field_begin("arg_arg2", ::fbthrift::TType::Struct, 2i16);
-                        ::fbthrift::Serialize::write(&arg_arg2, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "Service.func"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::service::FuncExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::service::FuncExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::service::FuncExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::service::FuncError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::service::FuncError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::service::FuncError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "Service.func"))
-                )
-                .boxed()
+            let args = self::Args_Service_func {
+                arg1: arg_arg1,
+                arg2: arg_arg2,
+                arg3: arg_arg3,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("func", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "Service.func"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::service::FuncExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::service::FuncError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("Service.func"))
+            .boxed()
         }
+
     }
 
     impl<'a, T> Service for T
@@ -641,11 +759,13 @@ pub mod client {
         fn func(
             &self,
             arg_arg1: &::std::primitive::str,
-            arg_arg2: &crate::types::Foo,
+            arg_arg2: &::std::primitive::str,
+            arg_arg3: &crate::types::Foo,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::primitive::i32, crate::errors::service::FuncError>> + ::std::marker::Send + 'static>> {
             self.as_ref().func(
                 arg_arg1,
                 arg_arg2,
+                arg_arg3,
             )
         }
     }
@@ -676,8 +796,24 @@ pub mod client {
             T: ::fbthrift::Transport,
             P::Deserializer: ::std::marker::Send,
         {
+            let spawner = ::fbthrift::help::NoopSpawner;
+            Self::with_spawner(protocol, transport, spawner)
+        }
+
+        pub fn with_spawner<P, T, S>(
+            protocol: P,
+            transport: T,
+            spawner: S,
+        ) -> ::std::sync::Arc<impl Service + ::std::marker::Send + 'static>
+        where
+            P: ::fbthrift::Protocol<Frame = T>,
+            T: ::fbthrift::Transport,
+            P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
+        {
             let _ = protocol;
-            ::std::sync::Arc::new(ServiceImpl::<P, T>::new(transport))
+            let _ = spawner;
+            ::std::sync::Arc::new(ServiceImpl::<P, T, S>::new(transport))
         }
     }
 
@@ -689,13 +825,14 @@ pub mod client {
     impl ::fbthrift::ClientFactory for make_Service {
         type Api = dyn Service + ::std::marker::Send + ::std::marker::Sync + 'static;
 
-        fn new<P, T>(protocol: P, transport: T) -> ::std::sync::Arc<Self::Api>
+        fn with_spawner<P, T, S>(protocol: P, transport: T, spawner: S) -> ::std::sync::Arc<Self::Api>
         where
             P: ::fbthrift::Protocol<Frame = T>,
             T: ::fbthrift::Transport + ::std::marker::Sync,
             P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
         {
-            <dyn Service>::new(protocol, transport)
+            <dyn Service>::with_spawner(protocol, transport, spawner)
         }
     }
 
@@ -709,7 +846,8 @@ pub mod server {
         async fn func(
             &self,
             _arg1: ::std::string::String,
-            _arg2: crate::types::Foo,
+            _arg2: ::std::string::String,
+            _arg3: crate::types::Foo,
         ) -> ::std::result::Result<::std::primitive::i32, crate::services::service::FuncExn> {
             ::std::result::Result::Err(crate::services::service::FuncExn::ApplicationException(
                 ::fbthrift::ApplicationException::unimplemented_method(
@@ -730,7 +868,8 @@ pub mod server {
 
     struct Args_Service_func {
         arg1: ::std::string::String,
-        arg2: crate::types::Foo,
+        arg2: ::std::string::String,
+        arg3: crate::types::Foo,
     }
     impl<P: ::fbthrift::ProtocolReader> ::fbthrift::Deserialize<P> for self::Args_Service_func {
         #[inline]
@@ -738,17 +877,20 @@ pub mod server {
         fn read(p: &mut P) -> ::anyhow::Result<Self> {
             static ARGS: &[::fbthrift::Field] = &[
                 ::fbthrift::Field::new("arg1", ::fbthrift::TType::String, 1),
-                ::fbthrift::Field::new("arg2", ::fbthrift::TType::Struct, 2),
+                ::fbthrift::Field::new("arg2", ::fbthrift::TType::String, 2),
+                ::fbthrift::Field::new("arg3", ::fbthrift::TType::Struct, 3),
             ];
             let mut field_arg1 = ::std::option::Option::None;
             let mut field_arg2 = ::std::option::Option::None;
+            let mut field_arg3 = ::std::option::Option::None;
             let _ = p.read_struct_begin(|_| ())?;
             loop {
                 let (_, fty, fid) = p.read_field_begin(|_| (), ARGS)?;
                 match (fty, fid as ::std::primitive::i32) {
                     (::fbthrift::TType::Stop, _) => break,
                     (::fbthrift::TType::String, 1) => field_arg1 = ::std::option::Option::Some(::fbthrift::Deserialize::read(p)?),
-                    (::fbthrift::TType::Struct, 2) => field_arg2 = ::std::option::Option::Some(::fbthrift::Deserialize::read(p)?),
+                    (::fbthrift::TType::String, 2) => field_arg2 = ::std::option::Option::Some(::fbthrift::Deserialize::read(p)?),
+                    (::fbthrift::TType::Struct, 3) => field_arg3 = ::std::option::Option::Some(::fbthrift::Deserialize::read(p)?),
                     (fty, _) => p.skip(fty)?,
                 }
                 p.read_field_end()?;
@@ -757,6 +899,7 @@ pub mod server {
             ::std::result::Result::Ok(Self {
                 arg1: field_arg1.ok_or_else(|| ::anyhow::anyhow!("`{}` missing arg `{}`", "Service.func", "arg1"))?,
                 arg2: field_arg2.ok_or_else(|| ::anyhow::anyhow!("`{}` missing arg `{}`", "Service.func", "arg2"))?,
+                arg3: field_arg3.ok_or_else(|| ::anyhow::anyhow!("`{}` missing arg `{}`", "Service.func", "arg3"))?,
             })
         }
     }
@@ -787,69 +930,59 @@ pub mod server {
         async fn handle_func<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::service::FuncExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "Service";
                 METHOD_NAME = "Service.func";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_Service_func = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.func(
-                _args.arg1,
-                _args.arg2,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.func(
+                    _args.arg1,
+                    _args.arg2,
+                    _args.arg3,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "Service.func"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "Service.func", "success");
                     crate::services::service::FuncExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::service::FuncExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "Service.func", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::service::FuncExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::service::FuncExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "func",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "Service.func", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("Service.func", exn);
+                    crate::services::service::FuncExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "Service.func").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "func",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
     }
@@ -882,7 +1015,27 @@ pub mod server {
             _seqid: ::std::primitive::u32,
         ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
             match idx {
-                0usize => self.handle_func(_p, _r, _seqid).await,
+                0usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "Service";
+                        METHOD_NAME = "Service.func";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_func(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "func",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
                 bad => panic!(
                     "{}: unexpected method idx {}",
                     "ServiceProcessor",
@@ -928,26 +1081,10 @@ pub mod server {
                     return self.supa.call(cur, req_ctxt).await;
                 }
             };
-            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await;
+            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await?;
             p.read_message_end()?;
-            match res {
-                ::std::result::Result::Ok(bytes) => ::std::result::Result::Ok(bytes),
-                ::std::result::Result::Err(err) => match err.downcast_ref::<::fbthrift::ProtocolError>() {
-                    ::std::option::Option::Some(::fbthrift::ProtocolError::ApplicationException(ae)) => {
-                        let res = ::fbthrift::serialize!(P, |p| {
-                            ::fbthrift::protocol::write_message(
-                                p,
-                                "ServiceProcessor",
-                                ::fbthrift::MessageType::Exception,
-                                seqid,
-                                |p| ::fbthrift::Serialize::write(&ae, p),
-                            )
-                        });
-                        ::std::result::Result::Ok(res)
-                    }
-                    _ => ::std::result::Result::Err(err),
-                },
-            }
+
+            Ok(res)
         }
     }
 
@@ -1089,16 +1226,16 @@ pub mod mock {
         }
     }
 
-    #[::async_trait::async_trait]
     impl<'mock> super::client::Service for Service<'mock> {
         fn func(
             &self,
             arg_arg1: &::std::primitive::str,
-            arg_arg2: &crate::types::Foo,
+            arg_arg2: &::std::primitive::str,
+            arg_arg3: &crate::types::Foo,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::primitive::i32, crate::errors::service::FuncError>> + ::std::marker::Send + 'static>> {
             let mut closure = self.func.closure.lock().unwrap();
-            let closure: &mut dyn ::std::ops::FnMut(::std::string::String, crate::types::Foo) -> _ = &mut **closure;
-            ::std::boxed::Box::pin(::futures::future::ready(closure(arg_arg1.to_owned(), arg_arg2.clone())))
+            let closure: &mut dyn ::std::ops::FnMut(::std::string::String, ::std::string::String, crate::types::Foo) -> _ = &mut **closure;
+            ::std::boxed::Box::pin(::futures::future::ready(closure(arg_arg1.to_owned(), arg_arg2.to_owned(), arg_arg3.clone())))
         }
     }
 
@@ -1107,7 +1244,7 @@ pub mod mock {
 
             pub struct func<'mock> {
                 pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
-                    dyn ::std::ops::FnMut(::std::string::String, crate::types::Foo) -> ::std::result::Result<
+                    dyn ::std::ops::FnMut(::std::string::String, ::std::string::String, crate::types::Foo) -> ::std::result::Result<
                         ::std::primitive::i32,
                         crate::errors::service::FuncError,
                     > + ::std::marker::Send + ::std::marker::Sync + 'mock,
@@ -1117,7 +1254,7 @@ pub mod mock {
             impl<'mock> func<'mock> {
                 pub fn unimplemented() -> Self {
                     func {
-                        closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|_: ::std::string::String, _: crate::types::Foo| panic!(
+                        closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|_: ::std::string::String, _: ::std::string::String, _: crate::types::Foo| panic!(
                             "{}::{} is not mocked",
                             "Service",
                             "func",
@@ -1126,17 +1263,17 @@ pub mod mock {
                 }
 
                 pub fn ret(&self, value: ::std::primitive::i32) {
-                    self.mock(move |_: ::std::string::String, _: crate::types::Foo| value.clone());
+                    self.mock(move |_: ::std::string::String, _: ::std::string::String, _: crate::types::Foo| value.clone());
                 }
 
-                pub fn mock(&self, mut mock: impl ::std::ops::FnMut(::std::string::String, crate::types::Foo) -> ::std::primitive::i32 + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                pub fn mock(&self, mut mock: impl ::std::ops::FnMut(::std::string::String, ::std::string::String, crate::types::Foo) -> ::std::primitive::i32 + ::std::marker::Send + ::std::marker::Sync + 'mock) {
                     let mut closure = self.closure.lock().unwrap();
-                    *closure = ::std::boxed::Box::new(move |arg1, arg2| ::std::result::Result::Ok(mock(arg1, arg2)));
+                    *closure = ::std::boxed::Box::new(move |arg1, arg2, arg3| ::std::result::Result::Ok(mock(arg1, arg2, arg3)));
                 }
 
-                pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut(::std::string::String, crate::types::Foo) -> ::std::result::Result<::std::primitive::i32, crate::errors::service::FuncError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut(::std::string::String, ::std::string::String, crate::types::Foo) -> ::std::result::Result<::std::primitive::i32, crate::errors::service::FuncError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
                     let mut closure = self.closure.lock().unwrap();
-                    *closure = ::std::boxed::Box::new(move |arg1, arg2| mock(arg1, arg2));
+                    *closure = ::std::boxed::Box::new(move |arg1, arg2, arg3| mock(arg1, arg2, arg3));
                 }
 
                 pub fn throw<E>(&self, exception: E)
@@ -1145,7 +1282,7 @@ pub mod mock {
                     E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
                 {
                     let mut closure = self.closure.lock().unwrap();
-                    *closure = ::std::boxed::Box::new(move |_: ::std::string::String, _: crate::types::Foo| ::std::result::Result::Err(exception.clone().into()));
+                    *closure = ::std::boxed::Box::new(move |_: ::std::string::String, _: ::std::string::String, _: crate::types::Foo| ::std::result::Result::Err(exception.clone().into()));
                 }
             }
         }
@@ -1158,6 +1295,19 @@ pub mod errors {
     pub mod service {
 
         pub type FuncError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::service::FuncExn> for
+            ::std::result::Result<::std::primitive::i32, FuncError>
+        {
+            fn from(e: crate::services::service::FuncExn) -> Self {
+                match e {
+                    crate::services::service::FuncExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::service::FuncExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(FuncError::ApplicationException(aexn)),
+                }
+            }
+        }
 
     }
 

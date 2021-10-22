@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -24,9 +26,11 @@
 #include <fmt/core.h>
 #include <folly/Traits.h>
 #include <folly/Utility.h>
+#include <folly/experimental/coro/FutureUtil.h>
 #include <folly/futures/Future.h>
 #include <folly/io/Cursor.h>
 #include <thrift/lib/cpp/protocol/TBase64Utils.h>
+#include <thrift/lib/cpp2/PluggableFunction.h>
 #include <thrift/lib/cpp2/SerializationSwitch.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
@@ -44,10 +48,6 @@
 #include <thrift/lib/cpp2/util/Frozen2ViewHelpers.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
-#if FOLLY_HAS_COROUTINES
-#include <folly/experimental/coro/FutureUtil.h>
-#endif
-
 namespace apache {
 namespace thrift {
 
@@ -55,6 +55,9 @@ class BinaryProtocolReader;
 class CompactProtocolReader;
 
 namespace detail {
+
+THRIFT_PLUGGABLE_FUNC_DECLARE(
+    bool, includeInRecentRequestsCount, const std::string_view /*methodName*/);
 
 template <int N, int Size, class F, class Tuple>
 struct ForEachImpl {
@@ -406,6 +409,7 @@ namespace detail {
 namespace ap {
 
 template <
+    ErrorBlame Blame,
     typename Protocol,
     typename PResult,
     typename T,
@@ -619,6 +623,7 @@ template <
 ClientSink<SinkType, FinalResponseType> createSink(
     apache::thrift::detail::ClientSinkBridge::Ptr impl) {
   static apache::thrift::detail::ap::StreamElementEncoderImpl<
+      ErrorBlame::CLIENT,
       ProtocolWriter,
       SinkPResult,
       SinkType,
@@ -1064,7 +1069,11 @@ std::unique_ptr<folly::IOBuf> encode_stream_payload(folly::IOBuf&& _item) {
   return std::make_unique<folly::IOBuf>(std::move(_item));
 }
 
-template <typename Protocol, typename PResult, typename ErrorMapFunc>
+template <
+    ErrorBlame Blame,
+    typename Protocol,
+    typename PResult,
+    typename ErrorMapFunc>
 EncodedStreamError encode_stream_exception(folly::exception_wrapper ew) {
   ErrorMapFunc mapException;
   Protocol prot;
@@ -1084,7 +1093,7 @@ EncodedStreamError encode_stream_exception(folly::exception_wrapper ew) {
     exceptionMetadataBase.what_utf8_ref() = ex.what();
     apache::thrift::detail::serializeExceptionBody(&prot, &ex);
     PayloadAppUnknownExceptionMetdata aue;
-    aue.errorClassification_ref().ensure().blame_ref() = ErrorBlame::SERVER;
+    aue.errorClassification_ref().ensure().blame_ref() = Blame;
     exceptionMetadata.set_appUnknownException(std::move(aue));
   }
 
@@ -1098,6 +1107,7 @@ EncodedStreamError encode_stream_exception(folly::exception_wrapper ew) {
 }
 
 template <
+    ErrorBlame Blame,
     typename Protocol,
     typename PResult,
     typename T,
@@ -1116,7 +1126,7 @@ class StreamElementEncoderImpl final
 
   folly::Try<StreamPayload> operator()(folly::exception_wrapper&& e) override {
     return folly::Try<StreamPayload>(folly::exception_wrapper(
-        encode_stream_exception<Protocol, PResult, ErrorMapFunc>(e)));
+        encode_stream_exception<Blame, Protocol, PResult, ErrorMapFunc>(e)));
   }
 
   folly::Try<StreamPayload> operator()() override {
@@ -1247,7 +1257,13 @@ template <
 ServerStreamFactory encode_server_stream(
     apache::thrift::ServerStream<T>&& stream,
     folly::Executor::KeepAlive<> serverExecutor) {
-  static StreamElementEncoderImpl<Protocol, PResult, T, ErrorMapFunc> encode;
+  static StreamElementEncoderImpl<
+      ErrorBlame::SERVER,
+      Protocol,
+      PResult,
+      T,
+      ErrorMapFunc>
+      encode;
   return stream(std::move(serverExecutor), &encode);
 }
 
@@ -1317,6 +1333,7 @@ apache::thrift::detail::SinkConsumerImpl toSinkConsumerImpl(
       ew = folly::exception_wrapper(std::current_exception());
     }
     co_return folly::Try<StreamPayload>(ap::encode_stream_exception<
+                                        ErrorBlame::SERVER,
                                         ProtocolWriter,
                                         FinalResponsePResult,
                                         ErrorMapFunc>(std::move(ew)));
@@ -1439,7 +1456,10 @@ void async_tm_coro(CallbackPtr<T> callback, folly::coro::Task<T>&& task) {
 }
 #endif
 
+std::string formatUnimplementedMethodException(std::string_view methodName);
+TApplicationException create_app_exn_unimplemented(const char* name);
 [[noreturn]] void throw_app_exn_unimplemented(char const* name);
+
 } // namespace si
 } // namespace detail
 

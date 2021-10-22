@@ -135,22 +135,19 @@ void TccStructTraits<::test::fixtures::enumstrict::MyStruct>::translateFieldName
 namespace test { namespace fixtures { namespace enumstrict {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStruct::MyStruct(apache::thrift::FragileConstructor, ::test::fixtures::enumstrict::MyEnum myEnum__arg, ::test::fixtures::enumstrict::MyBigEnum myBigEnum__arg) :
     myEnum(std::move(myEnum__arg)),
     myBigEnum(std::move(myBigEnum__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void MyStruct::__clear() {
   // clear all fields
-  this->myEnum = static_cast< ::test::fixtures::enumstrict::MyEnum>(0);
+  this->myEnum = ::test::fixtures::enumstrict::MyEnum();
   this->myBigEnum =  ::test::fixtures::enumstrict::MyBigEnum::ONE;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool MyStruct::operator==(const MyStruct& rhs) const {
@@ -184,9 +181,7 @@ void swap(MyStruct& a, MyStruct& b) {
   using ::std::swap;
   swap(a.myEnum_ref().value(), b.myEnum_ref().value());
   swap(a.myBigEnum_ref().value(), b.myBigEnum_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void MyStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -201,3 +196,8 @@ template uint32_t MyStruct::serializedSizeZC<>(apache::thrift::CompactProtocolWr
 
 
 }}} // test::fixtures::enumstrict
+
+namespace test { namespace fixtures { namespace enumstrict { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}}}} // test::fixtures::enumstrict

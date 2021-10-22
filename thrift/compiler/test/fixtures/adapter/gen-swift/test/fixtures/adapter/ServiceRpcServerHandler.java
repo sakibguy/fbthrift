@@ -59,6 +59,16 @@ public class ServiceRpcServerHandler
     
     _readerList.add(oprot -> {
       try {
+        String _r = oprot.readString();
+        return _r;
+
+      } catch (Throwable _e) {
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    });
+    
+    _readerList.add(oprot -> {
+      try {
         test.fixtures.adapter.Foo _r = test.fixtures.adapter.Foo.read0(oprot);
         return _r;
 
@@ -108,13 +118,14 @@ oprot.writeI32(_iter0);
           java.util.Iterator<Object> _iterator = _data.iterator();
 
           String arg1 = (String) _iterator.next();
-          test.fixtures.adapter.Foo arg2 = (test.fixtures.adapter.Foo) _iterator.next();
+          String arg2 = (String) _iterator.next();
+          test.fixtures.adapter.Foo arg3 = (test.fixtures.adapter.Foo) _iterator.next();
 
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegate
-            .func(arg1, arg2)
+            .func(arg1, arg2, arg3)
             .map(_response -> {
               _chain.preWrite(_response);
               com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
@@ -152,6 +163,7 @@ oprot.writeI32(_iter0);
           return _internalResponse;
   }
 
+
   @Override
   public reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> singleRequestSingleResponse(com.facebook.thrift.payload.ServerRequestPayload _payload) {
     final String _name = _payload.getRequestRpcMetadata().getName();
@@ -162,6 +174,24 @@ oprot.writeI32(_iter0);
         case "func":
           _result = _dofunc(_delegate, _name, _payload, _funcReaders, _eventHandlers);
         break;
+        default: {
+          _result = reactor.core.publisher.Mono.error(new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name));
+        }
+      }
+    } catch (Throwable _t) {
+      _result = reactor.core.publisher.Mono.error(_t);
+    }
+
+    return _result;
+  }
+
+  @Override
+  public reactor.core.publisher.Mono<Void> singleRequestNoResponse(com.facebook.thrift.payload.ServerRequestPayload _payload) {
+    final String _name = _payload.getRequestRpcMetadata().getName();
+
+    reactor.core.publisher.Mono<Void> _result;
+    try {
+      switch (_name) {
         default: {
           _result = reactor.core.publisher.Mono.error(new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name));
         }

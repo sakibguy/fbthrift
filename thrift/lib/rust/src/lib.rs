@@ -57,6 +57,7 @@ pub mod ttype;
 mod bufext;
 mod client;
 mod errors;
+mod exceptions;
 mod varint;
 
 #[cfg(test)]
@@ -79,7 +80,9 @@ pub use crate::compact_protocol::CompactProtocol;
 pub use crate::context_stack::{ContextStack, DummyContextStack, SerializedMessage};
 pub use crate::deserialize::Deserialize;
 pub use crate::errors::{NonthrowingFunctionError, ProtocolError};
+pub use crate::exceptions::{ExceptionInfo, ResultInfo, ResultType};
 pub use crate::framing::{Framing, FramingDecoded, FramingEncoded, FramingEncodedFinal};
+pub use crate::help::NoopSpawner;
 pub use crate::processor::{NullServiceProcessor, ServiceProcessor, ThriftService};
 pub use crate::protocol::{
     Field, Protocol, ProtocolDecoded, ProtocolEncoded, ProtocolEncodedFinal, ProtocolReader,

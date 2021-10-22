@@ -50,6 +50,11 @@ struct def_field;
 struct opt_field;
 struct req_field;
 struct def_field;
+struct def_unique_string_ref;
+struct def_shared_string_ref;
+struct def_shared_string_const_ref;
+struct unique_string_ref;
+struct shared_string_ref;
 } // namespace tag
 namespace detail {
 #ifndef APACHE_THRIFT_ACCESSOR_anInteger
@@ -200,6 +205,26 @@ APACHE_THRIFT_DEFINE_ACCESSOR(req_field);
 #define APACHE_THRIFT_ACCESSOR_def_field
 APACHE_THRIFT_DEFINE_ACCESSOR(def_field);
 #endif
+#ifndef APACHE_THRIFT_ACCESSOR_def_unique_string_ref
+#define APACHE_THRIFT_ACCESSOR_def_unique_string_ref
+APACHE_THRIFT_DEFINE_ACCESSOR(def_unique_string_ref);
+#endif
+#ifndef APACHE_THRIFT_ACCESSOR_def_shared_string_ref
+#define APACHE_THRIFT_ACCESSOR_def_shared_string_ref
+APACHE_THRIFT_DEFINE_ACCESSOR(def_shared_string_ref);
+#endif
+#ifndef APACHE_THRIFT_ACCESSOR_def_shared_string_const_ref
+#define APACHE_THRIFT_ACCESSOR_def_shared_string_const_ref
+APACHE_THRIFT_DEFINE_ACCESSOR(def_shared_string_const_ref);
+#endif
+#ifndef APACHE_THRIFT_ACCESSOR_unique_string_ref
+#define APACHE_THRIFT_ACCESSOR_unique_string_ref
+APACHE_THRIFT_DEFINE_ACCESSOR(unique_string_ref);
+#endif
+#ifndef APACHE_THRIFT_ACCESSOR_shared_string_ref
+#define APACHE_THRIFT_ACCESSOR_shared_string_ref
+APACHE_THRIFT_DEFINE_ACCESSOR(shared_string_ref);
+#endif
 } // namespace detail
 } // namespace thrift
 } // namespace apache
@@ -303,6 +328,7 @@ class StructWithRefTypeUnique;
 class StructWithRefTypeShared;
 class StructWithRefTypeSharedConst;
 class StructWithRefAndAnnotCppNoexceptMoveCtor;
+class StructWithString;
 } // cpp2
 // END forward_declare
 // BEGIN typedefs
@@ -310,13 +336,13 @@ class StructWithRefAndAnnotCppNoexceptMoveCtor;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class MyUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -589,11 +615,6 @@ uint32_t MyUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class MyField final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -639,8 +660,6 @@ class MyField final  {
   ::std::unique_ptr<::cpp2::MyEnum> enum_value;
  public:
   ::std::unique_ptr<::cpp2::MyEnum> req_enum_value;
-
- private:
 
  public:
 
@@ -739,11 +758,6 @@ uint32_t MyField::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -782,8 +796,6 @@ class MyStruct final  {
   ::std::unique_ptr<::cpp2::MyField> ref;
  public:
   ::std::unique_ptr<::cpp2::MyField> req_ref;
-
- private:
 
  public:
 
@@ -849,11 +861,6 @@ uint32_t MyStruct::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -892,22 +899,8 @@ class StructWithUnion final  {
   ::std::unique_ptr<double> aDouble;
  private:
   ::cpp2::MyField f;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -938,22 +931,22 @@ class StructWithUnion final  {
 
   template <typename..., typename T = ::cpp2::MyField>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> f_ref() const& {
-    return {this->f, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->f, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::MyField>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> f_ref() const&& {
-    return {std::move(this->f), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->f), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::MyField>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> f_ref() & {
-    return {this->f, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->f, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::MyField>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> f_ref() && {
-    return {std::move(this->f), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->f), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
   const ::cpp2::MyField& get_f() const&;
   ::cpp2::MyField get_f() &&;
@@ -961,8 +954,7 @@ class StructWithUnion final  {
   template <typename T_StructWithUnion_f_struct_setter = ::cpp2::MyField>
   [[deprecated("Use `FOO.f_ref() = BAR;` instead of `FOO.set_f(BAR);`")]]
   ::cpp2::MyField& set_f(T_StructWithUnion_f_struct_setter&& f_) {
-    f = std::forward<T_StructWithUnion_f_struct_setter>(f_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    f_ref() = std::forward<T_StructWithUnion_f_struct_setter>(f_);
     return f;
   }
 
@@ -992,11 +984,6 @@ uint32_t StructWithUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class RecursiveStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1030,22 +1017,8 @@ class RecursiveStruct final  {
   void __clear();
  private:
   ::std::vector<::cpp2::RecursiveStruct> mes;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -1054,22 +1027,22 @@ class RecursiveStruct final  {
 
   template <typename..., typename T = ::std::vector<::cpp2::RecursiveStruct>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&> mes_ref() const& {
-    return {this->mes, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->mes, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::vector<::cpp2::RecursiveStruct>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&&> mes_ref() const&& {
-    return {std::move(this->mes), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->mes), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::vector<::cpp2::RecursiveStruct>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&> mes_ref() & {
-    return {this->mes, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->mes, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::vector<::cpp2::RecursiveStruct>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&&> mes_ref() && {
-    return {std::move(this->mes), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->mes), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
   const ::std::vector<::cpp2::RecursiveStruct>* get_mes() const&;
   ::std::vector<::cpp2::RecursiveStruct>* get_mes() &;
@@ -1078,8 +1051,7 @@ class RecursiveStruct final  {
   template <typename T_RecursiveStruct_mes_struct_setter = ::std::vector<::cpp2::RecursiveStruct>>
   [[deprecated("Use `FOO.mes_ref() = BAR;` instead of `FOO.set_mes(BAR);`")]]
   ::std::vector<::cpp2::RecursiveStruct>& set_mes(T_RecursiveStruct_mes_struct_setter&& mes_) {
-    mes = std::forward<T_RecursiveStruct_mes_struct_setter>(mes_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    mes_ref() = std::forward<T_RecursiveStruct_mes_struct_setter>(mes_);
     return mes;
   }
 
@@ -1109,11 +1081,6 @@ uint32_t RecursiveStruct::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithContainers final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1159,8 +1126,6 @@ class StructWithContainers final  {
   ::std::shared_ptr<::std::set<::std::int32_t>> set_ref_shared;
  public:
   ::std::shared_ptr<const ::std::vector<::std::int32_t>> list_ref_shared_const;
-
- private:
 
  public:
 
@@ -1259,11 +1224,6 @@ uint32_t StructWithContainers::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithSharedConst final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1303,8 +1263,6 @@ class StructWithSharedConst final  {
   ::std::shared_ptr<const ::cpp2::MyField> shared_const;
  public:
   ::std::shared_ptr<const ::cpp2::MyField> req_shared_const;
-
- private:
 
  public:
 
@@ -1370,11 +1328,6 @@ uint32_t StructWithSharedConst::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class Empty final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1439,11 +1392,6 @@ uint32_t Empty::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithRef final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1482,8 +1430,6 @@ class StructWithRef final  {
   ::std::unique_ptr<::cpp2::Empty> opt_field;
  public:
   ::std::unique_ptr<::cpp2::Empty> req_field;
-
- private:
 
  public:
 
@@ -1549,11 +1495,6 @@ uint32_t StructWithRef::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithRefTypeUnique final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1592,8 +1533,6 @@ class StructWithRefTypeUnique final  {
   ::std::unique_ptr<::cpp2::Empty> opt_field;
  public:
   ::std::unique_ptr<::cpp2::Empty> req_field;
-
- private:
 
  public:
 
@@ -1659,11 +1598,6 @@ uint32_t StructWithRefTypeUnique::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithRefTypeShared final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1703,8 +1637,6 @@ class StructWithRefTypeShared final  {
   ::std::shared_ptr<::cpp2::Empty> opt_field;
  public:
   ::std::shared_ptr<::cpp2::Empty> req_field;
-
- private:
 
  public:
 
@@ -1770,11 +1702,6 @@ uint32_t StructWithRefTypeShared::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithRefTypeSharedConst final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1814,8 +1741,6 @@ class StructWithRefTypeSharedConst final  {
   ::std::shared_ptr<const ::cpp2::Empty> opt_field;
  public:
   ::std::shared_ptr<const ::cpp2::Empty> req_field;
-
- private:
 
  public:
 
@@ -1881,11 +1806,6 @@ uint32_t StructWithRefTypeSharedConst::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class StructWithRefAndAnnotCppNoexceptMoveCtor final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1919,8 +1839,6 @@ class StructWithRefAndAnnotCppNoexceptMoveCtor final  {
   void __clear();
  public:
   ::std::unique_ptr<::cpp2::Empty> def_field;
-
- private:
 
  public:
 
@@ -1963,7 +1881,136 @@ uint32_t StructWithRefAndAnnotCppNoexceptMoveCtor::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+namespace cpp2 {
+class StructWithString final  {
+ private:
+  friend struct ::apache::thrift::detail::st::struct_private_access;
+
+  //  used by a static_assert in the corresponding source
+  static constexpr bool __fbthrift_cpp2_gen_json = false;
+  static constexpr bool __fbthrift_cpp2_gen_nimble = false;
+  static constexpr bool __fbthrift_cpp2_gen_has_thrift_uri = false;
+
+ public:
+  using __fbthrift_cpp2_type = StructWithString;
+  static constexpr bool __fbthrift_cpp2_is_union =
+    false;
+
+
+ public:
+
+  StructWithString();
+
+  // FragileConstructor for use in initialization lists only.
+  [[deprecated("This constructor is deprecated")]]
+  StructWithString(apache::thrift::FragileConstructor, ::std::unique_ptr<::std::string> def_unique_string_ref__arg, ::std::shared_ptr<::std::string> def_shared_string_ref__arg, ::std::shared_ptr<const ::std::string> def_shared_string_const_ref__arg, ::std::unique_ptr<::std::string> unique_string_ref__arg, ::std::shared_ptr<::std::string> shared_string_ref__arg);
+
+  StructWithString(StructWithString&&) noexcept;
+  StructWithString(const StructWithString& src);
+
+
+  StructWithString& operator=(StructWithString&&) noexcept;
+  StructWithString& operator=(const StructWithString& src);
+  void __clear();
+
+  ~StructWithString();
+
+ public:
+  ::std::unique_ptr<::std::string> def_unique_string_ref;
+ public:
+  ::std::shared_ptr<::std::string> def_shared_string_ref;
+ public:
+  ::std::shared_ptr<const ::std::string> def_shared_string_const_ref;
+ public:
+  ::std::unique_ptr<::std::string> unique_string_ref;
+ public:
+  ::std::shared_ptr<::std::string> shared_string_ref;
+
+ public:
+
+  bool operator==(const StructWithString&) const;
+  bool operator<(const StructWithString&) const;
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE T& def_unique_string_ref_ref() & { return def_unique_string_ref; }
+
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE const T& def_unique_string_ref_ref() const& { return def_unique_string_ref; }
+
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE T&& def_unique_string_ref_ref() && { return std::move(def_unique_string_ref); }
+
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE const T&& def_unique_string_ref_ref() const&& { return std::move(def_unique_string_ref); }
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE T& def_shared_string_ref_ref() & { return def_shared_string_ref; }
+
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE const T& def_shared_string_ref_ref() const& { return def_shared_string_ref; }
+
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE T&& def_shared_string_ref_ref() && { return std::move(def_shared_string_ref); }
+
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE const T&& def_shared_string_ref_ref() const&& { return std::move(def_shared_string_ref); }
+  template <typename ..., typename T = ::std::shared_ptr<const ::std::string>>
+  FOLLY_ERASE T& def_shared_string_const_ref_ref() & { return def_shared_string_const_ref; }
+
+  template <typename ..., typename T = ::std::shared_ptr<const ::std::string>>
+  FOLLY_ERASE const T& def_shared_string_const_ref_ref() const& { return def_shared_string_const_ref; }
+
+  template <typename ..., typename T = ::std::shared_ptr<const ::std::string>>
+  FOLLY_ERASE T&& def_shared_string_const_ref_ref() && { return std::move(def_shared_string_const_ref); }
+
+  template <typename ..., typename T = ::std::shared_ptr<const ::std::string>>
+  FOLLY_ERASE const T&& def_shared_string_const_ref_ref() const&& { return std::move(def_shared_string_const_ref); }
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE T& unique_string_ref_ref() & { return unique_string_ref; }
+
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE const T& unique_string_ref_ref() const& { return unique_string_ref; }
+
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE T&& unique_string_ref_ref() && { return std::move(unique_string_ref); }
+
+  template <typename ..., typename T = ::std::unique_ptr<::std::string>>
+  FOLLY_ERASE const T&& unique_string_ref_ref() const&& { return std::move(unique_string_ref); }
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE T& shared_string_ref_ref() & { return shared_string_ref; }
+
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE const T& shared_string_ref_ref() const& { return shared_string_ref; }
+
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE T&& shared_string_ref_ref() && { return std::move(shared_string_ref); }
+
+  template <typename ..., typename T = ::std::shared_ptr<::std::string>>
+  FOLLY_ERASE const T&& shared_string_ref_ref() const&& { return std::move(shared_string_ref); }
+
+  template <class Protocol_>
+  uint32_t read(Protocol_* iprot);
+  template <class Protocol_>
+  uint32_t serializedSize(Protocol_ const* prot_) const;
+  template <class Protocol_>
+  uint32_t serializedSizeZC(Protocol_ const* prot_) const;
+  template <class Protocol_>
+  uint32_t write(Protocol_* prot_) const;
+
+ private:
+  template <class Protocol_>
+  void readNoXfer(Protocol_* iprot);
+
+  friend class ::apache::thrift::Cpp2Ops<StructWithString>;
+  friend void swap(StructWithString& a, StructWithString& b);
+};
+
+template <class Protocol_>
+uint32_t StructWithString::read(Protocol_* iprot) {
+  auto _xferStart = iprot->getCursorPosition();
+  readNoXfer(iprot);
+  return iprot->getCursorPosition() - _xferStart;
+}
+
+} // cpp2
 
 namespace apache { namespace thrift {
 

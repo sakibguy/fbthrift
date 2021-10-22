@@ -17,7 +17,7 @@
 %><%struct:name%>()<%!
   %><%#struct:filtered_fields%><% > common/colon_newline%><%!
     %><%#field:type%><%!
-      %>      <%field:cpp_name%>(<%!
+      %>      <%field:cpp_storage_name%>(<%!
       %><%#field:cpp_ref?%><% > module_types_h/smart_ptr_constructor%><%/field:cpp_ref?%><%!
       %><%^field:cpp_ref?%><%#field:value%><%!
           Use value initialization when no custom default is provided.
@@ -27,4 +27,7 @@
     %><%/field:type%><%!
   %><%/struct:filtered_fields%><%!
 %> {
+  <%#struct:filtered_fields%><%#field:cpp_adapter%>
+  ::apache::thrift::adapt_detail::construct<<%field:cpp_adapter%>, <%field:key%>>(<%field:cpp_name%>, *this);
+  <%/field:cpp_adapter%><%/struct:filtered_fields%>
 }

@@ -35,40 +35,35 @@ void TccStructTraits<::cpp2::MyStructMapFloatThrowExp>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStructMapFloatThrowExp::MyStructMapFloatThrowExp(const MyStructMapFloatThrowExp&) = default;
 MyStructMapFloatThrowExp& MyStructMapFloatThrowExp::operator=(const MyStructMapFloatThrowExp&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStructMapFloatThrowExp::MyStructMapFloatThrowExp(MyStructMapFloatThrowExp&& other) noexcept  :
     myLongField(std::move(other.myLongField)),
     mapListOfFloats(std::move(other.mapListOfFloats)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 MyStructMapFloatThrowExp& MyStructMapFloatThrowExp::operator=(FOLLY_MAYBE_UNUSED MyStructMapFloatThrowExp&& other) noexcept {
     this->myLongField = std::move(other.myLongField);
     this->mapListOfFloats = std::move(other.mapListOfFloats);
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 MyStructMapFloatThrowExp::MyStructMapFloatThrowExp(apache::thrift::FragileConstructor, ::std::int64_t myLongField__arg, ::std::map<::std::int32_t, ::std::vector<::std::vector<::cpp2::floatTypedef>>> mapListOfFloats__arg) :
     myLongField(std::move(myLongField__arg)),
     mapListOfFloats(std::move(mapListOfFloats__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void MyStructMapFloatThrowExp::__clear() {
   // clear all fields
-  this->myLongField = 0;
+  this->myLongField = ::std::int64_t();
   this->mapListOfFloats.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool MyStructMapFloatThrowExp::operator==(const MyStructMapFloatThrowExp& rhs) const {
@@ -110,9 +105,7 @@ void swap(MyStructMapFloatThrowExp& a, MyStructMapFloatThrowExp& b) {
   using ::std::swap;
   swap(a.myLongField_ref().value(), b.myLongField_ref().value());
   swap(a.mapListOfFloats_ref().value(), b.mapListOfFloats_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void MyStructMapFloatThrowExp::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -151,58 +144,53 @@ void TccStructTraits<::cpp2::defaultStruct>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 defaultStruct::defaultStruct(const defaultStruct&) = default;
 defaultStruct& defaultStruct::operator=(const defaultStruct&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 defaultStruct::defaultStruct() :
-      myLongDFset(10LL),
+      myLongDFset(static_cast<::std::int64_t>(10)),
       myLongDF(),
-      portDFset(3456),
+      portDFset(static_cast<::std::int32_t>(3456)),
       portNum(),
       myBinaryDFset(apache::thrift::StringTraits<std::string>::fromStringLiteral("abc")),
-      myByteDFSet(static_cast<int8_t>(17)),
+      myByteDFSet(static_cast<::std::int8_t>(17)),
       myByte(),
-      myDoubleDFset(99.7678),
-      myDoubleDFZero(0),
+      myDoubleDFset(static_cast<double>(99.7678)),
+      myDoubleDFZero(static_cast<double>(0)),
       myDouble(),
-      field3(std::initializer_list<std::pair<const ::std::int32_t, ::std::string>>{{15, apache::thrift::StringTraits<std::string>::fromStringLiteral("a_value")},
-  {2, apache::thrift::StringTraits<std::string>::fromStringLiteral("b_value")}}),
-      myList(std::initializer_list<::cpp2::MyEnum>{ ::cpp2::MyEnum::MyValue1,
+      field3(static_cast<::std::map<::std::int32_t, ::std::string>>(std::initializer_list<std::pair<const ::std::int32_t, ::std::string>>{{15, apache::thrift::StringTraits<std::string>::fromStringLiteral("a_value")},
+  {2, apache::thrift::StringTraits<std::string>::fromStringLiteral("b_value")}})),
+      myList(static_cast<::std::vector<::cpp2::MyEnum>>(std::initializer_list<::cpp2::MyEnum>{ ::cpp2::MyEnum::MyValue1,
    ::cpp2::MyEnum::MyValue1,
-   ::cpp2::MyEnum::MyValue2}),
-      mySet(std::initializer_list<::std::string>{apache::thrift::StringTraits<std::string>::fromStringLiteral("house"),
+   ::cpp2::MyEnum::MyValue2})),
+      mySet(static_cast<::std::set<::std::string>>(std::initializer_list<::std::string>{apache::thrift::StringTraits<std::string>::fromStringLiteral("house"),
   apache::thrift::StringTraits<std::string>::fromStringLiteral("car"),
-  apache::thrift::StringTraits<std::string>::fromStringLiteral("dog")}),
-      simpleStruct(::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(40LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("John")))),
-      listStructDFset(std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(40LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("IronMan"))),
-  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(999LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Thanos")))}),
-      myUnion(::apache::thrift::detail::make_constant< ::cpp2::MyUnion>(::apache::thrift::type_class::variant{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::myEnum>( ::cpp2::MyEnum::MyValue2))),
-      listUnionDFset(std::initializer_list<::cpp2::MyUnion>{::apache::thrift::detail::make_constant< ::cpp2::MyUnion>(::apache::thrift::type_class::variant{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::myEnum>( ::cpp2::MyEnum::MyValue2)),
-  ::apache::thrift::detail::make_constant< ::cpp2::MyUnion>(::apache::thrift::type_class::variant{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::intValue>(123))}),
-      mapNestlistStructDfSet(std::initializer_list<std::pair<const ::std::int32_t, ::std::vector<::cpp2::SimpleStruct>>>{{1, std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(40LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("IronMan"))),
-  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(999LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Thanos")))}},
-  {2, std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(28LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("BatMan"))),
-  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(12LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Robin")))}},
-  {5, std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(12LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("RatMan"))),
-  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(6LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Catman")))}}}),
-      mapJavaTypeDFset(std::initializer_list<std::pair<const ::std::int64_t, ::std::string>>{{15, apache::thrift::StringTraits<std::string>::fromStringLiteral("a_value")},
-  {2, apache::thrift::StringTraits<std::string>::fromStringLiteral("b_value")}}),
-      enumMapDFset(std::initializer_list<std::pair<const ::std::string, ::std::map<::std::int32_t, ::cpp2::MyEnum>>>{{apache::thrift::StringTraits<std::string>::fromStringLiteral("SANDY BRIDGE"), std::initializer_list<std::pair<const ::std::int32_t, ::cpp2::MyEnum>>{{16,  ::cpp2::MyEnum::MyValue1},
+  apache::thrift::StringTraits<std::string>::fromStringLiteral("dog")})),
+      simpleStruct(static_cast<::cpp2::SimpleStruct>(::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(40)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("John"))))),
+      listStructDFset(static_cast<::std::vector<::cpp2::SimpleStruct>>(std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(40)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("IronMan"))),
+  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(999)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Thanos")))})),
+      myUnion(static_cast<::cpp2::MyUnion>(::apache::thrift::detail::make_constant< ::cpp2::MyUnion>(::apache::thrift::type_class::variant{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::myEnum>(static_cast<::cpp2::MyEnum>( ::cpp2::MyEnum::MyValue2))))),
+      listUnionDFset(static_cast<::std::vector<::cpp2::MyUnion>>(std::initializer_list<::cpp2::MyUnion>{::apache::thrift::detail::make_constant< ::cpp2::MyUnion>(::apache::thrift::type_class::variant{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::myEnum>(static_cast<::cpp2::MyEnum>( ::cpp2::MyEnum::MyValue2))),
+  ::apache::thrift::detail::make_constant< ::cpp2::MyUnion>(::apache::thrift::type_class::variant{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::intValue>(static_cast<::std::int32_t>(123)))})),
+      mapNestlistStructDfSet(static_cast<::std::map<::std::int32_t, ::std::vector<::cpp2::SimpleStruct>>>(std::initializer_list<std::pair<const ::std::int32_t, ::std::vector<::cpp2::SimpleStruct>>>{{1, std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(40)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("IronMan"))),
+  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(999)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Thanos")))}},
+  {2, std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(28)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("BatMan"))),
+  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(12)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Robin")))}},
+  {5, std::initializer_list<::cpp2::SimpleStruct>{::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(12)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("RatMan"))),
+  ::apache::thrift::detail::make_constant< ::cpp2::SimpleStruct>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::age>(static_cast<::std::int64_t>(6)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::name>(apache::thrift::StringTraits<std::string>::fromStringLiteral("Catman")))}}})),
+      mapJavaTypeDFset(static_cast<::std::map<::std::int64_t, ::std::string>>(std::initializer_list<std::pair<const ::std::int64_t, ::std::string>>{{15, apache::thrift::StringTraits<std::string>::fromStringLiteral("a_value")},
+  {2, apache::thrift::StringTraits<std::string>::fromStringLiteral("b_value")}})),
+      enumMapDFset(static_cast<::std::map<::std::string, ::std::map<::std::int32_t, ::cpp2::MyEnum>>>(std::initializer_list<std::pair<const ::std::string, ::std::map<::std::int32_t, ::cpp2::MyEnum>>>{{apache::thrift::StringTraits<std::string>::fromStringLiteral("SANDY BRIDGE"), std::initializer_list<std::pair<const ::std::int32_t, ::cpp2::MyEnum>>{{16,  ::cpp2::MyEnum::MyValue1},
   {144,  ::cpp2::MyEnum::MyValue1}}},
   {apache::thrift::StringTraits<std::string>::fromStringLiteral("IVY BRIDGE"), std::initializer_list<std::pair<const ::std::int32_t, ::cpp2::MyEnum>>{{32,  ::cpp2::MyEnum::MyValue2},
   {144,  ::cpp2::MyEnum::MyValue2}}},
   {apache::thrift::StringTraits<std::string>::fromStringLiteral("HASWELL"), std::initializer_list<std::pair<const ::std::int32_t, ::cpp2::MyEnum>>{{32,  ::cpp2::MyEnum::MyValue3},
   {128,  ::cpp2::MyEnum::MyValue3},
-  {256,  ::cpp2::MyEnum::MyValue3}}}}) {
+  {256,  ::cpp2::MyEnum::MyValue3}}}})) {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 defaultStruct::~defaultStruct() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 defaultStruct::defaultStruct(defaultStruct&& other) noexcept  :
     myLongDFset(std::move(other.myLongDFset)),
     myLongDF(std::move(other.myLongDF)),
@@ -226,7 +214,9 @@ defaultStruct::defaultStruct(defaultStruct&& other) noexcept  :
     mapJavaTypeDFset(std::move(other.mapJavaTypeDFset)),
     emptyMap(std::move(other.emptyMap)),
     enumMapDFset(std::move(other.enumMapDFset)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 defaultStruct& defaultStruct::operator=(FOLLY_MAYBE_UNUSED defaultStruct&& other) noexcept {
     this->myLongDFset = std::move(other.myLongDFset);
     this->myLongDF = std::move(other.myLongDF);
@@ -253,10 +243,8 @@ defaultStruct& defaultStruct::operator=(FOLLY_MAYBE_UNUSED defaultStruct&& other
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 defaultStruct::defaultStruct(apache::thrift::FragileConstructor, ::std::int64_t myLongDFset__arg, ::std::int64_t myLongDF__arg, ::std::int32_t portDFset__arg, ::std::int32_t portNum__arg, ::std::string myBinaryDFset__arg, ::std::string myBinary__arg, ::std::int8_t myByteDFSet__arg, ::std::int8_t myByte__arg, double myDoubleDFset__arg, double myDoubleDFZero__arg, double myDouble__arg, ::std::map<::std::int32_t, ::std::string> field3__arg, ::std::vector<::cpp2::MyEnum> myList__arg, ::std::set<::std::string> mySet__arg, ::cpp2::SimpleStruct simpleStruct__arg, ::std::vector<::cpp2::SimpleStruct> listStructDFset__arg, ::cpp2::MyUnion myUnion__arg, ::std::vector<::cpp2::MyUnion> listUnionDFset__arg, ::std::map<::std::int32_t, ::std::vector<::cpp2::SimpleStruct>> mapNestlistStructDfSet__arg, ::std::map<::std::int64_t, ::std::string> mapJavaTypeDFset__arg, ::std::map<::std::int64_t, ::std::int32_t> emptyMap__arg, ::std::map<::std::string, ::std::map<::std::int32_t, ::cpp2::MyEnum>> enumMapDFset__arg) :
     myLongDFset(std::move(myLongDFset__arg)),
     myLongDF(std::move(myLongDF__arg)),
@@ -303,21 +291,21 @@ defaultStruct::defaultStruct(apache::thrift::FragileConstructor, ::std::int64_t 
   __isset.__fbthrift_set(folly::index_constant<20>(), true);
   __isset.__fbthrift_set(folly::index_constant<21>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void defaultStruct::__clear() {
   // clear all fields
-  this->myLongDFset = 10LL;
-  this->myLongDF = 0;
-  this->portDFset = 3456;
-  this->portNum = 0;
+  this->myLongDFset = static_cast<::std::int64_t>(10);
+  this->myLongDF = ::std::int64_t();
+  this->portDFset = static_cast<::std::int32_t>(3456);
+  this->portNum = ::std::int32_t();
   this->myBinaryDFset = apache::thrift::StringTraits<std::string>::fromStringLiteral("abc");
   this->myBinary = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
-  this->myByteDFSet = static_cast<int8_t>(17);
-  this->myByte = 0;
-  this->myDoubleDFset = 99.7678;
-  this->myDoubleDFZero = 0;
-  this->myDouble = 0;
+  this->myByteDFSet = static_cast<::std::int8_t>(17);
+  this->myByte = ::std::int8_t();
+  this->myDoubleDFset = static_cast<double>(99.7678);
+  this->myDoubleDFZero = static_cast<double>(0);
+  this->myDouble = double();
   this->field3.clear();
   this->myList.clear();
   this->mySet.clear();
@@ -329,9 +317,7 @@ void defaultStruct::__clear() {
   this->mapJavaTypeDFset.clear();
   this->emptyMap.clear();
   this->enumMapDFset.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool defaultStruct::operator==(const defaultStruct& rhs) const {
@@ -593,9 +579,7 @@ void swap(defaultStruct& a, defaultStruct& b) {
   swap(a.mapJavaTypeDFset_ref().value(), b.mapJavaTypeDFset_ref().value());
   swap(a.emptyMap_ref().value(), b.emptyMap_ref().value());
   swap(a.enumMapDFset_ref().value(), b.enumMapDFset_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void defaultStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -856,17 +840,16 @@ void TccStructTraits<::cpp2::TypeRemapped>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TypeRemapped::TypeRemapped(const TypeRemapped&) = default;
 TypeRemapped& TypeRemapped::operator=(const TypeRemapped&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TypeRemapped::TypeRemapped(TypeRemapped&& other) noexcept  :
     lsMap(std::move(other.lsMap)),
     ioMap(std::move(other.ioMap)),
     BigInteger(std::move(other.BigInteger)),
     binaryTestBuffer(std::move(other.binaryTestBuffer)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 TypeRemapped& TypeRemapped::operator=(FOLLY_MAYBE_UNUSED TypeRemapped&& other) noexcept {
     this->lsMap = std::move(other.lsMap);
     this->ioMap = std::move(other.ioMap);
@@ -875,10 +858,8 @@ TypeRemapped& TypeRemapped::operator=(FOLLY_MAYBE_UNUSED TypeRemapped&& other) n
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 TypeRemapped::TypeRemapped(apache::thrift::FragileConstructor, ::std::map<::std::int64_t, ::std::string> lsMap__arg, ::std::map<::std::int32_t, ::cpp2::FMap> ioMap__arg, ::std::int32_t BigInteger__arg, ::std::string binaryTestBuffer__arg) :
     lsMap(std::move(lsMap__arg)),
     ioMap(std::move(ioMap__arg)),
@@ -889,17 +870,15 @@ TypeRemapped::TypeRemapped(apache::thrift::FragileConstructor, ::std::map<::std:
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void TypeRemapped::__clear() {
   // clear all fields
   this->lsMap.clear();
   this->ioMap.clear();
-  this->BigInteger = 0;
+  this->BigInteger = ::std::int32_t();
   this->binaryTestBuffer = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool TypeRemapped::operator==(const TypeRemapped& rhs) const {
@@ -963,9 +942,7 @@ void swap(TypeRemapped& a, TypeRemapped& b) {
   swap(a.ioMap_ref().value(), b.ioMap_ref().value());
   swap(a.BigInteger_ref().value(), b.BigInteger_ref().value());
   swap(a.binaryTestBuffer_ref().value(), b.binaryTestBuffer_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void TypeRemapped::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -1004,49 +981,42 @@ void TccStructTraits<::cpp2::optXcep>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 optXcep::optXcep(const optXcep&) = default;
 optXcep& optXcep::operator=(const optXcep&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 optXcep::optXcep() :
       errorCode() {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 optXcep::~optXcep() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 optXcep::optXcep(optXcep&& other) noexcept  :
     message(std::move(other.message)),
     errorCode(std::move(other.errorCode)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 optXcep& optXcep::operator=(FOLLY_MAYBE_UNUSED optXcep&& other) noexcept {
     this->message = std::move(other.message);
     this->errorCode = std::move(other.errorCode);
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 optXcep::optXcep(apache::thrift::FragileConstructor, ::std::string message__arg, ::std::int32_t errorCode__arg) :
     message(std::move(message__arg)),
     errorCode(std::move(errorCode__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void optXcep::__clear() {
   // clear all fields
   this->message = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
-  this->errorCode = 0;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->errorCode = ::std::int32_t();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool optXcep::operator==(const optXcep& rhs) const {
@@ -1080,9 +1050,7 @@ void swap(optXcep& a, optXcep& b) {
   using ::std::swap;
   swap(a.message_ref().value_unchecked(), b.message_ref().value_unchecked());
   swap(a.errorCode_ref().value_unchecked(), b.errorCode_ref().value_unchecked());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void optXcep::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -1097,3 +1065,8 @@ template uint32_t optXcep::serializedSizeZC<>(apache::thrift::CompactProtocolWri
 
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

@@ -68,20 +68,15 @@ void TccStructTraits<::some::ns::ModuleA>::translateFieldName(
 
 namespace some { namespace ns {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ModuleA::ModuleA(const ModuleA&) = default;
 ModuleA& ModuleA::operator=(const ModuleA&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ModuleA::ModuleA() :
       i32Field() {
 }
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 ModuleA::~ModuleA() {}
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ModuleA::ModuleA(ModuleA&& other) noexcept  :
     i32Field(std::move(other.i32Field)),
     strField(std::move(other.strField)),
@@ -89,7 +84,9 @@ ModuleA::ModuleA(ModuleA&& other) noexcept  :
     mapField(std::move(other.mapField)),
     inclAField(std::move(other.inclAField)),
     inclBField(std::move(other.inclBField)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 ModuleA& ModuleA::operator=(FOLLY_MAYBE_UNUSED ModuleA&& other) noexcept {
     this->i32Field = std::move(other.i32Field);
     this->strField = std::move(other.strField);
@@ -100,10 +97,8 @@ ModuleA& ModuleA::operator=(FOLLY_MAYBE_UNUSED ModuleA&& other) noexcept {
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ModuleA::ModuleA(apache::thrift::FragileConstructor, ::std::int32_t i32Field__arg, ::std::string strField__arg, ::std::vector<::std::int16_t> listField__arg, ::std::map<::std::string, ::std::int32_t> mapField__arg, ::some::ns::IncludedA inclAField__arg, ::some::ns::IncludedB inclBField__arg) :
     i32Field(std::move(i32Field__arg)),
     strField(std::move(strField__arg)),
@@ -118,19 +113,17 @@ ModuleA::ModuleA(apache::thrift::FragileConstructor, ::std::int32_t i32Field__ar
   __isset.__fbthrift_set(folly::index_constant<4>(), true);
   __isset.__fbthrift_set(folly::index_constant<5>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void ModuleA::__clear() {
   // clear all fields
-  this->i32Field = 0;
+  this->i32Field = ::std::int32_t();
   this->strField = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
   this->listField.clear();
   this->mapField.clear();
   this->inclAField.__clear();
   this->inclBField.__clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool ModuleA::operator==(const ModuleA& rhs) const {
@@ -224,9 +217,7 @@ void swap(ModuleA& a, ModuleA& b) {
   swap(a.mapField_ref().value(), b.mapField_ref().value());
   swap(a.inclAField_ref().value(), b.inclAField_ref().value());
   swap(a.inclBField_ref().value(), b.inclBField_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void ModuleA::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -290,22 +281,19 @@ void TccStructTraits<::some::ns::ModuleB>::translateFieldName(
 namespace some { namespace ns {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ModuleB::ModuleB(apache::thrift::FragileConstructor, ::std::int32_t i32Field__arg, ::some::ns::EnumB inclEnumB__arg) :
     i32Field(std::move(i32Field__arg)),
     inclEnumB(std::move(inclEnumB__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void ModuleB::__clear() {
   // clear all fields
-  this->i32Field = 0;
-  this->inclEnumB = static_cast< ::some::ns::EnumB>(0);
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->i32Field = ::std::int32_t();
+  this->inclEnumB = ::some::ns::EnumB();
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool ModuleB::operator==(const ModuleB& rhs) const {
@@ -339,9 +327,7 @@ void swap(ModuleB& a, ModuleB& b) {
   using ::std::swap;
   swap(a.i32Field_ref().value(), b.i32Field_ref().value());
   swap(a.inclEnumB_ref().value(), b.inclEnumB_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void ModuleB::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -356,3 +342,8 @@ template uint32_t ModuleB::serializedSizeZC<>(apache::thrift::CompactProtocolWri
 
 
 }} // some::ns
+
+namespace some { namespace ns { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}}} // some::ns

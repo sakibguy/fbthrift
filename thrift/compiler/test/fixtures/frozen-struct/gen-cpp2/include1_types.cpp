@@ -35,40 +35,35 @@ void TccStructTraits<::some::ns::IncludedA>::translateFieldName(
 
 namespace some { namespace ns {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 IncludedA::IncludedA(const IncludedA&) = default;
 IncludedA& IncludedA::operator=(const IncludedA&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 IncludedA::IncludedA(IncludedA&& other) noexcept  :
     i32Field(std::move(other.i32Field)),
     strField(std::move(other.strField)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 IncludedA& IncludedA::operator=(FOLLY_MAYBE_UNUSED IncludedA&& other) noexcept {
     this->i32Field = std::move(other.i32Field);
     this->strField = std::move(other.strField);
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 IncludedA::IncludedA(apache::thrift::FragileConstructor, ::std::int32_t i32Field__arg, ::std::string strField__arg) :
     i32Field(std::move(i32Field__arg)),
     strField(std::move(strField__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void IncludedA::__clear() {
   // clear all fields
-  this->i32Field = 0;
+  this->i32Field = ::std::int32_t();
   this->strField = apache::thrift::StringTraits<std::string>::fromStringLiteral("");
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool IncludedA::operator==(const IncludedA& rhs) const {
@@ -102,9 +97,7 @@ void swap(IncludedA& a, IncludedA& b) {
   using ::std::swap;
   swap(a.i32Field_ref().value(), b.i32Field_ref().value());
   swap(a.strField_ref().value(), b.strField_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void IncludedA::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -119,3 +112,8 @@ template uint32_t IncludedA::serializedSizeZC<>(apache::thrift::CompactProtocolW
 
 
 }} // some::ns
+
+namespace some { namespace ns { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}}} // some::ns

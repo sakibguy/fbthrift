@@ -17,11 +17,9 @@
 #pragma once
 
 #include <folly/Portability.h>
-#if FOLLY_HAS_COROUTINES
-#include <folly/experimental/coro/AsyncGenerator.h>
-#endif // FOLLY_HAS_COROUTINES
 #include <folly/Try.h>
 #include <folly/executors/GlobalExecutor.h>
+#include <folly/experimental/coro/AsyncGenerator.h>
 #include <thrift/lib/cpp2/async/ClientBufferedStream.h>
 #include <thrift/lib/cpp2/async/RpcTypes.h>
 #include <thrift/lib/cpp2/async/ServerGeneratorStream.h>
@@ -120,10 +118,10 @@ struct ResponseAndServerStream {
   ServerStream<StreamElement> stream;
 };
 struct ResponseAndServerStreamFactory {
-  apache::thrift::LegacySerializedResponse response;
+  apache::thrift::SerializedResponse response;
   apache::thrift::detail::ServerStreamFactory stream;
 };
 
 } // namespace thrift
 } // namespace apache
-#include "thrift/lib/cpp2/async/ServerStream-inl.h"
+#include <thrift/lib/cpp2/async/ServerStream-inl.h>

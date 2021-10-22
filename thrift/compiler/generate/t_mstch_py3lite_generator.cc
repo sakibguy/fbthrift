@@ -56,6 +56,11 @@ std::vector<std::string> get_py3_namespace_with_name(const t_program* prog) {
   return ns;
 }
 
+bool is_func_supported(const t_function* func) {
+  return !func->returns_stream() && !func->returns_sink() &&
+      !func->get_returntype()->is_service();
+}
+
 class mstch_py3lite_type : public mstch_type {
  public:
   mstch_py3lite_type(
@@ -217,7 +222,7 @@ class type_py3lite_generator : public type_generator {
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION pos,
-      int32_t /*index*/ = 0) const override {
+      int32_t /*index*/) const override {
     auto true_type = type->get_true_type();
     return std::make_shared<mstch_py3lite_type>(
         true_type, generators, cache, pos, prog_);
@@ -241,6 +246,8 @@ class mstch_py3lite_program : public mstch_program {
             {"program:py3_namespaces", &mstch_py3lite_program::py3_namespaces},
             {"program:include_namespaces",
              &mstch_py3lite_program::include_namespaces},
+            {"program:base_library_package",
+             &mstch_py3lite_program::base_library_package},
         });
     gather_included_program_namespaces();
     visit_types_for_services_and_interactions();
@@ -263,6 +270,11 @@ class mstch_py3lite_program : public mstch_program {
 
   mstch::node py3_namespaces() {
     return create_string_array(get_py3_namespace(program_));
+  }
+
+  mstch::node base_library_package() {
+    auto option = get_option("base_library_package");
+    return option.empty() ? "thrift.py3lite" : option;
   }
 
  protected:
@@ -410,8 +422,15 @@ class mstch_py3lite_field : public mstch_field {
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION pos,
-      int32_t index)
-      : mstch_field(field, std::move(generators), std::move(cache), pos, index),
+      int32_t index,
+      field_generator_context const* field_context)
+      : mstch_field(
+            field,
+            std::move(generators),
+            std::move(cache),
+            pos,
+            index,
+            field_context),
         py_name_{py3::get_py3_name(*field)} {
     register_methods(
         this,
@@ -503,8 +522,8 @@ class program_py3lite_generator : public program_generator {
       const t_program* program,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     const std::string& id = program->path();
     auto it = cache->programs_.find(id);
     if (it != cache->programs_.end()) {
@@ -524,11 +543,103 @@ class struct_py3lite_generator : public struct_generator {
       const t_struct* strct,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3lite_struct>(
         strct, generators, cache, pos);
   }
+};
+
+class mstch_py3lite_function : public mstch_function {
+ public:
+  mstch_py3lite_function(
+      t_function const* function,
+      std::shared_ptr<mstch_generators const> generators,
+      std::shared_ptr<mstch_cache> cache,
+      ELEMENT_POSITION const pos)
+      : mstch_function(function, generators, cache, pos) {
+    register_methods(this, {});
+  }
+
+ protected:
+  const std::string cppName_;
+};
+
+class function_py3lite_generator : public function_generator {
+ public:
+  function_py3lite_generator() = default;
+  ~function_py3lite_generator() override = default;
+  std::shared_ptr<mstch_base> generate(
+      t_function const* function,
+      std::shared_ptr<mstch_generators const> generators,
+      std::shared_ptr<mstch_cache> cache,
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
+    return std::make_shared<mstch_py3lite_function>(
+        function, generators, cache, pos);
+  }
+};
+
+class mstch_py3lite_service : public mstch_service {
+ public:
+  mstch_py3lite_service(
+      const t_service* service,
+      std::shared_ptr<const mstch_generators> generators,
+      std::shared_ptr<mstch_cache> cache,
+      ELEMENT_POSITION const pos,
+      const t_program* prog)
+      : mstch_service(service, generators, cache, pos), prog_{prog} {
+    register_methods(
+        this,
+        {
+            {"service:py3_namespaces", &mstch_py3lite_service::py3_namespaces},
+            {"service:program_name", &mstch_py3lite_service::program_name},
+            {"service:parent_service_name",
+             &mstch_py3lite_service::parent_service_name},
+            {"service:supported_functions",
+             &mstch_py3lite_service::get_supported_functions},
+        });
+  }
+
+  mstch::node py3_namespaces() {
+    return create_string_array(get_py3_namespace(service_->program()));
+  }
+
+  mstch::node program_name() { return service_->program()->name(); }
+
+  mstch::node parent_service_name() {
+    return cache_->parsed_options_.at("parent_service_name");
+  }
+
+  mstch::node get_supported_functions() {
+    std::vector<t_function*> funcs;
+    for (auto func : service_->get_functions()) {
+      if (is_func_supported(func)) {
+        funcs.push_back(func);
+      }
+    }
+    return generate_functions(funcs);
+  }
+
+ protected:
+  const t_program* prog_;
+};
+
+class service_py3lite_generator : public service_generator {
+ public:
+  explicit service_py3lite_generator(const t_program* prog) : prog_{prog} {}
+  std::shared_ptr<mstch_base> generate(
+      const t_service* service,
+      std::shared_ptr<const mstch_generators> generators,
+      std::shared_ptr<mstch_cache> cache,
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
+    return std::make_shared<mstch_py3lite_service>(
+        service, generators, cache, pos, prog_);
+  }
+
+ protected:
+  const t_program* prog_;
 };
 
 class field_py3lite_generator : public field_generator {
@@ -537,10 +648,11 @@ class field_py3lite_generator : public field_generator {
       const t_field* field,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      field_generator_context const* field_context) const override {
     return std::make_shared<mstch_py3lite_field>(
-        field, generators, cache, pos, index);
+        field, generators, cache, pos, index, field_context);
   }
 };
 
@@ -550,8 +662,8 @@ class enum_py3lite_generator : public enum_generator {
       const t_enum* enm,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3lite_enum>(enm, generators, cache, pos);
   }
 };
@@ -562,8 +674,8 @@ class enum_value_py3lite_generator : public enum_value_generator {
       const t_enum_value* enm_value,
       std::shared_ptr<const mstch_generators> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_py3lite_enum_value>(
         enm_value, generators, cache, pos);
   }
@@ -577,10 +689,10 @@ class const_value_py3lite_generator : public const_value_generator {
       t_const_value const* const_value,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0,
-      t_const const* current_const = nullptr,
-      t_type const* expected_type = nullptr) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      t_const const* current_const,
+      t_type const* expected_type) const override {
     return std::make_shared<mstch_py3lite_const_value>(
         const_value,
         current_const,
@@ -695,6 +807,7 @@ class t_mstch_py3lite_generator : public t_mstch_generator {
   void generate_program() override {
     set_mstch_generators();
     generate_types();
+    generate_clients();
   }
 
   void fill_validator_list(validator_list& vl) const override {
@@ -708,6 +821,7 @@ class t_mstch_py3lite_generator : public t_mstch_generator {
   void generate_file(
       const std::string& file, const boost::filesystem::path& base);
   void generate_types();
+  void generate_clients();
   boost::filesystem::path package_to_path();
 
   const boost::filesystem::path generate_root_path_;
@@ -720,6 +834,10 @@ void t_mstch_py3lite_generator::set_mstch_generators() {
       std::make_unique<program_py3lite_generator>());
   generators_->set_struct_generator(
       std::make_unique<struct_py3lite_generator>());
+  generators_->set_function_generator(
+      std::make_unique<function_py3lite_generator>());
+  generators_->set_service_generator(
+      std::make_unique<service_py3lite_generator>(get_program()));
   generators_->set_field_generator(std::make_unique<field_py3lite_generator>());
   generators_->set_enum_generator(std::make_unique<enum_py3lite_generator>());
   generators_->set_enum_value_generator(
@@ -747,6 +865,11 @@ void t_mstch_py3lite_generator::generate_file(
 void t_mstch_py3lite_generator::generate_types() {
   generate_file("lite_types.py", generate_root_path_);
   generate_file("lite_types.pyi", generate_root_path_);
+}
+
+void t_mstch_py3lite_generator::generate_clients() {
+  generate_file("lite_clients.py", generate_root_path_);
+  generate_file("lite_clients.pyi", generate_root_path_);
 }
 
 THRIFT_REGISTER_GENERATOR(

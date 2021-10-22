@@ -257,22 +257,22 @@ TEST_F(StructTest, equal_to_refs) {
     BasicRefs a;
     BasicRefs b;
 
-    a.def_field = nullptr;
-    b.def_field = nullptr;
+    a.def_field_ref() = nullptr;
+    b.def_field_ref() = nullptr;
     EXPECT_TRUE(op(a, b));
     EXPECT_TRUE(op(b, a));
 
-    a.def_field = std::make_unique<HasInt>();
-    a.def_field->field = 3;
+    a.def_field_ref() = std::make_unique<HasInt>();
+    a.def_field_ref()->field = 3;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    b.def_field = std::make_unique<HasInt>();
-    b.def_field->field = 4;
+    b.def_field_ref() = std::make_unique<HasInt>();
+    b.def_field_ref()->field = 4;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    a.def_field->field = 4;
+    a.def_field_ref()->field = 4;
     EXPECT_TRUE(op(a, b));
     EXPECT_TRUE(op(b, a));
   }
@@ -308,26 +308,26 @@ TEST_F(StructTest, equal_to_refs_shared) {
     BasicRefsShared a;
     BasicRefsShared b;
 
-    a.def_field = nullptr;
-    b.def_field = nullptr;
+    a.def_field_ref() = nullptr;
+    b.def_field_ref() = nullptr;
     EXPECT_TRUE(op(a, b));
     EXPECT_TRUE(op(b, a));
 
-    a.def_field = std::make_shared<HasInt>();
-    a.def_field->field = 3;
+    a.def_field_ref() = std::make_shared<HasInt>();
+    a.def_field_ref()->field = 3;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    b.def_field = std::make_shared<HasInt>();
-    b.def_field->field = 4;
+    b.def_field_ref() = std::make_shared<HasInt>();
+    b.def_field_ref()->field = 4;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    a.def_field->field = 4;
+    a.def_field_ref()->field = 4;
     EXPECT_TRUE(op(a, b));
     EXPECT_TRUE(op(b, a));
 
-    b.def_field = a.def_field;
+    b.def_field_ref() = a.def_field_ref();
     EXPECT_TRUE(op(a, b));
     EXPECT_TRUE(op(b, a));
   }
@@ -517,22 +517,22 @@ TEST_F(StructTest, less_refs) {
     BasicRefs a;
     BasicRefs b;
 
-    b.def_field = nullptr;
-    a.def_field = nullptr;
+    b.def_field_ref() = nullptr;
+    a.def_field_ref() = nullptr;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    b.def_field = std::make_unique<HasInt>();
-    b.def_field->field = 3;
+    b.def_field_ref() = std::make_unique<HasInt>();
+    b.def_field_ref()->field = 3;
     EXPECT_TRUE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    a.def_field = std::make_unique<HasInt>();
-    a.def_field->field = 4;
+    a.def_field_ref() = std::make_unique<HasInt>();
+    a.def_field_ref()->field = 4;
     EXPECT_FALSE(op(a, b));
     EXPECT_TRUE(op(b, a));
 
-    b.def_field->field = 4;
+    b.def_field_ref()->field = 4;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
   }
@@ -545,26 +545,26 @@ TEST_F(StructTest, less_refs_shared) {
     BasicRefsShared a;
     BasicRefsShared b;
 
-    b.def_field = nullptr;
-    a.def_field = nullptr;
+    b.def_field_ref() = nullptr;
+    a.def_field_ref() = nullptr;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    b.def_field = std::make_unique<HasInt>();
-    b.def_field->field = 3;
+    b.def_field_ref() = std::make_unique<HasInt>();
+    b.def_field_ref()->field = 3;
     EXPECT_TRUE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    a.def_field = std::make_unique<HasInt>();
-    a.def_field->field = 4;
+    a.def_field_ref() = std::make_unique<HasInt>();
+    a.def_field_ref()->field = 4;
     EXPECT_FALSE(op(a, b));
     EXPECT_TRUE(op(b, a));
 
-    b.def_field->field = 4;
+    b.def_field_ref()->field = 4;
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
 
-    b.def_field = a.def_field;
+    b.def_field_ref() = a.def_field_ref();
     EXPECT_FALSE(op(a, b));
     EXPECT_FALSE(op(b, a));
   }
@@ -670,17 +670,4 @@ TEST_F(StructTest, CppDataMethod) {
   EXPECT_EQ(obj._data().foo_ref(), 20);
   EXPECT_EQ(std::as_const(obj)._data().foo_ref(), 20);
   EXPECT_EQ(std::move(obj)._data().foo_ref(), 20);
-}
-
-template <class T>
-using DetectIsset = decltype(&T::__isset);
-static_assert(folly::is_detected_v<DetectIsset, PublicIsset>);
-static_assert(!folly::is_detected_v<DetectIsset, Basic>);
-
-TEST_F(StructTest, PublicIsset) {
-  PublicIsset obj;
-  ASSERT_EQ(sizeof(bool), sizeof(obj.__isset));
-  EXPECT_FALSE(reinterpret_cast<bool&>(obj.__isset));
-  obj.foo_ref() = 10;
-  EXPECT_TRUE(reinterpret_cast<bool&>(obj.__isset));
 }

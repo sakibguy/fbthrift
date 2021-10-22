@@ -16,25 +16,24 @@
 
 #pragma once
 
+#include <cmath>
+
 #include <folly/MapUtil.h>
 #include <folly/Optional.h>
 #include <folly/Range.h>
 #include <folly/Traits.h>
 #include <folly/container/F14Map.h>
 #include <folly/io/Cursor.h>
-#include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp2/protocol/Cpp2Ops.h>
+#include <thrift/lib/cpp2/protocol/LazyDeserializationFlags.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
 #include <thrift/lib/cpp2/protocol/ProtocolReaderStructReadState.h>
 #include <thrift/lib/cpp2/protocol/Traits.h>
 #include <thrift/lib/cpp2/protocol/detail/ReservedId.h>
 
-DECLARE_bool(thrift_enable_lazy_deserialization);
-
 namespace apache {
 namespace thrift {
 namespace detail {
-
 /*
  * When index is enabled, we will inject following fields to thrift struct
  *
@@ -48,7 +47,7 @@ namespace detail {
  *   map<i16, i64> representing field id to field size
  *
  * During deserialization, we will use __fbthrift_index_offset to
- * extract __fbthrift_field_id_to_size before deserializating other fields.
+ * extract __fbthrift_field_id_to_size before deserializing other fields.
  * Then use __fbthrift_field_id_to_size to skip fields efficiently.
  */
 
@@ -58,7 +57,7 @@ struct InternalField {
   TType type;
 };
 
-// This is randomly generated 64 bit integer for each thrif struct
+// This is randomly generated 64 bit integer for each thrift struct
 // serialization. The same random number will be added to index field to
 // validate whether we are using the correct index field
 constexpr auto kExpectedRandomNumberField = InternalField{
@@ -84,6 +83,22 @@ constexpr auto kIndexField = InternalField{
     static_cast<int16_t>(ReservedId::kIndex),
     TType::T_MAP};
 
+// If user modified lazy fields in serialized data directly without
+// deserialization, we should not use index, otherwise we might read the data
+// incorrectly.
+//
+// To validate data integrity, we added checksum of lazy fields in serialized
+// data, and stored it as value in index map with kXxh3Checksum as key.
+//
+// Note this field is not an actual field in serialized data.
+// It's only a sentinel to check whether checksum exists.
+//
+// The reason we don't use actual field to store checksum is because
+// user might modify the serialized data and delete checksum field,
+// in which case we might still use index even data is tampered
+constexpr int16_t kXxh3ChecksumFieldId =
+    static_cast<int16_t>(ReservedId::kXxh3Checksum);
+
 class Xxh3Hasher {
  public:
   Xxh3Hasher();
@@ -95,8 +110,10 @@ class Xxh3Hasher {
   void* state;
 };
 
+[[noreturn]] void throwChecksumMismatch(int64_t expected, int64_t actual);
+
 struct DummyIndexWriter {
-  DummyIndexWriter(void*, uint32_t&) {}
+  DummyIndexWriter(void*, uint32_t&, bool) {}
 
   void recordFieldStart() {}
 
@@ -112,9 +129,14 @@ int64_t random_64bits_integer();
 template <class Protocol>
 class IndexWriterImpl {
  public:
-  IndexWriterImpl(Protocol* prot, uint32_t& writtenBytes)
-      : prot_(prot), writtenBytes_(writtenBytes) {
-    writeRandomNumberField();
+  IndexWriterImpl(
+      Protocol* prot, uint32_t& writtenBytes, bool writeValidationFields)
+      : prot_(prot),
+        writtenBytes_(writtenBytes),
+        writeValidationFields_(writeValidationFields) {
+    if (writeValidationFields_) {
+      writeRandomNumberField();
+    }
     writeIndexOffsetField();
   }
 
@@ -127,11 +149,19 @@ class IndexWriterImpl {
             typename Protocol::ProtocolReader,
             TypeClass,
             folly::remove_cvref_t<Type>>) {
-      fieldIdAndSize_.push_back({id, writtenBytes_ - fieldStart_});
+      const auto fieldSize = writtenBytes_ - fieldStart_;
+      fieldIdAndSize_.push_back({id, fieldSize});
+      if (writeValidationFields_) {
+        hasher_.update(prot_->tail(fieldSize));
+      }
     }
   }
 
   void finalize() {
+    if (writeValidationFields_) {
+      fieldIdAndSize_.push_back(
+          {kXxh3ChecksumFieldId, static_cast<int64_t>(hasher_)});
+    }
     prot_->rewriteDouble(
         writtenBytes_ - sizeFieldEnd_, writtenBytes_ - indexOffsetLocation_);
     writeIndexField();
@@ -178,10 +208,12 @@ class IndexWriterImpl {
 
   Protocol* prot_;
   uint32_t& writtenBytes_;
+  bool writeValidationFields_;
   uint32_t indexOffsetLocation_ = 0;
   uint32_t sizeFieldEnd_ = 0;
   uint32_t fieldStart_ = 0;
   std::vector<FieldIndex> fieldIdAndSize_;
+  Xxh3Hasher hasher_;
 };
 
 template <class Protocol>
@@ -204,7 +236,7 @@ class ProtocolReaderStructReadStateWithIndexImpl
 
   FOLLY_ALWAYS_INLINE folly::Optional<folly::IOBuf> tryFastSkip(
       Protocol* iprot, int16_t id, TType type, bool fixedCostSkip) {
-    if (!FLAGS_thrift_enable_lazy_deserialization) {
+    if (isLazyDeserializationDisabled()) {
       return {};
     }
 
@@ -219,6 +251,34 @@ class ProtocolReaderStructReadStateWithIndexImpl
     return {};
   }
 
+  FOLLY_ALWAYS_INLINE bool advanceToNextField(
+      Protocol* iprot,
+      int32_t currFieldId,
+      int32_t nextFieldId,
+      TType nextFieldType) {
+    bool success = Base::advanceToNextField(
+        iprot, currFieldId, nextFieldId, nextFieldType);
+    tryUpdateChecksum(iprot, success ? nextFieldId : Base::fieldId);
+    return success;
+  }
+
+  void readFieldBeginNoInline(Protocol* iprot) {
+    Base::readFieldBeginNoInline(iprot);
+    tryUpdateChecksum(iprot, Base::fieldId);
+  }
+
+  void readStructEnd(Protocol* iprot) {
+    Base::readStructEnd(iprot);
+    if (!checksum_) {
+      return;
+    }
+
+    auto actual = static_cast<int64_t>(hasher_);
+    if (*checksum_ != actual) {
+      throwChecksumMismatch(*checksum_, actual);
+    }
+  }
+
  private:
   template <class Skip>
   folly::IOBuf tryFastSkipImpl(Protocol* iprot, Skip skip) {
@@ -231,7 +291,7 @@ class ProtocolReaderStructReadStateWithIndexImpl
   }
 
   void readStructBeginWithIndex(folly::io::Cursor structBegin) {
-    if (!FLAGS_thrift_enable_lazy_deserialization) {
+    if (isLazyDeserializationDisabled()) {
       return;
     }
 
@@ -243,6 +303,7 @@ class ProtocolReaderStructReadStateWithIndexImpl
 
     indexReader.skipBytes(*indexOffset_);
     readIndexField(indexReader);
+    checksum_ = folly::get_optional(fieldIdToSize_, kXxh3ChecksumFieldId);
   }
 
   bool readHeadField(Protocol& p) {
@@ -252,7 +313,6 @@ class ProtocolReaderStructReadStateWithIndexImpl
 
     p.readFieldBegin(name, fieldType, fieldId);
 
-    // TODO(ytj): enforce random number after migration
     if (fieldId == kExpectedRandomNumberField.id) {
       if (fieldType != kExpectedRandomNumberField.type) {
         return false;
@@ -269,6 +329,10 @@ class ProtocolReaderStructReadStateWithIndexImpl
     double indexOffset;
     p.readDouble(indexOffset);
     p.readFieldEnd();
+    if (std::isnan(indexOffset)) {
+      return false;
+    }
+
     indexOffset_ = indexOffset;
     return true;
   }
@@ -294,9 +358,21 @@ class ProtocolReaderStructReadStateWithIndexImpl
     }
   }
 
+  void tryUpdateChecksum(Protocol* iprot, int16_t id) {
+    if (!checksum_) {
+      return;
+    }
+
+    if (auto p = folly::get_ptr(fieldIdToSize_, id)) {
+      hasher_.update(folly::io::Cursor(iprot->getCursor(), *p));
+    }
+  }
+
   FieldIdToSize fieldIdToSize_;
   folly::Optional<int64_t> indexOffset_;
   folly::Optional<int64_t> randomNumber_;
+  folly::Optional<int64_t> checksum_;
+  Xxh3Hasher hasher_;
 };
 
 template <class Protocol>

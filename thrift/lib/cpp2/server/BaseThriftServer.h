@@ -37,6 +37,7 @@
 #include <thrift/lib/cpp/server/TServerObserver.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/PluggableFunction.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
 #include <thrift/lib/cpp2/server/AdaptiveConcurrency.h>
@@ -46,6 +47,11 @@
 #include <thrift/lib/cpp2/server/StatusServerInterface.h>
 
 THRIFT_FLAG_DECLARE_int64(server_default_socket_queue_timeout_ms);
+THRIFT_FLAG_DECLARE_int64(server_default_queue_timeout_ms);
+
+THRIFT_FLAG_DECLARE_int64(server_polled_service_health_liveness_ms);
+THRIFT_FLAG_DECLARE_int64(
+    server_ingress_memory_limit_enforcement_payload_size_min_bytes);
 
 namespace wangle {
 class ConnectionManager;
@@ -70,6 +76,14 @@ using IsOverloadedFunc = folly::Function<bool(
 
 using PreprocessFunc =
     folly::Function<PreprocessResult(const server::PreprocessParams&) const>;
+
+namespace detail {
+
+THRIFT_PLUGGABLE_FUNC_DECLARE(
+    folly::observer::Observer<AdaptiveConcurrencyController::Config>,
+    makeAdaptiveConcurrencyConfig);
+
+} // namespace detail
 
 template <typename T>
 class ThriftServerAsyncProcessorFactory : public AsyncProcessorFactory {
@@ -98,6 +112,8 @@ class ThriftServerAsyncProcessorFactory : public AsyncProcessorFactory {
 class BaseThriftServer : public apache::thrift::concurrency::Runnable,
                          public apache::thrift::server::ServerConfigs {
  public:
+  using AllocIOBufFn = std::unique_ptr<folly::IOBuf>(size_t);
+
   struct FailureInjection {
     FailureInjection()
         : errorFraction(0), dropFraction(0), disconnectFraction(0) {}
@@ -227,8 +243,10 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * (0 == infinite)
    */
   ServerAttributeDynamic<std::chrono::milliseconds> queueTimeout_{
-      DEFAULT_QUEUE_TIMEOUT};
-
+      folly::observer::makeValueObserver(
+          [o = THRIFT_FLAG_OBSERVE(server_default_queue_timeout_ms)]() {
+            return std::chrono::milliseconds(**o);
+          })};
   /**
    * The time we'll allow a new connection socket to wait on the queue before
    * closing the connection. See `folly::AsyncServerSocket::setQueueTimeout`.
@@ -332,7 +350,10 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   ServerAttributeDynamic<size_t> ingressMemoryLimit_{0};
   ServerAttributeDynamic<size_t> egressMemoryLimit_{0};
   ServerAttributeDynamic<size_t> minPayloadSizeToEnforceIngressMemoryLimit_{
-      512 * 1024};
+      folly::observer::makeObserver(
+          [o = THRIFT_FLAG_OBSERVE(
+               server_ingress_memory_limit_enforcement_payload_size_min_bytes)]()
+              -> size_t { return **o < 0 ? 0ul : static_cast<size_t>(**o); })};
 
   /**
    * Per-connection threshold for number of bytes allowed in egress buffer
@@ -347,6 +368,20 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
    * Ignored if backpressure threshold is disabled.
    */
   ServerAttributeDynamic<double> egressBufferRecoveryFactor_{0.75};
+
+  /**
+   * The duration of time that a polled ServiceHealth value is considered
+   * current. i.e. another poll will only be scheduled after this amount of
+   * time has passed since the last poll completed.
+   *
+   * @see apache::thrift::PolledServiceHealth
+   */
+  ServerAttributeDynamic<std::chrono::milliseconds>
+      polledServiceHealthLiveness_{folly::observer::makeObserver(
+          [livenessMs = THRIFT_FLAG_OBSERVE(
+               server_polled_service_health_liveness_ms)]() {
+            return std::chrono::milliseconds(**livenessMs);
+          })};
 
   std::shared_ptr<server::TServerEventHandler> eventHandler_;
   std::vector<std::shared_ptr<server::TServerEventHandler>> eventHandlers_;
@@ -416,6 +451,8 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   // setters.
   std::atomic<bool> configMutable_{true};
 
+  folly::Function<AllocIOBufFn> allocIOBufFn_;
+
   template <typename T>
   void setStaticAttribute(
       ServerAttributeStatic<T>& staticAttribute,
@@ -429,6 +466,11 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
   ~BaseThriftServer() override {}
 
  public:
+  folly::Function<AllocIOBufFn>& getAllocIOBufFn() { return allocIOBufFn_; }
+  void setAllocIOBufFn(folly::Function<AllocIOBufFn>&& fn) {
+    allocIOBufFn_ = std::move(fn);
+  }
+
   std::shared_ptr<server::TServerEventHandler> getEventHandler() {
     return eventHandler_;
   }
@@ -1307,6 +1349,18 @@ class BaseThriftServer : public apache::thrift::concurrency::Runnable,
       DynamicAttributeTag = DynamicAttributeTag{}) {
     recoveryFactor = std::max(0.0, std::min(1.0, recoveryFactor));
     egressBufferRecoveryFactor_.set(recoveryFactor, source);
+  }
+
+  folly::observer::Observer<std::chrono::milliseconds>
+  getPolledServiceHealthLivenessObserver() const {
+    return polledServiceHealthLiveness_.getObserver();
+  }
+
+  void setPolledServiceHealthLiveness(
+      std::chrono::milliseconds liveness,
+      AttributeSource source = AttributeSource::OVERRIDE,
+      DynamicAttributeTag = DynamicAttributeTag{}) {
+    polledServiceHealthLiveness_.set(liveness, source);
   }
 
   const auto& adaptiveConcurrencyController() const {

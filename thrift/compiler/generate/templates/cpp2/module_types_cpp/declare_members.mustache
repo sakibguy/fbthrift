@@ -15,7 +15,6 @@
   limitations under the License.
 
 %><%#struct:is_large?%>
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 <%struct:name%>::<% > module_types_h/base_ctor%>
 <%#struct:message%>
 
@@ -24,13 +23,11 @@ THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 }
 <%/struct:message%>
 
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 <%struct:name%>::~<%struct:name%>() {}
 
 <%/struct:is_large?%>
 <%^struct:is_eligible_for_constexpr?%>
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 <%struct:name%>::<% > module_types_cpp/move_ctor%>
 <%struct:name%>& <%struct:name%>::operator=(FOLLY_MAYBE_UNUSED <%struct:name%>&& other) noexcept {
 <%#struct:lazy_fields?%>
@@ -39,7 +36,7 @@ THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
     __fbthrift_serializedData_ = std::move(other.__fbthrift_serializedData_);
 <%/struct:lazy_fields?%>
 <%#struct:fields_in_layout_order%>
-    this-><%field:cpp_name%> = std::move(other.<%field:cpp_name%>);
+    this-><%field:cpp_storage_name%> = std::move(other.<%field:cpp_storage_name%>);
 <%#field:lazy?%>
     {
       const auto isDeserialized = other.__fbthrift_isDeserialized_.<%field:cpp_name%>.load(relaxed);
@@ -53,7 +50,6 @@ THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 <%/struct:isset_fields?%>
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 <%/struct:is_eligible_for_constexpr?%>
 
@@ -63,10 +59,15 @@ THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 void <%struct:name%>::__clear() {
   // clear all fields
-<%#struct:fields%><%#field:type%>
-<%#type:resolves_to_base_or_enum?%>
-  <% > types/apply_indirection_pre%><% > field/member%><% > types/apply_indirection_post%> = <%#type:cpp_adapter%>{}<%/type:cpp_adapter%><%^type:cpp_adapter%><% > field/default%><%/type:cpp_adapter%>;
+<%#struct:fields%><%#field:type%><%!
+%><%^field:cpp_ref?%><%!
+%><%#type:resolves_to_base_or_enum?%><%!
+  TODO(dokwon) replace special cases after replacing StringTraits and cpp.indirection with cpp.adapter.
+  %>  <% > types/apply_indirection_pre%><% > field/member%><% > types/apply_indirection_post%> = <%!
+  %><%#field:cpp_adapter%>decltype(<% > field/member%>)()<%/field:cpp_adapter%><%!
+  %><%^field:cpp_adapter%><% > field/default%><%/field:cpp_adapter%>;
 <%/type:resolves_to_base_or_enum?%>
+<%/field:cpp_ref?%>
 <%#type:resolves_to_container?%>
 <%#field:cpp_ref?%>
 <%^field:optional?%>
@@ -82,7 +83,7 @@ void <%struct:name%>::__clear() {
 <%/type:resolves_to_container?%>
 <%#type:non_empty_struct?%>
 <%^field:cpp_ref?%>
-  <% > field/member%>.__clear();
+  <%#field:cpp_adapter%><% > field/member%> = decltype(<% > field/member%>)();<%/field:cpp_adapter%><%^field:cpp_adapter%><% > field/member%>.__clear();<%/field:cpp_adapter%>
 <%/field:cpp_ref?%>
 <%#field:cpp_ref_unique?%>
 <%^field:optional?%>
@@ -121,8 +122,6 @@ void <%struct:name%>::__clear() {
   new (&__fbthrift_isDeserialized_) __fbthrift_IsDeserialized();
 <%/struct:lazy_fields?%>
 <%#struct:isset_fields?%>
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 <%/struct:isset_fields?%>
 }

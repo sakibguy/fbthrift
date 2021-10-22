@@ -68,17 +68,16 @@ void TccStructTraits<::cpp2::SomeStruct>::translateFieldName(
 
 namespace cpp2 {
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SomeStruct::SomeStruct(const SomeStruct&) = default;
 SomeStruct& SomeStruct::operator=(const SomeStruct&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SomeStruct::SomeStruct(SomeStruct&& other) noexcept  :
     reasonable(std::move(other.reasonable)),
     fine(std::move(other.fine)),
     questionable(std::move(other.questionable)),
     tags(std::move(other.tags)),
-    __isset(other.__isset) {}
+    __isset(other.__isset) {
+}
+
 SomeStruct& SomeStruct::operator=(FOLLY_MAYBE_UNUSED SomeStruct&& other) noexcept {
     this->reasonable = std::move(other.reasonable);
     this->fine = std::move(other.fine);
@@ -87,10 +86,8 @@ SomeStruct& SomeStruct::operator=(FOLLY_MAYBE_UNUSED SomeStruct&& other) noexcep
     __isset = other.__isset;
     return *this;
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 SomeStruct::SomeStruct(apache::thrift::FragileConstructor, ::cpp2::Metasyntactic reasonable__arg, ::cpp2::Metasyntactic fine__arg, ::cpp2::Metasyntactic questionable__arg, ::std::set<::std::int32_t> tags__arg) :
     reasonable(std::move(reasonable__arg)),
     fine(std::move(fine__arg)),
@@ -101,7 +98,7 @@ SomeStruct::SomeStruct(apache::thrift::FragileConstructor, ::cpp2::Metasyntactic
   __isset.__fbthrift_set(folly::index_constant<2>(), true);
   __isset.__fbthrift_set(folly::index_constant<3>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void SomeStruct::__clear() {
   // clear all fields
@@ -109,9 +106,7 @@ void SomeStruct::__clear() {
   this->fine =  ::cpp2::Metasyntactic::BAR;
   this->questionable = static_cast< ::cpp2::Metasyntactic>(-1);
   this->tags.clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool SomeStruct::operator==(const SomeStruct& rhs) const {
@@ -167,9 +162,7 @@ void swap(SomeStruct& a, SomeStruct& b) {
   swap(a.fine_ref().value(), b.fine_ref().value());
   swap(a.questionable_ref().value(), b.questionable_ref().value());
   swap(a.tags_ref().value(), b.tags_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void SomeStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -184,3 +177,8 @@ template uint32_t SomeStruct::serializedSizeZC<>(apache::thrift::CompactProtocol
 
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

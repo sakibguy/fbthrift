@@ -11,3 +11,8 @@
 
 #include "thrift/compiler/test/fixtures/coroutines/gen-cpp2/module_data.h"
 
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

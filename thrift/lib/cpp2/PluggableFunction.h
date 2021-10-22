@@ -16,10 +16,13 @@
 
 #pragma once
 
-#include <atomic>
-#include <typeindex>
+#include <stdexcept>
 
-#include <folly/Range.h>
+#include <folly/Likely.h>
+#include <folly/Portability.h>
+#include <folly/Utility.h>
+#include <folly/lang/Exception.h>
+#include <folly/synchronization/RelaxedAtomic.h>
 
 /**
  * This provides a simple framework for defining functions in core thrift
@@ -28,6 +31,9 @@
  *
  * Consider the following example:
  *
+ *   // MyCoreThriftLibrary.h
+ *   THRIFT_PLUGGABLE_FUNC_DECLARE(int, myPluggableFunction, int a, int b);
+ *
  *   // MyCoreThriftLibrary.cpp
  *   THRIFT_PLUGGABLE_FUNC_REGISTER(int, myPluggableFunction, int a, int b) {
  *     return a + b;
@@ -35,14 +41,18 @@
  *
  *   ...
  *
- *   auto result = THRIFT_PLUGGABLE_FUNC(myPluggableFunction)(1, 2);
+ *   void foo() {
+ *     auto result = myPluggableFunction(1, 2);
+ *     ...
+ *   }
  *
  *   // MyCustomModule.cpp
  *   THRIFT_PLUGGABLE_FUNC_SET(int, myPluggableFunction, int a, int b) {
  *     return a * b;
  *   }
  *
- * If MyCustomModule.cpp is linked in, result will be 2, otherwise it will be 3.
+ * If MyCustomModule.cpp is linked in, result in foo() will be 2, otherwise it
+ * will be 3.
  */
 
 namespace apache {
@@ -50,109 +60,107 @@ namespace thrift {
 namespace detail {
 
 template <typename Ret, typename... Args>
-struct PluggableFunctionTag {};
-
-class PluggableFunctionMetadata;
-
-PluggableFunctionMetadata* registerPluggableFunction(
-    folly::StringPiece name,
-    std::type_index tag,
-    std::type_index functionTag,
-    intptr_t defaultImpl);
-
-void setPluggableFunction(
-    folly::StringPiece name,
-    std::type_index tag,
-    std::type_index functionTag,
-    intptr_t defaultImpl,
-    intptr_t impl);
-
-intptr_t getPluggableFunction(PluggableFunctionMetadata* metadata);
+class PluggableFunctionSetter;
 
 template <typename Ret, typename... Args>
-struct PluggableFunction {
-  using Func = Ret (*)(Args...);
+class PluggableFunction {
+ public:
+  using signature = Ret(Args...);
 
-  PluggableFunction(
-      folly::StringPiece name, std::type_index tag, Func defaultImpl)
-      : metadata_{registerPluggableFunction(
-            name,
-            tag,
-            typeid(PluggableFunctionTag<Ret, Args...>),
-            reinterpret_cast<intptr_t>(defaultImpl))} {}
+  constexpr explicit PluggableFunction(signature& init) noexcept
+      : init_{init} {}
 
-  Ret operator()(Args... args) {
-    auto impl = impl_.load(std::memory_order_acquire);
-    if (!impl) {
-      impl = reinterpret_cast<Func>(getPluggableFunction(metadata_));
-      impl_.store(impl, std::memory_order_release);
+  template <typename... A>
+  FOLLY_ERASE auto operator()(A&&... a) const
+      -> decltype(FOLLY_DECLVAL(signature&)(static_cast<A&&>(a)...)) {
+    auto impl = impl_.load();
+    // MSVC 2017 dislikes the terse ternary form
+    if (FOLLY_UNLIKELY(!impl)) {
+      impl = &choose_slow();
     }
-    return impl(std::forward<Args>(args)...);
+    return impl(static_cast<A&&>(a)...);
   }
 
  private:
-  PluggableFunctionMetadata* metadata_;
-  std::atomic<Func> impl_{};
+  friend class PluggableFunctionSetter<Ret, Args...>;
+
+  FOLLY_NOINLINE signature& choose_slow() const {
+    auto impl = impl_.load();
+    while (!impl) {
+      if (impl_.compare_exchange_weak(impl, &init_)) {
+        return init_;
+      }
+    }
+    return *impl;
+  }
+
+  PluggableFunction const& operator=(signature& next) const noexcept {
+    if (auto prev = impl_.exchange(&next)) {
+      auto msg = prev == &init_
+          ? "pluggable function: override after invocation"
+          : "pluggable function: override after override";
+      folly::terminate_with<std::logic_error>(msg);
+    }
+    return *this;
+  }
+
+  //  impl_ should be first to avoid extra arithmetic in the fast path
+  mutable folly::relaxed_atomic<signature*> impl_{nullptr};
+  signature& init_;
 };
 
 template <typename Ret, typename... Args>
-struct SetterPluggableFunction {
-  using Func = Ret (*)(Args...);
+class PluggableFunctionSetter {
+ public:
+  using signature = Ret(Args...);
 
-  SetterPluggableFunction(
-      folly::StringPiece name,
-      std::type_index tag,
-      Func defaultImpl,
-      Func impl) {
-    setPluggableFunction(
-        name,
-        tag,
-        typeid(PluggableFunctionTag<Ret, Args...>),
-        reinterpret_cast<intptr_t>(defaultImpl),
-        reinterpret_cast<intptr_t>(impl));
+  PluggableFunctionSetter(
+      PluggableFunction<Ret, Args...> const& plug, signature& next) noexcept {
+    plug = next;
   }
 };
+
+template <typename>
+struct pluggable_function_type_;
+template <typename Ret, typename... Args>
+struct pluggable_function_type_<Ret (*)(Args...)> {
+  using type = PluggableFunction<Ret, Args...>;
+};
+template <typename F>
+using pluggable_function_type_t = typename pluggable_function_type_<F>::type;
+
+template <typename>
+struct pluggable_function_setter_type_;
+template <typename Ret, typename... Args>
+struct pluggable_function_setter_type_<Ret (*)(Args...)> {
+  using type = PluggableFunctionSetter<Ret, Args...>;
+};
+template <typename F>
+using pluggable_function_setter_type_t =
+    typename pluggable_function_setter_type_<F>::type;
+
 } // namespace detail
+} // namespace thrift
+} // namespace apache
 
-template <typename Tag, typename Ret, typename... Args>
-auto registerPluggableFunction(
-    folly::StringPiece name, Tag*, Ret (*defaultImpl)(Args...)) {
-  return apache::thrift::detail::PluggableFunction(
-      name, typeid(Tag*), defaultImpl);
-}
-
-template <typename Tag, typename Ret, typename... Args>
-auto setPluggableFunction(
-    folly::StringPiece name,
-    Tag*,
-    Ret (*defaultImpl)(Args...),
-    Ret (*impl)(Args...)) {
-  return apache::thrift::detail::SetterPluggableFunction(
-      name, typeid(Tag*), defaultImpl, impl);
-}
-
-#define THRIFT_PLUGGABLE_FUNC(_name) THRIFT__PLUGGABLE_FUNC_##_name
+#define THRIFT_PLUGGABLE_FUNC_DECLARE(_ret, _name, ...)             \
+  _ret THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name(__VA_ARGS__);         \
+  using THRIFT__PLUGGABLE_FUNC_TYPE_##_name =                       \
+      decltype(&THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name);            \
+  extern const ::apache::thrift::detail::pluggable_function_type_t< \
+      THRIFT__PLUGGABLE_FUNC_TYPE_##_name>                          \
+      _name
 
 #define THRIFT_PLUGGABLE_FUNC_REGISTER(_ret, _name, ...)             \
-  struct THRIFT__PLUGGABLE_FUNC_TAG_##_name;                         \
-  _ret THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name(__VA_ARGS__);          \
-  static auto THRIFT_PLUGGABLE_FUNC(_name) =                         \
-      ::apache::thrift::registerPluggableFunction(                   \
-          #_name,                                                    \
-          static_cast<THRIFT__PLUGGABLE_FUNC_TAG_##_name*>(nullptr), \
-          THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name);                   \
+  FOLLY_STORAGE_CONSTEXPR const ::apache::thrift::detail::           \
+      pluggable_function_type_t<THRIFT__PLUGGABLE_FUNC_TYPE_##_name> \
+          _name{THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name};             \
   _ret THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name(__VA_ARGS__)
 
 #define THRIFT_PLUGGABLE_FUNC_SET(_ret, _name, ...)                  \
-  struct THRIFT__PLUGGABLE_FUNC_TAG_##_name;                         \
-  _ret THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name(__VA_ARGS__);          \
   _ret THRIFT__PLUGGABLE_FUNC_IMPL_##_name(__VA_ARGS__);             \
-  static auto THRIFT__PLUGGABLE_FUNC_SETTER##_name =                 \
-      ::apache::thrift::setPluggableFunction(                        \
-          #_name,                                                    \
-          static_cast<THRIFT__PLUGGABLE_FUNC_TAG_##_name*>(nullptr), \
-          THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name,                    \
-          THRIFT__PLUGGABLE_FUNC_IMPL_##_name);                      \
+  static ::apache::thrift::detail::pluggable_function_setter_type_t< \
+      THRIFT__PLUGGABLE_FUNC_TYPE_##_name>                           \
+      THRIFT__PLUGGABLE_FUNC_SETTER_##_name{                         \
+          _name, THRIFT__PLUGGABLE_FUNC_IMPL_##_name};               \
   _ret THRIFT__PLUGGABLE_FUNC_IMPL_##_name(__VA_ARGS__)
-} // namespace thrift
-} // namespace apache

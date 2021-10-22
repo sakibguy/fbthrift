@@ -12,7 +12,7 @@ pub mod types {
     #![allow(clippy::redundant_closure)]
 
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct MyStruct {
         pub MyIntField: ::std::primitive::i64,
         pub MyStringField: ::std::string::String,
@@ -21,13 +21,25 @@ pub mod types {
         pub oneway: ::std::primitive::bool,
         pub readonly: ::std::primitive::bool,
         pub idempotent: ::std::primitive::bool,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct MyDataItem {
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq, Debug)]
     pub enum MyUnion {
         myEnum(crate::types::MyEnum),
         myStruct(crate::types::MyStruct),
@@ -155,7 +167,23 @@ pub mod types {
                 oneway: ::std::default::Default::default(),
                 readonly: ::std::default::Default::default(),
                 idempotent: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::MyStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("MyStruct")
+                .field("MyIntField", &self.MyIntField)
+                .field("MyStringField", &self.MyStringField)
+                .field("MyDataField", &self.MyDataField)
+                .field("myEnum", &self.myEnum)
+                .field("oneway", &self.oneway)
+                .field("readonly", &self.readonly)
+                .field("idempotent", &self.idempotent)
+                .finish()
         }
     }
 
@@ -244,6 +272,7 @@ pub mod types {
                 oneway: field_oneway.unwrap_or_default(),
                 readonly: field_readonly.unwrap_or_default(),
                 idempotent: field_idempotent.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -252,7 +281,16 @@ pub mod types {
     impl ::std::default::Default for self::MyDataItem {
         fn default() -> Self {
             Self {
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::MyDataItem {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("MyDataItem")
+                .finish()
         }
     }
 
@@ -292,6 +330,7 @@ pub mod types {
             }
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -383,6 +422,11 @@ pub mod types {
             ::std::result::Result::Ok(alt.unwrap_or_default())
         }
     }
+
+    mod dot_dot {
+        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct OtherFields(pub(crate) ());
+    }
 }
 
 #[doc(hidden)]
@@ -404,6 +448,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for PingExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    PingExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    PingExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    PingExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    PingExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    PingExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    PingExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for PingExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    PingExn::Success(_) => ::fbthrift::ResultType::Return,
+                    PingExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for PingExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -413,6 +489,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let PingExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("Ping");
                 match self {
                     PingExn::Success(inner) => {
@@ -424,11 +503,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    PingExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    PingExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -489,6 +564,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for GetRandomDataExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    GetRandomDataExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    GetRandomDataExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    GetRandomDataExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    GetRandomDataExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    GetRandomDataExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    GetRandomDataExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for GetRandomDataExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    GetRandomDataExn::Success(_) => ::fbthrift::ResultType::Return,
+                    GetRandomDataExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for GetRandomDataExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -498,6 +605,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let GetRandomDataExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("GetRandomData");
                 match self {
                     GetRandomDataExn::Success(inner) => {
@@ -509,11 +619,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    GetRandomDataExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    GetRandomDataExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -580,6 +686,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for SinkExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    SinkExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    SinkExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    SinkExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    SinkExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    SinkExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    SinkExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for SinkExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    SinkExn::Success(_) => ::fbthrift::ResultType::Return,
+                    SinkExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for SinkExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -589,6 +727,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let SinkExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("Sink");
                 match self {
                     SinkExn::Success(inner) => {
@@ -600,11 +741,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    SinkExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    SinkExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -665,6 +802,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for PutDataByIdExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    PutDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    PutDataByIdExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    PutDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    PutDataByIdExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    PutDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    PutDataByIdExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for PutDataByIdExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    PutDataByIdExn::Success(_) => ::fbthrift::ResultType::Return,
+                    PutDataByIdExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for PutDataByIdExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -674,6 +843,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let PutDataByIdExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("PutDataById");
                 match self {
                     PutDataByIdExn::Success(inner) => {
@@ -685,11 +857,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    PutDataByIdExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    PutDataByIdExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -750,6 +918,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for HasDataByIdExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    HasDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    HasDataByIdExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    HasDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    HasDataByIdExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    HasDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    HasDataByIdExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for HasDataByIdExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    HasDataByIdExn::Success(_) => ::fbthrift::ResultType::Return,
+                    HasDataByIdExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for HasDataByIdExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -759,6 +959,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let HasDataByIdExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("HasDataById");
                 match self {
                     HasDataByIdExn::Success(inner) => {
@@ -770,11 +973,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    HasDataByIdExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    HasDataByIdExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -841,6 +1040,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for GetDataByIdExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    GetDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    GetDataByIdExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    GetDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    GetDataByIdExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    GetDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    GetDataByIdExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for GetDataByIdExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    GetDataByIdExn::Success(_) => ::fbthrift::ResultType::Return,
+                    GetDataByIdExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for GetDataByIdExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -850,6 +1081,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let GetDataByIdExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("GetDataById");
                 match self {
                     GetDataByIdExn::Success(inner) => {
@@ -861,11 +1095,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    GetDataByIdExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    GetDataByIdExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -932,6 +1162,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for DeleteDataByIdExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    DeleteDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    DeleteDataByIdExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    DeleteDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    DeleteDataByIdExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    DeleteDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    DeleteDataByIdExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for DeleteDataByIdExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    DeleteDataByIdExn::Success(_) => ::fbthrift::ResultType::Return,
+                    DeleteDataByIdExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for DeleteDataByIdExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -941,6 +1203,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let DeleteDataByIdExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("DeleteDataById");
                 match self {
                     DeleteDataByIdExn::Success(inner) => {
@@ -952,11 +1217,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    DeleteDataByIdExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    DeleteDataByIdExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -1017,6 +1278,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for LobDataByIdExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    LobDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    LobDataByIdExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    LobDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    LobDataByIdExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    LobDataByIdExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    LobDataByIdExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for LobDataByIdExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    LobDataByIdExn::Success(_) => ::fbthrift::ResultType::Return,
+                    LobDataByIdExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for LobDataByIdExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -1026,6 +1319,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let LobDataByIdExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("LobDataById");
                 match self {
                     LobDataByIdExn::Success(inner) => {
@@ -1037,11 +1333,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    LobDataByIdExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    LobDataByIdExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -1105,6 +1397,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for GetDataByKey0Exn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    GetDataByKey0Exn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    GetDataByKey0Exn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    GetDataByKey0Exn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    GetDataByKey0Exn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    GetDataByKey0Exn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    GetDataByKey0Exn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for GetDataByKey0Exn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    GetDataByKey0Exn::Success(_) => ::fbthrift::ResultType::Return,
+                    GetDataByKey0Exn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for GetDataByKey0Exn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -1114,6 +1438,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let GetDataByKey0Exn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("GetDataByKey0");
                 match self {
                     GetDataByKey0Exn::Success(inner) => {
@@ -1125,11 +1452,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    GetDataByKey0Exn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    GetDataByKey0Exn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -1196,6 +1519,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for GetDataByKey1Exn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    GetDataByKey1Exn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    GetDataByKey1Exn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    GetDataByKey1Exn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    GetDataByKey1Exn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    GetDataByKey1Exn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    GetDataByKey1Exn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for GetDataByKey1Exn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    GetDataByKey1Exn::Success(_) => ::fbthrift::ResultType::Return,
+                    GetDataByKey1Exn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for GetDataByKey1Exn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -1205,6 +1560,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let GetDataByKey1Exn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("GetDataByKey1");
                 match self {
                     GetDataByKey1Exn::Success(inner) => {
@@ -1216,11 +1574,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    GetDataByKey1Exn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    GetDataByKey1Exn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -1280,12 +1634,12 @@ pub mod services {
 /// Client implementation for each service in `module`.
 pub mod client {
 
-    pub struct MyServiceImpl<P, T> {
+    pub struct MyServiceImpl<P, T, S = ::fbthrift::NoopSpawner> {
         transport: T,
-        _phantom: ::std::marker::PhantomData<fn() -> P>,
+        _phantom: ::std::marker::PhantomData<fn() -> (P, S)>,
     }
 
-    impl<P, T> MyServiceImpl<P, T> {
+    impl<P, T, S> MyServiceImpl<P, T, S> {
         pub fn new(
             transport: T,
         ) -> Self {
@@ -1335,941 +1689,518 @@ pub mod client {
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::my_service::LobDataByIdError>> + ::std::marker::Send + 'static>>;
     }
 
-    impl<P, T> MyService for MyServiceImpl<P, T>
+    struct Args_MyService_ping<'a> {
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_ping<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.ping"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_getRandomData<'a> {
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_getRandomData<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.getRandomData"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_sink<'a> {
+        sink: ::std::primitive::i64,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_sink<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.sink"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("sink", ::fbthrift::TType::I64, 1i16);
+            ::fbthrift::Serialize::write(&self.sink, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_putDataById<'a> {
+        id: ::std::primitive::i64,
+        data: &'a ::std::primitive::str,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_putDataById<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.putDataById"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("id", ::fbthrift::TType::I64, 1i16);
+            ::fbthrift::Serialize::write(&self.id, p);
+            p.write_field_end();
+            p.write_field_begin("data", ::fbthrift::TType::String, 2i16);
+            ::fbthrift::Serialize::write(&self.data, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_hasDataById<'a> {
+        id: ::std::primitive::i64,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_hasDataById<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.hasDataById"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("id", ::fbthrift::TType::I64, 1i16);
+            ::fbthrift::Serialize::write(&self.id, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_getDataById<'a> {
+        id: ::std::primitive::i64,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_getDataById<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.getDataById"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("id", ::fbthrift::TType::I64, 1i16);
+            ::fbthrift::Serialize::write(&self.id, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_deleteDataById<'a> {
+        id: ::std::primitive::i64,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_deleteDataById<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.deleteDataById"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("id", ::fbthrift::TType::I64, 1i16);
+            ::fbthrift::Serialize::write(&self.id, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_MyService_lobDataById<'a> {
+        id: ::std::primitive::i64,
+        data: &'a ::std::primitive::str,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyService_lobDataById<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyService.lobDataById"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("id", ::fbthrift::TType::I64, 1i16);
+            ::fbthrift::Serialize::write(&self.id, p);
+            p.write_field_end();
+            p.write_field_begin("data", ::fbthrift::TType::String, 2i16);
+            ::fbthrift::Serialize::write(&self.data, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    impl<P, T, S> MyService for MyServiceImpl<P, T, S>
     where
         P: ::fbthrift::Protocol,
         T: ::fbthrift::Transport,
         P::Frame: ::fbthrift::Framing<DecBuf = ::fbthrift::FramingDecoded<T>>,
         ::fbthrift::ProtocolEncoded<P>: ::fbthrift::BufMutExt<Final = ::fbthrift::FramingEncodedFinal<T>>,
         P::Deserializer: ::std::marker::Send,
+        S: ::fbthrift::help::Spawner,
     {
-        #[::tracing::instrument(name = "MyService.ping", skip_all)]
         fn ping(
             &self,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::my_service::PingError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.ping";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "ping",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.ping"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::PingExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::PingExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::PingExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::PingError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::PingError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::PingError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.ping"))
-                )
-                .boxed()
+            let args = self::Args_MyService_ping {
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("ping", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.ping"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::PingExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::PingError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.ping"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.getRandomData", skip_all)]
+
         fn getRandomData(
             &self,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::string::String, crate::errors::my_service::GetRandomDataError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.getRandomData";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getRandomData",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.getRandomData"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::GetRandomDataExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::GetRandomDataExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::GetRandomDataExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::GetRandomDataError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::GetRandomDataError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::GetRandomDataError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.getRandomData"))
-                )
-                .boxed()
+            let args = self::Args_MyService_getRandomData {
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("getRandomData", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.getRandomData"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::GetRandomDataExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::GetRandomDataError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.getRandomData"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.sink", skip_all)]
+
         fn sink(
             &self,
             arg_sink: ::std::primitive::i64,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::my_service::SinkError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.sink";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "sink",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_sink", ::fbthrift::TType::I64, 1i16);
-                        ::fbthrift::Serialize::write(&arg_sink, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.sink"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::SinkExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::SinkExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::SinkExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::SinkError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::SinkError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::SinkError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.sink"))
-                )
-                .boxed()
+            let args = self::Args_MyService_sink {
+                sink: arg_sink,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("sink", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.sink"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::SinkExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::SinkError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.sink"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.putDataById", skip_all)]
+
         fn putDataById(
             &self,
             arg_id: ::std::primitive::i64,
             arg_data: &::std::primitive::str,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::my_service::PutDataByIdError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.putDataById";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "putDataById",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_id", ::fbthrift::TType::I64, 1i16);
-                        ::fbthrift::Serialize::write(&arg_id, p);
-                        p.write_field_end();
-                        p.write_field_begin("arg_data", ::fbthrift::TType::String, 2i16);
-                        ::fbthrift::Serialize::write(&arg_data, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.putDataById"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::PutDataByIdExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::PutDataByIdExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::PutDataByIdExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::PutDataByIdError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::PutDataByIdError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::PutDataByIdError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.putDataById"))
-                )
-                .boxed()
+            let args = self::Args_MyService_putDataById {
+                id: arg_id,
+                data: arg_data,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("putDataById", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.putDataById"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::PutDataByIdExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::PutDataByIdError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.putDataById"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.hasDataById", skip_all)]
+
         fn hasDataById(
             &self,
             arg_id: ::std::primitive::i64,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::primitive::bool, crate::errors::my_service::HasDataByIdError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.hasDataById";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "hasDataById",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_id", ::fbthrift::TType::I64, 1i16);
-                        ::fbthrift::Serialize::write(&arg_id, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.hasDataById"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::HasDataByIdExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::HasDataByIdExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::HasDataByIdExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::HasDataByIdError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::HasDataByIdError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::HasDataByIdError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.hasDataById"))
-                )
-                .boxed()
+            let args = self::Args_MyService_hasDataById {
+                id: arg_id,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("hasDataById", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.hasDataById"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::HasDataByIdExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::HasDataByIdError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.hasDataById"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.getDataById", skip_all)]
+
         fn getDataById(
             &self,
             arg_id: ::std::primitive::i64,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::string::String, crate::errors::my_service::GetDataByIdError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.getDataById";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getDataById",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_id", ::fbthrift::TType::I64, 1i16);
-                        ::fbthrift::Serialize::write(&arg_id, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.getDataById"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::GetDataByIdExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::GetDataByIdExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::GetDataByIdExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::GetDataByIdError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::GetDataByIdError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::GetDataByIdError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.getDataById"))
-                )
-                .boxed()
+            let args = self::Args_MyService_getDataById {
+                id: arg_id,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("getDataById", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.getDataById"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::GetDataByIdExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::GetDataByIdError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.getDataById"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.deleteDataById", skip_all)]
+
         fn deleteDataById(
             &self,
             arg_id: ::std::primitive::i64,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::my_service::DeleteDataByIdError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.deleteDataById";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "deleteDataById",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_id", ::fbthrift::TType::I64, 1i16);
-                        ::fbthrift::Serialize::write(&arg_id, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.deleteDataById"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::DeleteDataByIdExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::DeleteDataByIdExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::DeleteDataByIdExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::DeleteDataByIdError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::DeleteDataByIdError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::DeleteDataByIdError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.deleteDataById"))
-                )
-                .boxed()
+            let args = self::Args_MyService_deleteDataById {
+                id: arg_id,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("deleteDataById", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.deleteDataById"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::DeleteDataByIdExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::DeleteDataByIdError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.deleteDataById"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "MyService.lobDataById", skip_all)]
+
         fn lobDataById(
             &self,
             arg_id: ::std::primitive::i64,
             arg_data: &::std::primitive::str,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<(), crate::errors::my_service::LobDataByIdError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.lobDataById";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "lobDataById",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_id", ::fbthrift::TType::I64, 1i16);
-                        ::fbthrift::Serialize::write(&arg_id, p);
-                        p.write_field_end();
-                        p.write_field_begin("arg_data", ::fbthrift::TType::String, 2i16);
-                        ::fbthrift::Serialize::write(&arg_data, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "MyService.lobDataById"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::my_service::LobDataByIdExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::my_service::LobDataByIdExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::my_service::LobDataByIdExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::my_service::LobDataByIdError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::my_service::LobDataByIdError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::my_service::LobDataByIdError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "MyService.lobDataById"))
-                )
-                .boxed()
+            let args = self::Args_MyService_lobDataById {
+                id: arg_id,
+                data: arg_data,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("lobDataById", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "MyService.lobDataById"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::my_service::LobDataByIdExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::my_service::LobDataByIdError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("MyService.lobDataById"))
+            .boxed()
         }
+
     }
 
     impl<'a, T> MyService for T
@@ -2369,8 +2300,24 @@ pub mod client {
             T: ::fbthrift::Transport,
             P::Deserializer: ::std::marker::Send,
         {
+            let spawner = ::fbthrift::help::NoopSpawner;
+            Self::with_spawner(protocol, transport, spawner)
+        }
+
+        pub fn with_spawner<P, T, S>(
+            protocol: P,
+            transport: T,
+            spawner: S,
+        ) -> ::std::sync::Arc<impl MyService + ::std::marker::Send + 'static>
+        where
+            P: ::fbthrift::Protocol<Frame = T>,
+            T: ::fbthrift::Transport,
+            P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
+        {
             let _ = protocol;
-            ::std::sync::Arc::new(MyServiceImpl::<P, T>::new(transport))
+            let _ = spawner;
+            ::std::sync::Arc::new(MyServiceImpl::<P, T, S>::new(transport))
         }
     }
 
@@ -2382,21 +2329,22 @@ pub mod client {
     impl ::fbthrift::ClientFactory for make_MyService {
         type Api = dyn MyService + ::std::marker::Send + ::std::marker::Sync + 'static;
 
-        fn new<P, T>(protocol: P, transport: T) -> ::std::sync::Arc<Self::Api>
+        fn with_spawner<P, T, S>(protocol: P, transport: T, spawner: S) -> ::std::sync::Arc<Self::Api>
         where
             P: ::fbthrift::Protocol<Frame = T>,
             T: ::fbthrift::Transport + ::std::marker::Sync,
             P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
         {
-            <dyn MyService>::new(protocol, transport)
+            <dyn MyService>::with_spawner(protocol, transport, spawner)
         }
     }
-    pub struct DbMixedStackArgumentsImpl<P, T> {
+    pub struct DbMixedStackArgumentsImpl<P, T, S = ::fbthrift::NoopSpawner> {
         transport: T,
-        _phantom: ::std::marker::PhantomData<fn() -> P>,
+        _phantom: ::std::marker::PhantomData<fn() -> (P, S)>,
     }
 
-    impl<P, T> DbMixedStackArgumentsImpl<P, T> {
+    impl<P, T, S> DbMixedStackArgumentsImpl<P, T, S> {
         pub fn new(
             transport: T,
         ) -> Self {
@@ -2422,245 +2370,140 @@ pub mod client {
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::vec::Vec<::std::primitive::u8>, crate::errors::db_mixed_stack_arguments::GetDataByKey1Error>> + ::std::marker::Send + 'static>>;
     }
 
-    impl<P, T> DbMixedStackArguments for DbMixedStackArgumentsImpl<P, T>
+    struct Args_DbMixedStackArguments_getDataByKey0<'a> {
+        key: &'a ::std::primitive::str,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_DbMixedStackArguments_getDataByKey0<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "DbMixedStackArguments.getDataByKey0"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("key", ::fbthrift::TType::String, 1i16);
+            ::fbthrift::Serialize::write(&self.key, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_DbMixedStackArguments_getDataByKey1<'a> {
+        key: &'a ::std::primitive::str,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_DbMixedStackArguments_getDataByKey1<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "DbMixedStackArguments.getDataByKey1"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("key", ::fbthrift::TType::String, 1i16);
+            ::fbthrift::Serialize::write(&self.key, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    impl<P, T, S> DbMixedStackArguments for DbMixedStackArgumentsImpl<P, T, S>
     where
         P: ::fbthrift::Protocol,
         T: ::fbthrift::Transport,
         P::Frame: ::fbthrift::Framing<DecBuf = ::fbthrift::FramingDecoded<T>>,
         ::fbthrift::ProtocolEncoded<P>: ::fbthrift::BufMutExt<Final = ::fbthrift::FramingEncodedFinal<T>>,
         P::Deserializer: ::std::marker::Send,
+        S: ::fbthrift::help::Spawner,
     {
-        #[::tracing::instrument(name = "DbMixedStackArguments.getDataByKey0", skip_all)]
         fn getDataByKey0(
             &self,
             arg_key: &::std::primitive::str,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::vec::Vec<::std::primitive::u8>, crate::errors::db_mixed_stack_arguments::GetDataByKey0Error>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "DbMixedStackArguments";
                 METHOD_NAME = "DbMixedStackArguments.getDataByKey0";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getDataByKey0",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_key", ::fbthrift::TType::String, 1i16);
-                        ::fbthrift::Serialize::write(&arg_key, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "DbMixedStackArguments.getDataByKey0"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::db_mixed_stack_arguments::GetDataByKey0Exn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey0Error::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey0Error::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey0Error::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "DbMixedStackArguments.getDataByKey0"))
-                )
-                .boxed()
+            let args = self::Args_DbMixedStackArguments_getDataByKey0 {
+                key: arg_key,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("getDataByKey0", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "DbMixedStackArguments.getDataByKey0"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::db_mixed_stack_arguments::GetDataByKey0Exn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey0Error::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("DbMixedStackArguments.getDataByKey0"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "DbMixedStackArguments.getDataByKey1", skip_all)]
+
         fn getDataByKey1(
             &self,
             arg_key: &::std::primitive::str,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::vec::Vec<::std::primitive::u8>, crate::errors::db_mixed_stack_arguments::GetDataByKey1Error>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "DbMixedStackArguments";
                 METHOD_NAME = "DbMixedStackArguments.getDataByKey1";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getDataByKey1",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_key", ::fbthrift::TType::String, 1i16);
-                        ::fbthrift::Serialize::write(&arg_key, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "DbMixedStackArguments.getDataByKey1"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::db_mixed_stack_arguments::GetDataByKey1Exn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey1Error::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey1Error::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey1Error::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "DbMixedStackArguments.getDataByKey1"))
-                )
-                .boxed()
+            let args = self::Args_DbMixedStackArguments_getDataByKey1 {
+                key: arg_key,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("getDataByKey1", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "DbMixedStackArguments.getDataByKey1"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::db_mixed_stack_arguments::GetDataByKey1Exn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::db_mixed_stack_arguments::GetDataByKey1Error::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("DbMixedStackArguments.getDataByKey1"))
+            .boxed()
         }
+
     }
 
     impl<'a, T> DbMixedStackArguments for T
@@ -2712,8 +2555,24 @@ pub mod client {
             T: ::fbthrift::Transport,
             P::Deserializer: ::std::marker::Send,
         {
+            let spawner = ::fbthrift::help::NoopSpawner;
+            Self::with_spawner(protocol, transport, spawner)
+        }
+
+        pub fn with_spawner<P, T, S>(
+            protocol: P,
+            transport: T,
+            spawner: S,
+        ) -> ::std::sync::Arc<impl DbMixedStackArguments + ::std::marker::Send + 'static>
+        where
+            P: ::fbthrift::Protocol<Frame = T>,
+            T: ::fbthrift::Transport,
+            P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
+        {
             let _ = protocol;
-            ::std::sync::Arc::new(DbMixedStackArgumentsImpl::<P, T>::new(transport))
+            let _ = spawner;
+            ::std::sync::Arc::new(DbMixedStackArgumentsImpl::<P, T, S>::new(transport))
         }
     }
 
@@ -2725,13 +2584,14 @@ pub mod client {
     impl ::fbthrift::ClientFactory for make_DbMixedStackArguments {
         type Api = dyn DbMixedStackArguments + ::std::marker::Send + ::std::marker::Sync + 'static;
 
-        fn new<P, T>(protocol: P, transport: T) -> ::std::sync::Arc<Self::Api>
+        fn with_spawner<P, T, S>(protocol: P, transport: T, spawner: S) -> ::std::sync::Arc<Self::Api>
         where
             P: ::fbthrift::Protocol<Frame = T>,
             T: ::fbthrift::Transport + ::std::marker::Sync,
             P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
         {
-            <dyn DbMixedStackArguments>::new(protocol, transport)
+            <dyn DbMixedStackArguments>::with_spawner(protocol, transport, spawner)
         }
     }
 
@@ -3090,67 +2950,56 @@ pub mod server {
         async fn handle_ping<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::PingExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.ping";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_ping = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.ping(
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.ping(
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.ping"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.ping", "success");
                     crate::services::my_service::PingExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::PingExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.ping", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::PingExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::PingExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "ping",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.ping", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.ping", exn);
+                    crate::services::my_service::PingExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.ping").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "ping",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3158,67 +3007,56 @@ pub mod server {
         async fn handle_getRandomData<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::GetRandomDataExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.getRandomData";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_getRandomData = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.getRandomData(
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.getRandomData(
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.getRandomData"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.getRandomData", "success");
                     crate::services::my_service::GetRandomDataExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::GetRandomDataExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.getRandomData", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::GetRandomDataExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::GetRandomDataExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "getRandomData",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.getRandomData", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.getRandomData", exn);
+                    crate::services::my_service::GetRandomDataExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.getRandomData").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getRandomData",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3226,68 +3064,57 @@ pub mod server {
         async fn handle_sink<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::SinkExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.sink";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_sink = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.sink(
-                _args.sink,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.sink(
+                    _args.sink,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.sink"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.sink", "success");
                     crate::services::my_service::SinkExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::SinkExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.sink", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::SinkExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::SinkExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "sink",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.sink", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.sink", exn);
+                    crate::services::my_service::SinkExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.sink").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "sink",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3295,69 +3122,58 @@ pub mod server {
         async fn handle_putDataById<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::PutDataByIdExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.putDataById";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_putDataById = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.putDataById(
-                _args.id,
-                _args.data,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.putDataById(
+                    _args.id,
+                    _args.data,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.putDataById"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.putDataById", "success");
                     crate::services::my_service::PutDataByIdExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::PutDataByIdExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.putDataById", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::PutDataByIdExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::PutDataByIdExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "putDataById",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.putDataById", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.putDataById", exn);
+                    crate::services::my_service::PutDataByIdExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.putDataById").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "putDataById",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3365,68 +3181,57 @@ pub mod server {
         async fn handle_hasDataById<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::HasDataByIdExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.hasDataById";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_hasDataById = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.hasDataById(
-                _args.id,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.hasDataById(
+                    _args.id,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.hasDataById"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.hasDataById", "success");
                     crate::services::my_service::HasDataByIdExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::HasDataByIdExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.hasDataById", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::HasDataByIdExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::HasDataByIdExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "hasDataById",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.hasDataById", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.hasDataById", exn);
+                    crate::services::my_service::HasDataByIdExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.hasDataById").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "hasDataById",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3434,68 +3239,57 @@ pub mod server {
         async fn handle_getDataById<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::GetDataByIdExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.getDataById";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_getDataById = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.getDataById(
-                _args.id,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.getDataById(
+                    _args.id,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.getDataById"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.getDataById", "success");
                     crate::services::my_service::GetDataByIdExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::GetDataByIdExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.getDataById", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::GetDataByIdExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::GetDataByIdExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "getDataById",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.getDataById", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.getDataById", exn);
+                    crate::services::my_service::GetDataByIdExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.getDataById").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getDataById",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3503,68 +3297,57 @@ pub mod server {
         async fn handle_deleteDataById<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::DeleteDataByIdExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.deleteDataById";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_deleteDataById = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.deleteDataById(
-                _args.id,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.deleteDataById(
+                    _args.id,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.deleteDataById"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.deleteDataById", "success");
                     crate::services::my_service::DeleteDataByIdExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::DeleteDataByIdExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.deleteDataById", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::DeleteDataByIdExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::DeleteDataByIdExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "deleteDataById",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.deleteDataById", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.deleteDataById", exn);
+                    crate::services::my_service::DeleteDataByIdExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.deleteDataById").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "deleteDataById",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3572,69 +3355,58 @@ pub mod server {
         async fn handle_lobDataById<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::my_service::LobDataByIdExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "MyService";
                 METHOD_NAME = "MyService.lobDataById";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_MyService_lobDataById = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.lobDataById(
-                _args.id,
-                _args.data,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.lobDataById(
+                    _args.id,
+                    _args.data,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "MyService.lobDataById"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "MyService.lobDataById", "success");
                     crate::services::my_service::LobDataByIdExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::my_service::LobDataByIdExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "MyService.lobDataById", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::my_service::LobDataByIdExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_service::LobDataByIdExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "lobDataById",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "MyService.lobDataById", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyService.lobDataById", exn);
+                    crate::services::my_service::LobDataByIdExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "MyService.lobDataById").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "lobDataById",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
     }
@@ -3674,14 +3446,174 @@ pub mod server {
             _seqid: ::std::primitive::u32,
         ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
             match idx {
-                0usize => self.handle_ping(_p, _r, _seqid).await,
-                1usize => self.handle_getRandomData(_p, _r, _seqid).await,
-                2usize => self.handle_sink(_p, _r, _seqid).await,
-                3usize => self.handle_putDataById(_p, _r, _seqid).await,
-                4usize => self.handle_hasDataById(_p, _r, _seqid).await,
-                5usize => self.handle_getDataById(_p, _r, _seqid).await,
-                6usize => self.handle_deleteDataById(_p, _r, _seqid).await,
-                7usize => self.handle_lobDataById(_p, _r, _seqid).await,
+                0usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.ping";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_ping(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "ping",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                1usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.getRandomData";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_getRandomData(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "getRandomData",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                2usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.sink";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_sink(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "sink",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                3usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.putDataById";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_putDataById(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "putDataById",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                4usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.hasDataById";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_hasDataById(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "hasDataById",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                5usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.getDataById";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_getDataById(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "getDataById",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                6usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.deleteDataById";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_deleteDataById(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "deleteDataById",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                7usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "MyService";
+                        METHOD_NAME = "MyService.lobDataById";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_lobDataById(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "lobDataById",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
                 bad => panic!(
                     "{}: unexpected method idx {}",
                     "MyServiceProcessor",
@@ -3727,26 +3659,10 @@ pub mod server {
                     return self.supa.call(cur, req_ctxt).await;
                 }
             };
-            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await;
+            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await?;
             p.read_message_end()?;
-            match res {
-                ::std::result::Result::Ok(bytes) => ::std::result::Result::Ok(bytes),
-                ::std::result::Result::Err(err) => match err.downcast_ref::<::fbthrift::ProtocolError>() {
-                    ::std::option::Option::Some(::fbthrift::ProtocolError::ApplicationException(ae)) => {
-                        let res = ::fbthrift::serialize!(P, |p| {
-                            ::fbthrift::protocol::write_message(
-                                p,
-                                "MyServiceProcessor",
-                                ::fbthrift::MessageType::Exception,
-                                seqid,
-                                |p| ::fbthrift::Serialize::write(&ae, p),
-                            )
-                        });
-                        ::std::result::Result::Ok(res)
-                    }
-                    _ => ::std::result::Result::Err(err),
-                },
-            }
+
+            Ok(res)
         }
     }
 
@@ -3894,68 +3810,57 @@ pub mod server {
         async fn handle_getDataByKey0<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::db_mixed_stack_arguments::GetDataByKey0Exn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "DbMixedStackArguments";
                 METHOD_NAME = "DbMixedStackArguments.getDataByKey0";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_DbMixedStackArguments_getDataByKey0 = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.getDataByKey0(
-                _args.key,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.getDataByKey0(
+                    _args.key,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "DbMixedStackArguments.getDataByKey0"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "DbMixedStackArguments.getDataByKey0", "success");
                     crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "DbMixedStackArguments.getDataByKey0", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "getDataByKey0",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "DbMixedStackArguments.getDataByKey0", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("DbMixedStackArguments.getDataByKey0", exn);
+                    crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "DbMixedStackArguments.getDataByKey0").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getDataByKey0",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3963,68 +3868,57 @@ pub mod server {
         async fn handle_getDataByKey1<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::db_mixed_stack_arguments::GetDataByKey1Exn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "DbMixedStackArguments";
                 METHOD_NAME = "DbMixedStackArguments.getDataByKey1";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_DbMixedStackArguments_getDataByKey1 = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.getDataByKey1(
-                _args.key,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.getDataByKey1(
+                    _args.key,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "DbMixedStackArguments.getDataByKey1"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "DbMixedStackArguments.getDataByKey1", "success");
                     crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "DbMixedStackArguments.getDataByKey1", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "getDataByKey1",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "DbMixedStackArguments.getDataByKey1", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("DbMixedStackArguments.getDataByKey1", exn);
+                    crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "DbMixedStackArguments.getDataByKey1").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "getDataByKey1",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
     }
@@ -4058,8 +3952,48 @@ pub mod server {
             _seqid: ::std::primitive::u32,
         ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
             match idx {
-                0usize => self.handle_getDataByKey0(_p, _r, _seqid).await,
-                1usize => self.handle_getDataByKey1(_p, _r, _seqid).await,
+                0usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "DbMixedStackArguments";
+                        METHOD_NAME = "DbMixedStackArguments.getDataByKey0";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_getDataByKey0(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "getDataByKey0",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                1usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "DbMixedStackArguments";
+                        METHOD_NAME = "DbMixedStackArguments.getDataByKey1";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_getDataByKey1(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "getDataByKey1",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
                 bad => panic!(
                     "{}: unexpected method idx {}",
                     "DbMixedStackArgumentsProcessor",
@@ -4105,26 +4039,10 @@ pub mod server {
                     return self.supa.call(cur, req_ctxt).await;
                 }
             };
-            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await;
+            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await?;
             p.read_message_end()?;
-            match res {
-                ::std::result::Result::Ok(bytes) => ::std::result::Result::Ok(bytes),
-                ::std::result::Result::Err(err) => match err.downcast_ref::<::fbthrift::ProtocolError>() {
-                    ::std::option::Option::Some(::fbthrift::ProtocolError::ApplicationException(ae)) => {
-                        let res = ::fbthrift::serialize!(P, |p| {
-                            ::fbthrift::protocol::write_message(
-                                p,
-                                "DbMixedStackArgumentsProcessor",
-                                ::fbthrift::MessageType::Exception,
-                                seqid,
-                                |p| ::fbthrift::Serialize::write(&ae, p),
-                            )
-                        });
-                        ::std::result::Result::Ok(res)
-                    }
-                    _ => ::std::result::Result::Err(err),
-                },
-            }
+
+            Ok(res)
         }
     }
 
@@ -4280,7 +4198,6 @@ pub mod mock {
         }
     }
 
-    #[::async_trait::async_trait]
     impl<'mock> super::client::MyService for MyService<'mock> {
         fn ping(
             &self,
@@ -4365,7 +4282,6 @@ pub mod mock {
         }
     }
 
-    #[::async_trait::async_trait]
     impl<'mock> super::client::DbMixedStackArguments for DbMixedStackArguments<'mock> {
         fn getDataByKey0(
             &self,
@@ -4840,19 +4756,123 @@ pub mod errors {
 
         pub type PingError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::my_service::PingExn> for
+            ::std::result::Result<(), PingError>
+        {
+            fn from(e: crate::services::my_service::PingExn) -> Self {
+                match e {
+                    crate::services::my_service::PingExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::PingExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(PingError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type GetRandomDataError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::my_service::GetRandomDataExn> for
+            ::std::result::Result<::std::string::String, GetRandomDataError>
+        {
+            fn from(e: crate::services::my_service::GetRandomDataExn) -> Self {
+                match e {
+                    crate::services::my_service::GetRandomDataExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::GetRandomDataExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(GetRandomDataError::ApplicationException(aexn)),
+                }
+            }
+        }
 
         pub type SinkError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::my_service::SinkExn> for
+            ::std::result::Result<(), SinkError>
+        {
+            fn from(e: crate::services::my_service::SinkExn) -> Self {
+                match e {
+                    crate::services::my_service::SinkExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::SinkExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(SinkError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type PutDataByIdError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::my_service::PutDataByIdExn> for
+            ::std::result::Result<(), PutDataByIdError>
+        {
+            fn from(e: crate::services::my_service::PutDataByIdExn) -> Self {
+                match e {
+                    crate::services::my_service::PutDataByIdExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::PutDataByIdExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(PutDataByIdError::ApplicationException(aexn)),
+                }
+            }
+        }
 
         pub type HasDataByIdError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::my_service::HasDataByIdExn> for
+            ::std::result::Result<::std::primitive::bool, HasDataByIdError>
+        {
+            fn from(e: crate::services::my_service::HasDataByIdExn) -> Self {
+                match e {
+                    crate::services::my_service::HasDataByIdExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::HasDataByIdExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(HasDataByIdError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type GetDataByIdError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::my_service::GetDataByIdExn> for
+            ::std::result::Result<::std::string::String, GetDataByIdError>
+        {
+            fn from(e: crate::services::my_service::GetDataByIdExn) -> Self {
+                match e {
+                    crate::services::my_service::GetDataByIdExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::GetDataByIdExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(GetDataByIdError::ApplicationException(aexn)),
+                }
+            }
+        }
 
         pub type DeleteDataByIdError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::my_service::DeleteDataByIdExn> for
+            ::std::result::Result<(), DeleteDataByIdError>
+        {
+            fn from(e: crate::services::my_service::DeleteDataByIdExn) -> Self {
+                match e {
+                    crate::services::my_service::DeleteDataByIdExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::DeleteDataByIdExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(DeleteDataByIdError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type LobDataByIdError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::my_service::LobDataByIdExn> for
+            ::std::result::Result<(), LobDataByIdError>
+        {
+            fn from(e: crate::services::my_service::LobDataByIdExn) -> Self {
+                match e {
+                    crate::services::my_service::LobDataByIdExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::my_service::LobDataByIdExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(LobDataByIdError::ApplicationException(aexn)),
+                }
+            }
+        }
 
     }
 
@@ -4861,7 +4881,33 @@ pub mod errors {
 
         pub type GetDataByKey0Error = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::db_mixed_stack_arguments::GetDataByKey0Exn> for
+            ::std::result::Result<::std::vec::Vec<::std::primitive::u8>, GetDataByKey0Error>
+        {
+            fn from(e: crate::services::db_mixed_stack_arguments::GetDataByKey0Exn) -> Self {
+                match e {
+                    crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::db_mixed_stack_arguments::GetDataByKey0Exn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(GetDataByKey0Error::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type GetDataByKey1Error = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::db_mixed_stack_arguments::GetDataByKey1Exn> for
+            ::std::result::Result<::std::vec::Vec<::std::primitive::u8>, GetDataByKey1Error>
+        {
+            fn from(e: crate::services::db_mixed_stack_arguments::GetDataByKey1Exn) -> Self {
+                match e {
+                    crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::db_mixed_stack_arguments::GetDataByKey1Exn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(GetDataByKey1Error::ApplicationException(aexn)),
+                }
+            }
+        }
 
     }
 

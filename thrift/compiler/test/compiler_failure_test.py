@@ -321,56 +321,6 @@ class CompilerFailureTest(unittest.TestCase):
         )
         self.assertEqual(ret, -6)
 
-    def test_idempotent_requires_experimental(self):
-        write_file(
-            "foo.thrift",
-            textwrap.dedent(
-                """\
-                service MyService {
-                    idempotent void deleteDataById(1: i64 id);
-                }
-                """
-            ),
-        )
-        ret, out, err = self.run_thrift("foo.thrift")
-        self.assertEqual(ret, 1)
-        self.assertEqual(
-            err,
-            "[FAILURE:foo.thrift:2] 'idempotency' is an experimental feature.\n",
-        )
-        ret, out, err = self.run_thrift(
-            "--allow-experimental-features", "idempotency", "--strict", "foo.thrift"
-        )
-        self.assertEqual(ret, 0, err)
-        # TODO(afuller): Figure out why this is outputing twice. (Are we parsing twice?)
-        self.assertEqual(
-            err,
-            "[WARNING:foo.thrift:2] 'idempotency' is an experimental feature.\n"
-            "[WARNING:foo.thrift:2] 'idempotency' is an experimental feature.\n",
-        )
-
-    def test_readonly_requires_experimental(self):
-        write_file(
-            "foo.thrift",
-            textwrap.dedent(
-                """\
-                service MyService {
-                    readonly string getDataById(1: i64 id);
-                }
-                """
-            ),
-        )
-        ret, out, err = self.run_thrift("foo.thrift")
-        self.assertEqual(ret, 1)
-        self.assertEqual(
-            err,
-            "[FAILURE:foo.thrift:2] 'idempotency' is an experimental feature.\n",
-        )
-        ret, out, err = self.run_thrift(
-            "--allow-experimental-features", "idempotency", "foo.thrift"
-        )
-        self.assertEqual(ret, 0, err)
-
     def test_enum_wrong_default_value(self):
         # tests initializing enum with default value of wrong type
         write_file(
@@ -633,9 +583,9 @@ class CompilerFailureTest(unittest.TestCase):
             textwrap.dedent(
                 """\
                 struct Foo {
-                1: i32 a;
-                2: i32 b;
-                3: i64 a;
+                    1: i32 a;
+                    2: i32 b;
+                    3: i64 a;
                 }
                 """
             ),
@@ -656,8 +606,8 @@ class CompilerFailureTest(unittest.TestCase):
                 struct A { 1: i32 i }
                 struct B { 2: i64 i }
                 struct C {
-                1: A a (cpp.mixin);
-                2: B b (cpp.mixin);
+                    1: A a (cpp.mixin);
+                    2: B b (cpp.mixin);
                 }
                 """
             ),
@@ -678,8 +628,8 @@ class CompilerFailureTest(unittest.TestCase):
                 struct A { 1: i32 i }
 
                 struct C {
-                1: A a (cpp.mixin);
-                2: i64 i;
+                    1: A a (cpp.mixin);
+                    2: i64 i;
                 }
                 """
             ),
@@ -699,7 +649,7 @@ class CompilerFailureTest(unittest.TestCase):
             textwrap.dedent(
                 """\
                 struct A {
-                1: A rec (cpp.ref);
+                    1: A rec (cpp.ref);
                 }
                 """
             ),
@@ -720,7 +670,7 @@ class CompilerFailureTest(unittest.TestCase):
                 """\
                 enum RefType {Unique, SharedConst, SharedMutable}
                 struct Ref {
-                  1: RefType type;
+                    1: RefType type;
                 } (thrift.uri = "facebook.com/thrift/annotation/cpp/Ref")
                 """
             ),
@@ -733,17 +683,17 @@ class CompilerFailureTest(unittest.TestCase):
                 include "thrift/annotation/cpp.thrift"
 
                 struct Foo {
-                  1: optional Foo field1 (cpp.ref);
+                    1: optional Foo field1 (cpp.ref);
 
-                  @cpp.Ref{type = cpp.RefType.Unique}
-                  2: optional Foo field2;
+                    @cpp.Ref{type = cpp.RefType.Unique}
+                    2: optional Foo field2;
 
-                  @cpp.Ref{type = cpp.RefType.Unique}
-                  3: optional Foo field3 (cpp.ref);
+                    @cpp.Ref{type = cpp.RefType.Unique}
+                    3: optional Foo field3 (cpp.ref);
 
-                  @cpp.Ref{type = cpp.RefType.Unique}
-                  @cpp.Ref{type = cpp.RefType.Unique}
-                  4: optional Foo field4;
+                    @cpp.Ref{type = cpp.RefType.Unique}
+                    @cpp.Ref{type = cpp.RefType.Unique}
+                    4: optional Foo field4;
                 }
                 """
             ),
@@ -766,7 +716,7 @@ class CompilerFailureTest(unittest.TestCase):
             textwrap.dedent(
                 """\
                 struct ExperimentalAdapter {
-                  1: string name;
+                    1: string name;
                 } (thrift.uri = "facebook.com/thrift/annotation/cpp/ExperimentalAdapter")
                 """
             ),
@@ -781,8 +731,8 @@ class CompilerFailureTest(unittest.TestCase):
                 typedef i64 MyI64 (cpp.adapter="MyAdapter")
 
                 struct MyStruct {
-                  @cpp.ExperimentalAdapter{name="MyAdapter"}
-                  1: MyI64 my_field;
+                    @cpp.ExperimentalAdapter{name="MyAdapter"}
+                    1: MyI64 my_field;
                 }
                 """
             ),
@@ -803,7 +753,7 @@ class CompilerFailureTest(unittest.TestCase):
             textwrap.dedent(
                 """\
                 struct A {
-                1: i32 i (cpp.mixin);
+                    1: i32 i (cpp.mixin);
                 }
                 """
             ),
@@ -824,7 +774,7 @@ class CompilerFailureTest(unittest.TestCase):
                 """\
                 struct A { 1: i32 i }
                 union B {
-                1: A a (cpp.mixin);
+                    1: A a (cpp.mixin);
                 }
                 """
             ),
@@ -844,7 +794,7 @@ class CompilerFailureTest(unittest.TestCase):
                 """\
                 struct A { 1: i32 i }
                 struct B {
-                1: A a (cpp.ref = "true", cpp.mixin);
+                    1: A a (cpp.ref = "true", cpp.mixin);
                 }
                 """
             ),
@@ -859,6 +809,41 @@ class CompilerFailureTest(unittest.TestCase):
                 """\
                 [FAILURE:foo.thrift:3] Mixin field `a` can not be a ref in cpp.
                 [WARNING:foo.thrift:3] `cpp.ref` field `a` must be optional if it is recursive.
+                """
+            ),
+        )
+
+    def test_bitpack_with_tablebased_seriliazation(self):
+        write_file(
+            "thrift/annotation/cpp.thrift",
+            textwrap.dedent(
+                """\
+                struct PackIsset {
+                } (thrift.uri = "facebook.com/thrift/annotation/cpp/PackIsset")
+                """
+            ),
+        )
+
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+                include "thrift/annotation/cpp.thrift"
+                struct A { 1: i32 i }
+                @cpp.PackIsset
+                struct D { 1: i32 i }
+                """
+            ),
+        )
+
+        ret, out, err = self.run_thrift("foo.thrift",gen="mstch_cpp2:json,tablebased")
+
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            textwrap.dedent(
+                """\
+                [FAILURE:foo.thrift:4] Tablebased serialization is incompatible with isset bitpacking for struct `D`
                 """
             ),
         )
@@ -923,7 +908,7 @@ class CompilerFailureTest(unittest.TestCase):
                 """\
                 struct A { 1: i32 i }
                 struct B {
-                1: optional A a (cpp.mixin);
+                    1: optional A a (cpp.mixin);
                 }
                 """
             ),
@@ -1307,7 +1292,7 @@ class CompilerFailureTest(unittest.TestCase):
             textwrap.dedent(
                 """\
                 struct Foo {
-                  1: list<i32> field (cpp.experimental.lazy)
+                    1: list<i32> field (cpp.experimental.lazy)
                 } (cpp.methods = "")
                 """
             ),

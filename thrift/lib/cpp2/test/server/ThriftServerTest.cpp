@@ -79,6 +79,7 @@
 
 #include <common/logging/logging.h>
 
+using namespace fizz::client;
 using namespace apache::thrift;
 using namespace apache::thrift::test;
 using namespace apache::thrift::util;
@@ -2340,6 +2341,16 @@ void setupServerSSL(ThriftServer& server) {
   server.setSSLConfig(std::move(sslConfig));
 }
 
+void setupServerSSLWithAlpn(
+    ThriftServer& server, std::list<std::string> nextProtocols) {
+  auto sslConfig = std::make_shared<wangle::SSLContextConfig>();
+  sslConfig->setCertificate(folly::kTestCert, folly::kTestKey, "");
+  sslConfig->clientCAFile = folly::kTestCA;
+  sslConfig->sessionContext = "ThriftServerTest";
+  sslConfig->setNextProtocols(nextProtocols);
+  server.setSSLConfig(std::move(sslConfig));
+}
+
 std::shared_ptr<folly::SSLContext> makeClientSslContext() {
   auto ctx = std::make_shared<folly::SSLContext>();
   ctx->loadCertificate(folly::kTestCert);
@@ -2349,6 +2360,16 @@ std::shared_ptr<folly::SSLContext> makeClientSslContext() {
       true /* verify server cert */, false /* don't verify server name */);
   ctx->setVerificationOption(folly::SSLContext::SSLVerifyPeerEnum::VERIFY);
   return ctx;
+}
+
+std::shared_ptr<FizzClientContext> makeClientFizzContext() {
+  auto fizzCtx = std::make_shared<FizzClientContext>();
+  std::string testCert, testKey;
+  folly::readFile(folly::kTestCert, testCert);
+  folly::readFile(folly::kTestKey, testKey);
+  auto selfCert = fizz::CertUtils::makeSelfCert(testCert, testKey);
+  fizzCtx->setClientCertificate(std::move(selfCert));
+  return fizzCtx;
 }
 
 void doBadRequestHeaderTest(bool duplex, bool secure) {
@@ -2779,7 +2800,7 @@ TEST(ThriftServer, QueueTimeoutStressTest) {
   {
     ScopedServerInterfaceThread runner(
         std::make_shared<SendResponseInterface>());
-    runner.getThriftServer().setQueueTimeout(std::chrono::milliseconds{10});
+    THRIFT_FLAG_SET_MOCK(server_default_queue_timeout_ms, 10);
 
     auto client = runner.newClient<TestServiceAsyncClient>(
         nullptr /* executor */, [](auto socket) mutable {
@@ -3013,6 +3034,112 @@ TEST(ThriftServer, RocketOverSSLNoALPN) {
   std::string response;
   client.sync_sendResponse(response, 64);
   EXPECT_EQ(response, "test64");
+}
+
+TEST(ThriftServer, AlpnAllowMismatch) {
+  THRIFT_FLAG_SET_MOCK(alpn_allow_mismatch, true);
+
+  auto server = std::static_pointer_cast<ThriftServer>(
+      TestThriftServerFactory<TestInterface>().create());
+  server->setSSLPolicy(SSLPolicy::REQUIRED);
+  setupServerSSLWithAlpn(*server, {"rs"});
+  ScopedServerThread sst(std::move(server));
+
+  folly::EventBase base;
+  auto port = sst.getAddress()->getPort();
+  folly::SocketAddress loopback("::1", port);
+
+  auto ctx = makeClientSslContext();
+  ctx->setAdvertisedNextProtocols({"h2"});
+  folly::AsyncSSLSocket::UniquePtr sslSock(
+      new folly::AsyncSSLSocket(ctx, &base));
+  sslSock->connect(nullptr /* connect callback */, loopback);
+
+  TestServiceAsyncClient client(
+      RocketClientChannel::newChannel(std::move(sslSock)));
+
+  std::string response;
+  client.sync_sendResponse(response, 64);
+  EXPECT_EQ(response, "test64");
+}
+
+TEST(ThriftServer, AlpnNotAllowMismatch) {
+  THRIFT_FLAG_SET_MOCK(alpn_allow_mismatch, false);
+
+  auto server = std::static_pointer_cast<ThriftServer>(
+      TestThriftServerFactory<TestInterface>().create());
+  server->setSSLPolicy(SSLPolicy::REQUIRED);
+  setupServerSSLWithAlpn(*server, {"rs"});
+  ScopedServerThread sst(std::move(server));
+
+  folly::EventBase base;
+  auto port = sst.getAddress()->getPort();
+  folly::SocketAddress loopback("::1", port);
+
+  auto ctx = makeClientSslContext();
+  ctx->setAdvertisedNextProtocols({"h2"});
+  folly::AsyncSSLSocket::UniquePtr sslSock(
+      new folly::AsyncSSLSocket(ctx, &base));
+  sslSock->connect(nullptr /* connect callback */, loopback);
+
+  TestServiceAsyncClient client(
+      RocketClientChannel::newChannel(std::move(sslSock)));
+
+  std::string response;
+  EXPECT_THROW(client.sync_sendResponse(response, 64), TTransportException);
+}
+
+TEST(ThriftServer, AlpnAllowMismatchFizz) {
+  THRIFT_FLAG_SET_MOCK(alpn_allow_mismatch, true);
+
+  auto server = std::static_pointer_cast<ThriftServer>(
+      TestThriftServerFactory<TestInterface>().create());
+  server->setSSLPolicy(SSLPolicy::REQUIRED);
+  setupServerSSLWithAlpn(*server, {"rs"});
+  ScopedServerThread sst(std::move(server));
+
+  auto clientEvbThread = std::make_shared<folly::ScopedEventBaseThread>();
+  TestServiceAsyncClient client(
+      apache::thrift::PooledRequestChannel::newSyncChannel(
+          clientEvbThread,
+          [address = sst.getAddress()](folly::EventBase& eb) mutable {
+            auto ctx = makeClientFizzContext();
+            ctx->setSupportedAlpns({"h2"});
+            AsyncFizzClient::UniquePtr fizzClient(
+                new AsyncFizzClient(&eb, std::move(ctx)));
+            fizzClient->connect(
+                *address, nullptr, nullptr, folly::none, folly::none);
+            return HeaderClientChannel::newChannel(std::move(fizzClient));
+          }));
+
+  EXPECT_EQ(client.semifuture_sendResponse(64).get(), "test64");
+}
+
+TEST(ThriftServer, AlpnNotAllowMismatchFizz) {
+  THRIFT_FLAG_SET_MOCK(alpn_allow_mismatch, false);
+
+  auto server = std::static_pointer_cast<ThriftServer>(
+      TestThriftServerFactory<TestInterface>().create());
+  server->setSSLPolicy(SSLPolicy::REQUIRED);
+  setupServerSSLWithAlpn(*server, {"rs"});
+  ScopedServerThread sst(std::move(server));
+
+  auto clientEvbThread = std::make_shared<folly::ScopedEventBaseThread>();
+  TestServiceAsyncClient client(
+      apache::thrift::PooledRequestChannel::newSyncChannel(
+          clientEvbThread,
+          [address = sst.getAddress()](folly::EventBase& eb) mutable {
+            auto ctx = makeClientFizzContext();
+            ctx->setSupportedAlpns({"h2"});
+            AsyncFizzClient::UniquePtr fizzClient(
+                new AsyncFizzClient(&eb, std::move(ctx)));
+            fizzClient->connect(
+                *address, nullptr, nullptr, folly::none, folly::none);
+            return HeaderClientChannel::newChannel(std::move(fizzClient));
+          }));
+
+  EXPECT_THROW(
+      client.semifuture_echoRequest("echo").get(), TTransportException);
 }
 
 TEST(ThriftServer, SocketQueueTimeout) {

@@ -26,10 +26,9 @@ using namespace apache::thrift::test;
 static const char* kTooLong =
     "This is too long for the small string optimization";
 
-TEST(CppAllocatorTest, UsesAllocator) {
-  ScopedMaybeThrowAlloc alloc;
-  alloc.armed = true;
-  UsesAllocatorParent s(alloc);
+TEST(CppAllocatorTest, AlwaysThrowAllocator) {
+  ScopedAlwaysThrowAlloc alloc;
+  AlwaysThrowParent s(alloc);
 
   EXPECT_THROW(s.child_ref()->aa_list_ref()->emplace_back(42), std::bad_alloc);
   EXPECT_THROW(s.child_ref()->aa_set_ref()->emplace(42), std::bad_alloc);
@@ -142,4 +141,48 @@ TEST(CppAllocatorTest, DeserializeSortedUniqueConstructible) {
   EXPECT_EQ(s2.get_allocator(), alloc);
   EXPECT_EQ(s2.aa_set_ref()->get_allocator(), alloc);
   EXPECT_EQ(s2.aa_map_ref()->get_allocator(), alloc);
+}
+
+TEST(CppAllocatorTest, CountingAllocator) {
+  ScopedCountingAlloc alloc;
+  CountingParent s(alloc);
+
+#define EXPECT_ALLOC(x)             \
+  {                                 \
+    auto c = alloc.getCount();      \
+    x;                              \
+    EXPECT_GT(alloc.getCount(), c); \
+  }
+#define EXPECT_NO_ALLOC(x)          \
+  {                                 \
+    auto c = alloc.getCount();      \
+    x;                              \
+    EXPECT_EQ(alloc.getCount(), c); \
+  }
+
+  EXPECT_ALLOC(s.aa_child_list_ref()->emplace_back());
+  auto& aa_child = s.aa_child_list_ref()[0];
+
+  EXPECT_ALLOC(aa_child.aa_list_ref()->emplace_back(42));
+  EXPECT_ALLOC(aa_child.aa_set_ref()->emplace(42));
+  EXPECT_ALLOC(aa_child.aa_map_ref()->emplace(42, 42));
+  EXPECT_ALLOC(aa_child.aa_string_ref()->assign(kTooLong));
+
+  EXPECT_NO_ALLOC(aa_child.not_aa_list_ref()->emplace_back(42));
+  EXPECT_NO_ALLOC(aa_child.not_aa_set_ref()->emplace(42));
+  EXPECT_NO_ALLOC(aa_child.not_aa_map_ref()->emplace(42, 42));
+  EXPECT_NO_ALLOC(aa_child.not_aa_string_ref()->assign(kTooLong));
+
+  EXPECT_NO_ALLOC(s.not_aa_child_list_ref()->emplace_back());
+  auto& not_aa_child = s.not_aa_child_list_ref()[0];
+
+  EXPECT_NO_ALLOC(not_aa_child.aa_list_ref()->emplace_back(42));
+  EXPECT_NO_ALLOC(not_aa_child.aa_set_ref()->emplace(42));
+  EXPECT_NO_ALLOC(not_aa_child.aa_map_ref()->emplace(42, 42));
+  EXPECT_NO_ALLOC(not_aa_child.aa_string_ref()->assign(kTooLong));
+
+  EXPECT_NO_ALLOC(not_aa_child.not_aa_list_ref()->emplace_back(42));
+  EXPECT_NO_ALLOC(not_aa_child.not_aa_set_ref()->emplace(42));
+  EXPECT_NO_ALLOC(not_aa_child.not_aa_map_ref()->emplace(42, 42));
+  EXPECT_NO_ALLOC(not_aa_child.not_aa_string_ref()->assign(kTooLong));
 }

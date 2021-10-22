@@ -36,19 +36,16 @@ void TccStructTraits<::cpp2::ReflectionStruct>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 ReflectionStruct::ReflectionStruct(apache::thrift::FragileConstructor, ::std::int32_t fieldA__arg) :
     fieldA(std::move(fieldA__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void ReflectionStruct::__clear() {
   // clear all fields
-  this->fieldA = 5;
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+  this->fieldA = static_cast<::std::int32_t>(5);
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool ReflectionStruct::operator==(const ReflectionStruct& rhs) const {
@@ -75,9 +72,7 @@ bool ReflectionStruct::operator<(const ReflectionStruct& rhs) const {
 void swap(ReflectionStruct& a, ReflectionStruct& b) {
   using ::std::swap;
   swap(a.fieldA_ref().value(), b.fieldA_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void ReflectionStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -96,3 +91,8 @@ template uint32_t ReflectionStruct::serializedSizeZC<>(apache::thrift::SimpleJSO
 
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

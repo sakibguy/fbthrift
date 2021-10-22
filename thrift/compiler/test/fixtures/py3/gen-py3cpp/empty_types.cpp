@@ -11,3 +11,8 @@
 
 #include "thrift/compiler/test/fixtures/py3/gen-py3cpp/empty_data.h"
 
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

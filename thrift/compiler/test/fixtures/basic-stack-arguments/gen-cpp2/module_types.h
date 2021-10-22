@@ -90,13 +90,13 @@ class MyStruct;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -133,22 +133,8 @@ class MyStruct final  {
   ::std::int64_t MyIntField;
  private:
   ::std::string MyStringField;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -157,42 +143,42 @@ class MyStruct final  {
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> MyIntField_ref() const& {
-    return {this->MyIntField, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->MyIntField, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> MyIntField_ref() const&& {
-    return {std::move(this->MyIntField), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->MyIntField), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> MyIntField_ref() & {
-    return {this->MyIntField, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->MyIntField, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> MyIntField_ref() && {
-    return {std::move(this->MyIntField), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->MyIntField), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> MyStringField_ref() const& {
-    return {this->MyStringField, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->MyStringField, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> MyStringField_ref() const&& {
-    return {std::move(this->MyStringField), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->MyStringField), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> MyStringField_ref() & {
-    return {this->MyStringField, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->MyStringField, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> MyStringField_ref() && {
-    return {std::move(this->MyStringField), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->MyStringField), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   ::std::int64_t get_MyIntField() const {
@@ -201,8 +187,7 @@ class MyStruct final  {
 
   [[deprecated("Use `FOO.MyIntField_ref() = BAR;` instead of `FOO.set_MyIntField(BAR);`")]]
   ::std::int64_t& set_MyIntField(::std::int64_t MyIntField_) {
-    MyIntField = MyIntField_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    MyIntField_ref() = MyIntField_;
     return MyIntField;
   }
 
@@ -217,8 +202,7 @@ class MyStruct final  {
   template <typename T_MyStruct_MyStringField_struct_setter = ::std::string>
   [[deprecated("Use `FOO.MyStringField_ref() = BAR;` instead of `FOO.set_MyStringField(BAR);`")]]
   ::std::string& set_MyStringField(T_MyStruct_MyStringField_struct_setter&& MyStringField_) {
-    MyStringField = std::forward<T_MyStruct_MyStringField_struct_setter>(MyStringField_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    MyStringField_ref() = std::forward<T_MyStruct_MyStringField_struct_setter>(MyStringField_);
     return MyStringField;
   }
 
@@ -247,4 +231,3 @@ uint32_t MyStruct::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

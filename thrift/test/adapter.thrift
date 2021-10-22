@@ -18,9 +18,38 @@ namespace cpp2 apache.thrift.test.basic
 
 include "thrift/annotation/cpp.thrift"
 cpp_include "thrift/test/AdapterTest.h"
+cpp_include "thrift/lib/cpp2/Adapt.h"
 
 typedef i64 DurationMs (
   cpp.adapter = "::apache::thrift::test::AdaptTestMsAdapter",
+)
+
+typedef bool AdaptedBool (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
+)
+
+typedef byte AdaptedByte (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
+)
+
+typedef i16 AdaptedShort (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
+)
+
+typedef i32 AdaptedInteger (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
+)
+
+typedef i64 AdaptedLong (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
+)
+
+typedef double AdaptedDouble (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
+)
+
+typedef string AdaptedString (
+  cpp.adapter = "::apache::thrift::test::TemplatedTestAdapter",
 )
 
 typedef binary (
@@ -28,16 +57,56 @@ typedef binary (
   cpp.adapter = "::apache::thrift::test::CustomProtocolAdapter",
 ) CustomProtocolType
 
+typedef string (
+  cpp.adapter = "::apache::thrift::IndirectionAdapter<::apache::thrift::test::IndirectionString>",
+) IndirectionString
+
 struct AdaptTestStruct {
   1: DurationMs delay;
   2: CustomProtocolType custom;
 
-
   @cpp.ExperimentalAdapter{name = "::apache::thrift::test::AdaptTestMsAdapter"}
   3: i64 timeout;
+
+  @cpp.ExperimentalAdapter{name = "::apache::thrift::test::AdapterWithContext"}
+  4: i64 data;
+  5: string meta;
+  6: IndirectionString indirectionString;
+}
+
+struct AdaptTemplatedTestStruct {
+  1: AdaptedBool adaptedBool;
+  2: AdaptedByte adaptedByte;
+  3: AdaptedShort adaptedShort;
+  4: AdaptedInteger adaptedInteger;
+  5: AdaptedLong adaptedLong;
+  6: AdaptedDouble adaptedDouble;
+  7: AdaptedString adaptedString;
+  8: AdaptedBool adaptedBoolDefault = true;
+  9: AdaptedByte adaptedByteDefault = 1;
+  10: AdaptedShort adaptedShortDefault = 2;
+  11: AdaptedInteger adaptedIntegerDefault = 3;
+  12: AdaptedLong adaptedLongDefault = 4;
+  13: AdaptedDouble adaptedDoubleDefault = 5;
+  14: AdaptedString adaptedStringDefault = "6";
+}
+
+struct AdaptTemplatedNestedTestStruct {
+  1: AdaptTemplatedTestStruct adaptedStruct;
 }
 
 union AdaptTestUnion {
   1: DurationMs delay;
   2: CustomProtocolType custom;
+}
+
+struct AdaptedStruct {
+  1: i64 data;
+}
+
+struct StructFieldAdaptedStruct {
+  @cpp.ExperimentalAdapter{
+    name = "::apache::thrift::test::TemplatedTestAdapter",
+  }
+  1: AdaptedStruct adaptedStruct;
 }

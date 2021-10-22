@@ -20,12 +20,9 @@
 #include <memory>
 
 #include <folly/Portability.h>
-
 #include <folly/Try.h>
-#if FOLLY_HAS_COROUTINES
 #include <folly/experimental/coro/AsyncGenerator.h>
 #include <folly/experimental/coro/Task.h>
-#endif
 
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/async/ClientSinkBridge.h>
@@ -36,7 +33,10 @@
 namespace apache {
 namespace thrift {
 
-class SinkThrew : public TApplicationException {};
+class FOLLY_EXPORT SinkThrew : public TApplicationException {
+ public:
+  using TApplicationException::TApplicationException;
+};
 
 template <typename T, typename R>
 class ClientSink {
@@ -71,18 +71,18 @@ class ClientSink {
   }
 
   folly::coro::Task<R> sink(folly::coro::AsyncGenerator<T&&> generator) {
-    bool sinkThrew = false;
+    folly::exception_wrapper sinkError;
     auto finalResponse =
         co_await std::exchange(impl_, nullptr)
             ->sink(
-                [this, &sinkThrew](folly::coro::AsyncGenerator<T&&> _generator)
+                [this, &sinkError](folly::coro::AsyncGenerator<T&&> _generator)
                     -> folly::coro::AsyncGenerator<
                         folly::Try<StreamPayload>&&> {
                   while (true) {
                     auto item =
                         co_await folly::coro::co_awaitTry(_generator.next());
                     if (item.hasException()) {
-                      sinkThrew = true;
+                      sinkError = item.exception();
                       co_yield (*serializer_)(std::move(item.exception()));
                       co_return;
                     }
@@ -94,11 +94,14 @@ class ClientSink {
                   co_return;
                 }(std::move(generator)));
 
-    if (sinkThrew) {
-      throw SinkThrew();
+    if (finalResponse.hasException()) {
+      co_yield folly::coro::co_error(
+          deserializer_(std::move(finalResponse)).exception());
+    }
+    if (sinkError) {
+      co_yield folly::coro::co_error(SinkThrew(sinkError.what().toStdString()));
     }
 
-    // may throw
     co_return deserializer_(std::move(finalResponse)).value();
   }
 
@@ -128,7 +131,7 @@ struct SinkConsumer {
   using Consumer = folly::Function<folly::coro::Task<FinalResponse>(
       folly::coro::AsyncGenerator<SinkElement&&>)>;
   Consumer consumer;
-  uint64_t bufferSize;
+  uint64_t bufferSize{100};
   SinkOptions sinkOptions{std::chrono::milliseconds(0)};
   SinkConsumer&& setChunkTimeout(const std::chrono::milliseconds& timeout) && {
     sinkOptions.chunkTimeout = timeout;

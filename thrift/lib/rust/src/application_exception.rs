@@ -15,12 +15,15 @@
  */
 
 use crate::deserialize::Deserialize;
+use crate::exceptions::{ExceptionInfo, ResultInfo, ResultType};
 use crate::protocol::{Field, ProtocolReader, ProtocolWriter};
 use crate::serialize::Serialize;
 use crate::thrift_protocol::ProtocolID;
 use crate::ttype::TType;
 use crate::Result;
+use std::any::Any;
 
+// Reference is thrift/lib/cpp/TApplicationException.h
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(i32)]
 pub enum ApplicationExceptionErrorCode {
@@ -38,6 +41,8 @@ pub enum ApplicationExceptionErrorCode {
     Loadshedding = 11,
     Timeout = 12,
     InjectedFailure = 13,
+    ChecksumMismatch = 14,
+    Interruption = 15,
 }
 
 impl Default for ApplicationExceptionErrorCode {
@@ -103,6 +108,58 @@ impl ApplicationException {
             message: format!("Invalid protocol {:?}", badproto),
         }
     }
+
+    /// An undeclared "exception"/panic etc
+    #[cold]
+    pub fn handler_panic(method: &str, exn: Box<dyn Any + Send + 'static>) -> Self {
+        ApplicationException {
+            type_: ApplicationExceptionErrorCode::Unknown,
+            message: format!(
+                "Handler for `{}` panicked with: {}",
+                method,
+                panic_message::get_panic_message(&exn).unwrap_or("<panic>")
+            ),
+        }
+    }
+}
+
+impl ExceptionInfo for ApplicationException {
+    #[rustfmt::skip]
+    fn exn_name(&self) -> &'static str {
+        match self.type_ {
+            ApplicationExceptionErrorCode::Unknown => "ApplicationExceptionErrorCode::Unknown",
+            ApplicationExceptionErrorCode::UnknownMethod => "ApplicationExceptionErrorCode::UnknownMethod",
+            ApplicationExceptionErrorCode::InvalidMessageType => "ApplicationExceptionErrorCode::InvalidMessageType",
+            ApplicationExceptionErrorCode::WrongMethodName => "ApplicationExceptionErrorCode::WrongMethodName",
+            ApplicationExceptionErrorCode::BadSequenceID => "ApplicationExceptionErrorCode::BadSequenceID",
+            ApplicationExceptionErrorCode::MissingResult => "ApplicationExceptionErrorCode::MissingResult",
+            ApplicationExceptionErrorCode::InternalError => "ApplicationExceptionErrorCode::InternalError",
+            ApplicationExceptionErrorCode::ProtocolError => "ApplicationExceptionErrorCode::ProtocolError",
+            ApplicationExceptionErrorCode::InvalidTransform => "ApplicationExceptionErrorCode::InvalidTransform",
+            ApplicationExceptionErrorCode::InvalidProtocol => "ApplicationExceptionErrorCode::InvalidProtocol",
+            ApplicationExceptionErrorCode::UnsupportedClientType => "ApplicationExceptionErrorCode::UnsupportedClientType",
+            ApplicationExceptionErrorCode::Loadshedding => "ApplicationExceptionErrorCode::Loadshedding",
+            ApplicationExceptionErrorCode::Timeout => "ApplicationExceptionErrorCode::Timeout",
+            ApplicationExceptionErrorCode::InjectedFailure => "ApplicationExceptionErrorCode::InjectedFailure",
+            ApplicationExceptionErrorCode::ChecksumMismatch => "ApplicationExceptionErrorCode::ChecksumMismatch",
+            ApplicationExceptionErrorCode::Interruption => "ApplicationExceptionErrorCode::Interruption",
+        }
+    }
+
+    fn exn_value(&self) -> String {
+        self.message.clone()
+    }
+
+    #[inline]
+    fn exn_is_declared(&self) -> bool {
+        false
+    }
+}
+
+impl ResultInfo for ApplicationException {
+    fn result_type(&self) -> ResultType {
+        ResultType::Exception
+    }
 }
 
 impl<P> Deserialize<P> for ApplicationException
@@ -142,6 +199,8 @@ where
                         11 => ApplicationExceptionErrorCode::Loadshedding,
                         12 => ApplicationExceptionErrorCode::Timeout,
                         13 => ApplicationExceptionErrorCode::InjectedFailure,
+                        14 => ApplicationExceptionErrorCode::ChecksumMismatch,
+                        15 => ApplicationExceptionErrorCode::Interruption,
 
                         _ => ApplicationExceptionErrorCode::Unknown,
                     }

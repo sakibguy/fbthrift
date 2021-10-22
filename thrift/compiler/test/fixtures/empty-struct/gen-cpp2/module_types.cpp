@@ -36,9 +36,8 @@ void TccStructTraits<::cpp2::Empty>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Empty::Empty(apache::thrift::FragileConstructor) {}
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void Empty::__clear() {
   // clear all fields
@@ -173,3 +172,8 @@ template uint32_t Nada::serializedSizeZC<>(apache::thrift::CompactProtocolWriter
 
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

@@ -17,9 +17,7 @@
 %><%
 // Computes lhs.{field} < rhs.{field}, assuming lhs.{field} != rhs.{field}.
 %><%#field:cpp_ref?%><%
-  // null comes first.
-  // TODO(afuller): Move this to a shared helper function in the runtime.
-  %>lhs.<%field:cpp_name%> == nullptr || (rhs.<%field:cpp_name%> != nullptr && *lhs.<%field:cpp_name%> < *rhs.<%field:cpp_name%>)<%
+  %>::apache::thrift::detail::pointer_less(lhs.<%field:cpp_name%>_ref(), rhs.<%field:cpp_name%>_ref())<%
 %><%/field:cpp_ref?%><%
 %><%^field:cpp_ref?%><%
   %><%#type:raw_binary?%><%
@@ -29,11 +27,21 @@
       // Unset comes first.
       %>!lhs.<%field:cpp_name%>_ref().has_value() || (rhs.<%field:cpp_name%>_ref().has_value() && <%
     %><%/field:optional?%><%
-    %>apache::thrift::StringTraits<<% > types/indirected_string_type%>>::isLess(<% > types/apply_indirection_pre%>lhs.<%field:cpp_name%><% > types/apply_indirection_post%>, <% > types/apply_indirection_pre%>rhs.<%field:cpp_name%><% > types/apply_indirection_post%>)<%
+    %>apache::thrift::StringTraits<<% > types/indirected_string_type%>>::isLess(<% > types/apply_indirection_pre%>lhs.<%field:cpp_storage_name%><% > types/apply_indirection_post%>, <% > types/apply_indirection_pre%>rhs.<%field:cpp_storage_name%><% > types/apply_indirection_post%>)<%
     %><%#field:optional?%>)<%/field:optional?%><%
   %><%/type:raw_binary?%><%
   %><%^type:raw_binary?%><%
-    // Just use the field_ref impl.
-    %>lhs.<%field:cpp_name%>_ref() < rhs.<%field:cpp_name%>_ref()<%
+    %><%#field:cpp_adapter%><%
+      %><%#field:optional?%><%
+        %>::apache::thrift::adapt_detail::neq_less_opt<<%field:cpp_adapter%>>(lhs.<%field:cpp_name%>_ref(), rhs.<%field:cpp_name%>_ref())<%
+      %><%/field:optional?%><%
+      %><%^field:optional?%><%
+        %>::apache::thrift::adapt_detail::less<<%field:cpp_adapter%>>(lhs.<%field:cpp_storage_name%>, rhs.<%field:cpp_storage_name%>)<%
+      %><%/field:optional?%><%
+    %><%/field:cpp_adapter%><%
+    %><%^field:cpp_adapter%><%
+      // Just use the field_ref impl.
+      %>lhs.<%field:cpp_name%>_ref() < rhs.<%field:cpp_name%>_ref()<%
+    %><%/field:cpp_adapter%><%
   %><%/type:raw_binary?%><%
 %><%/field:cpp_ref?%>

@@ -52,13 +52,13 @@ class BasicTypes;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class BasicTypes final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -103,22 +103,8 @@ class BasicTypes final  {
   ::std::int64_t third;
  private:
   bool isTrue;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,3> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 3, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 3, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<3> __isset;
 
  public:
 
@@ -147,62 +133,62 @@ class BasicTypes final  {
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&> second_ref() const& {
-    return {this->second, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->second, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&&> second_ref() const&& {
-    return {std::move(this->second), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->second), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&> second_ref() & {
-    return {this->second, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->second, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&&> second_ref() && {
-    return {std::move(this->second), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->second), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&> third_ref() const& {
-    return {this->third, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->third, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&&> third_ref() const&& {
-    return {std::move(this->third), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->third), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&> third_ref() & {
-    return {this->third, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->third, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&&> third_ref() && {
-    return {std::move(this->third), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->third), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = bool>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> isTrue_ref() const& {
-    return {this->isTrue, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->isTrue, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = bool>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> isTrue_ref() const&& {
-    return {std::move(this->isTrue), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->isTrue), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = bool>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> isTrue_ref() & {
-    return {this->isTrue, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->isTrue, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = bool>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> isTrue_ref() && {
-    return {std::move(this->isTrue), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->isTrue), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   ::std::int32_t get_first() const {
@@ -211,7 +197,7 @@ class BasicTypes final  {
 
   [[deprecated("Use `FOO.first_ref() = BAR;` instead of `FOO.set_first(BAR);`")]]
   ::std::int32_t& set_first(::std::int32_t first_) {
-    first = first_;
+    first_ref() = first_;
     return first;
   }
 
@@ -226,8 +212,7 @@ class BasicTypes final  {
 
   [[deprecated("Use `FOO.second_ref() = BAR;` instead of `FOO.set_second(BAR);`")]]
   ::std::int32_t& set_second(::std::int32_t second_) {
-    second = second_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    second_ref() = second_;
     return second;
   }
 
@@ -242,8 +227,7 @@ class BasicTypes final  {
 
   [[deprecated("Use `FOO.third_ref() = BAR;` instead of `FOO.set_third(BAR);`")]]
   ::std::int64_t& set_third(::std::int64_t third_) {
-    third = third_;
-  __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    third_ref() = third_;
     return third;
   }
 
@@ -253,8 +237,7 @@ class BasicTypes final  {
 
   [[deprecated("Use `FOO.isTrue_ref() = BAR;` instead of `FOO.set_isTrue(BAR);`")]]
   bool& set_isTrue(bool isTrue_) {
-    isTrue = isTrue_;
-  __isset.__fbthrift_set(folly::index_constant<2>(), true);
+    isTrue_ref() = isTrue_;
     return isTrue;
   }
 
@@ -283,4 +266,3 @@ uint32_t BasicTypes::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

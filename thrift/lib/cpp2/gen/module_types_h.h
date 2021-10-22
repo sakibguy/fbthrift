@@ -67,11 +67,8 @@
     }                                                                         \
   }
 
-// Temporarily disable warnings about internal deprecated use of __isset.
-#define THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN \
-  FOLLY_PUSH_WARNING                          \
-  FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
-#define THRIFT_IGNORE_ISSET_USE_WARNING_END FOLLY_POP_WARNING
+#define THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
+#define THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 namespace apache {
 namespace thrift {
@@ -204,6 +201,53 @@ template <typename T, std::enable_if_t<st::IsThriftClass<T>{}, int> = 0>
 constexpr bool operator>=(const T& lhs, const T& rhs) {
   return !(lhs < rhs);
 }
+template <size_t NumBits, bool packed = false>
+class isset_bitset {
+ public:
+  template <size_t field_index>
+  bool __fbthrift_get(folly::index_constant<field_index>) const {
+    check<field_index>();
+    return array_isset[field_index / kBits] >> (field_index % kBits) & 1;
+  }
+  template <size_t field_index>
+  void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
+    check<field_index>();
+    if (isset_flag) {
+      array_isset[field_index / kBits] |= 1 << (field_index % kBits);
+    } else {
+      array_isset[field_index / kBits] &= ~(1 << (field_index % kBits));
+    }
+  }
+  template <size_t field_index>
+  const uint8_t& __fbthrift_at(folly::index_constant<field_index>) const {
+    check<field_index>();
+    return array_isset[field_index / kBits];
+  }
+  template <size_t field_index>
+  uint8_t& __fbthrift_at(folly::index_constant<field_index>) {
+    check<field_index>();
+    return array_isset[field_index / kBits];
+  }
+  template <size_t field_index>
+  uint8_t __fbthrift_bit(folly::index_constant<field_index>) const {
+    check<field_index>();
+    return field_index % kBits;
+  }
+  static constexpr ptrdiff_t get_offset() {
+    return offsetof(isset_bitset, array_isset);
+  }
+
+ private:
+  template <size_t field_index>
+  static void check() {
+    static_assert(
+        field_index / kBits < NumBits, "Isset index is out of boundary");
+  }
+
+ private:
+  static constexpr size_t kBits = packed ? 8 : 1;
+  std::array<uint8_t, (NumBits + kBits - 1) / kBits> array_isset{};
+};
 
 } // namespace detail
 } // namespace thrift

@@ -36,22 +36,19 @@ void TccStructTraits<::cpp2::Included>::translateFieldName(
 namespace cpp2 {
 
 
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 Included::Included(apache::thrift::FragileConstructor, ::std::int64_t MyIntField__arg, ::cpp2::Foo MyTransitiveField__arg) :
     MyIntField(std::move(MyIntField__arg)),
     MyTransitiveField(std::move(MyTransitiveField__arg)) {
   __isset.__fbthrift_set(folly::index_constant<0>(), true);
   __isset.__fbthrift_set(folly::index_constant<1>(), true);
 }
-THRIFT_IGNORE_ISSET_USE_WARNING_END
+
 
 void Included::__clear() {
   // clear all fields
-  this->MyIntField = 0LL;
+  this->MyIntField = static_cast<::std::int64_t>(0);
   this->MyTransitiveField.__clear();
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   __isset = {};
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 bool Included::operator==(const Included& rhs) const {
@@ -93,9 +90,7 @@ void swap(Included& a, Included& b) {
   using ::std::swap;
   swap(a.MyIntField_ref().value(), b.MyIntField_ref().value());
   swap(a.MyTransitiveField_ref().value(), b.MyTransitiveField_ref().value());
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
   swap(a.__isset, b.__isset);
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 }
 
 template void Included::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
@@ -122,3 +117,8 @@ static_assert(
     "inconsistent use of nimble option");
 
 } // cpp2
+
+namespace cpp2 { namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+}
+}} // cpp2

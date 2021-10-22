@@ -29,6 +29,8 @@
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/executors/IOThreadPoolDeadlockDetectorObserver.h>
 #include <folly/experimental/coro/BlockingWait.h>
+#include <folly/experimental/coro/CurrentExecutor.h>
+#include <folly/experimental/coro/Invoke.h>
 #include <folly/io/GlobalShutdownSocketSet.h>
 #include <folly/portability/Sockets.h>
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
@@ -36,7 +38,6 @@
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 #include <thrift/lib/cpp/server/TServerObserver.h>
 #include <thrift/lib/cpp2/Flags.h>
-#include <thrift/lib/cpp2/PluggableFunction.h>
 #include <thrift/lib/cpp2/async/MultiplexAsyncProcessor.h>
 #include <thrift/lib/cpp2/server/Cpp2Connection.h>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
@@ -67,6 +68,7 @@ DEFINE_string(
 THRIFT_FLAG_DEFINE_bool(server_alpn_prefer_rocket, true);
 THRIFT_FLAG_DEFINE_bool(server_enable_stoptls, false);
 THRIFT_FLAG_DEFINE_bool(ssl_policy_default_required, true);
+THRIFT_FLAG_DEFINE_bool(alpn_allow_mismatch, true);
 
 THRIFT_FLAG_DEFINE_bool(dump_snapshot_on_long_shutdown, true);
 
@@ -138,6 +140,8 @@ std::unique_ptr<AsyncProcessorFactory> createDecoratedProcessorFactory(
 } // namespace
 
 #if FOLLY_HAS_COROUTINES
+// HACK: To avoid circular header includes, we define this in ThriftServer.h
+// instead of AsyncProcessor.h
 folly::coro::CancellableAsyncScope* ServiceHandler::getAsyncScope() {
   return server_->getAsyncScope();
 }
@@ -162,8 +166,7 @@ ThriftServer::ThriftServer()
     sslPolicy_ = SSLPolicy::PERMITTED;
   }
   metadata().wrapper = "ThriftServer-cpp";
-  auto extraInterfaces = apache::thrift::detail::THRIFT_PLUGGABLE_FUNC(
-      createDefaultExtraInterfaces)();
+  auto extraInterfaces = apache::thrift::detail::createDefaultExtraInterfaces();
   setMonitoringInterface(std::move(extraInterfaces.monitoring));
   setStatusInterface(std::move(extraInterfaces.status));
 }
@@ -458,7 +461,7 @@ void ThriftServer::setup() {
 #if FOLLY_HAS_COROUTINES
     asyncScope_ = std::make_unique<folly::coro::CancellableAsyncScope>();
 #endif
-    for (auto handler : getDecoratedProcessorFactory().getServiceHandlers()) {
+    for (auto handler : collectServiceHandlers()) {
       handler->setServer(this);
     }
 
@@ -483,6 +486,27 @@ void ThriftServer::setup() {
     // After the onStartServing hooks have finished, we are ready to handle
     // requests, at least from the server's perspective.
     internalStatus_.store(ServerStatus::RUNNING, std::memory_order_release);
+
+#if FOLLY_HAS_COROUTINES
+    // Set up polling for PolledServiceHealth handlers if necessary
+    {
+      DCHECK(!getServiceHealth().has_value());
+      auto handlers = collectServiceHandlers<PolledServiceHealth>();
+      if (!handlers.empty()) {
+        auto poll = ServiceHealthPoller::poll(
+            std::move(handlers), getPolledServiceHealthLivenessObserver());
+        auto loop = folly::coro::co_invoke(
+            [this,
+             poll = std::move(poll)]() mutable -> folly::coro::Task<void> {
+              while (auto value = co_await poll.next()) {
+                co_await folly::coro::co_safe_point;
+                cachedServiceHealth_.store(*value, std::memory_order_relaxed);
+              }
+            });
+        asyncScope_->add(std::move(loop).scheduleOn(threadManager_.get()));
+      }
+    }
+#endif
 
     // Notify handler of the preServe event
     for (const auto& eventHandler : getEventHandlersUnsafe()) {
@@ -599,6 +623,10 @@ void ThriftServer::cleanUp() {
     stopWorkers();
   } else if (joinRequestsWhenServerStops_) {
     stopAcceptingAndJoinOutstandingRequests();
+  }
+
+  for (auto handler : getProcessorFactory()->getServiceHandlers()) {
+    handler->setServer(nullptr);
   }
 
   // Now clear all the handlers
@@ -743,8 +771,7 @@ void ThriftServer::stopAcceptingAndJoinOutstandingRequests() {
           // The IO threads may be deadlocked in which case we won't be able to
           // dump snapshots. It still shouldn't block shutdown indefinitely.
           auto dumpSnapshotResult =
-              apache::thrift::detail::THRIFT_PLUGGABLE_FUNC(
-                  dumpSnapshotOnLongShutdown)();
+              apache::thrift::detail::dumpSnapshotOnLongShutdown();
           try {
             std::move(dumpSnapshotResult.task)
                 .via(folly::getKeepAliveToken(dumpSnapshotExecutor))
@@ -799,7 +826,7 @@ void ThriftServer::ensureDecoratedProcessorFactoryInitialized() {
 }
 
 void ThriftServer::callOnStartServing() {
-  auto handlerList = getDecoratedProcessorFactory().getServiceHandlers();
+  auto handlerList = collectServiceHandlers();
   // Exception is handled in setup()
   std::vector<folly::SemiFuture<folly::Unit>> futures;
   futures.reserve(handlerList.size());
@@ -813,7 +840,7 @@ void ThriftServer::callOnStartServing() {
 }
 
 void ThriftServer::callOnStopServing() {
-  auto handlerList = getDecoratedProcessorFactory().getServiceHandlers();
+  auto handlerList = collectServiceHandlers();
   std::vector<folly::SemiFuture<folly::Unit>> futures;
   futures.reserve(handlerList.size());
   for (auto handler : handlerList) {
@@ -853,6 +880,7 @@ void ThriftServer::stopCPUWorkers() {
 #if FOLLY_HAS_COROUTINES
   // Wait for tasks running on AsyncScope to join
   folly::coro::blockingWait(asyncScope_->joinAsync());
+  cachedServiceHealth_.store(ServiceHealth{}, std::memory_order_relaxed);
 #endif
 
   // Notify handler of the postStop event
@@ -1148,5 +1176,10 @@ folly::observer::CallbackHandle ThriftServer::getSSLCallbackHandle() {
     this->updateCertsToWatch();
   });
 }
+
+folly::observer::Observer<bool> ThriftServer::alpnAllowMismatch() {
+  return THRIFT_FLAG_OBSERVE(alpn_allow_mismatch);
+}
+
 } // namespace thrift
 } // namespace apache

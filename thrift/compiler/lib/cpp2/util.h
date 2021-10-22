@@ -29,6 +29,7 @@
 #include <thrift/compiler/ast/t_function.h>
 #include <thrift/compiler/ast/t_program.h>
 #include <thrift/compiler/ast/t_stream.h>
+#include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_type.h>
 #include <thrift/compiler/gen/cpp/namespace_resolver.h>
 #include <thrift/compiler/gen/cpp/reference_type.h>
@@ -57,8 +58,6 @@ bool is_orderable(
     std::unordered_map<t_type const*, bool>& memo,
     t_type const& type);
 bool is_orderable(t_type const& type);
-int32_t isset_index(
-    std::unordered_map<t_field const*, int32_t>& memo, t_field const* field);
 
 /**
  * Return the cpp.type/cpp2.type attribute or empty string if nothing set.
@@ -158,6 +157,11 @@ bool is_stack_arguments(
 int32_t get_split_count(std::map<std::string, std::string> const& options);
 
 bool is_mixin(const t_field& field);
+
+inline const t_const* packed_isset(const t_struct& s) {
+  return s.find_structured_annotation_or_null(
+      "facebook.com/thrift/annotation/cpp/PackIsset");
+}
 
 bool has_ref_annotation(const t_field& f);
 

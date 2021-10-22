@@ -16,14 +16,11 @@
 
 #pragma once
 
+#include <variant>
+
 #include <folly/Portability.h>
-
-#include <boost/variant.hpp>
-
-#if FOLLY_HAS_COROUTINES
 #include <folly/experimental/coro/Baton.h>
 #include <folly/experimental/coro/Task.h>
-#endif
 
 #include <thrift/lib/cpp2/async/StreamCallbacks.h>
 
@@ -31,9 +28,8 @@ namespace apache {
 namespace thrift {
 namespace detail {
 
-using ClientMessage = boost::variant<folly::Try<StreamPayload>, int64_t>;
-struct SinkComplete {};
-using ServerMessage = boost::variant<folly::Try<StreamPayload>, SinkComplete>;
+using ClientMessage = std::variant<folly::Try<StreamPayload>, uint64_t>;
+using ServerMessage = folly::Try<StreamPayload>;
 
 class ClientSinkConsumer {
  public:

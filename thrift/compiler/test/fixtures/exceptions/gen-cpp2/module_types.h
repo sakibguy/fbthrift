@@ -77,13 +77,13 @@ class Banal;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class FOLLY_EXPORT Fiery : public apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -128,8 +128,6 @@ class FOLLY_EXPORT Fiery : public apache::thrift::TException {
  public:
   ::std::string message;
 
- private:
-
  public:
 
   bool operator==(const Fiery&) const;
@@ -166,7 +164,7 @@ class FOLLY_EXPORT Fiery : public apache::thrift::TException {
   template <typename T_Fiery_message_struct_setter = ::std::string>
   [[deprecated("Use `FOO.message_ref() = BAR;` instead of `FOO.set_message(BAR);`")]]
   ::std::string& set_message(T_Fiery_message_struct_setter&& message_) {
-    message = std::forward<T_Fiery_message_struct_setter>(message_);
+    message_ref() = std::forward<T_Fiery_message_struct_setter>(message_);
     return message;
   }
 
@@ -200,11 +198,6 @@ uint32_t Fiery::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class FOLLY_EXPORT Serious : public apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -248,22 +241,8 @@ class FOLLY_EXPORT Serious : public apache::thrift::TException {
 
  private:
   ::std::string sonnet;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -272,22 +251,22 @@ class FOLLY_EXPORT Serious : public apache::thrift::TException {
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&> sonnet_ref() const& {
-    return {this->sonnet, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->sonnet, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const T&&> sonnet_ref() const&& {
-    return {std::move(this->sonnet), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->sonnet), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&> sonnet_ref() & {
-    return {this->sonnet, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->sonnet, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<T&&> sonnet_ref() && {
-    return {std::move(this->sonnet), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->sonnet), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   const ::std::string* get_sonnet() const& {
@@ -302,8 +281,7 @@ class FOLLY_EXPORT Serious : public apache::thrift::TException {
   template <typename T_Serious_sonnet_struct_setter = ::std::string>
   [[deprecated("Use `FOO.sonnet_ref() = BAR;` instead of `FOO.set_sonnet(BAR);`")]]
   ::std::string& set_sonnet(T_Serious_sonnet_struct_setter&& sonnet_) {
-    sonnet = std::forward<T_Serious_sonnet_struct_setter>(sonnet_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    sonnet_ref() = std::forward<T_Serious_sonnet_struct_setter>(sonnet_);
     return sonnet;
   }
 
@@ -337,11 +315,6 @@ uint32_t Serious::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class FOLLY_EXPORT ComplexFieldNames : public apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -387,22 +360,8 @@ class FOLLY_EXPORT ComplexFieldNames : public apache::thrift::TException {
   ::std::string error_message;
  private:
   ::std::string internal_error_message;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -411,42 +370,42 @@ class FOLLY_EXPORT ComplexFieldNames : public apache::thrift::TException {
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> error_message_ref() const& {
-    return {this->error_message, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->error_message, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> error_message_ref() const&& {
-    return {std::move(this->error_message), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->error_message), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> error_message_ref() & {
-    return {this->error_message, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->error_message, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> error_message_ref() && {
-    return {std::move(this->error_message), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->error_message), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> internal_error_message_ref() const& {
-    return {this->internal_error_message, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->internal_error_message, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> internal_error_message_ref() const&& {
-    return {std::move(this->internal_error_message), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->internal_error_message), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> internal_error_message_ref() & {
-    return {this->internal_error_message, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->internal_error_message, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> internal_error_message_ref() && {
-    return {std::move(this->internal_error_message), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->internal_error_message), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   const ::std::string& get_error_message() const& {
@@ -460,8 +419,7 @@ class FOLLY_EXPORT ComplexFieldNames : public apache::thrift::TException {
   template <typename T_ComplexFieldNames_error_message_struct_setter = ::std::string>
   [[deprecated("Use `FOO.error_message_ref() = BAR;` instead of `FOO.set_error_message(BAR);`")]]
   ::std::string& set_error_message(T_ComplexFieldNames_error_message_struct_setter&& error_message_) {
-    error_message = std::forward<T_ComplexFieldNames_error_message_struct_setter>(error_message_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    error_message_ref() = std::forward<T_ComplexFieldNames_error_message_struct_setter>(error_message_);
     return error_message;
   }
 
@@ -476,8 +434,7 @@ class FOLLY_EXPORT ComplexFieldNames : public apache::thrift::TException {
   template <typename T_ComplexFieldNames_internal_error_message_struct_setter = ::std::string>
   [[deprecated("Use `FOO.internal_error_message_ref() = BAR;` instead of `FOO.set_internal_error_message(BAR);`")]]
   ::std::string& set_internal_error_message(T_ComplexFieldNames_internal_error_message_struct_setter&& internal_error_message_) {
-    internal_error_message = std::forward<T_ComplexFieldNames_internal_error_message_struct_setter>(internal_error_message_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    internal_error_message_ref() = std::forward<T_ComplexFieldNames_internal_error_message_struct_setter>(internal_error_message_);
     return internal_error_message;
   }
 
@@ -511,11 +468,6 @@ uint32_t ComplexFieldNames::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class FOLLY_EXPORT CustomFieldNames : public apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -561,22 +513,8 @@ class FOLLY_EXPORT CustomFieldNames : public apache::thrift::TException {
   ::std::string error_message;
  private:
   ::std::string internal_error_message;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -585,42 +523,42 @@ class FOLLY_EXPORT CustomFieldNames : public apache::thrift::TException {
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> error_message_ref() const& {
-    return {this->error_message, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->error_message, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> error_message_ref() const&& {
-    return {std::move(this->error_message), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->error_message), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> error_message_ref() & {
-    return {this->error_message, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->error_message, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> error_message_ref() && {
-    return {std::move(this->error_message), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->error_message), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> internal_error_message_ref() const& {
-    return {this->internal_error_message, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->internal_error_message, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> internal_error_message_ref() const&& {
-    return {std::move(this->internal_error_message), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->internal_error_message), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> internal_error_message_ref() & {
-    return {this->internal_error_message, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->internal_error_message, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> internal_error_message_ref() && {
-    return {std::move(this->internal_error_message), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->internal_error_message), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   const ::std::string& get_error_message() const& {
@@ -634,8 +572,7 @@ class FOLLY_EXPORT CustomFieldNames : public apache::thrift::TException {
   template <typename T_CustomFieldNames_error_message_struct_setter = ::std::string>
   [[deprecated("Use `FOO.error_message_ref() = BAR;` instead of `FOO.set_error_message(BAR);`")]]
   ::std::string& set_error_message(T_CustomFieldNames_error_message_struct_setter&& error_message_) {
-    error_message = std::forward<T_CustomFieldNames_error_message_struct_setter>(error_message_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    error_message_ref() = std::forward<T_CustomFieldNames_error_message_struct_setter>(error_message_);
     return error_message;
   }
 
@@ -650,8 +587,7 @@ class FOLLY_EXPORT CustomFieldNames : public apache::thrift::TException {
   template <typename T_CustomFieldNames_internal_error_message_struct_setter = ::std::string>
   [[deprecated("Use `FOO.internal_error_message_ref() = BAR;` instead of `FOO.set_internal_error_message(BAR);`")]]
   ::std::string& set_internal_error_message(T_CustomFieldNames_internal_error_message_struct_setter&& internal_error_message_) {
-    internal_error_message = std::forward<T_CustomFieldNames_internal_error_message_struct_setter>(internal_error_message_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    internal_error_message_ref() = std::forward<T_CustomFieldNames_internal_error_message_struct_setter>(internal_error_message_);
     return internal_error_message;
   }
 
@@ -685,11 +621,6 @@ uint32_t CustomFieldNames::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class FOLLY_EXPORT ExceptionWithPrimitiveField : public apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -735,22 +666,8 @@ class FOLLY_EXPORT ExceptionWithPrimitiveField : public apache::thrift::TExcepti
   ::std::string message;
  private:
   ::std::int32_t error_code;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,2> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 2, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<2> __isset;
 
  public:
 
@@ -759,42 +676,42 @@ class FOLLY_EXPORT ExceptionWithPrimitiveField : public apache::thrift::TExcepti
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> message_ref() const& {
-    return {this->message, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->message, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> message_ref() const&& {
-    return {std::move(this->message), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->message), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> message_ref() & {
-    return {this->message, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->message, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> message_ref() && {
-    return {std::move(this->message), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->message), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> error_code_ref() const& {
-    return {this->error_code, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->error_code, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> error_code_ref() const&& {
-    return {std::move(this->error_code), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->error_code), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> error_code_ref() & {
-    return {this->error_code, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->error_code, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> error_code_ref() && {
-    return {std::move(this->error_code), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->error_code), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   const ::std::string& get_message() const& {
@@ -808,8 +725,7 @@ class FOLLY_EXPORT ExceptionWithPrimitiveField : public apache::thrift::TExcepti
   template <typename T_ExceptionWithPrimitiveField_message_struct_setter = ::std::string>
   [[deprecated("Use `FOO.message_ref() = BAR;` instead of `FOO.set_message(BAR);`")]]
   ::std::string& set_message(T_ExceptionWithPrimitiveField_message_struct_setter&& message_) {
-    message = std::forward<T_ExceptionWithPrimitiveField_message_struct_setter>(message_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    message_ref() = std::forward<T_ExceptionWithPrimitiveField_message_struct_setter>(message_);
     return message;
   }
 
@@ -819,8 +735,7 @@ class FOLLY_EXPORT ExceptionWithPrimitiveField : public apache::thrift::TExcepti
 
   [[deprecated("Use `FOO.error_code_ref() = BAR;` instead of `FOO.set_error_code(BAR);`")]]
   ::std::int32_t& set_error_code(::std::int32_t error_code_) {
-    error_code = error_code_;
-  __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    error_code_ref() = error_code_;
     return error_code;
   }
 
@@ -854,11 +769,6 @@ uint32_t ExceptionWithPrimitiveField::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class FOLLY_EXPORT Banal : public apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -934,4 +844,3 @@ uint32_t Banal::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

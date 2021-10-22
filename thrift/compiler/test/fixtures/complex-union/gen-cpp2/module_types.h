@@ -137,13 +137,13 @@ typedef ::std::map<::std::int16_t, ::std::string> containerTypedef;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class ComplexUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -732,11 +732,6 @@ uint32_t ComplexUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class ListUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1023,11 +1018,6 @@ uint32_t ListUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class DataUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1314,11 +1304,6 @@ uint32_t DataUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class Val final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1357,22 +1342,8 @@ class Val final  {
   ::std::int32_t intVal;
  private:
   ::cpp2::containerTypedef typedefValue;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,3> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 3, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 3, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<3> __isset;
 
  public:
 
@@ -1381,62 +1352,62 @@ class Val final  {
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> strVal_ref() const& {
-    return {this->strVal, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->strVal, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> strVal_ref() const&& {
-    return {std::move(this->strVal), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->strVal), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> strVal_ref() & {
-    return {this->strVal, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->strVal, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> strVal_ref() && {
-    return {std::move(this->strVal), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->strVal), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> intVal_ref() const& {
-    return {this->intVal, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->intVal, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> intVal_ref() const&& {
-    return {std::move(this->intVal), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->intVal), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> intVal_ref() & {
-    return {this->intVal, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->intVal, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> intVal_ref() && {
-    return {std::move(this->intVal), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->intVal), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::containerTypedef>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> typedefValue_ref() const& {
-    return {this->typedefValue, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->typedefValue, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::containerTypedef>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> typedefValue_ref() const&& {
-    return {std::move(this->typedefValue), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->typedefValue), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::containerTypedef>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> typedefValue_ref() & {
-    return {this->typedefValue, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->typedefValue, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::containerTypedef>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> typedefValue_ref() && {
-    return {std::move(this->typedefValue), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->typedefValue), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   const ::std::string& get_strVal() const& {
@@ -1450,8 +1421,7 @@ class Val final  {
   template <typename T_Val_strVal_struct_setter = ::std::string>
   [[deprecated("Use `FOO.strVal_ref() = BAR;` instead of `FOO.set_strVal(BAR);`")]]
   ::std::string& set_strVal(T_Val_strVal_struct_setter&& strVal_) {
-    strVal = std::forward<T_Val_strVal_struct_setter>(strVal_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    strVal_ref() = std::forward<T_Val_strVal_struct_setter>(strVal_);
     return strVal;
   }
 
@@ -1461,8 +1431,7 @@ class Val final  {
 
   [[deprecated("Use `FOO.intVal_ref() = BAR;` instead of `FOO.set_intVal(BAR);`")]]
   ::std::int32_t& set_intVal(::std::int32_t intVal_) {
-    intVal = intVal_;
-  __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    intVal_ref() = intVal_;
     return intVal;
   }
   const ::cpp2::containerTypedef& get_typedefValue() const&;
@@ -1471,8 +1440,7 @@ class Val final  {
   template <typename T_Val_typedefValue_struct_setter = ::cpp2::containerTypedef>
   [[deprecated("Use `FOO.typedefValue_ref() = BAR;` instead of `FOO.set_typedefValue(BAR);`")]]
   ::cpp2::containerTypedef& set_typedefValue(T_Val_typedefValue_struct_setter&& typedefValue_) {
-    typedefValue = std::forward<T_Val_typedefValue_struct_setter>(typedefValue_);
-    __isset.__fbthrift_set(folly::index_constant<2>(), true);
+    typedefValue_ref() = std::forward<T_Val_typedefValue_struct_setter>(typedefValue_);
     return typedefValue;
   }
 
@@ -1502,11 +1470,6 @@ uint32_t Val::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class ValUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1793,11 +1756,6 @@ uint32_t ValUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class VirtualComplexUnion  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -2085,11 +2043,6 @@ uint32_t VirtualComplexUnion::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class NonCopyableStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -2121,22 +2074,8 @@ class NonCopyableStruct final  {
   void __clear();
  private:
   ::std::int64_t num;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,1> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 1, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<1> __isset;
 
  public:
 
@@ -2145,22 +2084,22 @@ class NonCopyableStruct final  {
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> num_ref() const& {
-    return {this->num, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->num, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> num_ref() const&& {
-    return {std::move(this->num), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->num), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> num_ref() & {
-    return {this->num, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->num, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> num_ref() && {
-    return {std::move(this->num), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->num), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   ::std::int64_t get_num() const {
@@ -2169,8 +2108,7 @@ class NonCopyableStruct final  {
 
   [[deprecated("Use `FOO.num_ref() = BAR;` instead of `FOO.set_num(BAR);`")]]
   ::std::int64_t& set_num(::std::int64_t num_) {
-    num = num_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    num_ref() = num_;
     return num;
   }
 
@@ -2200,11 +2138,6 @@ uint32_t NonCopyableStruct::read(Protocol_* iprot) {
 
 } // cpp2
 namespace cpp2 {
-using ::apache::thrift::detail::operator!=;
-using ::apache::thrift::detail::operator>;
-using ::apache::thrift::detail::operator<=;
-using ::apache::thrift::detail::operator>=;
-
 class NonCopyableUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -2368,7 +2301,6 @@ uint32_t NonCopyableUnion::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 
 namespace apache { namespace thrift {
 

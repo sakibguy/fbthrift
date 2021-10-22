@@ -16,8 +16,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <memory>
 #include <queue>
+#include <set>
 #include <vector>
 
 #include <boost/algorithm/string/replace.hpp>
@@ -171,9 +173,7 @@ std::string get_out_dir_base(
 
 class cpp2_generator_context {
  public:
-  static cpp2_generator_context create(t_program const*) {
-    return cpp2_generator_context();
-  }
+  static cpp2_generator_context create() { return cpp2_generator_context(); }
 
   cpp2_generator_context(cpp2_generator_context&&) = default;
   cpp2_generator_context& operator=(cpp2_generator_context&&) = default;
@@ -184,17 +184,12 @@ class cpp2_generator_context {
     return cpp2::is_orderable(seen, memo, type);
   }
 
-  size_t isset_index(const t_field* f) {
-    return cpp2::isset_index(isset_index_memo_, f);
-  }
-
   gen::cpp::type_resolver& resolver() { return resolver_; }
 
  private:
   cpp2_generator_context() = default;
 
   std::unordered_map<t_type const*, bool> is_orderable_memo_;
-  std::unordered_map<t_field const*, int32_t> isset_index_memo_;
   gen::cpp::type_resolver resolver_;
 };
 
@@ -360,8 +355,8 @@ class mstch_cpp2_const_value : public mstch_const_value {
             const_value,
             current_const,
             expected_type,
-            generators,
-            cache,
+            std::move(generators),
+            std::move(cache),
             pos,
             index) {}
 
@@ -426,7 +421,6 @@ class mstch_cpp2_type : public mstch_type {
         });
     register_has_option(
         "type:sync_methods_return_try?", "sync_methods_return_try");
-    register_has_option("type:no_getters_setters?", "no_getters_setters");
   }
   std::string get_type_namespace(t_program const* program) override {
     return cpp2::get_gen_namespace(*program);
@@ -566,8 +560,15 @@ class mstch_cpp2_field : public mstch_field {
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION const pos,
       int32_t index,
+      field_generator_context const* field_context,
       std::shared_ptr<cpp2_generator_context> context)
-      : mstch_field(field, std::move(generators), std::move(cache), pos, index),
+      : mstch_field(
+            field,
+            std::move(generators),
+            std::move(cache),
+            pos,
+            index,
+            field_context),
         context_(std::move(context)) {
     register_methods(
         this,
@@ -577,6 +578,7 @@ class mstch_cpp2_field : public mstch_field {
             {"field:has_isset?", &mstch_cpp2_field::has_isset},
             {"field:isset_index", &mstch_cpp2_field::isset_index},
             {"field:cpp_name", &mstch_cpp2_field::cpp_name},
+            {"field:cpp_storage_name", &mstch_cpp2_field::cpp_storage_name},
             {"field:cpp_storage_type", &mstch_cpp2_field::cpp_storage_type},
             {"field:cpp_deprecated_accessor_type",
              &mstch_cpp2_field::cpp_deprecated_accessor_type},
@@ -614,9 +616,16 @@ class mstch_cpp2_field : public mstch_field {
   }
   mstch::node index_plus_one() { return std::to_string(index_ + 1); }
   mstch::node isset_index() {
-    return std::to_string(context_->isset_index(field_));
+    assert(field_context_);
+    return field_context_->isset_index;
   }
   mstch::node cpp_name() { return cpp2::get_name(field_); }
+  mstch::node cpp_storage_name() {
+    // Internal data member name in C++ struct. We need this as preparation for
+    // removing _ref() suffix, since after that, data member name will be
+    // different from cpp_name.
+    return cpp2::get_name(field_);
+  }
   mstch::node cpp_storage_type() {
     return context_->resolver().get_storage_type_name(field_);
   }
@@ -630,7 +639,8 @@ class mstch_cpp2_field : public mstch_field {
   }
   mstch::node has_deprecated_accessors() {
     return !cpp2::is_explicit_ref(field_) && !cpp2::is_lazy(field_) &&
-        !gen::cpp::type_resolver::find_first_adapter(field_);
+        !gen::cpp::type_resolver::find_first_adapter(field_) &&
+        !has_option("no_getters_setters");
   }
   mstch::node cpp_ref() { return cpp2::is_explicit_ref(field_); }
   mstch::node non_opt_cpp_ref() {
@@ -679,15 +689,18 @@ class mstch_cpp2_field : public mstch_field {
     return mstch::node();
   }
   mstch::node prev_field_key() {
-    return std::to_string(field_->get_prev()->get_key());
+    assert(field_context_ && field_context_->prev);
+    return field_context_->prev->get_key();
   }
   mstch::node next_field_key() {
-    return std::to_string(field_->get_next()->get_key());
+    assert(field_context_ && field_context_->next);
+    return field_context_->next->get_key();
   }
   mstch::node next_field_type() {
-    return field_->get_next()
+    assert(field_context_ && field_context_->next);
+    return field_context_->next
         ? generators_->type_generator_->generate(
-              field_->get_next()->get_type(), generators_, cache_, pos_)
+              field_context_->next->get_type(), generators_, cache_, pos_)
         : mstch::node("");
   }
   mstch::node terse_writes() {
@@ -787,10 +800,12 @@ class mstch_cpp2_struct : public mstch_struct {
             {"struct:message", &mstch_cpp2_struct::message},
             {"struct:isset_fields?", &mstch_cpp2_struct::has_isset_fields},
             {"struct:isset_fields", &mstch_cpp2_struct::isset_fields},
-            {"struct:private_isset?", &mstch_cpp2_struct::private_isset},
             {"struct:isset_fields_size", &mstch_cpp2_struct::isset_fields_size},
+            {"struct:packed_isset", &mstch_cpp2_struct::packed_isset},
             {"struct:lazy_fields?", &mstch_cpp2_struct::has_lazy_fields},
             {"struct:indexing?", &mstch_cpp2_struct::indexing},
+            {"struct:write_lazy_field_checksum",
+             &mstch_cpp2_struct::write_lazy_field_checksum},
             {"struct:is_large?", &mstch_cpp2_struct::is_large},
             {"struct:fatal_annotations?",
              &mstch_cpp2_struct::has_fatal_annotations},
@@ -806,7 +821,6 @@ class mstch_cpp2_struct : public mstch_struct {
             {"struct:cpp_frozen2_exclude?",
              &mstch_cpp2_struct::cpp_frozen2_exclude},
         });
-    register_has_option("struct:no_getters_setters?", "no_getters_setters");
   }
   mstch::node fields_size() { return std::to_string(strct_->fields().size()); }
   mstch::node filtered_fields() {
@@ -853,7 +867,8 @@ class mstch_cpp2_struct : public mstch_struct {
   }
   mstch::node nondefault_copy_ctor_and_assignment() {
     for (auto const& f : strct_->fields()) {
-      if (cpp2::field_transitively_refers_to_unique(&f) || cpp2::is_lazy(&f)) {
+      if (cpp2::field_transitively_refers_to_unique(&f) || cpp2::is_lazy(&f) ||
+          gen::cpp::type_resolver::find_first_adapter(&f)) {
         return true;
       }
     }
@@ -940,6 +955,14 @@ class mstch_cpp2_struct : public mstch_struct {
     return false;
   }
   mstch::node indexing() { return has_lazy_fields(); }
+  mstch::node write_lazy_field_checksum() {
+    if (strct_->find_structured_annotation_or_null(
+            "facebook.com/thrift/annotation/cpp/DisableLazyChecksum")) {
+      return std::string("false");
+    }
+
+    return std::string("true");
+  }
   mstch::node has_isset_fields() {
     for (const auto& field : strct_->fields()) {
       if (cpp2::field_has_isset(&field)) {
@@ -969,6 +992,8 @@ class mstch_cpp2_struct : public mstch_struct {
     }
     return std::to_string(size);
   }
+  mstch::node packed_isset() { return cpp2::packed_isset(*strct_) != nullptr; }
+
   mstch::node is_large() {
     // Outline constructors and destructors if the struct has
     // enough members and at least one has a non-trivial destructor
@@ -1141,9 +1166,6 @@ class mstch_cpp2_struct : public mstch_struct {
   mstch::node fields_in_key_order() {
     return generate_fields(get_members_in_key_order());
   }
-  mstch::node private_isset() {
-    return !strct_->has_annotation("cpp.deprecated_public_isset");
-  }
 
   std::shared_ptr<cpp2_generator_context> context_;
 
@@ -1159,7 +1181,7 @@ class mstch_cpp2_function : public mstch_function {
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION const pos)
-      : mstch_function(function, generators, cache, pos) {
+      : mstch_function(function, std::move(generators), std::move(cache), pos) {
     register_methods(
         this,
         {
@@ -1190,7 +1212,7 @@ class mstch_cpp2_service : public mstch_service {
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION const pos)
-      : mstch_service(service, generators, cache, pos) {
+      : mstch_service(service, std::move(generators), std::move(cache), pos) {
     register_methods(
         this,
         {
@@ -1265,7 +1287,8 @@ class mstch_cpp2_annotation : public mstch_annotation {
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION pos,
       int32_t index)
-      : mstch_annotation(key, val, generators, cache, pos, index) {
+      : mstch_annotation(
+            key, val, std::move(generators), std::move(cache), pos, index) {
     register_methods(
         this,
         {
@@ -1292,8 +1315,8 @@ class mstch_cpp2_const : public mstch_const {
             cnst,
             current_const,
             expected_type,
-            generators,
-            cache,
+            std::move(generators),
+            std::move(cache),
             pos,
             index,
             field_name) {
@@ -1325,7 +1348,8 @@ class mstch_cpp2_program : public mstch_program {
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION const pos,
       boost::optional<int32_t> split_id = boost::none)
-      : mstch_program(program, generators, cache, pos), split_id_(split_id) {
+      : mstch_program(program, std::move(generators), std::move(cache), pos),
+        split_id_(split_id) {
     register_methods(
         this,
         {
@@ -1685,9 +1709,10 @@ class enum_cpp2_generator : public enum_generator {
       t_enum const* enm,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
-    return std::make_shared<mstch_cpp2_enum>(enm, generators, cache, pos);
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
+    return std::make_shared<mstch_cpp2_enum>(
+        enm, std::move(generators), std::move(cache), pos);
   }
 };
 
@@ -1697,10 +1722,10 @@ class enum_value_cpp2_generator : public enum_value_generator {
       t_enum_value const* enm_value,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_cpp2_enum_value>(
-        enm_value, generators, cache, pos);
+        enm_value, std::move(generators), std::move(cache), pos);
   }
 };
 
@@ -1708,14 +1733,14 @@ class type_cpp2_generator : public type_generator {
  public:
   explicit type_cpp2_generator(
       std::shared_ptr<cpp2_generator_context> context) noexcept
-      : context_(context) {}
+      : context_(std::move(context)) {}
 
   std::shared_ptr<mstch_base> generate(
       t_type const* type,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_cpp2_type>(
         type, std::move(generators), std::move(cache), pos, context_);
   }
@@ -1728,16 +1753,23 @@ class field_cpp2_generator : public field_generator {
  public:
   explicit field_cpp2_generator(
       std::shared_ptr<cpp2_generator_context> context) noexcept
-      : context_(context) {}
+      : context_(std::move(context)) {}
 
   std::shared_ptr<mstch_base> generate(
       t_field const* field,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      field_generator_context const* field_context) const override {
     return std::make_shared<mstch_cpp2_field>(
-        field, std::move(generators), std::move(cache), pos, index, context_);
+        field,
+        std::move(generators),
+        std::move(cache),
+        pos,
+        index,
+        field_context,
+        context_);
   }
 
  private:
@@ -1752,10 +1784,10 @@ class function_cpp2_generator : public function_generator {
       t_function const* function,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_cpp2_function>(
-        function, generators, cache, pos);
+        function, std::move(generators), std::move(cache), pos);
   }
 };
 
@@ -1769,10 +1801,10 @@ class struct_cpp2_generator : public struct_generator {
       t_struct const* strct,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_cpp2_struct>(
-        strct, generators, cache, pos, context_);
+        strct, std::move(generators), std::move(cache), pos, context_);
   }
 
  private:
@@ -1787,10 +1819,10 @@ class service_cpp2_generator : public service_generator {
       t_service const* service,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_cpp2_service>(
-        service, generators, cache, pos);
+        service, std::move(generators), std::move(cache), pos);
   }
 };
 
@@ -1802,10 +1834,15 @@ class annotation_cpp2_generator : public annotation_generator {
       t_annotation const& keyval,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t index) const override {
     return std::make_shared<mstch_cpp2_annotation>(
-        keyval.first, keyval.second, generators, cache, pos, index);
+        keyval.first,
+        keyval.second,
+        std::move(generators),
+        std::move(cache),
+        pos,
+        index);
   }
 };
 
@@ -1817,17 +1854,17 @@ class const_cpp2_generator : public const_generator {
       t_const const* cnst,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0,
-      t_const const* current_const = nullptr,
-      t_type const* expected_type = nullptr,
-      const std::string& field_name = std::string()) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      t_const const* current_const,
+      t_type const* expected_type,
+      const std::string& field_name) const override {
     return std::make_shared<mstch_cpp2_const>(
         cnst,
         current_const,
         expected_type,
-        generators,
-        cache,
+        std::move(generators),
+        std::move(cache),
         pos,
         index,
         field_name);
@@ -1842,16 +1879,16 @@ class const_value_cpp2_generator : public const_value_generator {
       t_const_value const* const_value,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0,
-      t_const const* current_const = nullptr,
-      t_type const* expected_type = nullptr) const override {
+      ELEMENT_POSITION pos,
+      int32_t index,
+      t_const const* current_const,
+      t_type const* expected_type) const override {
     return std::make_shared<mstch_cpp2_const_value>(
         const_value,
         current_const,
         expected_type,
-        generators,
-        cache,
+        std::move(generators),
+        std::move(cache),
         pos,
         index);
   }
@@ -1865,10 +1902,10 @@ class program_cpp2_generator : public program_generator {
       t_program const* program,
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
-      ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t /*index*/ = 0) const override {
+      ELEMENT_POSITION pos,
+      int32_t /*index*/) const override {
     return std::make_shared<mstch_cpp2_program>(
-        program, generators, cache, pos);
+        program, std::move(generators), std::move(cache), pos);
   }
   std::shared_ptr<mstch_base> generate_with_split_id(
       t_program const* program,
@@ -1876,7 +1913,11 @@ class program_cpp2_generator : public program_generator {
       std::shared_ptr<mstch_cache> cache,
       int32_t split_id) const {
     return std::make_shared<mstch_cpp2_program>(
-        program, generators, cache, ELEMENT_POSITION::NONE, split_id);
+        program,
+        std::move(generators),
+        std::move(cache),
+        ELEMENT_POSITION::NONE,
+        split_id);
   }
 };
 
@@ -1888,7 +1929,7 @@ t_mstch_cpp2_generator::t_mstch_cpp2_generator(
     : t_mstch_generator(
           program, std::move(context), "cpp2", parsed_options, true),
       context_(std::make_shared<cpp2_generator_context>(
-          cpp2_generator_context::create(program))) {
+          cpp2_generator_context::create())) {
   out_dir_base_ = get_out_dir_base(parsed_options);
 }
 
@@ -2105,15 +2146,30 @@ mstch::node t_mstch_cpp2_generator::include_prefix(
 namespace {
 class annotation_validator : public validator {
  public:
+  explicit annotation_validator(
+      std::map<std::string, std::string> const& options)
+      : options_(options) {}
   using validator::visit;
 
   /**
    * Make sure there is no incompatible annotation.
    */
   bool visit(t_struct* s) override;
+
+ private:
+  const std::map<std::string, std::string>& options_;
 };
 
 bool annotation_validator::visit(t_struct* s) {
+  if (cpp2::packed_isset(*s)) {
+    if (options_.count("tablebased") != 0) {
+      add_error(
+          s->lineno(),
+          "Tablebased serialization is incompatible with isset bitpacking for struct `" +
+              s->get_name() + "`");
+    }
+  }
+
   for (const auto& field : s->fields()) {
     if (cpp2::is_mixin(field)) {
       // Mixins cannot be refs
@@ -2141,7 +2197,7 @@ class service_method_validator : public validator {
   bool visit(t_service* service) override;
 
  private:
-  std::map<std::string, std::string> options_;
+  const std::map<std::string, std::string>& options_;
 };
 
 bool service_method_validator::visit(t_service* service) {
@@ -2221,7 +2277,7 @@ class lazy_field_validator : public validator {
 } // namespace
 
 void t_mstch_cpp2_generator::fill_validator_list(validator_list& l) const {
-  l.add<annotation_validator>();
+  l.add<annotation_validator>(this->parsed_options_);
   l.add<service_method_validator>(this->parsed_options_);
   l.add<splits_validator>(cpp2::get_split_count(parsed_options_));
   l.add<lazy_field_validator>();

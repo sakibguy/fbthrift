@@ -16,18 +16,11 @@
 
 #pragma once
 
-#include <boost/variant.hpp>
-
+#include <folly/CancellationToken.h>
 #include <folly/Portability.h>
-
-#include <folly/Overload.h>
-#if FOLLY_HAS_COROUTINES
 #include <folly/experimental/coro/AsyncGenerator.h>
 #include <folly/experimental/coro/Baton.h>
 #include <folly/experimental/coro/Task.h>
-#else
-#include <folly/CancellationToken.h>
-#endif
 
 #include <thrift/lib/cpp2/async/SinkBridgeUtil.h>
 #include <thrift/lib/cpp2/async/StreamCallbacks.h>
@@ -114,9 +107,9 @@ class ClientSinkBridge : public TwoWayBridge<
 
   static folly::coro::Task<void> waitEventImpl(
       ClientSinkBridge& self,
-      int64_t& credit,
+      uint64_t& credits,
       folly::Try<StreamPayload>& finalResponse,
-      folly::CancellationToken& clientCancelToken);
+      const folly::CancellationToken& clientCancelToken);
 #endif
 
   union {

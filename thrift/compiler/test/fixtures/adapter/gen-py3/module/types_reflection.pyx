@@ -14,6 +14,7 @@ from thrift.py3.reflection cimport (
     Qualifier as __Qualifier,
 )
 
+cimport facebook.thrift.annotation.cpp.cpp.types as _facebook_thrift_annotation_cpp_cpp_types
 
 cimport module.types as _module_types
 
@@ -267,6 +268,31 @@ cdef __StructSpec get_reflection__Bar():
             type=_module_types.Baz,
             kind=__NumberType.NOT_A_NUMBER,
             qualifier=__Qualifier.OPTIONAL,
+            default=None,
+            annotations={
+            },
+        ),
+    )
+    return spec
+cdef __StructSpec get_reflection__StructWithFieldAdapter():
+    cdef _module_types.StructWithFieldAdapter defaults = _module_types.StructWithFieldAdapter.create(
+        constant_shared_ptr[_module_types.cStructWithFieldAdapter](
+            default_inst[_module_types.cStructWithFieldAdapter]()
+        )
+    )
+    cdef __StructSpec spec = __StructSpec.create(
+        name="StructWithFieldAdapter",
+        kind=__StructType.STRUCT,
+        annotations={
+        },
+    )
+    spec.add_field(
+        __FieldSpec.create(
+            id=1,
+            name="field",
+            type=int,
+            kind=__NumberType.I32,
+            qualifier=__Qualifier.UNQUALIFIED,
             default=None,
             annotations={
             },

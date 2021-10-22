@@ -18,12 +18,18 @@ pub mod types {
 
     pub type UintTypedef = crate::types::IntTypedef;
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct decorated_struct {
         pub field: ::std::string::String,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ContainerStruct {
         pub fieldA: ::std::vec::Vec<::std::primitive::i32>,
         pub fieldB: ::std::vec::Vec<::std::primitive::i32>,
@@ -33,106 +39,214 @@ pub mod types {
         pub fieldF: ::sorted_vector_map::SortedVectorSet<::std::primitive::i32>,
         pub fieldG: ::sorted_vector_map::SortedVectorMap<::std::primitive::i32, ::std::string::String>,
         pub fieldH: include::types::SomeMap,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct CppTypeStruct {
         pub fieldA: ::std::vec::Vec<::std::primitive::i32>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct VirtualStruct {
         pub MyIntField: ::std::primitive::i64,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct MyStructWithForwardRefEnum {
         pub a: crate::types::MyForwardRefEnum,
         pub b: crate::types::MyForwardRefEnum,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct TrivialNumeric {
         pub a: ::std::primitive::i32,
         pub b: ::std::primitive::bool,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct TrivialNestedWithDefault {
         pub z: ::std::primitive::i32,
         pub n: crate::types::TrivialNumeric,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ComplexString {
         pub a: ::std::string::String,
         pub b: ::std::collections::BTreeMap<::std::string::String, ::std::primitive::i32>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ComplexNestedWithDefault {
         pub z: ::std::string::String,
         pub n: crate::types::ComplexString,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct MinPadding {
         pub small: ::std::primitive::i8,
         pub big: ::std::primitive::i64,
         pub medium: ::std::primitive::i16,
         pub biggish: ::std::primitive::i32,
         pub tiny: ::std::primitive::i8,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct MyStruct {
         pub MyIntField: ::std::primitive::i64,
         pub MyStringField: ::std::string::String,
         pub majorVer: ::std::primitive::i64,
         pub data: crate::types::MyDataItem,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct MyDataItem {
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Renaming {
         pub foo: ::std::primitive::i64,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct AnnotatedTypes {
         pub binary_field: crate::types::TBinary,
         pub list_field: include::types::SomeListOfTypeMap,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ForwardUsageRoot {
         pub ForwardUsageStruct: ::std::option::Option<crate::types::ForwardUsageStruct>,
         pub ForwardUsageByRef: ::std::option::Option<crate::types::ForwardUsageByRef>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ForwardUsageStruct {
         pub foo: ::std::option::Option<crate::types::ForwardUsageRoot>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ForwardUsageByRef {
         pub foo: ::std::option::Option<crate::types::ForwardUsageRoot>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct NoexceptMoveEmpty {
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct NoexceptMoveSimpleStruct {
         pub boolField: ::std::primitive::i64,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct NoexceptMoveComplexStruct {
         pub MyBoolField: ::std::primitive::bool,
         pub MyIntField: ::std::primitive::i64,
@@ -143,39 +257,69 @@ pub mod types {
         pub MyBinaryField3: ::std::vec::Vec<::std::primitive::u8>,
         pub MyBinaryListField4: ::std::vec::Vec<::std::vec::Vec<::std::primitive::u8>>,
         pub MyMapEnumAndInt: ::std::collections::BTreeMap<crate::types::MyEnumA, ::std::string::String>,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
     pub enum NoExceptMoveUnion {
         string_field(::std::string::String),
         i32_field(::std::primitive::i32),
         UnknownField(::std::primitive::i32),
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct AllocatorAware {
         pub aa_list: ::std::vec::Vec<::std::primitive::i32>,
         pub aa_set: ::std::collections::BTreeSet<::std::primitive::i32>,
         pub aa_map: ::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32>,
         pub aa_string: ::std::string::String,
         pub not_a_container: ::std::primitive::i32,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct AllocatorAware2 {
         pub not_a_container: ::std::primitive::i32,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct TypedefStruct {
         pub i32_field: ::std::primitive::i32,
         pub IntTypedef_field: crate::types::IntTypedef,
         pub UintTypedef_field: crate::types::UintTypedef,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct StructWithDoubleUnderscores {
         pub __field: ::std::primitive::i32,
+        // This field forces `..Default::default()` when instantiating this
+        // struct, to make code future-proof against new fields added later to
+        // the definition in Thrift. If you don't want this, add the annotation
+        // `(rust.exhaustive)` to the Thrift struct to eliminate this field.
+        #[doc(hidden)]
+        pub _dot_dot_Default_default: self::dot_dot::OtherFields,
     }
 
     #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -649,7 +793,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 field: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::decorated_struct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("decorated_struct")
+                .field("field", &self.field)
+                .finish()
         }
     }
 
@@ -696,6 +850,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 field: field_field.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -712,7 +867,24 @@ pub mod types {
                 fieldF: ::std::default::Default::default(),
                 fieldG: ::std::default::Default::default(),
                 fieldH: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::ContainerStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("ContainerStruct")
+                .field("fieldA", &self.fieldA)
+                .field("fieldB", &self.fieldB)
+                .field("fieldC", &self.fieldC)
+                .field("fieldD", &self.fieldD)
+                .field("fieldE", &self.fieldE)
+                .field("fieldF", &self.fieldF)
+                .field("fieldG", &self.fieldG)
+                .field("fieldH", &self.fieldH)
+                .finish()
         }
     }
 
@@ -808,6 +980,7 @@ pub mod types {
                 fieldF: field_fieldF.unwrap_or_default(),
                 fieldG: field_fieldG.unwrap_or_default(),
                 fieldH: field_fieldH.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -817,7 +990,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 fieldA: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::CppTypeStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("CppTypeStruct")
+                .field("fieldA", &self.fieldA)
+                .finish()
         }
     }
 
@@ -864,6 +1047,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 fieldA: field_fieldA.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -873,7 +1057,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 MyIntField: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::VirtualStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("VirtualStruct")
+                .field("MyIntField", &self.MyIntField)
+                .finish()
         }
     }
 
@@ -920,6 +1114,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 MyIntField: field_MyIntField.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -930,7 +1125,18 @@ pub mod types {
             Self {
                 a: crate::types::MyForwardRefEnum::NONZERO,
                 b: crate::types::MyForwardRefEnum::NONZERO,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::MyStructWithForwardRefEnum {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("MyStructWithForwardRefEnum")
+                .field("a", &self.a)
+                .field("b", &self.b)
+                .finish()
         }
     }
 
@@ -984,6 +1190,7 @@ pub mod types {
             ::std::result::Result::Ok(Self {
                 a: field_a.unwrap_or_else(|| crate::types::MyForwardRefEnum::NONZERO),
                 b: field_b.unwrap_or_else(|| crate::types::MyForwardRefEnum::NONZERO),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -994,7 +1201,18 @@ pub mod types {
             Self {
                 a: ::std::default::Default::default(),
                 b: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::TrivialNumeric {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("TrivialNumeric")
+                .field("a", &self.a)
+                .field("b", &self.b)
+                .finish()
         }
     }
 
@@ -1048,6 +1266,7 @@ pub mod types {
             ::std::result::Result::Ok(Self {
                 a: field_a.unwrap_or_default(),
                 b: field_b.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1060,8 +1279,20 @@ pub mod types {
                 n: crate::types::TrivialNumeric {
                     a: 3,
                     b: true,
+                    ..::std::default::Default::default()
                 },
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::TrivialNestedWithDefault {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("TrivialNestedWithDefault")
+                .field("z", &self.z)
+                .field("n", &self.n)
+                .finish()
         }
     }
 
@@ -1117,7 +1348,9 @@ pub mod types {
                 n: field_n.unwrap_or_else(|| crate::types::TrivialNumeric {
                     a: 3,
                     b: true,
+                    ..::std::default::Default::default()
                 }),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1128,7 +1361,18 @@ pub mod types {
             Self {
                 a: ::std::default::Default::default(),
                 b: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::ComplexString {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("ComplexString")
+                .field("a", &self.a)
+                .field("b", &self.b)
+                .finish()
         }
     }
 
@@ -1182,6 +1426,7 @@ pub mod types {
             ::std::result::Result::Ok(Self {
                 a: field_a.unwrap_or_default(),
                 b: field_b.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1198,8 +1443,20 @@ pub mod types {
                         map.insert("a".to_owned(), 3);
                         map
                     },
+                    ..::std::default::Default::default()
                 },
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::ComplexNestedWithDefault {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("ComplexNestedWithDefault")
+                .field("z", &self.z)
+                .field("n", &self.n)
+                .finish()
         }
     }
 
@@ -1259,7 +1516,9 @@ pub mod types {
                         map.insert("a".to_owned(), 3);
                         map
                     },
+                    ..::std::default::Default::default()
                 }),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1273,7 +1532,21 @@ pub mod types {
                 medium: ::std::default::Default::default(),
                 biggish: ::std::default::Default::default(),
                 tiny: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::MinPadding {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("MinPadding")
+                .field("small", &self.small)
+                .field("big", &self.big)
+                .field("medium", &self.medium)
+                .field("biggish", &self.biggish)
+                .field("tiny", &self.tiny)
+                .finish()
         }
     }
 
@@ -1348,6 +1621,7 @@ pub mod types {
                 medium: field_medium.unwrap_or_default(),
                 biggish: field_biggish.unwrap_or_default(),
                 tiny: field_tiny.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1360,7 +1634,20 @@ pub mod types {
                 MyStringField: ::std::default::Default::default(),
                 majorVer: ::std::default::Default::default(),
                 data: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::MyStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("MyStruct")
+                .field("MyIntField", &self.MyIntField)
+                .field("MyStringField", &self.MyStringField)
+                .field("majorVer", &self.majorVer)
+                .field("data", &self.data)
+                .finish()
         }
     }
 
@@ -1428,6 +1715,7 @@ pub mod types {
                 MyStringField: field_MyStringField.unwrap_or_default(),
                 majorVer: field_majorVer.unwrap_or_default(),
                 data: field_data.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1436,7 +1724,16 @@ pub mod types {
     impl ::std::default::Default for self::MyDataItem {
         fn default() -> Self {
             Self {
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::MyDataItem {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("MyDataItem")
+                .finish()
         }
     }
 
@@ -1476,6 +1773,7 @@ pub mod types {
             }
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1485,7 +1783,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 foo: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::Renaming {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("Renaming")
+                .field("foo", &self.foo)
+                .finish()
         }
     }
 
@@ -1532,6 +1840,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 foo: field_foo.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1542,7 +1851,18 @@ pub mod types {
             Self {
                 binary_field: ::std::default::Default::default(),
                 list_field: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::AnnotatedTypes {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("AnnotatedTypes")
+                .field("binary_field", &self.binary_field)
+                .field("list_field", &self.list_field)
+                .finish()
         }
     }
 
@@ -1596,6 +1916,7 @@ pub mod types {
             ::std::result::Result::Ok(Self {
                 binary_field: field_binary_field.unwrap_or_default(),
                 list_field: field_list_field.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1606,7 +1927,18 @@ pub mod types {
             Self {
                 ForwardUsageStruct: ::std::option::Option::None,
                 ForwardUsageByRef: ::std::option::Option::None,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::ForwardUsageRoot {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("ForwardUsageRoot")
+                .field("ForwardUsageStruct", &self.ForwardUsageStruct)
+                .field("ForwardUsageByRef", &self.ForwardUsageByRef)
+                .finish()
         }
     }
 
@@ -1664,6 +1996,7 @@ pub mod types {
             ::std::result::Result::Ok(Self {
                 ForwardUsageStruct: field_ForwardUsageStruct,
                 ForwardUsageByRef: field_ForwardUsageByRef,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1673,7 +2006,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 foo: ::std::option::Option::None,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::ForwardUsageStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("ForwardUsageStruct")
+                .field("foo", &self.foo)
+                .finish()
         }
     }
 
@@ -1722,6 +2065,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 foo: field_foo,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1731,7 +2075,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 foo: ::std::option::Option::None,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::ForwardUsageByRef {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("ForwardUsageByRef")
+                .field("foo", &self.foo)
+                .finish()
         }
     }
 
@@ -1780,6 +2134,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 foo: field_foo,
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1788,7 +2143,16 @@ pub mod types {
     impl ::std::default::Default for self::NoexceptMoveEmpty {
         fn default() -> Self {
             Self {
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::NoexceptMoveEmpty {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("NoexceptMoveEmpty")
+                .finish()
         }
     }
 
@@ -1828,6 +2192,7 @@ pub mod types {
             }
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1837,7 +2202,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 boolField: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::NoexceptMoveSimpleStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("NoexceptMoveSimpleStruct")
+                .field("boolField", &self.boolField)
+                .finish()
         }
     }
 
@@ -1884,6 +2259,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 boolField: field_boolField.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -1906,7 +2282,25 @@ pub mod types {
                     map.insert(crate::types::MyEnumA::fieldC, "fieldC".to_owned());
                     map
                 },
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::NoexceptMoveComplexStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("NoexceptMoveComplexStruct")
+                .field("MyBoolField", &self.MyBoolField)
+                .field("MyIntField", &self.MyIntField)
+                .field("MyStringField", &self.MyStringField)
+                .field("MyStringField2", &self.MyStringField2)
+                .field("MyBinaryField", &self.MyBinaryField)
+                .field("MyBinaryField2", &self.MyBinaryField2)
+                .field("MyBinaryField3", &self.MyBinaryField3)
+                .field("MyBinaryListField4", &self.MyBinaryListField4)
+                .field("MyMapEnumAndInt", &self.MyMapEnumAndInt)
+                .finish()
         }
     }
 
@@ -2016,6 +2410,7 @@ pub mod types {
                     map.insert(crate::types::MyEnumA::fieldC, "fieldC".to_owned());
                     map
                 }),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -2106,7 +2501,21 @@ pub mod types {
                 aa_map: ::std::default::Default::default(),
                 aa_string: ::std::default::Default::default(),
                 not_a_container: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::AllocatorAware {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("AllocatorAware")
+                .field("aa_list", &self.aa_list)
+                .field("aa_set", &self.aa_set)
+                .field("aa_map", &self.aa_map)
+                .field("aa_string", &self.aa_string)
+                .field("not_a_container", &self.not_a_container)
+                .finish()
         }
     }
 
@@ -2181,6 +2590,7 @@ pub mod types {
                 aa_map: field_aa_map.unwrap_or_default(),
                 aa_string: field_aa_string.unwrap_or_default(),
                 not_a_container: field_not_a_container.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -2190,7 +2600,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 not_a_container: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::AllocatorAware2 {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("AllocatorAware2")
+                .field("not_a_container", &self.not_a_container)
+                .finish()
         }
     }
 
@@ -2237,6 +2657,7 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 not_a_container: field_not_a_container.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -2248,7 +2669,19 @@ pub mod types {
                 i32_field: ::std::default::Default::default(),
                 IntTypedef_field: ::std::default::Default::default(),
                 UintTypedef_field: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::TypedefStruct {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("TypedefStruct")
+                .field("i32_field", &self.i32_field)
+                .field("IntTypedef_field", &self.IntTypedef_field)
+                .field("UintTypedef_field", &self.UintTypedef_field)
+                .finish()
         }
     }
 
@@ -2309,6 +2742,7 @@ pub mod types {
                 i32_field: field_i32_field.unwrap_or_default(),
                 IntTypedef_field: field_IntTypedef_field.unwrap_or_default(),
                 UintTypedef_field: field_UintTypedef_field.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
@@ -2318,7 +2752,17 @@ pub mod types {
         fn default() -> Self {
             Self {
                 __field: ::std::default::Default::default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             }
+        }
+    }
+
+    impl ::std::fmt::Debug for self::StructWithDoubleUnderscores {
+        fn fmt(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            formatter
+                .debug_struct("StructWithDoubleUnderscores")
+                .field("__field", &self.__field)
+                .finish()
         }
     }
 
@@ -2365,10 +2809,16 @@ pub mod types {
             p.read_struct_end()?;
             ::std::result::Result::Ok(Self {
                 __field: field___field.unwrap_or_default(),
+                _dot_dot_Default_default: self::dot_dot::OtherFields(()),
             })
         }
     }
 
+
+    mod dot_dot {
+        #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct OtherFields(pub(crate) ());
+    }
 }
 
 #[doc(hidden)]
@@ -2391,6 +2841,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for BounceMapExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    BounceMapExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    BounceMapExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    BounceMapExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    BounceMapExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    BounceMapExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    BounceMapExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for BounceMapExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    BounceMapExn::Success(_) => ::fbthrift::ResultType::Return,
+                    BounceMapExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for BounceMapExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -2400,6 +2882,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let BounceMapExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("BounceMap");
                 match self {
                     BounceMapExn::Success(inner) => {
@@ -2411,11 +2896,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    BounceMapExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    BounceMapExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -2482,6 +2963,38 @@ pub mod services {
             }
         }
 
+        impl ::fbthrift::ExceptionInfo for BinaryKeyedMapExn {
+            fn exn_name(&self) -> &'static str {
+                match self {
+                    BinaryKeyedMapExn::Success(_) => panic!("ExceptionInfo::exn_name called on Success"),
+                    BinaryKeyedMapExn::ApplicationException(aexn) => aexn.exn_name(),
+                }
+            }
+
+            fn exn_value(&self) -> String {
+                match self {
+                    BinaryKeyedMapExn::Success(_) => panic!("ExceptionInfo::exn_value called on Success"),
+                    BinaryKeyedMapExn::ApplicationException(aexn) => aexn.exn_value(),
+                }
+            }
+
+            fn exn_is_declared(&self) -> bool {
+                match self {
+                    BinaryKeyedMapExn::Success(_) => panic!("ExceptionInfo::exn_is_declared called on Success"),
+                    BinaryKeyedMapExn::ApplicationException(aexn) => aexn.exn_is_declared(),
+                }
+            }
+        }
+
+        impl ::fbthrift::ResultInfo for BinaryKeyedMapExn {
+            fn result_type(&self) -> ::fbthrift::ResultType {
+                match self {
+                    BinaryKeyedMapExn::Success(_) => ::fbthrift::ResultType::Return,
+                    BinaryKeyedMapExn::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+                }
+            }
+        }
+
         impl ::fbthrift::GetTType for BinaryKeyedMapExn {
             const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
         }
@@ -2491,6 +3004,9 @@ pub mod services {
             P: ::fbthrift::ProtocolWriter,
         {
             fn write(&self, p: &mut P) {
+                if let BinaryKeyedMapExn::ApplicationException(aexn) = self {
+                    return aexn.write(p);
+                }
                 p.write_struct_begin("BinaryKeyedMap");
                 match self {
                     BinaryKeyedMapExn::Success(inner) => {
@@ -2502,11 +3018,7 @@ pub mod services {
                         inner.write(p);
                         p.write_field_end();
                     }
-                    BinaryKeyedMapExn::ApplicationException(_) => panic!(
-                        "Bad union Alt field {} id {}",
-                        "ApplicationException",
-                        -2147483648i32,
-                    ),
+                    BinaryKeyedMapExn::ApplicationException(_aexn) => unreachable!(),
                 }
                 p.write_field_stop();
                 p.write_struct_end();
@@ -2566,12 +3078,12 @@ pub mod services {
 /// Client implementation for each service in `module`.
 pub mod client {
 
-    pub struct SomeServiceImpl<P, T> {
+    pub struct SomeServiceImpl<P, T, S = ::fbthrift::NoopSpawner> {
         transport: T,
-        _phantom: ::std::marker::PhantomData<fn() -> P>,
+        _phantom: ::std::marker::PhantomData<fn() -> (P, S)>,
     }
 
-    impl<P, T> SomeServiceImpl<P, T> {
+    impl<P, T, S> SomeServiceImpl<P, T, S> {
         pub fn new(
             transport: T,
         ) -> Self {
@@ -2597,245 +3109,140 @@ pub mod client {
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::collections::BTreeMap<crate::types::TBinary, ::std::primitive::i64>, crate::errors::some_service::BinaryKeyedMapError>> + ::std::marker::Send + 'static>>;
     }
 
-    impl<P, T> SomeService for SomeServiceImpl<P, T>
+    struct Args_SomeService_bounce_map<'a> {
+        m: &'a include::types::SomeMap,
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_SomeService_bounce_map<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "SomeService.bounce_map"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("m", ::fbthrift::TType::Map, 1i16);
+            ::fbthrift::Serialize::write(&self.m, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    struct Args_SomeService_binary_keyed_map<'a> {
+        r: &'a [::std::primitive::i64],
+        _phantom: ::std::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_SomeService_binary_keyed_map<'a> {
+        #[inline]
+        #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "SomeService.binary_keyed_map"))]
+        fn write(&self, p: &mut P) {
+            p.write_struct_begin("args");
+            p.write_field_begin("r", ::fbthrift::TType::List, 1i16);
+            ::fbthrift::Serialize::write(&self.r, p);
+            p.write_field_end();
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    impl<P, T, S> SomeService for SomeServiceImpl<P, T, S>
     where
         P: ::fbthrift::Protocol,
         T: ::fbthrift::Transport,
         P::Frame: ::fbthrift::Framing<DecBuf = ::fbthrift::FramingDecoded<T>>,
         ::fbthrift::ProtocolEncoded<P>: ::fbthrift::BufMutExt<Final = ::fbthrift::FramingEncodedFinal<T>>,
         P::Deserializer: ::std::marker::Send,
+        S: ::fbthrift::help::Spawner,
     {
-        #[::tracing::instrument(name = "SomeService.bounce_map", skip_all)]
         fn bounce_map(
             &self,
             arg_m: &include::types::SomeMap,
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<include::types::SomeMap, crate::errors::some_service::BounceMapError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "SomeService";
                 METHOD_NAME = "SomeService.bounce_map";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "bounce_map",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_m", ::fbthrift::TType::Map, 1i16);
-                        ::fbthrift::Serialize::write(&arg_m, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "SomeService.bounce_map"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::some_service::BounceMapExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::some_service::BounceMapExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::some_service::BounceMapExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::some_service::BounceMapError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::some_service::BounceMapError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::some_service::BounceMapError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "SomeService.bounce_map"))
-                )
-                .boxed()
+            let args = self::Args_SomeService_bounce_map {
+                m: arg_m,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("bounce_map", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "SomeService.bounce_map"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::some_service::BounceMapExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::some_service::BounceMapError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("SomeService.bounce_map"))
+            .boxed()
         }
 
-        #[::tracing::instrument(name = "SomeService.binary_keyed_map", skip_all)]
+
         fn binary_keyed_map(
             &self,
             arg_r: &[::std::primitive::i64],
         ) -> ::std::pin::Pin<::std::boxed::Box<dyn ::std::future::Future<Output = ::std::result::Result<::std::collections::BTreeMap<crate::types::TBinary, ::std::primitive::i64>, crate::errors::some_service::BinaryKeyedMapError>> + ::std::marker::Send + 'static>> {
             use ::const_cstr::const_cstr;
-            use ::fbthrift::{ProtocolWriter as _};
-            use ::futures::future::{FutureExt as _, TryFutureExt as _};
             use ::tracing::Instrument as _;
+            use ::futures::FutureExt as _;
+
             const_cstr! {
                 SERVICE_NAME = "SomeService";
                 METHOD_NAME = "SomeService.binary_keyed_map";
             }
-            let request = ::tracing::trace_span!("serialize_args").in_scope(|| {
-                ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "binary_keyed_map",
-                    ::fbthrift::MessageType::Call,
-                    // Note: we send a 0 message sequence ID from clients because
-                    // this field should not be used by the server (except for some
-                    // language implementations).
-                    0,
-                    |p| {
-                        p.write_struct_begin("args");
-                        p.write_field_begin("arg_r", ::fbthrift::TType::List, 1i16);
-                        ::fbthrift::Serialize::write(&arg_r, p);
-                        p.write_field_end();
-                        p.write_field_stop();
-                        p.write_struct_end();
-                    },
-                ))
-            });
-            self.transport()
-                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request)
-                .instrument(::tracing::info_span!("call", function = "SomeService.binary_keyed_map"))
-                .map_err(::std::convert::From::from)
-                .and_then(|reply| {
-                        let de = P::deserializer(reply);
-                        (move |mut p: P::Deserializer| {
-                            use ::fbthrift::{ProtocolReader as _};
-                            let (_, message_type, _) = match p.read_message_begin(|_| ()) {
-                                Ok(res) => res,
-                                Err(e) => {
-                                    ::tracing::error!(error = ?e);
-                                    return ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ::std::result::Result::Err(e.into())
-                                        )
-                                    )
-                                }
-                            };
-                            match message_type {
-                                ::fbthrift::MessageType::Reply => {
-                                    let exn: ::tokio_shim::task::JoinHandle<(Result<crate::services::some_service::BinaryKeyedMapExn, _>, _)> =
-                                        ::tokio_shim::task::spawn_blocking_fallback_inline(move || (::fbthrift::Deserialize::read(&mut p), p));
-                                    ::futures::future::Either::Right(exn.then(
-                                        |exn| {
-                                            let result = (move || {
-                                                let (exn, mut p) = match exn {
-                                                    Ok(res) => res,
-                                                    Err(e) => {
-                                                        // spawn_blocking threads can't be cancelled, so any
-                                                        // error is a panic. This shouldn't happen, but we propagate if it does
-                                                        ::std::panic::resume_unwind(e.into_panic())
-                                                    }
-                                                };
-                                                let exn = exn?;
-                                                let result = match exn {
-                                                    crate::services::some_service::BinaryKeyedMapExn::Success(x) => {
-                                                        ::tracing::info!("success");
-                                                        ::std::result::Result::Ok(x)
-                                                    },
-                                                    crate::services::some_service::BinaryKeyedMapExn::ApplicationException(ae) => {
-                                                        ::tracing::error!(application_exception = ?ae);
-                                                        ::std::result::Result::Err(crate::errors::some_service::BinaryKeyedMapError::ApplicationException(ae))
-                                                    }
-                                                };
-                                                p.read_message_end()?;
-                                                result
-                                            })();
-                                            ::futures::future::ready(result)
-                                        }
-                                    ))
-                                }
-                                ::fbthrift::MessageType::Exception => {
-                                    let ae: ::std::result::Result<::fbthrift::ApplicationException, _> = ::fbthrift::Deserialize::read(&mut p);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            ae.map_err(|e| e.into()).and_then(|ae| {
-                                                p.read_message_end().map_err(|e| e.into()).and_then(|_| {
-                                                    ::std::result::Result::Err(crate::errors::some_service::BinaryKeyedMapError::ApplicationException(ae))
-                                                })
-                                            })
-                                        )
-                                    )
-                                }
-                                ::fbthrift::MessageType::Call | ::fbthrift::MessageType::Oneway | ::fbthrift::MessageType::InvalidMessageType => {
-                                    let err = ::anyhow::anyhow!("Unexpected message type {:?}", message_type);
-                                    ::futures::future::Either::Left(
-                                        ::futures::future::ready(
-                                            p.read_message_end().map_err(|e| e.into()).and_then(
-                                            |_| {
-                                                ::std::result::Result::Err(crate::errors::some_service::BinaryKeyedMapError::ThriftError(err))
-                                            }
-                                            )
-                                        )
-                                    )
-                                }
-                            }
-                        })(de)
-                    }
-                    .instrument(::tracing::trace_span!("deserialize_response", method = "SomeService.binary_keyed_map"))
-                )
-                .boxed()
+            let args = self::Args_SomeService_binary_keyed_map {
+                r: arg_r,
+                _phantom: ::std::marker::PhantomData,
+            };
+
+            // need to do call setup outside of async block because T: Transport isn't Send
+            let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("binary_keyed_map", &args) {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+            };
+
+            let call = self.transport()
+                .call(SERVICE_NAME.as_cstr(), METHOD_NAME.as_cstr(), request_env)
+                .instrument(::tracing::trace_span!("call", function = "SomeService.binary_keyed_map"));
+
+            async move {
+                let reply_env = call.await?;
+
+                let de = P::deserializer(reply_env);
+                let (res, _de): (::std::result::Result<crate::services::some_service::BinaryKeyedMapExn, _>, _) =
+                    ::fbthrift::help::async_deserialize_response_envelope::<P, _, S>(de).await?;
+
+                match res {
+                    ::std::result::Result::Ok(exn) => ::std::convert::From::from(exn),
+                    ::std::result::Result::Err(aexn) =>
+                        ::std::result::Result::Err(crate::errors::some_service::BinaryKeyedMapError::ApplicationException(aexn))
+                }
+            }
+            .instrument(::tracing::info_span!("SomeService.binary_keyed_map"))
+            .boxed()
         }
+
     }
 
     impl<'a, T> SomeService for T
@@ -2887,8 +3294,24 @@ pub mod client {
             T: ::fbthrift::Transport,
             P::Deserializer: ::std::marker::Send,
         {
+            let spawner = ::fbthrift::help::NoopSpawner;
+            Self::with_spawner(protocol, transport, spawner)
+        }
+
+        pub fn with_spawner<P, T, S>(
+            protocol: P,
+            transport: T,
+            spawner: S,
+        ) -> ::std::sync::Arc<impl SomeService + ::std::marker::Send + 'static>
+        where
+            P: ::fbthrift::Protocol<Frame = T>,
+            T: ::fbthrift::Transport,
+            P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
+        {
             let _ = protocol;
-            ::std::sync::Arc::new(SomeServiceImpl::<P, T>::new(transport))
+            let _ = spawner;
+            ::std::sync::Arc::new(SomeServiceImpl::<P, T, S>::new(transport))
         }
     }
 
@@ -2900,13 +3323,14 @@ pub mod client {
     impl ::fbthrift::ClientFactory for make_SomeService {
         type Api = dyn SomeService + ::std::marker::Send + ::std::marker::Sync + 'static;
 
-        fn new<P, T>(protocol: P, transport: T) -> ::std::sync::Arc<Self::Api>
+        fn with_spawner<P, T, S>(protocol: P, transport: T, spawner: S) -> ::std::sync::Arc<Self::Api>
         where
             P: ::fbthrift::Protocol<Frame = T>,
             T: ::fbthrift::Transport + ::std::marker::Sync,
             P::Deserializer: ::std::marker::Send,
+            S: ::fbthrift::help::Spawner,
         {
-            <dyn SomeService>::new(protocol, transport)
+            <dyn SomeService>::with_spawner(protocol, transport, spawner)
         }
     }
 
@@ -3031,68 +3455,57 @@ pub mod server {
         async fn handle_bounce_map<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::some_service::BounceMapExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "SomeService";
                 METHOD_NAME = "SomeService.bounce_map";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_SomeService_bounce_map = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.bounce_map(
-                _args.m,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.bounce_map(
+                    _args.m,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "SomeService.bounce_map"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "SomeService.bounce_map", "success");
                     crate::services::some_service::BounceMapExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::some_service::BounceMapExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "SomeService.bounce_map", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::some_service::BounceMapExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::some_service::BounceMapExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "bounce_map",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "SomeService.bounce_map", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("SomeService.bounce_map", exn);
+                    crate::services::some_service::BounceMapExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "SomeService.bounce_map").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "bounce_map",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
 
@@ -3100,68 +3513,57 @@ pub mod server {
         async fn handle_binary_keyed_map<'a>(
             &'a self,
             p: &'a mut P::Deserializer,
-            req_ctxt: &R,
-            seqid: ::std::primitive::u32,
-        ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
+            _req_ctxt: &R,
+            ctx_stack: &mut R::ContextStack,
+        ) -> ::anyhow::Result<crate::services::some_service::BinaryKeyedMapExn> {
             use ::const_cstr::const_cstr;
             use ::tracing::Instrument as _;
-            //use ::fbthrift::BufExt as _;
+            use ::futures::FutureExt as _;
 
             const_cstr! {
                 SERVICE_NAME = "SomeService";
                 METHOD_NAME = "SomeService.binary_keyed_map";
             }
-            let mut ctx_stack = req_ctxt.get_context_stack(
-                SERVICE_NAME.as_cstr(),
-                METHOD_NAME.as_cstr(),
-            )?;
-            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            ::fbthrift::ContextStack::pre_read(ctx_stack)?;
             let _args: self::Args_SomeService_binary_keyed_map = ::fbthrift::Deserialize::read(p)?;
-            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
+            ::fbthrift::ContextStack::on_read_data(ctx_stack, &::fbthrift::SerializedMessage {
                 protocol: P::PROTOCOL_ID,
                 method_name: METHOD_NAME.as_cstr(),
                 buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
             })?;
-            ::fbthrift::ContextStack::post_read(&mut ctx_stack, 0)?;
-            let res = self.service.binary_keyed_map(
-                _args.r,
+            ::fbthrift::ContextStack::post_read(ctx_stack, 0)?;
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.binary_keyed_map(
+                    _args.r,
+                )
             )
+            .catch_unwind()
             .instrument(::tracing::info_span!("service_handler", method = "SomeService.binary_keyed_map"))
             .await;
+
+            // nested results - panic catch on the outside, method on the inside
             let res = match res {
-                ::std::result::Result::Ok(res) => {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
                     ::tracing::info!(method = "SomeService.binary_keyed_map", "success");
                     crate::services::some_service::BinaryKeyedMapExn::Success(res)
                 }
-                ::std::result::Result::Err(crate::services::some_service::BinaryKeyedMapExn::ApplicationException(aexn)) => {
-                    ::tracing::error!(method = "SomeService.binary_keyed_map", application_exception = ?aexn);
-                    req_ctxt.set_user_exception_header(::fbthrift::help::type_name_of_val(&aexn), &format!("{:?}", aexn))?;
-                    return ::std::result::Result::Err(aexn.into())
-                }
-                ::std::result::Result::Err(crate::services::some_service::BinaryKeyedMapExn::Success(_)) => {
+                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::some_service::BinaryKeyedMapExn::Success(_))) => {
                     panic!(
                         "{} attempted to return success via error",
                         "binary_keyed_map",
                     )
                 }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::tracing::error!(method = "SomeService.binary_keyed_map", exception = ?exn);
+                    exn
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("SomeService.binary_keyed_map", exn);
+                    crate::services::some_service::BinaryKeyedMapExn::ApplicationException(aexn)
+                }
             };
-            let res = ::tracing::trace_span!("serialize_result", method = "SomeService.binary_keyed_map").in_scope(|| -> ::anyhow::Result<_> {
-                ::fbthrift::ContextStack::pre_write(&mut ctx_stack)?;
-                let res = ::fbthrift::serialize!(P, |p| ::fbthrift::protocol::write_message(
-                    p,
-                    "binary_keyed_map",
-                    ::fbthrift::MessageType::Reply,
-                    seqid,
-                    |p| ::fbthrift::Serialize::write(&res, p),
-                ));
-                ::fbthrift::ContextStack::on_write_data(&mut ctx_stack, &::fbthrift::SerializedMessage {
-                    protocol: P::PROTOCOL_ID,
-                    method_name: METHOD_NAME.as_cstr(),
-                    buffer: ::std::marker::PhantomData, // FIXME P::into_buffer(p).reset(),
-                })?;
-                ::fbthrift::ContextStack::post_write(&mut ctx_stack, 0)?;
-                Ok(res)
-            })?;
+
             ::std::result::Result::Ok(res)
         }
     }
@@ -3195,8 +3597,48 @@ pub mod server {
             _seqid: ::std::primitive::u32,
         ) -> ::anyhow::Result<::fbthrift::ProtocolEncodedFinal<P>> {
             match idx {
-                0usize => self.handle_bounce_map(_p, _r, _seqid).await,
-                1usize => self.handle_binary_keyed_map(_p, _r, _seqid).await,
+                0usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "SomeService";
+                        METHOD_NAME = "SomeService.bounce_map";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_bounce_map(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "bounce_map",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
+                1usize => {
+                    use const_cstr::const_cstr;
+                    const_cstr! {
+                        SERVICE_NAME = "SomeService";
+                        METHOD_NAME = "SomeService.binary_keyed_map";
+                    }
+                    let mut ctx_stack = _r.get_context_stack(
+                        SERVICE_NAME.as_cstr(),
+                        METHOD_NAME.as_cstr(),
+                    )?;
+                    let res = self.handle_binary_keyed_map(_p, _r, &mut ctx_stack).await?;
+                    let env = ::fbthrift::help::serialize_result_envelope::<P, R, _>(
+                        "binary_keyed_map",
+                        METHOD_NAME.as_cstr(),
+                        _seqid,
+                        _r,
+                        &mut ctx_stack,
+                        res
+                    )?;
+                    Ok(env)
+                }
                 bad => panic!(
                     "{}: unexpected method idx {}",
                     "SomeServiceProcessor",
@@ -3242,26 +3684,10 @@ pub mod server {
                     return self.supa.call(cur, req_ctxt).await;
                 }
             };
-            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await;
+            let res = self.handle_method(idx, &mut p, req_ctxt, seqid).await?;
             p.read_message_end()?;
-            match res {
-                ::std::result::Result::Ok(bytes) => ::std::result::Result::Ok(bytes),
-                ::std::result::Result::Err(err) => match err.downcast_ref::<::fbthrift::ProtocolError>() {
-                    ::std::option::Option::Some(::fbthrift::ProtocolError::ApplicationException(ae)) => {
-                        let res = ::fbthrift::serialize!(P, |p| {
-                            ::fbthrift::protocol::write_message(
-                                p,
-                                "SomeServiceProcessor",
-                                ::fbthrift::MessageType::Exception,
-                                seqid,
-                                |p| ::fbthrift::Serialize::write(&ae, p),
-                            )
-                        });
-                        ::std::result::Result::Ok(res)
-                    }
-                    _ => ::std::result::Result::Err(err),
-                },
-            }
+
+            Ok(res)
         }
     }
 
@@ -3405,7 +3831,6 @@ pub mod mock {
         }
     }
 
-    #[::async_trait::async_trait]
     impl<'mock> super::client::SomeService for SomeService<'mock> {
         fn bounce_map(
             &self,
@@ -3526,7 +3951,33 @@ pub mod errors {
 
         pub type BounceMapError = ::fbthrift::NonthrowingFunctionError;
 
+        impl ::std::convert::From<crate::services::some_service::BounceMapExn> for
+            ::std::result::Result<include::types::SomeMap, BounceMapError>
+        {
+            fn from(e: crate::services::some_service::BounceMapExn) -> Self {
+                match e {
+                    crate::services::some_service::BounceMapExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::some_service::BounceMapExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(BounceMapError::ApplicationException(aexn)),
+                }
+            }
+        }
+
         pub type BinaryKeyedMapError = ::fbthrift::NonthrowingFunctionError;
+
+        impl ::std::convert::From<crate::services::some_service::BinaryKeyedMapExn> for
+            ::std::result::Result<::std::collections::BTreeMap<crate::types::TBinary, ::std::primitive::i64>, BinaryKeyedMapError>
+        {
+            fn from(e: crate::services::some_service::BinaryKeyedMapExn) -> Self {
+                match e {
+                    crate::services::some_service::BinaryKeyedMapExn::Success(res) =>
+                        ::std::result::Result::Ok(res),
+                    crate::services::some_service::BinaryKeyedMapExn::ApplicationException(aexn) =>
+                        ::std::result::Result::Err(BinaryKeyedMapError::ApplicationException(aexn)),
+                }
+            }
+        }
 
     }
 

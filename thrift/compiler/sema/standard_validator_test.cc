@@ -16,6 +16,8 @@
 
 #include <thrift/compiler/sema/standard_validator.h>
 
+#include <cmath>
+#include <limits>
 #include <memory>
 
 #include <folly/portability/GMock.h>
@@ -401,6 +403,68 @@ TEST_F(StandardValidatorTest, RepeatedStructuredAnnotation) {
       validate(diagnostic_params::only_failures()),
       UnorderedElementsAre(failure(
           3, "Structured annotation `Foo` is already defined for `Bar`.")));
+}
+
+TEST_F(StandardValidatorTest, CustomDefaultValue) {
+  auto foo = std::make_unique<t_struct>(&program_, "Foo");
+
+  auto custom_byte = std::make_unique<t_const_value>(
+      static_cast<int64_t>(std::numeric_limits<int8_t>::max()) + 1);
+  auto custom_short = std::make_unique<t_const_value>(
+      static_cast<int64_t>(std::numeric_limits<int16_t>::max()) + 1);
+  auto custom_integer = std::make_unique<t_const_value>(
+      static_cast<int64_t>(std::numeric_limits<int32_t>::max()) + 1);
+  auto custom_float = std::make_unique<t_const_value>();
+  custom_float->set_double(std::nextafter(
+      static_cast<double>(std::numeric_limits<float>::max()),
+      std::numeric_limits<double>::max()));
+  auto custom_float_precision_loss =
+      std::make_unique<t_const_value>(std::numeric_limits<int32_t>::max());
+
+  auto const_byte = std::make_unique<t_const>(
+      &program_, &t_base_type::t_byte(), "const_byte", std::move(custom_byte));
+  auto const_short = std::make_unique<t_const>(
+      &program_, &t_base_type::t_i16(), "const_short", std::move(custom_short));
+  auto const_integer = std::make_unique<t_const>(
+      &program_,
+      &t_base_type::t_i32(),
+      "const_integer",
+      std::move(custom_integer));
+  auto const_float = std::make_unique<t_const>(
+      &program_,
+      &t_base_type::t_float(),
+      "const_float",
+      std::move(custom_float));
+  auto const_float_precision_loss = std::make_unique<t_const>(
+      &program_,
+      &t_base_type::t_float(),
+      "const_float_precision_loss",
+      std::move(custom_float_precision_loss));
+
+  program_.add_const(std::move(const_byte));
+  program_.add_const(std::move(const_short));
+  program_.add_const(std::move(const_integer));
+  program_.add_const(std::move(const_float));
+  program_.add_const(std::move(const_float_precision_loss));
+
+  EXPECT_THAT(
+      validate(),
+      UnorderedElementsAre(
+          warning(
+              -1,
+              "value error: const `const_byte` has an invalid custom default value. This will become an error in future versions of thrift."),
+          warning(
+              -1,
+              "value error: const `const_short` has an invalid custom default value. This will become an error in future versions of thrift."),
+          warning(
+              -1,
+              "value error: const `const_integer` has an invalid custom default value. This will become an error in future versions of thrift."),
+          warning(
+              -1,
+              "value error: const `const_float` has an invalid custom default value. This will become an error in future versions of thrift."),
+          warning(
+              -1,
+              "value error: const `const_float_precision_loss` cannot be represented precisely as `float` or `double`. This will become an error in future versions of thrift.")));
 }
 
 } // namespace

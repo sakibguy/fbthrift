@@ -151,7 +151,6 @@ class ReflectionTests(unittest.TestCase):
                 "fun_times": "yes",
                 "single_quote": "'",
                 "double_quotes": '"""',
-                "py3.pass_context": "1",
             },
         )
 
@@ -177,6 +176,14 @@ class ReflectionTests(unittest.TestCase):
                 arguments=[],
                 result=str,
                 result_kind=NumberType.NOT_A_NUMBER,
+                exceptions=[],
+                annotations={},
+            ),
+            MethodSpec(
+                name="getRequestTimeout",
+                arguments=[],
+                result=float,
+                result_kind=NumberType.FLOAT,
                 exceptions=[],
                 annotations={},
             ),

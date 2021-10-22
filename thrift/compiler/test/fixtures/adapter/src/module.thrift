@@ -18,6 +18,8 @@ namespace android test.fixtures.adapter
 namespace java test.fixtures.adapter
 namespace java.swift test.fixtures.adapter
 
+include "thrift/annotation/cpp.thrift"
+
 typedef set<string> (
   hack.adapter = '\Adapter2',
   cpp.adapter = 'my::Adapter2',
@@ -143,6 +145,11 @@ struct Bar {
   ) optionalUnionField;
 }
 
+struct StructWithFieldAdapter {
+  @cpp.ExperimentalAdapter{name = "my::Adapter1"}
+  1: i32 field;
+}
+
 typedef Bar (
   hack.adapter = '\Adapter2',
   cpp.adapter = 'my::Adapter2',
@@ -166,6 +173,8 @@ service Service {
       cpp.adapter = 'my::Adapter2',
       py.adapter = 'my.Adapter2',
     ) arg1,
-    2: Foo arg2,
+    @cpp.ExperimentalAdapter{name = "my::Adapter2"}
+    2: string arg2,
+    3: Foo arg3,
   );
 }

@@ -48,13 +48,13 @@ class MyStruct;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -73,8 +73,8 @@ class MyStruct final  {
  public:
 
   MyStruct() :
-      MyIncludedField(::apache::thrift::detail::make_constant< ::cpp2::Included>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::MyIntField>(2LL), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::MyTransitiveField>(::apache::thrift::detail::make_constant< ::cpp2::Foo>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::a>(2LL))))),
-      MyIncludedInt(42LL) {
+      MyIncludedField(static_cast<::cpp2::Included>(::apache::thrift::detail::make_constant< ::cpp2::Included>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::MyIntField>(static_cast<::std::int64_t>(2)), ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::MyTransitiveField>(static_cast<::cpp2::Foo>(::apache::thrift::detail::make_constant< ::cpp2::Foo>(::apache::thrift::type_class::structure{}, ::apache::thrift::detail::wrap_struct_argument<::apache::thrift::tag::a>(static_cast<::std::int64_t>(2)))))))),
+      MyIncludedInt(static_cast<::cpp2::IncludedInt64>(42)) {
   }
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
@@ -94,22 +94,8 @@ class MyStruct final  {
   ::cpp2::Included MyOtherIncludedField;
  private:
   ::cpp2::IncludedInt64 MyIncludedInt;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,3> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 3, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 3, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<3> __isset;
 
  public:
 
@@ -118,62 +104,62 @@ class MyStruct final  {
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> MyIncludedField_ref() const& {
-    return {this->MyIncludedField, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->MyIncludedField, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> MyIncludedField_ref() const&& {
-    return {std::move(this->MyIncludedField), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->MyIncludedField), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> MyIncludedField_ref() & {
-    return {this->MyIncludedField, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->MyIncludedField, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> MyIncludedField_ref() && {
-    return {std::move(this->MyIncludedField), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->MyIncludedField), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> MyOtherIncludedField_ref() const& {
-    return {this->MyOtherIncludedField, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->MyOtherIncludedField, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> MyOtherIncludedField_ref() const&& {
-    return {std::move(this->MyOtherIncludedField), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->MyOtherIncludedField), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> MyOtherIncludedField_ref() & {
-    return {this->MyOtherIncludedField, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->MyOtherIncludedField, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Included>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> MyOtherIncludedField_ref() && {
-    return {std::move(this->MyOtherIncludedField), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->MyOtherIncludedField), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::IncludedInt64>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> MyIncludedInt_ref() const& {
-    return {this->MyIncludedInt, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->MyIncludedInt, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::IncludedInt64>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> MyIncludedInt_ref() const&& {
-    return {std::move(this->MyIncludedInt), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->MyIncludedInt), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::IncludedInt64>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> MyIncludedInt_ref() & {
-    return {this->MyIncludedInt, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->MyIncludedInt, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::IncludedInt64>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> MyIncludedInt_ref() && {
-    return {std::move(this->MyIncludedInt), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->MyIncludedInt), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
   const ::cpp2::Included& get_MyIncludedField() const&;
   ::cpp2::Included get_MyIncludedField() &&;
@@ -181,8 +167,7 @@ class MyStruct final  {
   template <typename T_MyStruct_MyIncludedField_struct_setter = ::cpp2::Included>
   [[deprecated("Use `FOO.MyIncludedField_ref() = BAR;` instead of `FOO.set_MyIncludedField(BAR);`")]]
   ::cpp2::Included& set_MyIncludedField(T_MyStruct_MyIncludedField_struct_setter&& MyIncludedField_) {
-    MyIncludedField = std::forward<T_MyStruct_MyIncludedField_struct_setter>(MyIncludedField_);
-    __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    MyIncludedField_ref() = std::forward<T_MyStruct_MyIncludedField_struct_setter>(MyIncludedField_);
     return MyIncludedField;
   }
   const ::cpp2::Included& get_MyOtherIncludedField() const&;
@@ -191,8 +176,7 @@ class MyStruct final  {
   template <typename T_MyStruct_MyOtherIncludedField_struct_setter = ::cpp2::Included>
   [[deprecated("Use `FOO.MyOtherIncludedField_ref() = BAR;` instead of `FOO.set_MyOtherIncludedField(BAR);`")]]
   ::cpp2::Included& set_MyOtherIncludedField(T_MyStruct_MyOtherIncludedField_struct_setter&& MyOtherIncludedField_) {
-    MyOtherIncludedField = std::forward<T_MyStruct_MyOtherIncludedField_struct_setter>(MyOtherIncludedField_);
-    __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    MyOtherIncludedField_ref() = std::forward<T_MyStruct_MyOtherIncludedField_struct_setter>(MyOtherIncludedField_);
     return MyOtherIncludedField;
   }
 
@@ -202,8 +186,7 @@ class MyStruct final  {
 
   [[deprecated("Use `FOO.MyIncludedInt_ref() = BAR;` instead of `FOO.set_MyIncludedInt(BAR);`")]]
   ::cpp2::IncludedInt64& set_MyIncludedInt(::cpp2::IncludedInt64 MyIncludedInt_) {
-    MyIncludedInt = MyIncludedInt_;
-  __isset.__fbthrift_set(folly::index_constant<2>(), true);
+    MyIncludedInt_ref() = MyIncludedInt_;
     return MyIncludedInt;
   }
 
@@ -232,4 +215,3 @@ uint32_t MyStruct::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

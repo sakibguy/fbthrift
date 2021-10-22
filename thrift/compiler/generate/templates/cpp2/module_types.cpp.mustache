@@ -71,7 +71,7 @@ constexpr ptrdiff_t issetOffset<<% > common/namespace_cpp2 %><%struct:name%>>(st
   constexpr ptrdiff_t offsets[] = {
     <%#struct:fields_in_key_order%>
     <%#field:has_isset?%><%!
-    %>offsetof(<% > common/namespace_cpp2 %><%struct:name%>, __isset.array_isset) + <%field:isset_index%><%!
+    %>offsetof(<% > common/namespace_cpp2 %><%struct:name%>, __isset) + isset_bitset<<%struct:isset_fields_size%>>::get_offset() + <%field:isset_index%><%!
     %><%/field:has_isset?%><%!
     %><%^field:has_isset?%><%!
     %>0<%/field:has_isset?%><% > common/comma_newline%><%/struct:fields_in_key_order%>};
@@ -111,10 +111,8 @@ const char* <%struct:name%>::__fbthrift_cpp2_gen_thrift_uri() {
 <%^struct:cpp_noncopyable%>
 <%^struct:nondefault_copy_ctor_and_assignment?%>
 <%^struct:is_eligible_for_constexpr?%>
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 <%struct:name%>::<%struct:name%>(const <%struct:name%>&) = default;
 <%struct:name%>& <%struct:name%>::operator=(const <%struct:name%>&) = default;
-THRIFT_IGNORE_ISSET_USE_WARNING_END
 <%/struct:is_eligible_for_constexpr?%>
 <%/struct:nondefault_copy_ctor_and_assignment?%>
 <%#struct:nondefault_copy_ctor_and_assignment?%>
@@ -225,8 +223,8 @@ constexpr ::apache::thrift::detail::StructInfoN<<%struct:fields_size%>> __fbthri
   %><%/struct:fields_in_key_order%>}
 };
 <%/program:tablebased?%>
-<%! enforce that if this thrift file is generated with extern template instances
-    for simple-json protocol then all its dependencies are too %>
+<%! Enforce that if this thrift file is generated with extern template instances
+    for simple-json protocol then all its dependencies are too. %>
 <%#struct:fields%>
 <%#field:type%>
 <%#type:transitively_refers_to_struct?%>
@@ -240,8 +238,8 @@ static_assert(
 <%/field:type%>
 <%/struct:fields%>
 
-<%! if this struct is generated with extern template instances for nimble
-    protocol, enforce that all its dependencies are too %>
+<%! If this struct is generated with extern template instances for nimble
+    protocol, enforce that all its dependencies are too. %>
 <%#struct:fields%>
 <%#field:type%>
 <%#type:transitively_refers_to_struct?%>
@@ -258,6 +256,25 @@ static_assert(
 <% > common/namespace_cpp2_end%>
 
 <%/program:structs%><%!
+
+%><%! Validate adapters in typedefs and fields. %>
+
+<% > common/namespace_cpp2_begin%> namespace {
+FOLLY_MAYBE_UNUSED FOLLY_ERASE void validateAdapters() {
+<%#program:structs%><%#struct:fields%>
+<%#field:cpp_adapter%><%#field:type%>
+  ::apache::thrift::adapt_detail::validateFieldAdapter<<%!
+      %><%field:cpp_adapter%>, <%field:key%>, <%type:cpp_standard_type%>, <% > common/namespace_cpp2 %><%struct:name%>>();
+<%/field:type%><%/field:cpp_adapter%>
+<%/struct:fields%><%/program:structs%>
+<%#program:typedefs%><%#typedef:type%>
+<%#type:cpp_adapter%>
+  ::apache::thrift::adapt_detail::validateAdapter<<%type:cpp_adapter%>, <%type:cpp_standard_type%>>();
+<%/type:cpp_adapter%>
+<%/typedef:type%><%/program:typedefs%>
+}
+}<% > common/namespace_cpp2_end%>
+<%!
 
 %><%#program:tablebased?%>
 

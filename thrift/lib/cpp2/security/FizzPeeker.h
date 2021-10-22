@@ -30,6 +30,15 @@
 namespace apache {
 namespace thrift {
 
+// TODO: Move StopTLS negotiation mechanism to wangle and get rid of these
+// classes.
+//
+// There really is no reason why these classes
+// (ThriftFizzAcceptorHandshakeHelper and FizzPeeker), which are almost
+// verbatim copy-paste from wangle, should exist. The only
+// "value added" functionality that this provides is the state machine logic
+// for implementing the StopTLS negotiation (tightly coupled with the policy
+// logic).
 class ThriftFizzAcceptorHandshakeHelper
     : public wangle::FizzAcceptorHandshakeHelper,
       public fizz::AsyncFizzBase::EndOfTLSCallback {
@@ -39,18 +48,11 @@ class ThriftFizzAcceptorHandshakeHelper
       const folly::SocketAddress& clientAddr,
       std::chrono::steady_clock::time_point acceptTime,
       wangle::TransportInfo& tinfo,
-      LoggingCallback* loggingCallback,
-      const std::shared_ptr<fizz::extensions::TokenBindingContext>&
-          tokenBindingContext,
+      wangle::FizzHandshakeOptions&& options,
       const std::shared_ptr<apache::thrift::ThriftParametersContext>&
           thriftParametersContext)
       : wangle::FizzAcceptorHandshakeHelper::FizzAcceptorHandshakeHelper(
-            context,
-            clientAddr,
-            acceptTime,
-            tinfo,
-            loggingCallback,
-            tokenBindingContext),
+            context, clientAddr, acceptTime, tinfo, std::move(options)),
         thriftParametersContext_(thriftParametersContext) {}
 
   void start(
@@ -69,29 +71,6 @@ class ThriftFizzAcceptorHandshakeHelper
   }
 
  protected:
-  fizz::server::AsyncFizzServer::UniquePtr createFizzServer(
-      folly::AsyncSSLSocket::UniquePtr sslSock,
-      const std::shared_ptr<const fizz::server::FizzServerContext>& fizzContext,
-      const std::shared_ptr<fizz::ServerExtensions>& extensions) override {
-    folly::AsyncSocket::UniquePtr asyncSock(
-        new folly::AsyncSocket(std::move(sslSock)));
-    asyncSock->cacheAddresses();
-    return fizz::server::AsyncFizzServer::UniquePtr(
-        new fizz::server::AsyncFizzServer(
-            std::move(asyncSock), fizzContext, extensions));
-  }
-
-  folly::AsyncSSLSocket::UniquePtr createSSLSocket(
-      const std::shared_ptr<folly::SSLContext>& sslContext,
-      folly::AsyncTransport::UniquePtr transport) override {
-    auto socket = transport->getUnderlyingTransport<folly::AsyncSocket>();
-    auto sslSocket = folly::AsyncSSLSocket::UniquePtr(
-        new apache::thrift::async::TAsyncSSLSocket(
-            sslContext, CHECK_NOTNULL(socket)));
-    transport.reset();
-    return sslSocket;
-  }
-
   // AsyncFizzServer::HandshakeCallback API
   void fizzHandshakeSuccess(
       fizz::server::AsyncFizzServer* transport) noexcept override {
@@ -113,7 +92,7 @@ class ThriftFizzAcceptorHandshakeHelper
     auto appProto = transport->getApplicationProtocol();
 
     if (loggingCallback_) {
-      loggingCallback_->logFizzHandshakeSuccess(*transport, &tinfo_);
+      loggingCallback_->logFizzHandshakeSuccess(*transport, tinfo_);
     }
 
     if (thriftExtension_ && thriftExtension_->getNegotiatedStopTLS()) {
@@ -151,32 +130,6 @@ class ThriftFizzAcceptorHandshakeHelper
         wangle::SSLErrorEnum::NO_ERROR);
   }
 
-  // AsyncSSLSocket::HandshakeCallback API
-  void handshakeSuc(folly::AsyncSSLSocket* sock) noexcept override {
-    auto appProto = sock->getApplicationProtocol();
-    if (!appProto.empty()) {
-      VLOG(3) << "Client selected next protocol " << appProto;
-    } else {
-      VLOG(3) << "Client did not select a next protocol";
-    }
-
-    // fill in SSL-related fields from TransportInfo
-    // the other fields like RTT are filled in the Acceptor
-    tinfo_.acceptTime = acceptTime_;
-    tinfo_.sslSetupTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - acceptTime_);
-
-    wangle::SSLAcceptorHandshakeHelper::fillSSLTransportInfoFields(
-        sock, tinfo_);
-
-    // The callback will delete this.
-    callback_->connectionReady(
-        std::move(sslSocket_),
-        std::move(appProto),
-        SecureTransportType::TLS,
-        wangle::SSLErrorEnum::NO_ERROR);
-  }
-
   std::shared_ptr<apache::thrift::ThriftParametersContext>
       thriftParametersContext_;
   std::shared_ptr<apache::thrift::ThriftParametersServerExtension>
@@ -195,14 +148,14 @@ class FizzPeeker : public wangle::DefaultToFizzPeekingCallback {
     if (!context_) {
       return nullptr;
     }
+    auto optionsCopy = options_;
     return wangle::AcceptorHandshakeHelper::UniquePtr(
         new ThriftFizzAcceptorHandshakeHelper(
             context_,
             clientAddr,
             acceptTime,
             tinfo,
-            loggingCallback_,
-            tokenBindingContext_,
+            std::move(optionsCopy),
             thriftParametersContext_));
   }
 

@@ -37,6 +37,8 @@ class DerivedServiceAsyncProcessor;
 
 class DerivedServiceSvIf : public DerivedServiceSvAsyncIf, virtual public ::py3::simple::SimpleServiceSvIf {
  public:
+  std::string_view getGeneratedName() const override { return "DerivedService"; }
+
   typedef DerivedServiceAsyncProcessor ProcessorType;
   std::unique_ptr<apache::thrift::AsyncProcessor> getProcessor() override;
   CreateMethodMetadataResult createMethodMetadata() override;
@@ -80,7 +82,7 @@ class DerivedServiceAsyncProcessor : public ::py3::simple::SimpleServiceAsyncPro
   template <typename ProtocolIn_, typename ProtocolOut_>
   void process_get_six(apache::thrift::ResponseChannelRequest::UniquePtr req, apache::thrift::SerializedCompressedRequest&& serializedRequest, apache::thrift::Cpp2RequestContext* ctx,folly::EventBase* eb, apache::thrift::concurrency::ThreadManager* tm);
   template <class ProtocolIn_, class ProtocolOut_>
-  static apache::thrift::LegacySerializedResponse return_get_six(int32_t protoSeqId, apache::thrift::ContextStack* ctx, ::std::int32_t const& _return);
+  static apache::thrift::SerializedResponse return_get_six(apache::thrift::ContextStack* ctx, ::std::int32_t const& _return);
   template <class ProtocolIn_, class ProtocolOut_>
   static void throw_wrapped_get_six(apache::thrift::ResponseChannelRequest::UniquePtr req,int32_t protoSeqId,apache::thrift::ContextStack* ctx,folly::exception_wrapper ew,apache::thrift::Cpp2RequestContext* reqCtx);
  public:

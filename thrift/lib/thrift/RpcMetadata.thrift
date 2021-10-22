@@ -31,6 +31,8 @@ namespace go thrift.lib.thrift.RpcMetadata
 cpp_include "thrift/lib/cpp2/util/ManagedStringView.h"
 cpp_include "thrift/lib/thrift/RpcMetadata_extra.h"
 
+typedef binary (cpp2.type = "std::unique_ptr<folly::IOBuf>") IOBufPtr
+
 enum ProtocolId {
   // The values must match those in thrift/lib/cpp/protocol/TProtocolTypes.h
   BINARY = 0,
@@ -84,11 +86,9 @@ enum ErrorSafety {
   SAFE = 1,
 }
 
-struct ZlibCompressionCodecConfig {
-}
+struct ZlibCompressionCodecConfig {}
 
-struct ZstdCompressionCodecConfig {
-}
+struct ZstdCompressionCodecConfig {}
 
 union CodecConfig {
   1: ZlibCompressionCodecConfig zlibConfig;
@@ -181,6 +181,9 @@ struct RequestRpcMetadata {
   17: optional InteractionCreate interactionCreate;
   18: optional string clientId;
   19: optional string serviceTraceMeta;
+  // Thrift is typically used within a larger framework.
+  // This field is for storing framework-specific metadata.
+  20: optional IOBufPtr frameworkMetadata;
 }
 
 struct ErrorClassification {
@@ -189,24 +192,19 @@ struct ErrorClassification {
   3: optional ErrorSafety safety;
 }
 
-struct PayloadResponseMetadata {
-}
+struct PayloadResponseMetadata {}
 
 struct PayloadDeclaredExceptionMetadata {
   1: optional ErrorClassification errorClassification;
 }
 
-struct PayloadProxyExceptionMetadata {
-}
+struct PayloadProxyExceptionMetadata {}
 
-struct PayloadProxiedExceptionMetadata {
-}
+struct PayloadProxiedExceptionMetadata {}
 
-struct PayloadAppClientExceptionMetadata {
-}
+struct PayloadAppClientExceptionMetadata {}
 
-struct PayloadAppServerExceptionMetadata {
-}
+struct PayloadAppServerExceptionMetadata {}
 
 struct PayloadAppUnknownExceptionMetdata {
   1: optional ErrorClassification errorClassification;
@@ -243,8 +241,7 @@ union PayloadMetadata {
   2: PayloadExceptionMetadataBase exceptionMetadata;
 }
 
-struct ProxiedPayloadMetadata {
-}
+struct ProxiedPayloadMetadata {}
 
 struct QueueMetadata {
   // Total time in milliseconds spent in the executor's queue

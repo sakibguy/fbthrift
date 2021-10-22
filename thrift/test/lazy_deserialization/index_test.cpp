@@ -117,14 +117,19 @@ IndexedStruct genIndexedStruct(Serializer ser) {
   auto tokens = tokenize(obj, ser);
   obj.serialized_data_size_ref() =
       tokens[2].size() + tokens[3].size() + tokens[4].size() + tokens[5].size();
+  detail::Xxh3Hasher hasher;
   if (!cheapToSkipListOfDouble(ser)) {
     // Only add index field if list<double> is not cheap to skip
     obj.field_id_to_size_ref() = {
         {4, tokens[5].value.size()},
     };
+    auto buf = folly::IOBuf::copyBuffer(tokens[5].value);
+    hasher.update(folly::io::Cursor(buf.get()));
   }
   obj.random_number_ref() = kRandomValue;
   obj.field_id_to_size_ref()[detail::kActualRandomNumberFieldId] = kRandomValue;
+  obj.field_id_to_size_ref()[detail::kXxh3ChecksumFieldId] =
+      static_cast<int64_t>(hasher);
 
   return obj;
 }
@@ -148,6 +153,16 @@ FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field1, TerseOptionalLazyFoo, field1);
 FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field2, TerseOptionalLazyFoo, field2);
 FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field3, TerseOptionalLazyFoo, field3);
 FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field4, TerseOptionalLazyFoo, field4);
+
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field1, FooNoChecksum, field1);
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field2, FooNoChecksum, field2);
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field3, FooNoChecksum, field3);
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field4, FooNoChecksum, field4);
+
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field1, LazyFooNoChecksum, field1);
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field2, LazyFooNoChecksum, field2);
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field3, LazyFooNoChecksum, field3);
+FBTHRIFT_DEFINE_MEMBER_ACCESSOR(get_field4, LazyFooNoChecksum, field4);
 
 TYPED_TEST(LazyDeserialization, IndexedFooToLazyFoo) {
   using Serializer = typename TypeParam::Serializer;
@@ -193,27 +208,41 @@ TYPED_TEST(LazyDeserialization, LazyFooToIndexedFoo) {
   auto lazyFoo = this->genLazyStruct();
   auto tokens = tokenize(lazyFoo, Serializer{});
 
-  tokens[0].header = genFieldHeader(
-      detail::kExpectedRandomNumberField.type,
-      simple_constants::kRandomNumberId(),
-      Serializer{});
-  tokens[1].header = genFieldHeader(
+  size_t i = 0;
+  if (!std::is_same_v<typename TypeParam::Struct, FooNoChecksum>) {
+    tokens[i++].header = genFieldHeader(
+        detail::kExpectedRandomNumberField.type,
+        simple_constants::kRandomNumberId(),
+        Serializer{});
+  }
+  tokens[i++].header = genFieldHeader(
       detail::kSizeField.type, simple_constants::kSizeId(), Serializer{});
   tokens.rbegin()->header = genFieldHeader(
       detail::kIndexField.type, simple_constants::kIndexId(), Serializer{});
 
   auto indexedFoo = this->template deserialize<IndexedStruct>(merge(tokens));
+  indexedFoo.random_number_ref() = kRandomValue;
 
   EXPECT_EQ(lazyFoo.field1_ref(), indexedFoo.field1_ref());
   EXPECT_EQ(lazyFoo.field2_ref(), indexedFoo.field2_ref());
   EXPECT_EQ(lazyFoo.field3_ref(), indexedFoo.field3_ref());
   EXPECT_EQ(lazyFoo.field4_ref(), indexedFoo.field4_ref());
 
-  indexedFoo.random_number_ref() = kRandomValue;
-  indexedFoo.field_id_to_size_ref()[detail::kActualRandomNumberFieldId] =
-      kRandomValue;
+  auto expected = genIndexedStruct<IndexedStruct>(Serializer{});
+  if (std::is_same_v<typename TypeParam::Struct, FooNoChecksum>) {
+    EXPECT_EQ(
+        expected.field_id_to_size_ref()->erase(
+            detail::kActualRandomNumberFieldId),
+        1);
+    EXPECT_EQ(
+        expected.field_id_to_size_ref()->erase(detail::kXxh3ChecksumFieldId),
+        1);
+  } else {
+    indexedFoo.field_id_to_size_ref()[detail::kActualRandomNumberFieldId] =
+        kRandomValue;
+  }
 
-  EXPECT_THRIFT_EQ(indexedFoo, genIndexedStruct<IndexedStruct>(Serializer{}));
+  EXPECT_THRIFT_EQ(indexedFoo, expected);
 }
 
 TYPED_TEST(LazyDeserialization, ReadRandomNumber) {
@@ -331,5 +360,67 @@ TYPED_TEST(LazyDeserialization, MismatchedRandomNumberInIndexField) {
   // If random number mismatches, we don't use index
   EXPECT_EQ(get_field4(lazyFoo).empty(), cheapToSkipListOfDouble(Serializer{}));
   EXPECT_EQ(lazyFoo.field4_ref(), indexedFoo.field4_ref());
+}
+
+TYPED_TEST(LazyDeserialization, MissingChecksumInIndexField) {
+  using Serializer = typename TypeParam::Serializer;
+  using LazyStruct = typename TypeParam::LazyStruct;
+  using IndexedStruct = typename TypeParam::IndexedStruct;
+
+  auto indexedFoo = genIndexedStruct<IndexedStruct>(Serializer{});
+
+  // remove random number from key
+  indexedFoo.field_id_to_size_ref()->erase(detail::kXxh3ChecksumFieldId);
+  auto tokens = tokenize(indexedFoo, Serializer{});
+
+  // Replace header with internal field ids
+  tokens[0].header = genFieldHeader(
+      detail::kExpectedRandomNumberField.type,
+      detail::kExpectedRandomNumberField.id,
+      Serializer{});
+  tokens[1].header = genFieldHeader(
+      detail::kSizeField.type, detail::kSizeField.id, Serializer{});
+  tokens.rbegin()->header = genFieldHeader(
+      detail::kIndexField.type, detail::kIndexField.id, Serializer{});
+
+  auto lazyFoo = this->template deserialize<LazyStruct>(merge(tokens));
+
+  EXPECT_TRUE(get_field4(lazyFoo).empty());
+  EXPECT_EQ(lazyFoo.field4_ref(), indexedFoo.field4_ref());
+}
+
+TYPED_TEST(LazyDeserialization, MismatchedChecksumInIndexField) {
+  using Serializer = typename TypeParam::Serializer;
+  using LazyStruct = typename TypeParam::LazyStruct;
+  using IndexedStruct = typename TypeParam::IndexedStruct;
+
+  auto indexedFoo = genIndexedStruct<IndexedStruct>(Serializer{});
+
+  // Modify random number so that it doesn't match expected checksum
+  ++indexedFoo.field_id_to_size_ref()[detail::kXxh3ChecksumFieldId];
+  auto tokens = tokenize(indexedFoo, Serializer{});
+
+  // Replace header with internal field ids
+  tokens[0].header = genFieldHeader(
+      detail::kExpectedRandomNumberField.type,
+      detail::kExpectedRandomNumberField.id,
+      Serializer{});
+  tokens[1].header = genFieldHeader(
+      detail::kSizeField.type, detail::kSizeField.id, Serializer{});
+  tokens.rbegin()->header = genFieldHeader(
+      detail::kIndexField.type, detail::kIndexField.id, Serializer{});
+
+  EXPECT_FALSE(lazyDeserializationIsDisabledDueToChecksumMismatch());
+  EXPECT_THROW(
+      this->template deserialize<LazyStruct>(merge(tokens)),
+      TProtocolException);
+  EXPECT_TRUE(lazyDeserializationIsDisabledDueToChecksumMismatch());
+
+  // lazy deserialization is disabled this time
+  auto foo = this->template deserialize<LazyStruct>(merge(tokens));
+  EXPECT_EQ(get_field1(foo), indexedFoo.field1_ref());
+  EXPECT_EQ(get_field2(foo), indexedFoo.field2_ref());
+  EXPECT_EQ(get_field3(foo), indexedFoo.field3_ref());
+  EXPECT_EQ(get_field4(foo), indexedFoo.field4_ref());
 }
 } // namespace apache::thrift::test

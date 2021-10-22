@@ -37,13 +37,13 @@ class Foo;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class Foo final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -80,8 +80,6 @@ class Foo final  {
  public:
   ::std::int32_t bar;
 
- private:
-
  public:
 
   bool operator==(const Foo&) const;
@@ -113,7 +111,7 @@ class Foo final  {
 
   [[deprecated("Use `FOO.bar_ref() = BAR;` instead of `FOO.set_bar(BAR);`")]]
   ::std::int32_t& set_bar(::std::int32_t bar_) {
-    bar = bar_;
+    bar_ref() = bar_;
     return bar;
   }
 
@@ -142,4 +140,3 @@ uint32_t Foo::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END

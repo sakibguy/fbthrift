@@ -115,6 +115,12 @@ class type_generator {
       int32_t index = 0) const;
 };
 
+struct field_generator_context {
+  int isset_index = -1;
+  const t_field* prev = nullptr;
+  const t_field* next = nullptr;
+};
+
 class field_generator {
  public:
   field_generator() = default;
@@ -124,7 +130,8 @@ class field_generator {
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION pos = ELEMENT_POSITION::NONE,
-      int32_t index = 0) const;
+      int32_t index = 0,
+      field_generator_context const* field_context = nullptr) const;
 };
 
 class annotation_generator {
@@ -341,6 +348,27 @@ class mstch_generators {
 };
 
 class mstch_base : public mstch::object {
+ protected:
+  // A range of t_field* to avoid copying between std::vector<t_field*>
+  // and std::vector<t_field const*>.
+  class field_range {
+   public:
+    /* implicit */ field_range(const std::vector<t_field*>& fields) noexcept
+        : begin_(const_cast<const t_field* const*>(fields.data())),
+          end_(const_cast<const t_field* const*>(
+              fields.data() + fields.size())) {}
+    /* implicit */ field_range(
+        const std::vector<t_field const*>& fields) noexcept
+        : begin_(fields.data()), end_(fields.data() + fields.size()) {}
+    constexpr size_t size() const noexcept { return end_ - begin_; }
+    constexpr const t_field* const* begin() const noexcept { return begin_; }
+    constexpr const t_field* const* end() const noexcept { return end_; }
+
+   private:
+    const t_field* const* begin_;
+    const t_field* const* end_;
+  };
+
  public:
   mstch_base(
       std::shared_ptr<mstch_generators const> generators,
@@ -429,10 +457,8 @@ class mstch_base : public mstch::object {
         container, generators_->const_value_generator_.get(), args...);
   }
 
-  template <typename C, typename... Args>
-  mstch::array generate_fields(C const& container, Args const&... args) {
-    return generate_elements(
-        container, generators_->field_generator_.get(), args...);
+  virtual mstch::array generate_fields(const field_range& fields) {
+    return generate_elements(fields, generators_->field_generator_.get());
   }
 
   template <typename C, typename... Args>
@@ -835,8 +861,12 @@ class mstch_field : public mstch_base {
       std::shared_ptr<mstch_generators const> generators,
       std::shared_ptr<mstch_cache> cache,
       ELEMENT_POSITION pos,
-      int32_t index)
-      : mstch_base(generators, cache, pos), field_(field), index_(index) {
+      int32_t index,
+      field_generator_context const* field_context)
+      : mstch_base(generators, cache, pos),
+        field_(field),
+        index_(index),
+        field_context_(field_context) {
     register_methods(
         this,
         {
@@ -875,6 +905,7 @@ class mstch_field : public mstch_base {
  protected:
   t_field const* field_;
   int32_t index_;
+  field_generator_context const* field_context_;
 };
 
 class mstch_annotation : public mstch_base {
@@ -967,6 +998,19 @@ class mstch_struct : public mstch_base {
             {"struct:exception_safety", &mstch_struct::exception_safety},
             {"struct:exception_blame", &mstch_struct::exception_blame},
         });
+
+    // Populate field_context_generator for each field.
+    auto ctx = field_generator_context{};
+    auto fields = strct->fields();
+    for (auto it = fields.begin(); it != fields.end(); it++) {
+      const auto* field = &*it;
+      if (cpp2::field_has_isset(field)) {
+        ctx.isset_index++;
+      }
+      ctx.next = (it + 1) != fields.end() ? &*(it + 1) : nullptr;
+      context_map[field] = ctx;
+      ctx.prev = field;
+    }
   }
   mstch::node name() { return strct_->get_name(); }
   mstch::node has_fields() { return strct_->has_fields(); }
@@ -988,8 +1032,28 @@ class mstch_struct : public mstch_base {
 
   mstch::node exception_kind();
 
+  mstch::array generate_fields(const field_range& fields) override {
+    mstch::array a;
+    size_t i = 0;
+    for (const auto* field : fields) {
+      auto pos = element_position(i, fields.size());
+      a.push_back(generators_->field_generator_.get()->generate(
+          field, generators_, cache_, pos, i, &context_map[field]));
+      ++i;
+    }
+    return a;
+  }
+
  protected:
   t_struct const* strct_;
+  // Although mstch_fields can be generated from different orders than the IDL
+  // order, field_generator_context should be always computed in the IDL order,
+  // as the context does not change by reordering. Without the map, each
+  // different reordering recomputes field_generator_context, and each
+  // field takes O(N) to loop through node_list_view<t_field> or
+  // std::vector<t_field*> to find the exact t_field to compute
+  // field_generator_context.
+  std::unordered_map<t_field const*, field_generator_context> context_map;
 };
 
 class mstch_function : public mstch_base {

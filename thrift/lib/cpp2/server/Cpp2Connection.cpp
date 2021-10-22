@@ -419,9 +419,12 @@ void Cpp2Connection::requestReceived(
   folly::RequestContextScopeGuard rctx(reqCtx);
 
   auto server = worker_->getServer();
-  auto* observer = server->getObserver();
-
   server->touchRequestTimestamp();
+
+  auto* observer = server->getObserver();
+  if (observer) {
+    observer->receivedRequest(&methodName);
+  }
 
   auto injectedFailure = server->maybeInjectFailure();
   switch (injectedFailure) {
@@ -443,9 +446,8 @@ void Cpp2Connection::requestReceived(
       return;
   }
 
-  if (worker_->getServer()->getGetHeaderHandler()) {
-    worker_->getServer()->getGetHeaderHandler()(
-        hreq->getHeader(), context_.getPeerAddress());
+  if (server->getGetHeaderHandler()) {
+    server->getGetHeaderHandler()(hreq->getHeader(), context_.getPeerAddress());
   }
 
   if (auto overloadResult = server->checkOverload(
@@ -489,7 +491,7 @@ void Cpp2Connection::requestReceived(
     return;
   }
 
-  if (!worker_->getServer()->shouldHandleRequestForMethod(methodName)) {
+  if (!server->shouldHandleRequestForMethod(methodName)) {
     killRequest(
         std::move(hreq),
         TApplicationException::TApplicationExceptionType::INTERNAL_ERROR,
@@ -527,6 +529,8 @@ void Cpp2Connection::requestReceived(
     }
   });
 
+  context_.setClientType(hreq->getHeader()->getClientType());
+
   auto t2r = RequestsRegistry::makeRequest<Cpp2Request>(
       std::move(hreq),
       std::move(reqCtx),
@@ -553,7 +557,7 @@ void Cpp2Connection::requestReceived(
 
   auto reqContext = t2r->getContext();
   if (observer) {
-    observer->receivedRequest(&reqContext->getMethodName());
+    observer->admittedRequest(&reqContext->getMethodName());
   }
 
   if (differentTimeouts) {

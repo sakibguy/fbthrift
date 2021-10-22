@@ -102,13 +102,13 @@ class SomeStruct;
 // END typedefs
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
-THRIFT_IGNORE_ISSET_USE_WARNING_BEGIN
 namespace cpp2 {
 using ::apache::thrift::detail::operator!=;
 using ::apache::thrift::detail::operator>;
 using ::apache::thrift::detail::operator<=;
 using ::apache::thrift::detail::operator>=;
-
+} // cpp2
+namespace cpp2 {
 class SomeStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -151,22 +151,8 @@ class SomeStruct final  {
   ::cpp2::Metasyntactic questionable;
  private:
   ::std::set<::std::int32_t> tags;
-
- private:
-  [[deprecated("__isset field is deprecated in Thrift struct. Use _ref() accessors instead.")]]
-  struct __isset {
-    std::array<uint8_t,4> array_isset;
-    template<size_t field_index>
-    bool __fbthrift_get(folly::index_constant<field_index>) const {
-      static_assert(field_index < 4, "Isset index is out of boundary");
-      return array_isset[field_index] == 1;
-    }
-    template<size_t field_index>
-    void __fbthrift_set(folly::index_constant<field_index>, bool isset_flag) {
-      static_assert(field_index < 4, "Isset index is out of boundary");
-      array_isset[field_index] = isset_flag ? 1 : 0;
-    }
-  } __isset = {};
+private:
+  apache::thrift::detail::isset_bitset<4> __isset;
 
  public:
 
@@ -175,82 +161,82 @@ class SomeStruct final  {
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> reasonable_ref() const& {
-    return {this->reasonable, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->reasonable, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> reasonable_ref() const&& {
-    return {std::move(this->reasonable), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->reasonable), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> reasonable_ref() & {
-    return {this->reasonable, __isset.array_isset.at(folly::index_constant<0>())};
+    return {this->reasonable, __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> reasonable_ref() && {
-    return {std::move(this->reasonable), __isset.array_isset.at(folly::index_constant<0>())};
+    return {std::move(this->reasonable), __isset.__fbthrift_at(folly::index_constant<0>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> fine_ref() const& {
-    return {this->fine, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->fine, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> fine_ref() const&& {
-    return {std::move(this->fine), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->fine), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> fine_ref() & {
-    return {this->fine, __isset.array_isset.at(folly::index_constant<1>())};
+    return {this->fine, __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> fine_ref() && {
-    return {std::move(this->fine), __isset.array_isset.at(folly::index_constant<1>())};
+    return {std::move(this->fine), __isset.__fbthrift_at(folly::index_constant<1>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> questionable_ref() const& {
-    return {this->questionable, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->questionable, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> questionable_ref() const&& {
-    return {std::move(this->questionable), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->questionable), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> questionable_ref() & {
-    return {this->questionable, __isset.array_isset.at(folly::index_constant<2>())};
+    return {this->questionable, __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::cpp2::Metasyntactic>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> questionable_ref() && {
-    return {std::move(this->questionable), __isset.array_isset.at(folly::index_constant<2>())};
+    return {std::move(this->questionable), __isset.__fbthrift_at(folly::index_constant<2>())};
   }
 
   template <typename..., typename T = ::std::set<::std::int32_t>>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&> tags_ref() const& {
-    return {this->tags, __isset.array_isset.at(folly::index_constant<3>())};
+    return {this->tags, __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::set<::std::int32_t>>
   FOLLY_ERASE ::apache::thrift::field_ref<const T&&> tags_ref() const&& {
-    return {std::move(this->tags), __isset.array_isset.at(folly::index_constant<3>())};
+    return {std::move(this->tags), __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::set<::std::int32_t>>
   FOLLY_ERASE ::apache::thrift::field_ref<T&> tags_ref() & {
-    return {this->tags, __isset.array_isset.at(folly::index_constant<3>())};
+    return {this->tags, __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   template <typename..., typename T = ::std::set<::std::int32_t>>
   FOLLY_ERASE ::apache::thrift::field_ref<T&&> tags_ref() && {
-    return {std::move(this->tags), __isset.array_isset.at(folly::index_constant<3>())};
+    return {std::move(this->tags), __isset.__fbthrift_at(folly::index_constant<3>())};
   }
 
   ::cpp2::Metasyntactic get_reasonable() const {
@@ -259,8 +245,7 @@ class SomeStruct final  {
 
   [[deprecated("Use `FOO.reasonable_ref() = BAR;` instead of `FOO.set_reasonable(BAR);`")]]
   ::cpp2::Metasyntactic& set_reasonable(::cpp2::Metasyntactic reasonable_) {
-    reasonable = reasonable_;
-  __isset.__fbthrift_set(folly::index_constant<0>(), true);
+    reasonable_ref() = reasonable_;
     return reasonable;
   }
 
@@ -270,8 +255,7 @@ class SomeStruct final  {
 
   [[deprecated("Use `FOO.fine_ref() = BAR;` instead of `FOO.set_fine(BAR);`")]]
   ::cpp2::Metasyntactic& set_fine(::cpp2::Metasyntactic fine_) {
-    fine = fine_;
-  __isset.__fbthrift_set(folly::index_constant<1>(), true);
+    fine_ref() = fine_;
     return fine;
   }
 
@@ -281,8 +265,7 @@ class SomeStruct final  {
 
   [[deprecated("Use `FOO.questionable_ref() = BAR;` instead of `FOO.set_questionable(BAR);`")]]
   ::cpp2::Metasyntactic& set_questionable(::cpp2::Metasyntactic questionable_) {
-    questionable = questionable_;
-  __isset.__fbthrift_set(folly::index_constant<2>(), true);
+    questionable_ref() = questionable_;
     return questionable;
   }
   const ::std::set<::std::int32_t>& get_tags() const&;
@@ -291,8 +274,7 @@ class SomeStruct final  {
   template <typename T_SomeStruct_tags_struct_setter = ::std::set<::std::int32_t>>
   [[deprecated("Use `FOO.tags_ref() = BAR;` instead of `FOO.set_tags(BAR);`")]]
   ::std::set<::std::int32_t>& set_tags(T_SomeStruct_tags_struct_setter&& tags_) {
-    tags = std::forward<T_SomeStruct_tags_struct_setter>(tags_);
-    __isset.__fbthrift_set(folly::index_constant<3>(), true);
+    tags_ref() = std::forward<T_SomeStruct_tags_struct_setter>(tags_);
     return tags;
   }
 
@@ -321,4 +303,3 @@ uint32_t SomeStruct::read(Protocol_* iprot) {
 }
 
 } // cpp2
-THRIFT_IGNORE_ISSET_USE_WARNING_END
